@@ -20,11 +20,21 @@ verify_token          31 of 52 done          est. complete Nov 14
   coverage 85%   ·   3 new call sites since Sept 1   ·   6 unowned
 ```
 
-Four things on that page don't exist anywhere else today. Who owns each call site,
-derived from who actually commits to the file rather than CODEOWNERS. Which ones
-are dangerous, because they sit in files that caused incidents. Who is blocking
-whom. And when Checkout goes quiet, a ranked list of theories for why, each with
-evidence you can click.
+Two things on that page we could not find anywhere else: **who is blocking whom**,
+and **a ranked list of theories for why Checkout went quiet**, each with evidence
+you can click. Lead with those.
+
+The other two are real features and not novel ones, and it's worth knowing which is
+which before someone in the room tells us:
+
+| | Who else does it | What's different here |
+|---|---|---|
+| Ownership from commits, not CODEOWNERS | Sourcegraph infers it from recent contributors | Ours is per call site and feeds routing, not a UI hint |
+| Burndown | Sourcegraph Batch Changes charts one | Theirs counts merged PRs. Ours counts call sites in code, so it moves without anyone filing anything |
+
+Fragility is the same story. Defect prediction from file history is a twenty-year
+academic field and we are not inventing it — we're putting it next to the call site
+you're about to edit, which is where nobody has bothered to put it.
 
 ## If you consume the API
 
@@ -50,7 +60,7 @@ enough to draft one, and a flag where we aren't.
 |---|---|
 | Impact map | Every call site, file and line, across all repos |
 | Ownership | From git history, not config |
-| Fragility | Which call sites sit in code that has broken before |
+| Fragility | Which call sites sit in code that has broken before, named for what it's actually counting |
 | Order | Blocking and risky first, leaves last |
 | Burndown | Counted from the code, not from tickets |
 | Blast radius | If this file changes, what else is affected |
@@ -62,6 +72,19 @@ enough to draft one, and a flag where we aren't.
 | Coverage | What we found and what we probably missed, on every output |
 
 Coverage is not optional. It appears on every screen.
+
+### One wording rule
+
+Say what the data is. If fragility was computed from bug-fix history, the screen
+says "4 bug fixes", not "4 incidents". If a customer connects incident data, it says
+incidents.
+
+This sounds pedantic and isn't. Every public dataset we train on holds bug reports;
+none holds production incidents. An engineer who has run a platform team knows the
+difference between a bug someone filed and a page at 3am, and using the louder word
+for the quieter data is the fastest way to lose a room. The same rule is why the
+fragility score ships with its ticket IDs — so anyone can click through and see
+exactly which kind of thing it counted.
 
 ## What we don't do
 
