@@ -128,10 +128,20 @@ a known endpoint.
 `Meta.index_together` looks like the better pick — it's the one that sounds widely
 used — and it is the trap. Its removal commit is 1,349 lines, of which 84.4% is
 deleted tests and 10.5% is the implementation machinery itself
-(`options.py`, `autodetector.py`, `schema.py`). Its actual call sites are
-`class Meta: index_together = [...]` declarations in *user* models, which do not
-live in Django at all. Measuring parser recall against it would measure our ability
-to find deleted test fixtures.
+(`options.py`, `autodetector.py`, `schema.py`).
+
+Django does contain references to it — 208 across 15 files just before removal — but
+they are the wrong kind. 136 are in `tests/`, and the 72 in `django/` are the code
+that *implements* the feature, not code that calls it. The consumer call sites are
+`class Meta: index_together = [...]` declarations, and those overwhelmingly live in
+other people's models. Measuring parser recall here would measure our ability to
+find deleted test fixtures.
+
+One measured detail worth not over-reading: the reference count *grew* across the
+deprecation window, 195 before deprecation to 208 before removal. That is not users
+adding new calls — it is Django adding the scaffolding that deprecating something
+properly requires. It's a useful reminder that a raw reference count over time is
+not a burndown, which is why `detection` and `status` exist on the map.
 
 That makes `index_together` the wrong week-5 benchmark and the right week-9 one, as
 soon as we have the cross-repo corpus below. It is a real migration whose call sites
