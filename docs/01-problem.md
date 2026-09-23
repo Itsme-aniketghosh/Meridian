@@ -59,8 +59,19 @@ Access is trivial. The external version means convincing Stripe to scan your
 codebase, or convincing you to trust a third party. Internally, the company already
 owns every repo, commit, and ticket.
 
-Nobody will ever write an OpenRewrite recipe for your private auth client, which is
-why existing migration tools don't help here.
+The honest version of the tooling gap: OpenRewrite exists, and it came out of
+exactly the Netflix story above — a central team automating the migration of a
+*private, internal* library. So "tools can't do internal APIs" is false, and we
+shouldn't say it.
+
+What's true is narrower. Someone has to write the recipe, nobody in the community
+will write one for your auth client, and the teams who'd benefit are the ones
+without a platform group to spend a week on it. OpenRewrite is also strongest in
+Java and much thinner in Python, which is where we're measuring.
+
+And a recipe rewrites code. It doesn't tell you who owns each call site, which ones
+are dangerous, who is blocking whom, or why Checkout stopped three weeks ago. That's
+the gap — not transformation, but everything around deciding whether to run it.
 
 ## Where we start, and where this goes
 

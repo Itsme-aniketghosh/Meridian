@@ -17,6 +17,7 @@ so we can answer what was true last Tuesday.
 | [03](docs/03-data.md) | Data | Sources, schema, how we test and train |
 | [04](docs/04-architecture.md) | Architecture | Master diagram, plus one call site end to end |
 | [05](docs/05-agents.md) | Agents | Workers and auditors |
+| [06](docs/06-feasibility.md) | Feasibility | What's proven, what's unproven, what can't be done |
 
 Older drafts and the build plan are in [docs/archive/](docs/archive/).
 

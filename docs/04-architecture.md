@@ -14,7 +14,8 @@
 └────────────────────────────────────────────────────────────────────┘
                                   ▼
 ┌─ STEP 2  ·  EXTRACT ───────────────────────────────────────────────┐
-│ tree-sitter AST  ->  call sites: file, line, symbol, shape         │
+│ tree-sitter      ->  candidates: file, line, symbol, shape         │
+│ resolver         ->  confirms the binding. unresolved = lower conf │
 │ blame + log      ->  commit share per file, per person             │
 │ SZZ              ->  ticket -> fix commit -> causing commit        │
 └────────────────────────────────────────────────────────────────────┘
@@ -65,7 +66,11 @@ get an extractor wrong in week 6 we can re-derive week 2 instead of losing it.
 
 **2. Extract.** Three extractors run independently.
 
-- tree-sitter walks the AST and finds `self.auth.verify_token(tok)` at line 214
+- tree-sitter walks the AST and finds the candidate `self.auth.verify_token(tok)` at
+  line 214. Tree-sitter stops there — it is a syntax parser and does not know what
+  `self.auth` is. A resolver then confirms `self.auth` is an `AuthClient`, which is
+  what promotes this from a name that looks right to a call site we'll stake a
+  burndown on
 - blame on `pricing.py` says `r.mehta` has 62% of recent commits, `s.liu` has 21%
 - SZZ walks from ticket INC-4471 to the commit that fixed it, back to the commit
   that caused it, which touched `pricing.py`. That's the fourth time this year
@@ -78,7 +83,7 @@ They don't talk to each other. A failure in one doesn't corrupt the others.
 call_site_id   cs_8812
 file, line     cart/pricing.py:214
 symbol         AuthClient.verify_token
-detection      ast          confidence 0.97
+detection      ast_resolved confidence 0.97
 owner_team     checkout     (r.mehta, 62% commit share)
 fragility      0.81         (INC-4471, INC-4102, INC-3988, INC-3771)
 status         present
@@ -146,7 +151,10 @@ Billing alert goes up on day one.
 
 **Never edit a row, only add.** The history is the product.
 
-**Every number has a source.** Four incidents means four ticket IDs.
+**Every number has a source, named for what it is.** Four incidents means four
+ticket IDs from an incident tracker. If the tickets are bug reports — which is all
+any public dataset gives us, and so all the demo has — the screen says four bug
+fixes. The walkthrough above is a customer with a real incident tracker.
 
 **Always report what we missed**, and keep measured recall separate from estimated
 coverage.
