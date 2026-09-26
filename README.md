@@ -1,35 +1,33 @@
 # Meridian
 
-Internal API migrations get announced, ticketed, and then never finish. Meridian
-finds every call site, says who owns it, says which ones are dangerous, and explains
-why a team has stopped.
+Internal API migrations get announced, ticketed, and never finish. Meridian joins
+code, git history, and Jira to show every call site, its owner, its risk, the hidden
+cross-team chains between tickets, and why work stalled.
 
-It works by joining three things that live in every company and never get joined:
-the code, the git history, and the tickets. That join is kept dated and append-only,
-so we can answer what was true last Tuesday.
+- Code is the source of truth. Jira is the plan
+- The map is dated and append-only, so we can answer what was true last Tuesday
+- Deterministic: same snapshot + same config = same output
 
-## Read in order
+## Docs
 
 | | | |
 |---|---|---|
-| [01](docs/01-problem.md) | Problem | Why migrations don't finish, and why now |
-| [02](docs/02-product.md) | Product | What a user actually sees |
-| [03](docs/03-data.md) | Data | Sources, schema, how we test and train |
-| [04](docs/04-architecture.md) | Architecture | Master diagram, plus one call site end to end |
-| [05](docs/05-agents.md) | Agents | Workers and auditors |
-| [06](docs/06-feasibility.md) | Feasibility | What's proven, what's unproven, what can't be done |
+| [01](docs/01-problem.md) | Problem | Why migrations don't finish |
+| [02](docs/02-product.md) | Product | What each user sees |
+| [03](docs/03-data.md) | Data | Sources, datasets, measured facts, schema |
+| [04](docs/04-architecture.md) | Architecture | The pipeline, stage by stage, with exact rules |
+| [05](docs/05-test.md) | Test | How each component is tested, pass bars, week-1 checks |
+| [06](docs/06-dead-ideas.md) | Dead ideas | What we rejected and why |
 
-Older drafts and the build plan are in [docs/archive/](docs/archive/).
+Older drafts: [docs/archive/](docs/archive/).
 
-## Scope right now
+## Scope
 
-We suggest changes. We don't apply them, open PRs, or merge anything.
+- We suggest. We don't apply changes, open PRs, merge, or file or edit tickets
+- Success = suggestions get used and the burndown moves
+- Later: make the changes ourselves (self-maintaining APIs), once the evidence supports it
 
-The thing we're measuring is whether the suggestions get used and whether the
-burndown moves. Applying changes ourselves is where this goes later, once the
-evidence says the suggestions are good enough.
+## Rules
 
-## Two rules
-
-If a number isn't in the map, it doesn't appear in the output. And we always report
-what we missed.
+- Not in the map, not in the output
+- Always report what we missed

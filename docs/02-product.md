@@ -1,110 +1,123 @@
-# What the user gets
+# Product
 
-Two people open this product and they want different things. Same map underneath,
-different filter.
+One map, three views.
 
-## If you own the API
+## Staff engineer: cross-team view
 
-You announced the deprecation and you need to know if it's going to land.
+```
+verify_token        184 open tickets     212 call sites remaining in code
 
-You get one page:
+  Hidden chains     11    Jira links 3 of them
+  Collisions         4    two open tickets editing the same function
+  Duplicates         2    same call sites, two tickets
+  Untracked work    28    call sites no ticket covers
+  Vague             19    failed a ticket check  ──>  suggested rewrites
+
+  link coverage 71%   ·   19 tickets unmapped   ·   3 teams not connected
+```
+
+For each cross-team ticket, a suggested solution:
+
+- **What connects the teams:** `shared/client.py:88`, Platform-owned, still on the old path
+- **Order:** PLAT-2291 first, then Checkout's 6 dependent call sites
+- **Who:** the owner of each piece, by commit share
+- **Change:** a diff where it matches prior migrations, otherwise a flag
+- **Risk:** bug-fix count, with ticket IDs
+- **Done when:** the listed call sites show `removed` in the map
+- **Workarounds** (e.g. an adapter in the shared client) are labelled hypotheses
+
+Internally this is the "super engineer". The screen never says so.
+
+**Legacy radar:** legacy code worth migrating that nobody has filed yet, such as
+deprecated symbols with live callers or old high-fan-in files. Accept or reject each
+one. Those clicks, plus "what unblocked this?" when a stall ends, train the auditor
+policies (04, section 9).
+
+## API owner
 
 ```
 verify_token          31 of 52 done          est. complete Nov 14
 
   Payments        9 left     moving       3 risky
   Fulfillment     7 left     blocked      waiting on Checkout
-  Checkout        5 left     STALLED      19 days  ──> 3 theories
+  Checkout        5 left     STALLED      19 days  ──> 3 possible reasons
   Search          0 left     done
 
   coverage 85%   ·   3 new call sites since Sept 1   ·   6 unowned
 ```
 
-Two things on that page we could not find anywhere else: **who is blocking whom**,
-and **a ranked list of theories for why Checkout went quiet**, each with evidence
-you can click. Lead with those.
+What's new here: who is blocking whom, and ranked possible reasons for a stall, each
+with evidence.
 
-The other two are real features and not novel ones, and it's worth knowing which is
-which before someone in the room tells us:
-
-| | Who else does it | What's different here |
-|---|---|---|
-| Ownership from commits, not CODEOWNERS | Sourcegraph infers it from recent contributors | Ours is per call site and feeds routing, not a UI hint |
-| Burndown | Sourcegraph Batch Changes charts one | Theirs counts merged PRs. Ours counts call sites in code, so it moves without anyone filing anything |
-
-Fragility is the same story. Defect prediction from file history is a twenty-year
-academic field and we are not inventing it — we're putting it next to the call site
-you're about to edit, which is where nobody has bothered to put it.
-
-## If you consume the API
-
-You didn't ask for this work and you want it off your plate.
-
-You get a brief:
+## API consumer
 
 > **Checkout, 9 call sites remaining.**
-> Three sit in `cart/pricing.py`, which appeared in 4 incidents this year. Pair
-> with a reviewer.
-> Two are blocked: `order/submit.py` routes through `shared/client.py`, which
-> Platform hasn't migrated yet.
-> Four are one-line swaps. Diffs below, based on how Platform migrated their own
-> call sites in `a3f21c9` and `7b40e18`.
-> You are currently blocking Fulfillment.
+> - 3 in `cart/pricing.py`, 4 bug fixes this year. Pair with a reviewer
+> - 2 blocked: `order/submit.py` gets its client from `shared/client.py`, which
+>   Platform hasn't migrated
+> - 4 one-line swaps, diffs below, matching Platform's `a3f21c9` and `7b40e18`
+> - You are blocking Fulfillment
 
-Your nine, not all 52. Sorted by what to do first. With diffs where we're confident
-enough to draft one, and a flag where we aren't.
+## Ticket tools
 
-## What's underneath
+- **Ticket manager:** flags vague tickets, shows which check failed, and suggests a
+  rewrite using only facts from the map. It asks about anything the map can't know
+- **Ticket maker:** drafts tickets for work the map has and Jira doesn't. One per team
+  per wave, with depends-on links filled in
+- **Intake:** Slack, support tools, and GitHub issues are grouped, mapped to code by
+  stack trace or error string, and turned into draft tickets
+
+> **Before:** CHK-311: Fix auth stuff in checkout *(no description)*
+>
+> **Suggested:** CHK-311: Migrate `cart/` off `AuthClient.verify_token`
+> - Call sites: `cart/pricing.py:214`, `:231`, `cart/totals.py:57`
+> - Owner: checkout (r.mehta, 62% commit share)
+> - Depends on PLAT-2291
+> - Done when: all three show `removed`
+> - Question: two calls sit inside `except AuthError`. Keep the same handling?
+
+## Features
 
 | | |
 |---|---|
 | Impact map | Every call site, file and line, across all repos |
-| Ownership | From git history, not config |
-| Fragility | Which call sites sit in code that has broken before, named for what it's actually counting |
-| Order | Blocking and risky first, leaves last |
-| Burndown | Counted from the code, not from tickets |
-| Blast radius | If this file changes, what else is affected |
-| Stall detection | Checkout hasn't moved in 19 days |
-| Stall diagnosis | Ranked theories for why, with evidence |
-| Ticket sync | What Jira claims versus what the code says |
-| Drift alarm | New call sites appearing after the freeze |
-| Suggested diff | Drafted only where it matches your own prior migrations |
-| Coverage | What we found and what we probably missed, on every output |
+| Ownership | From git history, not CODEOWNERS |
+| Fragility | Bug fixes on the file, with ticket IDs |
+| Order | Blocking and risky call sites first |
+| Burndown | Counted from code, not tickets |
+| Blast radius | What else a change reaches |
+| Stalls | Detected, with ranked possible reasons |
+| Ticket sync | Jira's status vs the code's |
+| Ticket chains | Dependencies in code that Jira doesn't record |
+| Ticket manager and maker | Flags, rewrites, drafts |
+| Drift alarm | New call sites after the freeze |
+| Suggested diff | Only where it matches your own prior migrations |
+| Coverage | What we found and what we missed, on every screen |
 
-Coverage is not optional. It appears on every screen.
+## Wording rule
 
-### One wording rule
+- Name what the data counts: "4 bug fixes" unless incident data is connected
+- Every fragility figure ships with its ticket IDs
 
-Say what the data is. If fragility was computed from bug-fix history, the screen
-says "4 bug fixes", not "4 incidents". If a customer connects incident data, it says
-incidents.
+## Who else does parts of this
 
-This sounds pedantic and isn't. Every public dataset we train on holds bug reports;
-none holds production incidents. An engineer who has run a platform team knows the
-difference between a bug someone filed and a page at 3am, and using the louder word
-for the quieter data is the fastest way to lose a room. The same rule is why the
-fragility score ships with its ticket IDs — so anyone can click through and see
-exactly which kind of thing it counted.
+| | Others | Ours |
+|---|---|---|
+| Ownership from commits | Sourcegraph | Per call site, and used for routing |
+| Burndown | Sourcegraph Batch Changes, counting merged PRs | Counts call sites in code |
+| Fragility | 20 years of defect-prediction research | Shown at the call site |
+| Ticket rewriting | Jira's AI, Linear | Adds code facts, not prose |
+| Duplicate detection | Linear, Jira plugins | Compares call sites, not text |
+| Feedback clustering | Productboard, Enterpret, Unwrap | Maps to code and owners |
+| Hidden cross-team dependencies | Not checked yet | Lead with it if nobody does it |
 
-## What we don't do
+Recheck this before any pitch.
 
-We suggest changes. We don't apply them, we don't open PRs, and we don't merge
-anything. Every diff is something a human chooses to use.
+## Success metrics
 
-We're not trying to be right about that forever. We're trying to earn it, and the
-way to earn it is to find out whether the suggestions are any good first.
-
-## How we'll know it's working
-
-One question decides everything: does the work actually move?
-
-- **Do people use the diffs?** Every suggestion ends up applied clean, applied with
-  edits, or ignored. That number is the product working or not working, and it
-  costs nothing to collect
-- **Does the burndown move faster after we show up?** Compare the rate before and
-  after for the same migration
-- **Do consuming teams open it twice?** A tool you read once is a report
-- **Are the theories right?** When a stall breaks, we recorded a prediction. Check it
-
-If suggestions get ignored and the burndown looks the same, we built a dashboard.
-Better to find that out in week 8 than to add features on top of it.
+- Diffs: applied clean, applied with edits, or ignored
+- Drafted tickets: filed unchanged, filed with edits, or ignored
+- Burndown rate before and after we show up, for the same migration
+- Consuming teams come back a second time
+- Stall reasons and suggested order checked against what actually happened, with N
+- Suggestions ignored and burndown flat = we built a dashboard. Know by week 8
