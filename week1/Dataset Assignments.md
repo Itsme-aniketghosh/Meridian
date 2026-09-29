@@ -5,9 +5,9 @@
 
 | Pair | Repos you touch | Nobody else touches these |
 |---|---|---|
-| **1** | `django/django` only | The Django framework itself |
-| **2** | `apache/spark` + Apache Jira | Spark and all ticket data |
-| **3** | 20 **third-party** packages that *use* Django, plus Defects4J | Other people's libraries, not Django |
+| **1(Rochan + Rachna)** | `django/django` only | The Django framework itself | 
+| **2(Chaitali + Utkarsh)** | `apache/spark` + Apache Jira | Spark and all ticket data | 
+| **3(Aniket + Vishwa)** | 20 **third-party** packages that *use* Django, plus Defects4J | Other people's libraries, not Django | 
 
 **The Django split, so it's clear:**
 
