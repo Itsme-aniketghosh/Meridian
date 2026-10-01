@@ -12,6 +12,18 @@
 
 Details and scripts: [pair3/README.md](pair3/README.md).
 
+## TL;DR (Pair 2)
+
+**Can we use it?** Yes. Spark + Jira is our Jira half, ready to build on. It can't prove stalls or cross-team blocks.
+
+- **The ticket join works.** 94% of commits name their ticket, and 50/50 hand-checked links are correct. Only 3 keys in all of history point to missing tickets.
+- **Fragility is real.** Files with 3+ bug fixes in a year are 1.5% of files but get 17% of next year's fixes (11.7x).
+- **Ticket history is complete.** We can rebuild any ticket's status at any past date, so P3 and P5 are testable.
+- **Ownership is weak.** Our owner rule beats "last toucher" only 20% vs 18%. Identities need merging (15% of emails are duplicates).
+- **No stalls or blocks to find.** 45% of tickets get their first commit within a day of filing, and only 2% have a block link.
+
+Details and scripts: [pair2/README.md](pair2/README.md).
+
 ---
 
 ## Who owns what. No overlap.
@@ -106,7 +118,7 @@ Apache Spark is good for this because their rule is that every commit message mu
 **1. Linkage.** Look at the last 1,000 commits. How many have a `SPARK-1234` style ID in the message?
 > *Why: this is the bridge. If it's low, the whole thing doesn't work. We expect around 95%.*
 
-> **Answer (Pair 2):** **94.0%** of the last 1,000 (96–97% per year since 2021, 0% before 2014). The rest are almost all `[MINOR]`, some of them real fixes. 50/50 hand-checked links point to the right ticket. Details: [PAIR2-REVIEW.md](PAIR2-REVIEW.md).
+> **Answer (Pair 2):** **94.0%** of the last 1,000 (96–97% per year since 2021, 0% before 2014). The rest are almost all `[MINOR]`, some of them real fixes. 50/50 hand-checked links point to the right ticket. Details: [pair2/README.md](pair2/README.md#spark-git).
 
 **2. Usable tickets.** Of those tickets, how many are actually type **Bug** and resolution **Fixed**?
 > *Why: an "Improvement" isn't a bug. A "Won't Fix" never got fixed. Only Bug + Fixed teaches us anything. This number could be a lot smaller than question 1.*
@@ -122,7 +134,7 @@ Apache Spark is good for this because their rule is that every commit message mu
 **4. Bots.** How many commits are from bots like `dependabot` or `github-actions`?
 > *Why: bots touch hundreds of files. They'd look like the biggest owner in the repo.*
 
-> **Answer (Pair 2):** **~0.** Spark's merge script keeps the human as author. 2 commits by an AI agent ("Claude"). The real trap: committer = merger, so use author. 13% of recent commits have `Co-authored-by`.
+> **Answer (Pair 2):** **~0.** Spark's merge script keeps the human as author. 2 commits by an AI agent. The real trap: committer = merger, so use author. 13% of recent commits have `Co-authored-by`.
 
 **5. Pulling tickets.** How long does it take to download all the Jira tickets? Any rate limits?
 
