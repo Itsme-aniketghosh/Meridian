@@ -1,0 +1,42 @@
+# Data never goes in git. Keep it local, or in GCS.
+
+# Data folders, at any depth
+data/
+repos/
+results/
+snapshots/
+
+# Data files, anywhere
+*.sqlite
+*.sqlite3
+*.db
+*.parquet
+*.csv
+*.tsv
+*.jsonl
+*.ndjson
+*.json.gz
+*.gz
+*.zip
+*.tar
+*.tgz
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.h5
+*.arrow
+*.feather
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
