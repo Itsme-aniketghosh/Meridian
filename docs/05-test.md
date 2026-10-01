@@ -150,6 +150,23 @@
 - Personal-data fixture (emails, tokens) → nothing stored
 - Pass: personal data 100%
 
+**Push check**
+
+All on replayed history. Each first-parent commit is replayed as a push against the
+map at its parent. No new data needed except the fixture repo.
+
+| Test | Data | Pass |
+|---|---|---|
+| Equivalence: push output = full map at C minus full map at C^, for the scope | Django, 500 commits | 0 differences |
+| P1 drift: alerts vs commits that add `ugettext*` after its deprecation (independent: `git log -S`) | Django | Recall 100%, precision ≥ 0.95 |
+| P3 collision: alerts vs ticket pairs whose fix commits touched the same function within 30 days | Spark + Jira | Report precision and recall, hand-check 50 |
+| P5 ticket can move: alerts vs the ticket being resolved within 14 days | Spark + Jira | Report, with N |
+| P8 bad key: keys vs the Jira snapshot | Spark | 100% on fixtures |
+| P9 defect risk: SZZ labels, train before 2025, test on 2025 | Spark, Defects4J sanity | Beats lines × files, or that ships |
+| Fixture repo: one scripted push per check, plus a 201-file push | Generated, about 20 pushes, no LLM | Each fires exactly on its spec |
+| Noise: alerts per push | Django and Spark replay | Median ≤ 1. Hand-check 50, precision ≥ 0.80 |
+| Runtime on a free runner | Django | p95 ≤ 5 min |
+
 **Views**
 - Snapshot tests from a frozen DB
 - Automated check that every on-screen number has a row reference
@@ -175,4 +192,6 @@
 | Time to hand-verify the 279 | Whether the week-4 freeze holds |
 | Count collision and dependency pairs in Spark history | Whether chains can be tested before a customer |
 | Bulk-closed share of Spark Duplicates | Whether the duplicate labels are usable |
+| Replay 50 Django commits as pushes, time each | Whether the push check fits a free runner |
+| Can the Jira snapshot answer "open at time t" from created and resolved dates? | Whether P3 and P5 can be tested on Spark |
 | Matches per month expected from the Django replay (stalls plus nominations) vs the number the simulation needs | Whether Elo can move within 10 weeks, or learning starts with explore only |

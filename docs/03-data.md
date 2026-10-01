@@ -105,6 +105,11 @@ policy_id (code hash)  job (stall | explore)  version  author (human | llm-propo
 match_id  task_id  policy_a  policy_b  result (1 | 0.5 | 0)  verdict_source (rule | human | replay)  decided_by  decided_at
 ```
 
+**push_alert**
+```
+push_sha  base_run_id  check (P1–P9)  target (call_site_id | file | ticket_id)  evidence[]  outcome (fixed | dismissed | ignored)
+```
+
 ## Hard parts
 
 - Git, Jira, and the parser share no key
