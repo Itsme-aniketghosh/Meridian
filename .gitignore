@@ -28,6 +28,9 @@ snapshots/
 *.arrow
 *.feather
 
+# Exceptions: small hand-made evidence files, not data
+!week1/pair2/merged/links_hand_check_50.csv
+
 # OS / editor junk
 .DS_Store
 Thumbs.db

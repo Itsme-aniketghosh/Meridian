@@ -5,9 +5,13 @@ that edit the same function. Function = git's hunk header, with a Scala funcname
 configured in .git/info/attributes. Also reported: same file only, and pairs whose tickets
 were open at the same time (created before the other resolved), which is what P3 fires on.
 
-Needs jira/results/jira_rows.json from jira/analyze.py and a full (not blobless) clone in spark/repos/.
+Needs merged/data/spark_jira.sqlite from merged/build.py (tickets as of the snapshot) and a full
+(not blobless) clone in spark/repos/.
+
+Side effect: writes .git/info/attributes and a diff.scala.xfuncname config into the Spark clone,
+so git can name Scala functions in hunk headers. It touches nothing outside spark/repos/.
 """
-import collections, json, re, subprocess, sys
+import collections, json, re, sqlite3, subprocess, sys
 from datetime import date
 from pathlib import Path
 
@@ -30,6 +34,7 @@ def git(*a):
 
 def commits():
     (REPO / ".git" / "info").mkdir(exist_ok=True)
+    # writes into the Spark clone (not our repo): per-language funcname drivers for hunk headers
     (REPO / ".git" / "info" / "attributes").write_text(ATTR)
     git("config", "diff.scala.xfuncname", SCALA_FN)
     out = git("log", "--first-parent", f"--since={SINCE}", "-p", "-U0", "--no-renames",
@@ -59,7 +64,9 @@ def commits():
 
 def main():
     (HERE / "results").mkdir(exist_ok=True)
-    tix = {r["key"]: r for r in json.load(open(HERE.parent / "jira" / "results" / "jira_rows.json"))}
+    db = sqlite3.connect(HERE.parent / "merged" / "data" / "spark_jira.sqlite")
+    tix = {k: {"type": t, "res": r, "created": c, "resolved": d} for k, t, r, c, d in
+           db.execute("select key, type, resolution, created_at, resolved_at from tickets")}
     fixes = []
     n = 0
     for c in commits():

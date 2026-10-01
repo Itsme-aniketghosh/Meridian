@@ -18,6 +18,11 @@ Views
   bug_fix_commits        commits linked to a Bug+Fixed ticket (sub-tasks take the parent's type)
 
 Same inputs -> same rows: inserts are sorted, IDs are derived from content.
+
+Snapshot: everything is as of SNAPSHOT_AT, the commit time of SPARK_SHA. Jira is pulled later
+than that, so tickets created after it are dropped, history after it is dropped, and status /
+resolution are rolled back to their value at SNAPSHOT_AT. A rerun next month gives the same rows
+for those fields. Other fields (type, component, labels, links, summary) are as of the pull.
 """
 import collections, gzip, json, re, sqlite3, subprocess, time
 from pathlib import Path
@@ -26,6 +31,7 @@ HERE = Path(__file__).parent
 PAIR2 = HERE.parent
 REPO = PAIR2 / "spark" / "repos" / "apache_spark"
 SPARK_SHA = "f868de6914d0e6ede86309648614bb436b2b82e6"  # snapshot used in pair2/README.md
+SNAPSHOT_AT = "2026-10-01T01:23:03"  # UTC, = SPARK_SHA's commit time. Jira is cut here too
 RAW = PAIR2 / "jira" / "data" / "raw"
 OUT = HERE / "data" / "spark_jira.sqlite"
 
@@ -142,23 +148,36 @@ def read_jira():
     return uniq
 
 
+def utc(jira_ts):
+    """Jira times look like 2026-10-01T03:12:22.000+0000. Apache Jira always returns +0000."""
+    assert jira_ts.endswith("+0000"), jira_ts
+    return jira_ts[:19]
+
+
 def ticket_rows(issues):
+    issues = [it for it in issues if utc(it["fields"]["created"]) <= SNAPSHOT_AT]
     by_key = {it["key"]: it for it in issues}
-    last_res = {}
+    last_res, at_snapshot, last_resolved = {}, {}, {}
     history, links = [], []
     for it in issues:
-        for h in (it.get("changelog") or {}).get("histories", []):
+        for h in sorted((it.get("changelog") or {}).get("histories", []), key=lambda h: h["created"]):
             who = (h.get("author") or {}).get("name")
             for i in h["items"]:
-                if i["field"] in ("status", "resolution"):
-                    history.append((it["key"], h["created"], i["field"], i.get("fromString"), i.get("toString"), who))
-                    if i["field"] == "resolution" and i.get("toString"):
-                        last_res[it["key"]] = (who, h["created"][:13])
+                if i["field"] not in ("status", "resolution"):
+                    continue
+                if utc(h["created"]) > SNAPSHOT_AT:
+                    # first change after the snapshot: its "from" side is the value at the snapshot
+                    at_snapshot.setdefault((it["key"], i["field"]), i.get("fromString"))
+                    continue
+                history.append((it["key"], h["created"], i["field"], i.get("fromString"), i.get("toString"), who))
+                if i["field"] == "resolution" and i.get("toString"):
+                    last_res[it["key"]] = (who, h["created"][:13])
+                    last_resolved[it["key"]] = h["created"]
         for l in it["fields"].get("issuelinks", []):
-            if "outwardIssue" in l:
-                links.append((it["key"], l["type"]["name"], "out", l["outwardIssue"]["key"]))
-            if "inwardIssue" in l:
-                links.append((it["key"], l["type"]["name"], "in", l["inwardIssue"]["key"]))
+            for side, d in (("outwardIssue", "out"), ("inwardIssue", "in")):
+                # drop links to SPARK tickets created after the snapshot; keep links to other projects
+                if side in l and (l[side]["key"] in by_key or not l[side]["key"].startswith("SPARK-")):
+                    links.append((it["key"], l["type"]["name"], d, l[side]["key"]))
     batch = collections.Counter(last_res.values())
     rows = []
     for it in issues:
@@ -168,10 +187,17 @@ def ticket_rows(issues):
         comps = sorted(c["name"] for c in f.get("components") or [])
         labels = sorted(f.get("labels") or [])
         bulk = "bulk-closed" in labels or batch.get(last_res.get(it["key"]), 0) >= BULK
+        status = at_snapshot.get((it["key"], "status"), f["status"]["name"])
+        res = at_snapshot.get((it["key"], "resolution"), (f["resolution"] or {}).get("name"))
+        resolved = f.get("resolutiondate")
+        if res is None:
+            resolved = None
+        elif resolved and utc(resolved) > SNAPSHOT_AT:  # re-resolved after the snapshot
+            resolved = last_resolved.get(it["key"])
         rows.append((it["key"], int(it["key"].split("-")[1]), f["issuetype"]["name"], int(f["issuetype"]["subtask"]),
                      par, ptype, ptype if f["issuetype"]["subtask"] and ptype else f["issuetype"]["name"],
-                     f["status"]["name"], (f["resolution"] or {}).get("name"), (f.get("priority") or {}).get("name"),
-                     f["created"], f.get("resolutiondate"), comps[0] if comps else None, ",".join(comps),
+                     status, res, (f.get("priority") or {}).get("name"),
+                     f["created"], resolved, comps[0] if comps else None, ",".join(comps),
                      (f.get("assignee") or {}).get("name"), (f.get("reporter") or {}).get("name"),
                      ",".join(labels), int(bulk), int(not (f.get("description") or "").strip()), f.get("summary")))
     return sorted(rows), sorted(history), sorted(set(links))
@@ -231,8 +257,8 @@ def main():
     pages = sorted(RAW.glob("page_*.json.gz"))
     db.executemany("INSERT INTO meta VALUES (?,?)", sorted({
         "repo_head": commits[-1]["sha"], "repo_head_at": commits[-1]["c_at"],
-        "jira_tickets": str(len(issues)), "jira_pages": str(len(pages)),
-        "jira_pulled_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(pages[-1].stat().st_mtime)),
+        "snapshot_at": SNAPSHOT_AT + "Z", "jira_tickets_pulled": str(len(issues)),
+        "jira_tickets_in_snapshot": str(len(tickets)), "jira_pages": str(len(pages)),
         "dead_keys": str(dead), "bulk_rule": f"label bulk-closed OR >= {BULK} resolutions by one person in one hour",
     }.items()))
     db.commit()

@@ -2,6 +2,8 @@
 
 Pages are ORDER BY key ASC, so tickets created mid-pull land at the end and paging stays stable.
 Re-running resumes: pages already on disk are skipped. Timing and failures go to pull_log.jsonl.
+Jira is pulled as it is today. merged/build.py cuts it back to SNAPSHOT_AT, so a later pull
+gives the same status / resolution numbers. The pull must start after SNAPSHOT_AT.
 """
 import gzip, json, subprocess, sys, time, urllib.parse
 from pathlib import Path

@@ -26,17 +26,23 @@ def fixes(a, b):
         if src(path):
             c[path] += 1
     return c
-prev, nxt = fixes("2024-10-01", "2025-10-01"), fixes("2025-10-01", "2026-10-01")
-live = {p for (p,) in q("select distinct path from commit_files f join commits c using(sha) where c.authored_at >= '2024-10-01'") if src(p)}
-risky = {p for p, n in prev.items() if n >= 3}
+CUT = "2025-10-01"
+prev, nxt_all = fixes("2024-10-01", CUT), fixes(CUT, "2026-10-01")
+# population: source files that existed before the cutoff (changed at least once in the year before it).
+# Files created after the cutoff can't be scored, so they're left out of both the count and next year's fixes.
+live = {p for (p,) in q("""select distinct path from commit_files f join commits c using(sha)
+                           where c.authored_at >= '2024-10-01' and c.authored_at < ?""", CUT) if src(p)}
+nxt = collections.Counter({p: n for p, n in nxt_all.items() if p in live})
+risky = {p for p, n in prev.items() if n >= 3 and p in live}
 nf = sum(nxt.values())
 in_risky = sum(n for p, n in nxt.items() if p in risky)
-print(f"[fragility] source files touched in 2 yrs {len(live)}, risky (>=3 fixes in prior year) {len(risky)} "
-      f"({100*len(risky)/len(live):.1f}%) -> receive {100*in_risky/nf:.0f}% of next year's {nf} file-fixes "
-      f"(lift {in_risky/nf/(len(risky)/len(live)):.1f}x)")
+print(f"[fragility] source files existing before {CUT}: {len(live)}, risky (>=3 fixes in prior year) {len(risky)} "
+      f"({100*len(risky)/len(live):.1f}%) -> receive {100*in_risky/nf:.0f}% of next year's {nf} file-fixes on them "
+      f"(lift {in_risky/nf/(len(risky)/len(live)):.1f}x)  [excluded: {sum(nxt_all.values()) - nf} fixes to newer files]")
 hit = sum(1 for p in risky if nxt[p] > 0)
 print(f"            risky files fixed again next year: {hit}/{len(risky)} ({100*hit/len(risky):.0f}%), "
-      f"non-risky files fixed next year: {100*sum(1 for p in live - risky if nxt[p])/len(live - risky):.0f}%")
+      f"non-risky files fixed next year: {100*sum(1 for p in live - risky if nxt[p])/len(live - risky):.0f}% "
+      f"(N={len(live - risky)})")
 
 # 3. ownership (180 days, top author share >= 0.30 else unowned), merged people vs raw email; predict next author
 def owners(cut, key):
