@@ -1,0 +1,4 @@
+# Small deliverables (labels, results, bug lists) are not bulk data: keep them in git.
+# The cloned repos (django-packages/repos/) stay ignored by the root rule.
+!*.csv
+!defects4j/results/

@@ -26,7 +26,7 @@ for key, truth in sorted(labels.items()):
                  "fonte_bic": truth, "steps": j.get("steps", ""), "secs": j.get("secs", "")})
 
 if rows:
-    w = csv.DictWriter(open("bisect_vs_fonte.csv", "w", newline=""), fieldnames=list(rows[0]))
+    w = csv.DictWriter(open("results/bisect_vs_fonte.csv", "w", newline=""), fieldnames=list(rows[0]))
     w.writeheader(); w.writerows(rows)
 done = sum(status.values())
 found = status["found_match"] + status["found_mismatch"]
