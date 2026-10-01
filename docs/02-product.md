@@ -58,6 +58,16 @@ with evidence.
 > - 4 one-line swaps, diffs below, matching Platform's `a3f21c9` and `7b40e18`
 > - You are blocking Fulfillment
 
+## Developer: on every push
+
+```
+Meridian · 3 notes · nothing blocks this merge
+
+  P1  cart/totals.py:88     new call to AuthClient.verify_token (being removed)
+  P3  shared/client.py:40   CHK-311 (Checkout, open) edits this function too
+  P5  CHK-298               last call site removed. Ticket can move to Done
+```
+
 ## Ticket tools
 
 - **Ticket manager:** flags vague tickets, shows which check failed, and suggests a
@@ -91,6 +101,7 @@ with evidence.
 | Ticket chains | Dependencies in code that Jira doesn't record |
 | Ticket manager and maker | Flags, rewrites, drafts |
 | Drift alarm | New call sites after the freeze |
+| Push check | Drift, collisions, new blocks, ticket moves, on every push |
 | Suggested diff | Only where it matches your own prior migrations |
 | Coverage | What we found and what we missed, on every screen |
 
@@ -121,3 +132,22 @@ Recheck this before any pitch.
 - Consuming teams come back a second time
 - Stall reasons and suggested order checked against what actually happened, with N
 - Suggestions ignored and burndown flat = we built a dashboard. Know by week 8
+- No customer yet: outcomes come from replayed history. Every result says so
+
+## Build order
+
+1. Extract + Join on Django → the 279 number
+2. Push check P1, P7, P8, plus the replay equivalence test
+3. Spark ticket links → P3, P5, ticket checks
+4. Graph, chains, P4, only after the cross-repo week-1 check passes
+5. LLM layer, gate, diffs
+6. Auditor learning
+
+## Known gaps
+
+| Gap | Effect | Decided by |
+|---|---|---|
+| Cross-repo corpus may not exist | Blocks, chains, and P4 tested on fixtures only | Week-1: 20 packages |
+| Resolver may not bind aliased `_()` | Blast radius and P1 miss about 480 calls | Week-1: pyright vs Jedi |
+| Weak ticket → code mapping | P3, P5, and chains go quiet. Spark: 5% of tickets linked | Mapping precision (05) |
+| Too few Elo matches | Learning doesn't move in 10 weeks | Week-1: matches per month |

@@ -32,4 +32,10 @@
 | "Super engineer" shown on screen | Staff engineers won't trust a tool that claims to be their superior | Never |
 | Claiming tools can't do internal APIs | OpenRewrite does | Never |
 | Argo on Kubernetes | An always-on controller for a pipeline that runs 20 minutes a day | Pipeline runs continuously |
+| Push check blocking merges | Not earned. One false block and teams uninstall it | Precision ≥ 0.95 over 3 months |
+| LLM text on every push | Costs money per push | Budget exists. Cache first |
+| Full parse on every push | Too slow for a free runner | Never. Changed files plus importers |
+| Push check on Cloud Run | Pays per push | CI minutes run out |
+| Querying Jira live per push | Not deterministic, rate limits | Never. Use the base snapshot |
+| Generating synthetic histories to train defect risk | Models learn the generator | Never. Replay real history |
 | Applying changes, opening PRs, filing tickets | Not earned yet | Suggestions get applied unchanged at a high rate |

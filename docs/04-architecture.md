@@ -30,6 +30,8 @@
  7 GATE      text must match its facts, else template
  8 VIEWS     staff engineer · owner · consumer
  9 LEARN     outcomes → Elo over auditor policies → ε-greedy pick → back to 5
+
+ per push:   2–5 on the diff only, against the last nightly map (section 10)
 ```
 
 ## 1. Collect
@@ -277,6 +279,48 @@ Auditors improve by competing. Each policy is a player with an Elo rating, and
   leads by ≥ 50 Elo, and beats v0 head to head. Every promotion is logged with its
   match record
 
+## 10. Push check (early detection)
+
+Runs on every push and PR. Catches problems before the nightly run sees them.
+
+**Input**
+- Base = the last published nightly map, exported as one SQLite file
+- Snapshot = (base `run_id`, push SHA). Jira comes from the base snapshot, never
+  queried live
+- Scope = changed files plus files that import them, from the base map. Over 200
+  files → skip, post "too large, nightly covers it"
+
+**Run:** Extract, Join, and Graph on the scope only. Output = the diff between the
+base rows and the push rows for that scope.
+
+**Checks** (rules, thresholds in config)
+
+| # | Check | Fires when |
+|---|---|---|
+| P1 | Drift | A new call site to a tracked symbol |
+| P2 | New legacy use | A new call to a symbol with a deprecation marker (section 9 signals) |
+| P3 | Collision | The push edits a function mapped to an open ticket owned by another team |
+| P4 | New block | The push creates a `blocked_by` edge, or moves a block onto another team |
+| P5 | Ticket can move | The push removes the last present call site mapped to a ticket that isn't Done |
+| P6 | Ticket mismatch | The push re-adds a call site mapped to a Done ticket |
+| P7 | Risky edit | The push changes a call site in a file with `bug_fixes` ≥ 3 |
+| P8 | Bad key | The commit message names a ticket key not in the snapshot |
+| P9 | Defect risk | Just-in-time score above threshold. Ships as lines changed × files touched unless a model beats it (05) |
+
+**Output**
+- One check run plus one PR comment. Templates only, LLM off, so each push costs $0
+- Sorted by check number, then path, then line. At most 10 lines, then "and N more"
+- Never blocks a merge. Status is always neutral
+- Each alert is stored with its outcome: fixed in a later commit, dismissed, or ignored
+
+**Limits**
+- One repo per push. A push that breaks another repo's resolution shows up only
+  nightly, and the comment says so
+- The base map can be up to 24 h old. Two pushes on the same day don't see each other
+
+**Consistency:** the nightly run must contain every row the push check produced for
+the merged SHA. A mismatch is a bug, logged with both rows.
+
 ## One call site: `cart/pricing.py:214`
 
 1. **Collect:** checkout repo at a known SHA, plus a Jira snapshot
@@ -305,9 +349,10 @@ Auditors improve by competing. Each policy is a player with an Elo rating, and
 | What | Where |
 |---|---|
 | Pipeline | Cloud Run Jobs, one per repo |
+| Push check | GitHub Actions (free on public repos and the student plan) |
 | Schedule | Cloud Scheduler |
 | Site and API | Cloud Run |
-| Database | Cloud SQL, the only always-on piece |
+| Database | SQLite on GCS until there's a user, then Cloud SQL (the only always-on bill) |
 | Snapshots, LLM cache | GCS |
 | Alerts | Cloud Monitoring |
 
@@ -325,3 +370,5 @@ Auditors improve by competing. Each policy is a player with an Elo rating, and
 | No ticket-to-code links | Map and ownership work. Risk and chains are off, and we say so |
 | Rate limited | Checkpoint, resume, no partial publish |
 | Incremental ≠ full rebuild | Halt, keep the last good run live |
+| No base map yet | Push check posts nothing |
+| Push check ≠ nightly | Nightly wins, mismatch logged |
