@@ -93,17 +93,27 @@ Apache Spark is good for this because their rule is that every commit message mu
 **1. Linkage.** Look at the last 1,000 commits. How many have a `SPARK-1234` style ID in the message?
 > *Why: this is the bridge. If it's low, the whole thing doesn't work. We expect around 95%.*
 
+> **Answer (Pair 2):** **94.0%** of the last 1,000 (96–97% per year since 2021, 0% before 2014). The rest are almost all `[MINOR]`, some of them real fixes. 50/50 hand-checked links point to the right ticket. Details: [PAIR2-REVIEW.md](PAIR2-REVIEW.md).
+
 **2. Usable tickets.** Of those tickets, how many are actually type **Bug** and resolution **Fixed**?
 > *Why: an "Improvement" isn't a bug. A "Won't Fix" never got fixed. Only Bug + Fixed teaches us anything. This number could be a lot smaller than question 1.*
+
+> **Answer (Pair 2):** **145 of 853** linked tickets (17%), touched by 153 commits. Type is what cuts it: 45% are Sub-tasks, 28% Improvements. Resolution barely filters (99% Fixed). Project-wide: 10,981 Bug+Fixed.
 
 **3. Duplicate people.** List the author emails. How many different emails belong to the same human?
 > *Example: `john@gmail.com`, `john@apache.org`, `jsmith@company.com` are one person.*
 > *Why: we say who owns a file based on who commits to it. If one person looks like three, ownership is wrong.*
 
+> **Answer (Pair 2):** 3,381 emails → **~2,888 people (~490 duplicates, 15%)**. People with several emails wrote 75% of commits. No `.mailmap`, so we need an alias table.
+
 **4. Bots.** How many commits are from bots like `dependabot` or `github-actions`?
 > *Why: bots touch hundreds of files. They'd look like the biggest owner in the repo.*
 
+> **Answer (Pair 2):** **~0.** Spark's merge script keeps the human as author. 2 commits by an AI agent ("Claude"). The real trap: committer = merger, so use author. 13% of recent commits have `Co-authored-by`.
+
 **5. Pulling tickets.** How long does it take to download all the Jira tickets? Any rate limits?
+
+> **Answer (Pair 2):** **35 min** for all 59,492 tickets with full changelog (1.8 GB raw, 118 MB gzipped). About 9 min without changelog. Anonymous, no rate limits, 0 errors in 595 requests.
 
 ---
 
@@ -238,9 +248,9 @@ https://github.com/rjust/defects4j
 | 1 | Minutes for tree-sitter to scan Django |
 | 1 | Can jedi or pyright resolve `_()`? **yes / no** |
 | 1 | Minutes to hand-check 30 references |
-| 2 | % of Spark commits with a ticket ID |
-| 2 | Count of Bug + Fixed tickets |
-| 2 | Rough count of duplicate emails |
+| 2 | % of Spark commits with a ticket ID: **94.0%** |
+| 2 | Count of Bug + Fixed tickets: **145 of 853** linked (10,981 project-wide) |
+| 2 | Rough count of duplicate emails: **~490** (15%) |
 | 3 | Packages found: **19 / 20** (13 clean, 7 with 20+ sites) |
 
 ---
