@@ -6,7 +6,7 @@ Re-running resumes: pages already on disk are skipped. Timing and failures go to
 import gzip, json, subprocess, sys, time, urllib.parse
 from pathlib import Path
 
-OUT = Path(__file__).parent / "data" / "jira_raw"
+OUT = Path(__file__).parent / "data" / "raw"
 BASE = "https://issues.apache.org/jira/rest/api/2/search"
 PAGE = 100  # 1000 works too, but changelog makes big pages slow and fragile
 

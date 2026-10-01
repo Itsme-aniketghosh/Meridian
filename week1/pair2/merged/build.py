@@ -1,8 +1,8 @@
-"""Join Spark git + Apache Jira into one SQLite file: data/pair2_spark.sqlite.
+"""Join Spark git + Apache Jira into one SQLite file: merged/data/spark_jira.sqlite.
 
 Inputs (both local, nothing is re-queried):
-  data/repos/apache_spark   full clone (not blobless), read at SPARK_SHA
-  data/jira_raw        raw pages from pair2_jira_pull.py
+  spark/repos/apache_spark   full clone (not blobless), read at SPARK_SHA
+  jira/data/raw              raw pages from jira/pull.py
 
 Tables
   commits                one row per first-parent commit
@@ -23,11 +23,11 @@ import collections, gzip, json, re, sqlite3, subprocess, time
 from pathlib import Path
 
 HERE = Path(__file__).parent
-DATA = HERE / "data"
-REPO = DATA / "repos" / "apache_spark"
-SPARK_SHA = "f868de6914d0e6ede86309648614bb436b2b82e6"  # snapshot used in PAIR2-REVIEW.md
-RAW = DATA / "jira_raw"
-OUT = DATA / "pair2_spark.sqlite"
+PAIR2 = HERE.parent
+REPO = PAIR2 / "spark" / "repos" / "apache_spark"
+SPARK_SHA = "f868de6914d0e6ede86309648614bb436b2b82e6"  # snapshot used in pair2/README.md
+RAW = PAIR2 / "jira" / "data" / "raw"
+OUT = HERE / "data" / "spark_jira.sqlite"
 
 KEY = re.compile(r"\bSPARK-\d+\b")
 MINOR = re.compile(r"\[(MINOR|HOTFIX|FOLLOW-?UP)\]", re.I)
@@ -188,6 +188,7 @@ def main():
     known = {t[0] for t in tickets}
     print(f"read {len(commits)} commits, {len(issues)} tickets in {time.time() - t0:.0f}s")
 
+    OUT.parent.mkdir(exist_ok=True)
     tmp = OUT.with_suffix(".tmp")
     tmp.unlink(missing_ok=True)
     db = sqlite3.connect(tmp)
