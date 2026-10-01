@@ -1,0 +1,17 @@
+Chart,https://github.com/jfree/jfreechart
+Cli,https://github.com/apache/commons-cli
+Closure,https://github.com/google/closure-compiler
+Codec,https://github.com/apache/commons-codec
+Collections,https://github.com/apache/commons-collections
+Compress,https://github.com/apache/commons-compress
+Csv,https://github.com/apache/commons-csv
+Gson,https://github.com/google/gson
+JacksonCore,https://github.com/FasterXML/jackson-core
+JacksonDatabind,https://github.com/FasterXML/jackson-databind
+JacksonXml,https://github.com/FasterXML/jackson-dataformat-xml
+Jsoup,https://github.com/jhy/jsoup
+JxPath,https://github.com/apache/commons-jxpath
+Lang,https://github.com/apache/commons-lang
+Math,https://github.com/apache/commons-math
+Mockito,https://github.com/mockito/mockito
+Time,https://github.com/JodaOrg/joda-time

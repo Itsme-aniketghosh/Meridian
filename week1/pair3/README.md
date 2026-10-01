@@ -89,12 +89,31 @@ Replacements: autocomplete-light (67 sites), dj-rest-auth (61), silk (35), tasty
 
 ## Rerun
 
+Django packages (about 1 GB of clones, under 10 minutes):
 ```
-# Django packages: clone repos into django-packages/repos/<owner>_<name>
-python django-packages/scan.py && python django-packages/verify.py
+django-packages/clone_repos.sh
+cd django-packages && python scan.py && python verify.py   # per-repo JSON lands in django-packages/results/
+```
 
-# Defects4J
-docker build -t d4j <defects4j clone>
-cd defects4j && ./runall.sh bugs.txt && python score.py
-# bugs.txt: "Project BugId" per line, LF endings. Needs repos.csv from Defects4J's project_repos/
+Defects4J (Docker; image is 5.5 GB):
 ```
+git clone -c core.longpaths=true https://github.com/rjust/defects4j && docker build -t d4j defects4j
+cd defects4j/                 # this folder
+./runall.sh                   # bisects the 38 bugs in sample_38.txt, about 30 min
+python score.py               # writes results/bisect_vs_fonte.csv
+```
+
+To rebuild the inputs:
+- Labels: `make_labels.py` needs Fonte's `combined.csv`, the v3 repos (inside the image), and the v2 repo bundle. Usage is at the top of the script.
+- Ticket check: inside the container, `bash ticket_key_check.sh > results/ticket_key_in_fix_commit.csv`.
+
+| File | What |
+|---|---|
+| `django-packages/clone_repos.sh` | Clones the 20 assigned and 8 replacement repos |
+| `django-packages/scan.py`, `verify.py` | Migration counts, and the 30-line hand check |
+| `defects4j/defects4j_bic_labels.csv` | The 130 labels (the answer key) |
+| `defects4j/make_labels.py` | Rebuilds that file |
+| `defects4j/bisect.sh`, `runall.sh`, `score.py` | Bisection and scoring |
+| `defects4j/sample_38.txt`, `repos.csv` | Bug sample, and project → GitHub repo |
+| `defects4j/ticket_key_check.sh` | The 95% ticket-key check |
+| `defects4j/results/` | Saved outputs |
