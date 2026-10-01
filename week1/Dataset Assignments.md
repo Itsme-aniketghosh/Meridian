@@ -160,6 +160,31 @@ Or read their CHANGELOG for the release that dropped Django 3.2 support.
 
 Record: repo name, commit SHA, date, files changed. One row each.
 
+> **Answer (Pair 3):** Yes for 19 of 20. The `-S` search above misses `import include, url`, so use `git log -G 'django.conf.urls' -- '*.py'`. Details: [pair3-review.md](pair3-review.md).
+>
+> | Repo | SHA | Date | Files |
+> |---|---|---|---:|
+> | django-rest-framework | `410575da` (+ `e215db20`) | 2020-09-08 | 30 |
+> | wagtail | `4076b9ef5e` (+ `2cea9bd441`) | 2020-02-17 | 44 |
+> | django-allauth | `c4d7b410` | 2019-12-09 | 15 |
+> | django-cms | `fb0d4f235` | 2021-11-08 | 306 |
+> | django-filter | `52eece7` | 2020-07-21 | 2 |
+> | django-debug-toolbar | `47d6b5e9` | 2020-05-23 | 5 |
+> | django-extensions | `b32f98e8`, `964ff7d5` | 2020-05 / 2022-01 | 3 |
+> | django-haystack | `6fc7e8b`, `d391a95` | 2021-04 / 2021-08 | 28 |
+> | django-crispy-forms | `a42d534` | 2020-06-19 | 1 |
+> | django-guardian | `5a97f63` | 2019-09-08 | 6 |
+> | django-taggit | `b748f81` | 2021-09-26 | 1 |
+> | django-storages | none, never used `url()` | | |
+> | django-oscar | `10dce286b` | 2020-07-24 | 28 |
+> | cookiecutter-django | `6d4be405` | 2018-05-14 | 4 |
+> | django-import-export | `f6864ff`, `e855fcf` | 2020-05 / 2020-08 | 5 |
+> | django-modeltranslation | `d3e2396` (deleted, not migrated) | 2022-07-12 | 9 |
+> | channels | `a12800e` | 2020-10-05 | 2 |
+> | graphene-django | `19ef9a0`, `5d5d7f1` (3 still left) | 2018 / 2022-01 | 12 |
+> | django-tenants | `6735fca`, `46fc62d` | 2017-12 / 2022-08 | 18 |
+> | django-two-factor-auth | `fe57c40` | 2020-08-03 | 12 |
+
 **2. How many of the 20 did you find?**
 
 | Found | What we do |
@@ -169,6 +194,10 @@ Record: repo name, commit SHA, date, files changed. One row each.
 | **Under 5** | We drop it |
 
 Already checked: **djangorestframework** has one clean commit. **wagtail** has two. Three others turned up nothing obvious.
+
+> **Answer (Pair 3):** 19 of 20, so we build it. But only 7 repos have 20 or more call sites, and 4 repos hold 80% of them. These repos don't call each other, so this corpus can't test cross-team blocking.
+> - Swap storages, crispy, taggit, and modeltranslation for autocomplete-light, dj-rest-auth, silk, and tastypie. All four were found.
+> - DRF is really 2 commits (182 + 13 sites). Wagtail's 2 is right. The "three with nothing" were the search command, not the repos.
 
 ---
 
@@ -184,9 +213,21 @@ https://github.com/rjust/defects4j
 
 **1. Does it download and set up without trouble?**
 
+> **Answer (Pair 3):** Not on Windows.
+> - The clone (200 MB) fails without `git clone -c core.longpaths=true`.
+> - Full setup needs Java 11, svn, and cpanm, and `init.sh` pulls another 632 MB. Use the bundled Dockerfile.
+> - The metadata is readable straight from the clone.
+
 **2. What information does it give per bug?** List the fields.
 
 > *Why: later we'll write code that guesses which commit caused a bug. Defects4J already knows the answer for 854 of them. If our guesses disagree with theirs, our code is broken, and we find that out cheaply.*
+
+> **Answer (Pair 3):**
+> - Fields: `bug.id`, `revision.id.buggy`, `revision.id.fixed`, `report.id`, `report.url`.
+> - Per-bug files: the minimized src and test patch, failing tests with stack traces, modified classes, loaded classes, and relevant tests.
+> - 337 of the 854 bugs link to Jira. 85% of fixes touch one file.
+>
+> **The "Why" above is wrong.** Defects4J doesn't know which commit caused the bug. "Buggy" is just the fix's parent (61/61 checked on Lang). It can check fix commits and ticket links, but not our cause guesses. For those we need hand labels or Fonte (ICSE 2023).
 
 ---
 
@@ -200,7 +241,7 @@ https://github.com/rjust/defects4j
 | 2 | % of Spark commits with a ticket ID |
 | 2 | Count of Bug + Fixed tickets |
 | 2 | Rough count of duplicate emails |
-| 3 | Packages found |
+| 3 | Packages found: **19 / 20** (13 clean, 7 with 20+ sites) |
 
 ---
 
