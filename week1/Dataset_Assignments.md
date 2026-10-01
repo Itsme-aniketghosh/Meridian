@@ -17,9 +17,9 @@ Details and scripts: [pair3/README.md](pair3/README.md).
 **Can we use it?** Yes. Spark + Jira is our Jira half, ready to build on. It can't prove stalls or cross-team blocks.
 
 - **The ticket join works.** 94% of commits name their ticket, and 50/50 hand-checked links are correct. Only 3 keys in all of history point to missing tickets.
-- **Fragility is real.** Files with 3+ bug fixes in a year are 1.5% of files but get 17% of next year's fixes (11.7x).
+- **Fragility is real.** Files with 3+ bug fixes in a year are 2.2% of files but get 21% of next year's fixes (9.7x).
 - **Ticket history is complete.** We can rebuild any ticket's status at any past date, so P3 and P5 are testable.
-- **Ownership is weak.** Our owner rule beats "last toucher" only 20% vs 18%. Identities need merging (15% of emails are duplicates).
+- **Ownership is weak.** Our owner rule beats "last toucher" only 20% vs 18%. Identities need merging (13.5% of emails are duplicates).
 - **No stalls or blocks to find.** 45% of tickets get their first commit within a day of filing, and only 2% have a block link.
 
 Details and scripts: [pair2/README.md](pair2/README.md).
@@ -118,23 +118,23 @@ Apache Spark is good for this because their rule is that every commit message mu
 **1. Linkage.** Look at the last 1,000 commits. How many have a `SPARK-1234` style ID in the message?
 > *Why: this is the bridge. If it's low, the whole thing doesn't work. We expect around 95%.*
 
-> **Answer (Pair 2):** **94.0%** of the last 1,000 (96–97% per year since 2021, 0% before 2014). The rest are almost all `[MINOR]`, some of them real fixes. 50/50 hand-checked links point to the right ticket. Details: [pair2/README.md](pair2/README.md#spark-git).
+> **Answer (Pair 2):** **94.0%** of the last 1,000 (96–97% per year since 2021, 0% before 2014). The rest are almost all `[MINOR]`, some of them real fixes. 50/50 hand-checked links point to the right ticket (consistent with ≥ 95%). Details: [pair2/README.md](pair2/README.md#spark-git).
 
 **2. Usable tickets.** Of those tickets, how many are actually type **Bug** and resolution **Fixed**?
 > *Why: an "Improvement" isn't a bug. A "Won't Fix" never got fixed. Only Bug + Fixed teaches us anything. This number could be a lot smaller than question 1.*
 
-> **Answer (Pair 2):** **145 of 853** linked tickets (17%), touched by 153 commits. Type is what cuts it: 45% are Sub-tasks, 28% Improvements. Resolution barely filters (99% Fixed). Project-wide: 10,981 Bug+Fixed.
+> **Answer (Pair 2):** **144 of 853** linked tickets (17%), touched by 152 commits. Type is what cuts it: 45% are Sub-tasks, 28% Improvements. Resolution barely filters (99% Fixed). Project-wide: 10,980 Bug+Fixed.
 
 **3. Duplicate people.** List the author emails. How many different emails belong to the same human?
 > *Example: `john@gmail.com`, `john@apache.org`, `jsmith@company.com` are one person.*
 > *Why: we say who owns a file based on who commits to it. If one person looks like three, ownership is wrong.*
 
-> **Answer (Pair 2):** 3,381 emails → **~2,888 people (~490 duplicates, 15%)**. People with several emails wrote 75% of commits. No `.mailmap`, so we need an alias table.
+> **Answer (Pair 2):** 3,381 emails → **2,926 people (455 duplicates, 13.5%)**. People with several emails wrote 65% of commits. No `.mailmap`, so we need an alias table.
 
 **4. Bots.** How many commits are from bots like `dependabot` or `github-actions`?
 > *Why: bots touch hundreds of files. They'd look like the biggest owner in the repo.*
 
-> **Answer (Pair 2):** **~0.** Spark's merge script keeps the human as author. 2 commits by an AI agent. The real trap: committer = merger, so use author. 13% of recent commits have `Co-authored-by`.
+> **Answer (Pair 2):** **~0.** Spark's merge script keeps the human as author. 2 commits by an AI agent. The real trap: committer = merger, so use author. 4% of recent commits credit a different co-author.
 
 **5. Pulling tickets.** How long does it take to download all the Jira tickets? Any rate limits?
 
@@ -282,8 +282,8 @@ Yes. 812 of 854 fix commits (95%) name their ticket. The misses are Chart (SVN),
 | 1 | Can jedi or pyright resolve `_()`? **yes / no** |
 | 1 | Minutes to hand-check 30 references |
 | 2 | % of Spark commits with a ticket ID: **94.0%** |
-| 2 | Count of Bug + Fixed tickets: **145 of 853** linked (10,981 project-wide) |
-| 2 | Rough count of duplicate emails: **~490** (15%) |
+| 2 | Count of Bug + Fixed tickets: **144 of 853** linked (10,980 project-wide) |
+| 2 | Rough count of duplicate emails: **455** (13.5%) |
 | 3 | Packages found: **19 / 20** (13 clean, 7 with 20+ sites) |
 | 3 | Defects4J bug-inducing labels: **130** (bisection: 8/8 exact on 38 sampled) |
 
