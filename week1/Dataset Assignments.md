@@ -1,4 +1,17 @@
 # Week 1 · Dataset Assignments
+
+## TL;DR (Pair 3)
+
+**Is it possible?** Yes for the parts our data covers. No for cross-team blocking.
+
+- **Multi-repo scanning works.** 19 of 20 packages have a findable `url()` migration. Our scanner matched 30/30 hand-checked lines and 97% of what the migrations actually changed.
+- **Blocking can't be tested with this data.** The 20 repos never call each other, so there are no cross-team chains to find. We need dependent repos, or we test blocking on fixtures only.
+- **The data is thin.** 4 repos hold 80% of the call sites, so report results per repo.
+- **SZZ now has an answer key.** Defects4J only records the fix, so we added 130 hand-checked "this commit caused it" labels. Our automatic method agreed 8 out of 8 times.
+- **The ticket → commit join holds.** 95% of Defects4J fix commits name their ticket, the same as Spark.
+
+Details and scripts: [pair3/README.md](pair3/README.md).
+
 ---
 
 ## Who owns what. No overlap.
@@ -197,6 +210,45 @@ https://github.com/rjust/defects4j
 > **Answer (Pair 3):** Fields: `bug.id`, buggy and fixed revisions, `report.id`, `report.url`. Also the minimized patch, failing tests with stack traces, and modified classes.
 >
 > **The "Why" is wrong:** Defects4J records the fix, not the cause. So we added 130 hand-checked cause labels from Fonte, remapped to Defects4J v3. Our test bisection matched 8 of 8 on a 38-bug sample. See [pair3/README.md](pair3/README.md#defects4j).
+
+---
+
+## Questions Pair 3 added
+
+**Are the 20 repos big enough to measure anything?**
+Barely. Only 7 have 20 or more call sites, and oscar, wagtail, DRF, and cms hold 80% of the ~1,085 total. A pooled recall number is really a 4-repo number.
+
+**Can this corpus test cross-team blocking?**
+No. Each library calls Django's `url()`, never another library's. To test chains we need pairs like dj-rest-auth → allauth or djoser → DRF.
+
+**Do aliases show up here too?**
+Yes. django-autocomplete-light switched to `from django.urls import re_path as url`, so the import looks migrated but 76 `url(` calls remain. It's the same problem as Pair 1's `_`.
+
+**Can grep be the independent check on our counts?**
+No. It misses guardian, which re-exports `url` through `compat.py`, and it counts docstring examples. The lines each migration commit removed make a better check, and they match our scanner at 97%.
+
+**Can we find migrations from commit messages?**
+No. The real ones are titled "Minor cleanups" (two-factor) and "Bumps all-auth + fixes tests" (dj-rest-auth), and one came in on a branch called `translate-russian` (taggit). Read the diffs instead.
+
+**Is our scanner accurate?**
+Mostly. 30 of 30 random lines were real call sites. It found 809 of the 834 lines the migrations changed. It misses imports routed through a compat module.
+
+**When did libraries migrate?**
+9 before the deprecation (Aug 2020), 6 before the removal (Dec 2021), and 4 after. graphene-django still isn't finished. That spread is good material for the "why it stalled" feature.
+
+**Do the published cause labels (Fonte) work as-is?**
+Only 62 of 130. Defects4J v3 re-converted the Lang and Math repos, so those 68 commit IDs no longer exist. We remapped all of them by author time and subject: [defects4j_bic_labels.csv](pair3/defects4j/defects4j_bic_labels.csv).
+
+**Can we make more cause labels automatically?**
+Yes, slowly. We run the bug's test back through history until it starts failing. On 38 bugs it answered 8, all correct, at about 2 minutes each. The other 30 gave no answer, mostly because old code won't compile. Run on all 724 unlabelled bugs, that might add ~150 labels.
+
+**Does the ticket → commit join hold on Defects4J?**
+Yes. 812 of 854 fix commits (95%) name their ticket. The misses are Chart (SVN), plus a few in Time and Gson.
+
+**What breaks on Windows?**
+- 3 clones fail without `core.longpaths=true`.
+- Defects4J needs Docker.
+- Files written with CRLF line endings break shell scripts inside the container.
 
 ---
 
