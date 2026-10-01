@@ -1,7 +1,7 @@
 """Sample counted url() lines at the parent of each migration commit and check each one by hand."""
 import random, re, subprocess, sys
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent))
-from pair3_scan import ROOT, git, imports_url, CALL_RE, ATTR_RE
+from scan import ROOT, git, imports_url, CALL_RE, ATTR_RE
 
 TARGETS = [  # repo, migration commit
     ("encode_django-rest-framework", "410575da"), ("wagtail_wagtail", "4076b9ef5e"),
