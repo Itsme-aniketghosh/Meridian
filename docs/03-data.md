@@ -48,7 +48,8 @@ call_site    call_site_id repo file line scope symbol detection confidence owner
              bug_fixes status(present|removed) blocked_by effective_date known_at run_id
 ticket_map   ticket_id target method(commit_key|path|stack_trace|symbol) run_id
 chain        from_ticket to_ticket type(depends_on|collides|duplicates) evidence[] run_id
-suggestion   suggestion_id kind source(codemod|llm|template) policy_id facts_hash outcome run_id
+suggestion   suggestion_id kind source(codemod|llm|template) policy_id facts_hash outcome
+             agent model route(jev|rules) run_id
 policy       policy_id job(stall|explore) version author created_at
 match        match_id task_id policy_a policy_b result verdict_source decided_by decided_at
 push_alert   push_sha base_run_id check(P1–P9) target evidence[] outcome
