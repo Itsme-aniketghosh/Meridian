@@ -1,0 +1,25 @@
+{
+  "commit": "4353640ea9495d58fabd0357253b82de3b069408",
+  "files": 2374,
+  "files_with_parse_errors": 0,
+  "runs": 3,
+  "total_seconds_each_run": [
+    0.92,
+    0.78,
+    0.78
+  ],
+  "parse_seconds_each_run": [
+    0.6,
+    0.6,
+    0.6
+  ],
+  "median_total_seconds": 0.78,
+  "median_parse_seconds": 0.6,
+  "median_total_minutes": 0.013,
+  "machine": {
+    "cpu": "Apple M4",
+    "ram_gb": 16.0,
+    "os": "macOS-26.5.1-arm64-arm-64bit",
+    "python": "3.9.6"
+  }
+}

@@ -1,0 +1,6 @@
+file,line,kind,symbol,text
+django/utils/translation/__init__.py,74,other,ugettext_noop,ugettext_noop = gettext_noop
+django/utils/translation/__init__.py,82,other,ugettext,ugettext = gettext
+django/utils/translation/__init__.py,90,other,ungettext,ungettext = ngettext
+django/utils/translation/__init__.py,101,other,ugettext_lazy,"gettext_lazy = ugettext_lazy = lazy(gettext, str)"
+django/utils/translation/__init__.py,151,other,ungettext_lazy,ungettext_lazy = ngettext_lazy

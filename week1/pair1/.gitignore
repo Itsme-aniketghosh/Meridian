@@ -1,0 +1,6 @@
+# Small result files are deliverables. The root .gitignore blocks data files.
+!results/
+!results/*
+!*.csv
+!*.json
+!*.txt
