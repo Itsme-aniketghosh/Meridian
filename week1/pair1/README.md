@@ -7,7 +7,7 @@ Django framework source (`ugettext` → `gettext`). Snapshot `4353640ea9`, conve
 - Tree-sitter is fast: 0.78 s for all 2,374 `.py` files, 0 parse errors.
 - The edit set is 265 lines (113 import, 151 call, 1 alias) in 115 files. Our scanner finds 265 of 265 with 0 false finds, checked against the conversion commit.
 - Aliased `_()` resolves: **yes**. Jedi and pyright each get 533 of 542 alias calls right (98.3%, bar 95%). They miss the same 9.
-- Hand-check rate (Q3): TODO
+- Hand-checking is quick: 30 of 30 sampled lines confirmed in 9.3 min, so all 279 would take about 1.5 hours.
 
 ## Flags
 
@@ -28,15 +28,14 @@ Django framework source (`ugettext` → `gettext`). Snapshot `4353640ea9`, conve
 | Resolver recall ≥ 0.95 | Passed: 533 of 542 (0.983) for both Jedi and pyright. Add one rule: if the answer lands on `x = old_name`, follow `old_name`. That fixes the 9 |
 | Resolver choice | Tie on Django aliases. Decide on the method-call benchmark (`is_ajax()`), where type inference matters |
 | Candidate goldens | Add `tests/mail/tests.py:929–940` (assignment alias, 9 calls) and the "old name aliases the new name" trap |
-| Week-4 hand-check freeze | TODO (Q3) |
+| Week-4 hand-check freeze | Holds. 0.31 min per site, about 87 min for 279 (82 for the real 265) |
 
 ## Next
 
 1. Add the one-hop assignment rule and rerun Q2. Expect 542 of 542.
 2. Run both resolvers on the `is_ajax()` sites to break the tie.
-3. Q3 hand check.
-4. Ask Aniket how 279 / 110 / 169 and ~480 were counted, and update 03-data to 265 edit lines and 542 alias calls.
-5. Rename `sites_279.csv` to `edit_sites.csv` once Q4 is done.
+3. Ask Aniket how 279 / 110 / 169 and ~480 were counted, and update 03-data to 265 edit lines and 542 alias calls.
+4. Rename `sites_279.csv` to `edit_sites.csv` once Q4 is done.
 
 ---
 
@@ -113,7 +112,21 @@ Tree-sitter finds every identifier named `ugettext`, `ugettext_lazy`, `ugettext_
 
 ## Q3 · Hand check
 
-TODO
+30 of the 265 edit lines, picked with `random.seed(1)` (`q3_pick.py`; list saved before checking). Checked one at a time with `q3_check.py`, which opens each file in VS Code at the line and times each answer. The script shows only the file and line, not the scanner's verdict.
+
+| | |
+|---|---|
+| Real edit lines | 30 of 30 |
+| Total time | 9.3 min |
+| Per site | 0.31 min (mean), 13 s (median) |
+| Slowest | 82.8 s (`tests/forms_tests/tests/test_i18n.py:12`) |
+| Projected for 279 | 87 min |
+| Projected for 265 | 82 min |
+
+- Pace improved: about 21 s per site for the first 15, 16 s for the last 15. The projections use the overall average, so they're conservative.
+- 2 lines were marked unsure at the time (`tests/messages_tests/base.py:103`, `tests/i18n/tests.py:1514`). Both are among the lines `c651331b34` changed, so both are real.
+- All 30 are among the lines the commit changed, so the hand check agrees with the commit 30 of 30.
+- Caveats: one checker, who knew the lines came from the scanner list. Notes are free text; use `kind` in `sites_279.csv` for buckets.
 
 ## Rochan's sections (Q4, independent count, grep checks, is_ajax, push replay)
 
@@ -132,6 +145,8 @@ python scripts/q2_find_alias_calls.py  # results/alias_calls.csv
 python scripts/q2_check_alias_calls.py # results/alias_calls_checked.csv
 python scripts/q2_jedi.py              # results/q2_jedi.csv
 python scripts/q2_pyright.py           # results/q2_pyright.csv, alias_resolution.csv
+python scripts/q3_pick.py              # results/hand_check_30_sample.csv
+python scripts/q3_check.py             # interactive; results/hand_check_30.csv, hand_check_30_summary.json
 ```
 
 | File | What |
@@ -147,3 +162,6 @@ python scripts/q2_pyright.py           # results/q2_pyright.csv, alias_resolutio
 | `results/scanner_vs_commit.csv` | Line-by-line comparison with the commit |
 | `results/alias_calls.csv` | The 542 alias calls with expected function |
 | `results/alias_resolution.csv` | Both tools' answer for every alias call |
+| `scripts/q3_pick.py`, `q3_check.py` | Q3 sample (seed 1) and timed hand check |
+| `results/hand_check_30_sample.csv` | The 30 sampled lines |
+| `results/hand_check_30.csv`, `hand_check_30_summary.json` | Answers, notes, seconds per site, and totals |

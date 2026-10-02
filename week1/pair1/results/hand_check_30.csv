@@ -1,0 +1,31 @@
+file,line,is_call_site,note,seconds
+django/contrib/humanize/apps.py,2,y,multi-line import,31.9
+django/contrib/admin/utils.py,18,y,multi-line import,20.1
+django/forms/boundfield.py,12,y,multi-line import,19.7
+django/contrib/flatpages/forms.py,4,y,two name in one line,12.5
+tests/messages_tests/base.py,103,y,unsure,24.0
+tests/i18n/tests.py,160,y,multi-line import,15.9
+tests/i18n/tests.py,1514,y,unsure,16.1
+tests/forms_tests/tests/test_i18n.py,12,y,used to call something,82.8
+django/contrib/postgres/validators.py,9,y,multi-line import,11.9
+django/contrib/auth/hashers.py,18,y,multi-line import,17.5
+django/core/validators.py,402,y,used to call something,19.6
+django/contrib/admin/helpers.py,296,y,used to define or call something,13.1
+tests/i18n/tests.py,150,y,used to call something,13.5
+tests/i18n/test_compilation.py,170,y,used to compare something,11.9
+django/contrib/postgres/apps.py,5,y,multi-line import,8.7
+django/contrib/redirects/apps.py,2,y,used for import,44.4
+django/template/defaultfilters.py,866,y,used to call something,12.0
+tests/forms_tests/tests/test_i18n.py,37,y,used to define something,11.3
+tests/forms_tests/tests/test_i18n.py,40,y,used to define something,10.4
+django/contrib/admin/actions.py,12,y,multi-line import,11.3
+django/utils/timesince.py,69,y,used to define something,8.7
+django/contrib/sitemaps/apps.py,2,y,used to import,8.5
+tests/view_tests/urls.py,6,y,used to import something,7.8
+django/views/generic/list.py,5,y,used to import something,17.3
+tests/i18n/patterns/urls/default.py,3,y,single import line for something,46.1
+django/contrib/flatpages/admin.py,4,y,used to import something,12.1
+django/template/base.py,827,y,used to define something,12.4
+django/contrib/admin/sites.py,13,y,multi-line import,13.0
+tests/test_client_regress/tests.py,20,y,single line import,10.1
+django/contrib/humanize/templatetags/humanize.py,80,y,used to define somthing,13.3
