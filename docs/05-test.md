@@ -32,6 +32,7 @@
 | Ticket checks | Spark 145 Incomplete, 534 Cannot Reproduce vs Fixed; GitHub needs-info | Beats description length |
 | Duplicates | Spark Duplicates | Beats title similarity |
 | LLM | LLM off | Every view renders |
+| Router (Jev) | Same problem twice; Jev down; injected failure per agent. Baseline: rules pick | Same pick, 0 calls on rerun. Beats rules on cost at equal pass rate |
 | Gate | 200 injected errors, 200 clean | 100% caught, ≤ 5% false rejects |
 | Diffs | Django: draft from parent vs real after-line | ≥ 90% match |
 | Maker | Each untracked site in exactly one draft | Property holds |

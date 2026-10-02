@@ -8,7 +8,7 @@
 - Thresholds in `meridian.toml`, hash on the run
 - Output sorted by (repo, path, line, column). IDs are content hashes
 - Randomness seeded: hash(run_id, task_id)
-- Rules decide, models score, LLMs write text and draft diffs (cached)
+- Rules decide facts, models score, Jev routes, LLMs write text and code (cached)
 - Weekly full rebuild must equal incremental, else halt
 
 ## Pipeline
@@ -19,7 +19,7 @@
  3 JOIN      call_site rows, stable IDs
  4 GRAPH     blocked_by · blast radius · chains
  5 RULES     stall · ETA · order · reasons · ticket checks · fragility
- 6 LLM       prose and diffs, cached
+ 6 LLM       Jev routes, agents write, cached
  7 GATE      text matches facts, else template
  8 VIEWS     read-only
  9 LEARN     Elo over auditor policies → ε-greedy → back to 5
@@ -92,11 +92,22 @@ wrong owner only.
 
 ## 6. LLM
 
-- Writes prose from a fact set and diffs the codemod can't. Decides nothing
-- Pinned model and prompt, JSON schema, cache key hash(model, prompt, facts)
-- Invalid → 2 retries → template. Down → template
+- Agents write prose from a fact set, and code the codemod can't. Decide no facts
+- Pinned models and prompts, JSON schema, cache key hash(model, prompt, facts)
 - **Diffs:** codemod from the owner's prior migrations first. LLM only if ≥ 2 same-shape
   examples and not in `except`. Must apply, parse, touch only that site, resolve
+
+**Jev, the router.** A general reasoning model. It reads the input problem and picks the
+agent and model. On a failed check it picks the next model up, or stops.
+
+| Agent | Models | Retry on |
+|---|---|---|
+| Diff drafter | coding small → mid → large | Diff doesn't apply, parse, or resolve |
+| Policy writer | coding mid → large | Policy tests fail |
+| Writer | general small → mid → large | Bad JSON, gate miss |
+
+- Picks only from this table. Models and a top-model budget pinned in `meridian.toml`. Cached
+- Jev down → rules pick. Top model fails → template, or nothing for code
 
 ## 7. Gate
 

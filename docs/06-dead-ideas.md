@@ -7,7 +7,7 @@
 | Fragility from incidents | Public data has bugs, not incidents | Incident tracker connected |
 | Promoting a policy on few matches | Elo is noise at small N | Never |
 | Unseeded exploration | Breaks determinism | Never |
-| LLM choosing policies or deciding anything | Not deterministic | Never |
+| LLM deciding facts or picking auditor policies | Not deterministic | Never |
 | Auto-promoting LLM-written policies | Unreviewed code decides | Never |
 | Removal commit as ground truth | ~0 call sites in it | Never |
 | `index_together` benchmark | Refs are tests, not usage | Cross-repo only |
