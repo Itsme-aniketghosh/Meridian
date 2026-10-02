@@ -1,5 +1,17 @@
 # Week 1 · Dataset Assignments
 
+## TL;DR (Pair 1)
+
+**Is it possible?** Yes. Tree-sitter plus a resolver finds the Django migration's call sites, aliases included.
+
+- **Scanning is instant.** 0.78 s for all 2,374 files, 0 parse errors.
+- **The answer key is 265 lines, not 279.** The conversion commit changed 285 `.py` lines. 265 are real uses, and our scanner finds all 265 with 0 false finds. The other 20 are renames, comments, and rewrapping.
+- **Aliases resolve.** Jedi and pyright each get 533 of 542 `_()` calls right (98.3%). The 9 misses all go through one `_ = ugettext_lazy` line, where both tools stop a step early. A one-hop rule fixes it.
+- **Hand-checking is quick.** 30 of 30 sampled lines confirmed in 9.3 minutes, so all 279 would take about 1.5 hours. The week-4 freeze holds.
+- **The migration was 2017, not 2019.**
+
+Details and scripts: [pair1/README.md](pair1/README.md).
+
 ## TL;DR (Pair 3)
 
 **Is it possible?** Yes for the parts our data covers. No for cross-team blocking.
@@ -76,6 +88,8 @@ One repo. The Django framework itself. Nothing else.
 **1. Speed.** Run tree-sitter over the whole repo. How many minutes?
 > *Why: if it takes 3 hours, a daily pipeline won't work.*
 
+> **Answer (Pair 1):** **0.78 s** for all **2,374** `.py` files at `4353640ea9` (median of 3 runs; 0.60 s of it parsing). **0 of 2,374** had parse errors. Apple M4, 16 GB. Speed is not a constraint for a daily pipeline. Details: [pair1/README.md](pair1/README.md#q1--speed).
+
 **2. The hard one.** Most Django files don't call `ugettext` directly. They rename it first:
 
 ```python
@@ -88,10 +102,37 @@ Tree-sitter sees `_("Hello")` and has no clue what `_` is. Try **jedi** or **pyr
 
 > *Why: about 480 of the call sites look like this. If neither tool can figure it out, we lose a whole feature.*
 
+> **Answer (Pair 1):** **Yes.** Jedi and pyright each resolve **533 of 542** aliased calls (98.3%; bar 95%), in about 1 s total. Both miss the same **9**: calls through `_ = ugettext_lazy`, an `=` alias rather than an import, where both stop one step short. 03-data's ~480 is a line count (542 calls on 485 lines). Details: [pair1/README.md](pair1/README.md#q2--alias-resolution).
+
 **3. Checking by hand.** Take 30 of the 279. Confirm each one really is a call site. Time yourself.
 > *Why: we need all 279 hand-checked by week 4. If 30 takes 4 hours, that plan breaks.*
 
+> **Answer (Pair 1):** **9.3 min** for 30 sites (0.31 min per site; median 13 s), so **~87 min** for all 279 (82 for the real 265). **30 of 30** were real edit lines, matching the commit. The week-4 freeze holds. Details: [pair1/README.md](pair1/README.md#q3--hand-check).
+
 **4. Junk.** What's in this repo that we should skip? Test files? Auto-generated files? Anything else?
+
+## Questions Pair 1 added
+
+**Does the 279 match what the commit changed?**
+Not exactly. `c651331b34` changed 285 `.py` lines. 265 are real uses (113 import, 151 call, 1 alias), and our scanner finds all 265 with 0 false finds. The other 20 are renamed tests, rewrapped lines, comments, and docstrings.
+
+**What does "about 480" count?**
+Lines. There are 542 aliased `_()` calls on 485 lines in 96 files. Q2 scores per call.
+
+**Are aliases only made with `import ... as _`?**
+No. `tests/mail/tests.py:929` does `_ = ugettext_lazy`, used by 9 calls. Both Jedi and pyright stop at that line instead of following it to `ugettext_lazy`.
+
+**Could a resolver hide a call by naming the new function?**
+It could. The old names are second names for the new ones (`ugettext = gettext`). Neither tool did (0 of 542), but scoring must require the old name.
+
+**Is `_` ever reused for something else in these files?**
+No. For all 542 calls, the nearest meaning of `_` is the old function.
+
+**Do Jedi and pyright ever disagree?**
+No. Same answer on all 542 calls. Each tool takes about 1 s for the whole set.
+
+**When did the migration actually happen?**
+2017. `c651331b34` was committed 2017-02-07, not 2019.
 
 ---
 
@@ -278,9 +319,9 @@ Yes. 812 of 854 fix commits (95%) name their ticket. The misses are Chart (SVN),
 
 | Pair | Number |
 |---|---|
-| 1 | Minutes for tree-sitter to scan Django |
-| 1 | Can jedi or pyright resolve `_()`? **yes / no** |
-| 1 | Minutes to hand-check 30 references |
+| 1 | Minutes for tree-sitter to scan Django: **0.013 min** (0.78 s) |
+| 1 | Can jedi or pyright resolve `_()`? **yes** (533 of 542, both tools) |
+| 1 | Minutes to hand-check 30 references: **9.3 min** (≈87 for 279) |
 | 2 | % of Spark commits with a ticket ID: **94.0%** |
 | 2 | Count of Bug + Fixed tickets: **144 of 853** linked (10,980 project-wide) |
 | 2 | Rough count of duplicate emails: **455** (13.5%) |
