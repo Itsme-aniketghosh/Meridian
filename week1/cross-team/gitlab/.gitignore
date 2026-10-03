@@ -1,3 +1,2 @@
-# Small deliverables (hand-check sheets) are not bulk data: keep them in git.
-# Raw pulls (.jsonl/.json) and the GitLab clone stay in scratch, outside the repo.
-!*.csv
+# CSV result files stay on your machine only. They are never committed or pushed.
+*.csv
