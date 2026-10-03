@@ -11,7 +11,7 @@
 ## The short answer
 
 - **Yes, GitLab is worth using.** It's the only dataset we found for two of Meridian's 7 problems:
-  - **#5, teams blocking each other:** 30 real cases. No other dataset got past 4.
+  - **#5, teams blocking each other:** 36 real cases. No other dataset got past 4.
   - **#6, adding new uses of old code while others remove them:** clear examples, over 2 years.
 - **It's also the best for #7, why work got stuck:** 579 stuck issues, and people usually wrote down why.
 - **It's weaker for #2, #3 and #4** (closed-but-not-done tickets, stale owners, risky files). Other datasets do those better.
@@ -49,7 +49,7 @@
 | How long were they stuck? | Half were stuck **26 days or more**. 97 were stuck over 3 months | ✅ |
 | Do stuck issues finish late? | **Yes.** 36% of stuck issues missed their deadline, against 16% of the rest | ✅ |
 | How long until work even starts? | Half waited **15 days or more** before anyone started | ✅ |
-| Were any stuck because of **another team**? | **30 confirmed** (need 30) | ✅ just |
+| Were any stuck because of **another team**? | **36 confirmed** (need 30) | ✅ |
 | Were the "blocked" labels added by people, not robots? | **Yes.** 0 of 57 by a robot | ✅ |
 | Are the "blocked" dates accurate? | **Only 34 of 57.** People often forget to remove the label | 🟡 |
 
@@ -91,6 +91,12 @@
    │   3. someone WROTE that they were waiting
    ▼
 25 confirmed  +  5 from the earlier random read  =  30
+   │
+   ▼  Step 3: a second look at the 43 "maybe" cases, with hard facts added:
+   │   the blocker's team label, who worked on it, when it finished,
+   │   and when the waiting issue's own code changes landed
+   ▼
+6 more confirmed  →  36 in total
 ```
 
 - **Is the script any good?** It found 4 of the 5 cases we already knew about.
@@ -99,22 +105,75 @@
   - **43** maybe (another team, but weak proof)
   - **45** turned out to be the same team
   - **3** weren't really stuck
+- **Second look at the 43 "maybe" cases** (`cross_maybe.py`):
+  - **6** confirmed
+  - **32** not cross-team after all
+  - **5** still unclear (a fact was missing)
+- **Why most "maybe" cases dropped out:**
+  - **The same person or team was on both sides.** For example, the blocker had the same `group::` label, or the same person worked on both issues.
+  - **The team stopped waiting.** It built its own workaround, or its work merged before the blocker was finished.
 
-**Who were teams waiting on? (all 30)**
+**Who were teams waiting on? (all 36)**
 
 | Waiting on | How many | Example of what someone wrote |
 |---|---:|---|
+| Another product team | 13 | Waiting for code review, package registry, editor extensions, work items, environments, and others to finish their part ([526771](https://gitlab.com/gitlab-org/gitlab/-/issues/526771), [552065](https://gitlab.com/gitlab-org/gitlab/-/issues/552065) "we also need to wait for #567649 to be rolled out") |
 | The database team | 6 | "blocked until we get the OK to perform the necessary database migrations" ([543818](https://gitlab.com/gitlab-org/gitlab/-/issues/543818)) |
-| Another product team | 8 | Waiting for code review, package registry, editor extensions, and others to finish their part ([526771](https://gitlab.com/gitlab-org/gitlab/-/issues/526771)) |
 | The infrastructure team (servers, monitoring) | 4 | "input and collaboration with the Observability team is required" ([520343](https://gitlab.com/gitlab-org/gitlab/-/issues/520343)) |
 | The Git storage and runner teams | 4 | "we'll need [gitaly#6917] to be done for this" ([550474](https://gitlab.com/gitlab-org/gitlab/-/issues/550474)) |
 | The design system team | 3 | "wait until design.gitlab.com#1555 is complete" ([515448](https://gitlab.com/gitlab-org/gitlab/-/issues/515448)) |
-| The AI team | 1 | [521252](https://gitlab.com/gitlab-org/gitlab/-/issues/521252) |
+| The AI teams | 2 | "once we implement #478067" ([525539](https://gitlab.com/gitlab-org/gitlab/-/issues/525539)) |
 | A non-engineering team (Product, Legal, Quality) | 3 | Waiting for approval ([517640](https://gitlab.com/gitlab-org/gitlab/-/issues/517640)) |
 | An outside company (Amazon) | 1 | [531380](https://gitlab.com/gitlab-org/gitlab/-/issues/531380) |
 
-- **26 of the 30** are one team waiting on another team's **shared code or system**. That's exactly Meridian's problem #5.
-- Half waited **21 days or more**.
+- **32 of the 36** are one team waiting on another team's **shared code or system**. That's exactly Meridian's problem #5.
+- Half of the first 30 waited **21 days or more**.
+
+**All 36 cross-team blocks, with links**
+
+"Found by" says which step found it:
+- **random read:** the 57 random stuck issues
+- **targeted read:** the 116 issues the script picked
+- **second look:** the 43 "maybe" cases
+
+| Issue | Team that was stuck | Team it waited on | Found by | What shows the wait |
+|---|---|---|---|---|
+| [#512419](https://gitlab.com/gitlab-org/gitlab/-/issues/512419) | code review | group::authentication | second look | blocked by #571169 (group::authentication, SAML owners) 2025-09-22 until closed 2026-06-15 while blocker still open; 'currently blocked' |
+| [#514124](https://gitlab.com/gitlab-org/gitlab/-/issues/514124) | code creation | editor extensions | targeted read | 'The rollout/enablement of this Feature Flag is blocked by gitlab-lsp#711'; FF not enabled until 2025-03-19 |
+| [#514153](https://gitlab.com/gitlab-org/gitlab/-/issues/514153) | ci platform | database frameworks | targeted read | 'currently blocked by #333526 so we cannot schedule this until that is resolved'; DBF said unlikely to get to it; unblocked by own workaroun |
+| [#515448](https://gitlab.com/gitlab-org/gitlab/-/issues/515448) | optimize | Design system (design.gitlab.com) | random read | Marked blocked by #520052 (closed) and design.gitlab.com#1555 (single stat link styling, design system, still open); desc says 'wait until d |
+| [#517640](https://gitlab.com/gitlab-org/gitlab/-/issues/517640) | authorization | Product (breaking change exception approval) | targeted read | "We need the okay to go ahead with removing this" then "breaking change exception issue ... was approved. I have started to remove the relev |
+| [#517690](https://gitlab.com/gitlab-org/gitlab/-/issues/517690) | secret detection | composition analysis | targeted read | "Let's wait to assign this issue, review documentation, and do manual testing until #410880 is workflow::complete"; #410880 deployed 04-22,  |
+| [#517956](https://gitlab.com/gitlab-org/gitlab/-/issues/517956) | portfolio planning | group::work items | second look | desc says it depends on query chosen in #510271 (group::work items, other people); still blocked, blocker done 2025-07-07 (stale block) |
+| [#519329](https://gitlab.com/gitlab-org/gitlab/-/issues/519329) | authorization | Quality / test governance (developer experience) | targeted read | "In review - blocked on this discussion" asking Quality which group owns the FF; unblocked after kkolpakova named test_governance |
+| [#520343](https://gitlab.com/gitlab-org/gitlab/-/issues/520343) | code creation | Observability (gl-infra) | targeted read | 'moving this issue to blocked for now as input and collaboration with the Observability team is required'; idle until closed 2025-10-10 |
+| [#521252](https://gitlab.com/gitlab-org/gitlab/-/issues/521252) | ai coding | AI gateway owners (ai-assist project) | targeted read | 'No progress as still blocked by ai-assist#1319 ... that issue seems to have a lower priority. We could [help] that team' |
+| [#521933](https://gitlab.com/gitlab-org/gitlab/-/issues/521933) | global search | Observability (gl-infra) | targeted read | 'This was blocked but is now completed ... after gitlab-helmfiles MR 7994 merged'; blocked 2025-04-01 to 2025-07-16 |
+| [#523514](https://gitlab.com/gitlab-org/gitlab/-/issues/523514) | dynamic analysis | gitlab-runner (go-fips image) | targeted read | 'fine to wait until the FIPS version is available'; marked blocked by gitlab-runner#38796; 1.24 upgrade merged 2025-05-29 |
+| [#524059](https://gitlab.com/gitlab-org/gitlab/-/issues/524059) | vulnerability management | Legal and Compliance | targeted read | Blocked 2025-03-17 after opening legal issue #2565; 'License approval was given' 2025-03-18; unblocked 2025-03-19 |
+| [#524687](https://gitlab.com/gitlab-org/gitlab/-/issues/524687) | work items | design system (design.gitlab.com) | targeted read | 'As we do not currently have tokens for feedback, this work is blocked by design.gitlab.com#2008'; stayed blocked, closed wontfix 2026-06-15 |
+| [#524820](https://gitlab.com/gitlab-org/gitlab/-/issues/524820) | organizations | code review (webhook daily partitions epic); later import, g | targeted read | Desc: 'We should do this after epic 16133 ... avoid overlapping the work with the daily partitions'; unblocked 2025-09-01 when epic closed |
+| [#524857](https://gitlab.com/gitlab-org/gitlab/-/issues/524857) | ci platform | runner | targeted read | 'The Runner team just completed the blocking work.' label removed 2025-08-19 after runner metrics shipped 2025-08-14 |
+| [#524929](https://gitlab.com/gitlab-org/gitlab/-/issues/524929) | code creation | code review (feature team AIGW migration) | targeted read | 'moved the issue to workflow::blocked until the tools are migrated to the AIGW'; work started only after unblock (Jul 2025) |
+| [#525085](https://gitlab.com/gitlab-org/gitlab/-/issues/525085) | policy management | devops::verify | random read | Blocked by #520088: 'we need to clarify with Grant and devops::verify approach'; unblocked 04-14 after agreeing 'we can unblock it'. |
+| [#525099](https://gitlab.com/gitlab-org/gitlab/-/issues/525099) | source code | Git team (gitlab-org/git) | targeted read | 'This is blocked by git#514'; 'implemented on the Git side, we can implement this on Gitaly with the next Git release'; still blocked |
+| [#525539](https://gitlab.com/gitlab-org/gitlab/-/issues/525539) | ai core infra | group::ai framework | second look | blocker #478067 is group::ai framework (marknuzzo) vs ai core infra (oregand); 'once we implement #478067'; still blocked, blocker done 2025 |
+| [#526129](https://gitlab.com/gitlab-org/gitlab/-/issues/526129) | authentication | database ops (pg_repack) | targeted read | 'this doesn't depend on us: we're blocked on pg_repack being run on oauth_access_tokens'; MRs held; label toggled same day 2026-03-03 |
+| [#526771](https://gitlab.com/gitlab-org/gitlab/-/issues/526771) | organizations | package registry | targeted read | 'This is blocked on epic 19690'; 'Unassigning until we complete epic 19690'; blocked 2025-11-13 to 2026-02-12 |
+| [#531380](https://gitlab.com/gitlab-org/gitlab/-/issues/531380) | ai model services | AWS Bedrock team (external vendor) | targeted read | 04-04 blocked: 'still awaiting a response from the internal Bedrock team'; 04-15 'only blocked by Amazon'; AWS replied 04-16, workaround wor |
+| [#534307](https://gitlab.com/gitlab-org/gitlab/-/issues/534307) | vulnerability management | database / DBO (sec decomposition), then security foundation | targeted read | 'blocked by decomposition of the Sec database'; migration held until infra in place; then 'migration will be scheduled following the complet |
+| [#536471](https://gitlab.com/gitlab-org/gitlab/-/issues/536471) | secrets manager application | gl-infra production (autopopulation change) | targeted read | 'as long as it is done after the autopopulation is completed... Marking this as blocked'; moved to review 05-08 'now that the autopopulation |
+| [#537059](https://gitlab.com/gitlab-org/gitlab/-/issues/537059) | secrets manager application | secrets manager OpenBao | random read | Waited on OpenBao metadata CAS (OpenBao PR #1372 / #538174, group::secrets manager openbao); moved to in dev 'since it's no longer blocked'  |
+| [#537634](https://gitlab.com/gitlab-org/gitlab/-/issues/537634) | vulnerability management | database / DBO (sec decomposition), then security foundation | targeted read | 'this is blocked by the sec decomposition'; later 'work has now started, following the resolution of the blocker #543762' |
+| [#538523](https://gitlab.com/gitlab-org/gitlab/-/issues/538523) | analytics instrumentation | fulfillment (CustomersDot) | targeted read | 'merging is blocked by another team (they need to make some changes in CustomerDot)... no work left from our point'; blocked 05-12 to 05-28 |
+| [#538567](https://gitlab.com/gitlab-org/gitlab/-/issues/538567) | ai core infra | group::cloud connector | second look | waited on group::cloud connector gem bump !191539 (nmilojevic1): 'can we get an update'; merged 05-22, issue completed 05-23 |
+| [#540976](https://gitlab.com/gitlab-org/gitlab/-/issues/540976) | secrets manager application | Distribution (infrastructure) | random read | Blocked by staging issue #538826 and distribution/team-tasks#1755 (Runway/Distribution); 2025-06-05 'no longer blocked', label removed a wee |
+| [#542436](https://gitlab.com/gitlab-org/gitlab/-/issues/542436) | ci platform | Pajamas / design.gitlab.com (UX) | targeted read | 'depends on what comes out of design.gitlab.com#1148'; 'something to keep your eyes on if Pajamas guidance is released'; still Blocked 2026- |
+| [#543818](https://gitlab.com/gitlab-org/gitlab/-/issues/543818) | vulnerability management | database team | targeted read | 'Marking this as blocked until we get the OK to perform the necessary database migrations' (team-tasks#540); stayed blocked, set Won't do 20 |
+| [#543901](https://gitlab.com/gitlab-org/gitlab/-/issues/543901) | dynamic analysis | group::composition analysis | second look | blocker #523986 is group::composition analysis (gonzoyumo), still open; thiagocsf: rejected 'barring something like #523986 being available' |
+| [#550474](https://gitlab.com/gitlab-org/gitlab/-/issues/550474) | source code | gitaly | targeted read | 'path argument will be implemented in gitaly#6917... we'll need that to be done for this'; gitaly 'implemented the change early in gitaly!81 |
+| [#552065](https://gitlab.com/gitlab-org/gitlab/-/issues/552065) | ci platform | group::environments | second look | lma-git: 'we also need to wait for #567649 to be rolled out' (group::environments, tigerwnz); rolled out 09-26, FF enabled gstg 09-29 |
+| [#552111](https://gitlab.com/gitlab-org/gitlab/-/issues/552111) | runner core | Database team | random read | Waited on the database team to approve an index-limit exception (database-team/team-tasks#522). 3 days |
 
 **Why the script picked wrong ones** (so the next person knows):
 - The "other team" was really the **same person** who split their work into two issues.
@@ -129,7 +188,7 @@
 | "Blocked" links point the right way | ❌ backwards | ✅ | — | ❌ not used | ✅ |
 | Links added one by one by people | ❌ one person added all at once | ✅ | — | — | ✅ |
 | Waits checked by reading | ❌ word search, 0 of 13 | ✅ 3 of 7 | ❌ word search | ✅ 40 | ✅ **57 + 116** |
-| **Real waits on another team** | 0 | 3–4 | 0 | 0 | **30** |
+| **Real waits on another team** | 0 | 3–4 | 0 | 0 | **36** |
 | **Stuck work with a written reason** | — | 1 | 0 | 32 of 40 | **50 of 57** |
 
 ## The other Meridian problems
@@ -151,11 +210,12 @@
 ## Things to be careful about
 
 - **These were read by Claude, not a person.** The 57 stuck issues, the 116 cross-team checks and the 20 closed bugs were judged by Claude reading each issue's history. We double-checked a few quotes against the real comments, and they were all correct. **A person should still check about 5 of each.**
-- **30 is exactly the minimum.**
-  - A strict reviewer might remove a few.
-  - 4 of the 30 aren't engineering teams.
-  - The 43 "maybe" cases could add more after a person reads them.
-- **These are blocks people noticed.** Meridian wants to find blocks people **don't** know about. Every one of the 30 was written down by someone, so it shows the problem is real and costly. It doesn't test whether Meridian can find hidden ones from the code. That part still needs made-up test cases.
+- **36 is a little above the minimum of 30.**
+  - A strict reviewer might remove a few. Two of the new six are borderline: [512419](https://gitlab.com/gitlab-org/gitlab/-/issues/512419) was closed with its part handed to the still-open blocker, and [517956](https://gitlab.com/gitlab-org/gitlab/-/issues/517956) still says blocked though its blocker closed.
+  - 4 of the 36 aren't engineering teams.
+  - 5 cases are still unclear.
+- **A bug we found in the second look:** blockers written as `gitlab-org#1234` are *epics*, but `cross_maybe.py` looked them up as normal issues with the same number. For those few cases the readers decided from the comments instead.
+- **These are blocks people noticed.** Meridian wants to find blocks people **don't** know about. Every one of the 36 was written down by someone, so it shows the problem is real and costly. It doesn't test whether Meridian can find hidden ones from the code. That part still needs made-up test cases.
 - **"Team" means the `group::` label.** A team without a label counts as unknown.
 - **Robots look like people sometimes:**
   - A test robot wrote 54% of the issues.
@@ -165,7 +225,7 @@
 
 ## What to do with it
 
-- **#5, teams blocking each other:** use the 30 confirmed cases as the team's real examples, after a person checks about 5. Read the 43 "maybe" cases to grow the set.
+- **#5, teams blocking each other:** use the 36 confirmed cases as the team's real examples, after a person checks about 5. Compare them with Aniket's link pass (`xt_*.py`, 30 cases, 17 overlapping with the first 30).
 - **#7, why work got stuck:** use the 57 hand-read issues as real examples. Fix the forgotten-label dates first.
 - **#6, adding old code:** use GitLab's banned-pattern lists. Next, check how often the adds come from a *different* team than the removes, compared with chance.
 - **#4, risky files:** tell the team that "most-edited files" works as well as "most-bug-fixed files". Add that comparison to the test plan (05-test).
@@ -192,6 +252,7 @@ REC=issues40.json python3 timeline.py <issue number> ...
 
 # 5. Teams blocking teams: download comments (token), filter, make reading batches
 python3 cross_pull.py && python3 cross_filter.py && python3 cross_dump.py cross_toread.txt 15
+python3 cross_maybe.py     # second look at the "maybe" cases: adds blocker and merge-date facts (token)
 
 # 6. The other problems
 python3 tix_pull_closing.py && python3 tix_pull_rest_issues.py && python3 tix_pull_related.py 5
@@ -206,13 +267,14 @@ sh code_run_all.sh      # copies GitLab's code history (1.2 GB) into data/code, 
 | `labels_all.py`, `analyze_all.py` | Label history; how long issues were stuck |
 | `notes.py`, `labels.py`, `methods.py`, `analyze_notes.py`, `analyze_labels.py` | The 1,000 sample and the 3 ways to spot "blocked" |
 | `pick_40.py`, `fetch_issues.py`, `fetch17.py`, `timeline.py` | Pick issues and print their history for reading |
-| `cross_pull.py`, `cross_filter.py`, `cross_dump.py` | Find and prepare likely team-blocks-team issues |
+| `cross_pull.py`, `cross_filter.py`, `cross_dump.py`, `cross_maybe.py` | Find and prepare likely team-blocks-team issues, and the second look at the "maybe" ones |
 | `tix_*.py` | Closed-but-not-done, code changes naming issues, planned removals |
 | `code_*.py`, `code_run_all.sh` | Owners, risky files, and adding old code (from the code history) |
 
 **Result sheets (CSV), kept on Vishwa's machine only and not in git:**
 - `hand_check_17.csv`, `hand_check_40.csv`: the 57 stuck issues read by hand
 - `cross_hand_check_116.csv`: the team-blocks-team reading, with the 25 confirmed
+- `cross_maybe_43.csv`: the second look at the 43 "maybe" cases, with 6 more confirmed
 - `tix_closed_no_mr_20.csv`: 20 closed bugs read by hand
 
 Ask Vishwa for them.
