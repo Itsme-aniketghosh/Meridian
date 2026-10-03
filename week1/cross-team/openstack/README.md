@@ -1,6 +1,6 @@
 # Cross-team · OpenStack Oslo incubator removal
 
-Step 1 of [NEXT-STEPS](../NEXT-STEPS.md) for the ChatGPT report's #1 pick. Queried 2026-10-03 from OpenStack's public Gerrit (review.opendev.org) and PyPI, both read-only. Every number below is printed by [openstack_step1.py](openstack_step1.py).
+Step 1 of the [cross-team check](../README.md) for the ChatGPT report's #1 pick. Queried 2026-10-03 from OpenStack's public Gerrit (review.opendev.org) and PyPI, both read-only. Every number below is printed by [openstack_step1.py](openstack_step1.py).
 
 ## Verdict
 

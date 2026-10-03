@@ -1,6 +1,6 @@
 # Cross-team · Mozilla bug 922464 (nsIURI thread-safety)
 
-Step 1 of [NEXT-STEPS](../NEXT-STEPS.md) for the pick both reports favoured for stalls. Queried 2026-10-03 from bugzilla.mozilla.org's public REST API (read-only). The counts are printed by [mozilla_step1.py](mozilla_step1.py). The "real wait?" calls are a hand read of every keyword hit and every downstream bug.
+Step 1 of the [cross-team check](../README.md) for the pick both reports favoured for stalls. Queried 2026-10-03 from bugzilla.mozilla.org's public REST API (read-only). The counts are printed by [mozilla_step1.py](mozilla_step1.py). The "real wait?" calls are a hand read of every keyword hit and every downstream bug.
 
 ## Verdict
 
@@ -78,7 +78,7 @@ Bug 922464 is a **meta bug** (an umbrella for a project), "Centralize URI parsin
 | 1425889, 1434507, 1456088, 1459861 | Networking (+ Cache) | open since 2017–18 | Unassigned follow-ups, 1–4 comments, no stated reason |
 | 1416791 | Networking | 128 days | Resolved. No wait stated |
 
-About 7 cases. Only **1** has a reason someone wrote down. Per NEXT-STEPS, inactivity alone isn't a reason, so the rest are `unknown`.
+About 7 cases. Only **1** has a reason someone wrote down. Per the cross-team rules, inactivity alone isn't a reason, so the rest are `unknown`.
 
 ## Caveats
 
@@ -90,7 +90,7 @@ About 7 cases. Only **1** has a reason someone wrote down. Per NEXT-STEPS, inact
 ## What to do with it
 
 - **Don't use the 43 children** as cross-team blocks or stalls.
-- **If we want Mozilla for #5,** mine many meta bugs' **blocks** lists across Core components. Keep a bug only if it's in a different component, filed before the meta bug resolved, and has a wait in its title or comments. That's the 3-check process in NEXT-STEPS step 2.
+- **If we want Mozilla for #5,** mine many meta bugs' **blocks** lists across Core components. Keep a bug only if it's in a different component, filed before the meta bug resolved, and has a wait in its title or comments. That's the 3 checks in the [cross-team README](../README.md#what-counts-as-a-block).
 - **For #7,** the 1443925-style case (a long wait with the reason written down) is what we want, but here we found only one.
 
 ## Reproduce
