@@ -2,7 +2,7 @@
 
 **Rough draft.** Numbers are from week 1 (`week1/`) and `docs/`.
 
-**Team:** Rochan Hanumanthu, Sree Rachnae Shyam (Pair 1) · Chaitali, Utkarsh Saraogi (Pair 2) · Aniket Ghosh, Vishwa (Pair 3)
+**Team:** Aniket Ghosh, Rochan Hanumanthu, Chaitali Vivek Nimse, Vishwa Divyeshbhai Pujara, Utkarsh Saraogi, Sree Rachnae Shyam
 
 ## 1. Introduction
 
