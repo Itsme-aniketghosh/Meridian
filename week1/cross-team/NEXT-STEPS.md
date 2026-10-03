@@ -1,73 +1,79 @@
-# Cross-team blocks and stalls: what to do next
+# Cross-team blocks and stalls: where we are
 
-The gap: no week-1 dataset can test feature #5 (hidden cross-team blocks) or #7 (why work stalled). Spark has no stalls, and our 20 Django packages never call each other. We ran two deep-research reports to find public data: [Claude](claude-deep-research.md) and [ChatGPT](chatgpt-deep-research-report.md).
+The gap was that no week-1 dataset could test feature #5 (hidden cross-team blocks) or #7 (why work stalled). Two deep-research reports ([Claude](claude-deep-research.md), [ChatGPT](chatgpt-deep-research-report.md)) suggested sources. We checked four of them.
 
 ## TL;DR
 
-- **Both reports agree:** no public dataset does this out of the box. Build a small, hand-checked set from real dependency edges and real tickets, and never invent the blocks.
-- **They disagree on where to start.** Claude says Debian's Python 2 removal (about 3,477 bugs with "blocked by" links). ChatGPT says OpenStack's Oslo migration (about 23 repos) and never looked at Debian.
-- **Don't pick yet.** Spend about an hour running three public queries (below) to settle it with numbers. Then build the gold set: 30+ blocks and 30+ stalls, the bar in [05-test](../../docs/05-test.md).
+- **#5 blocks: GitLab reaches the bar, twice over.** Two passes on H1 2025 used different starting points and each confirmed 30. Vishwa's started from issues labelled blocked; ours from "blocked by" links. None of Vishwa's 8 published examples is in our 30, so there are at least 38 distinct waiting issues.
+- **#7 stalls: GitLab is usable.** Of 57 blocked issues read, 50 have a written reason.
+- **Both reports' top picks failed.** Debian's links are reversed and bulk-added. OpenStack had nothing to wait for.
+- **Big caveat:** a model read the evidence, not a person. A human spot-check comes before anything is called gold.
 
-## Where the reports agree
+## What each source gave
 
-- NumPy 2.0 has real import chains across independent repos, e.g. librosa blocked via numba, and geoxarray via rasterio. It's the best fit for Meridian's "find it in the code" claim. But there's no central tracker, so labels have to be made by hand.
-- Mozilla Bugzilla is the best source for stall reasons, but it's mostly one repo. It tests team boundaries, not repo boundaries.
-- Kubernetes `extensions/v1beta1` (#43214) gives about 10–20 gold cases with clean ordering across repos (kops, cluster-proportional-autoscaler).
-- Apache Hadoop/HBase/Hive has strong individual cases (HIVE-15393, HBASE-4233), but they're scattered, not one migration.
-- BUMP and PyMigBench have no tickets and no cross-repo chains. BUMP is still useful for real build breakages to put inside fixtures.
-- A tracker link isn't proof of a block. "Depends on" often just means the work was split up. Only count a block when the code or comments prove the wait.
+| Source | Checked by | Real cross-team waits (#5) | Stalls with a written reason (#7) | Use it for |
+|---|---|---|---|---|
+| [Debian](debian/) | Chaitali | 0 of 13. Links point the wrong way, one person bulk-added them, 97 are cycles | Slow bugs, no reasons | Real dependency edges only |
+| [OpenStack](openstack/) | Chaitali | 0 of 59. Libraries had shipped 1.5–3.5 years before consumers moved | None (median 4 days) | Nothing |
+| [Mozilla](mozilla/) | Chaitali | 3–4, all in the meta bug's "blocks" list | 1 | The lesson: read "blocks", not "depends on" |
+| [GitLab](gitlab/) | Vishwa | 5 of 57 in a random read | **50 of 57** | #7 |
+| [GitLab, targeted read](gitlab/README.md) | Vishwa | **30** (25 from 126 candidates + 5 from the random read) | — | **#5** |
+| GitLab, link pass (`gitlab/xt_*.py`) | this pass | **30** (22 written waits + 8 stated prerequisites) | — | **#5** |
 
-## Where they disagree
+## The GitLab link pass
 
-| | Claude | ChatGPT |
-|---|---|---|
-| #1 for blocks | Debian py2removal | OpenStack Oslo-incubator removal |
-| OpenStack | Ranked 7th, but it looked at a different goal (drop py27) | Ranked 1st: library release → requirements → consumer change is a real, ordered chain |
-| Debian | Ranked 1st | Not considered |
-| Risk it names | Debian's block links were bulk-added from the package graph, so they may be circular | OpenStack has few planning tickets; most work is only in Gerrit |
+**Question:** does GitLab hold 30+ real cross-team blocks? This pass starts from every "blocked by" link. Vishwa's [targeted read](gitlab/README.md) starts from blocked labels. 17 of our 30 were in Vishwa's 126 candidates, and 13 weren't, because of the different starting points.
 
-Neither report verified its own scale numbers. Both say "compute from the API."
+1. **Population.** All 32,178 issues created Jan–Jun 2025. Dropped the flaky-test bot's 17,502, leaving 14,653 filed by people. Every one's activity log was read, because links get deleted once work is done.
+2. **Links.** 1,649 "blocked by" links on 1,200 issues. All were added by people. 106 point to other projects.
+3. **Cross-team.** The blocker has a different `group::` label, or sits in another project: 179 links.
+4. **Order.** The blocker was open when the link was added, and the blocked issue didn't close before it: 132 links on 111 issues.
+5. **Written evidence.** We pulled each blocked issue's comments and description, and read every snippet that mentions the blocker, waiting, or the other team.
 
-## Step 1 · settle it with numbers (about 1 hour, read-only public APIs)
+| Verdict per waiting issue | Issues |
+|---|---:|
+| **Wait**: a comment says it's blocked by or waiting on the blocker | **22** |
+| **Planned**: the description makes the blocker a prerequisite, and the order held | **8** |
+| Partial: a real dependency, but the wait isn't stated | 21 |
+| Unclear | 9 |
+| No: "not a blocker", dependency swapped, or wrong link | 18 |
+| No written evidence | 33 |
 
-| Query | Answers | Source |
-|---|---|---|
-| Debian UDD: py2removal bugs joined to `bugs_blockedby` | How many bugs have a block? Who added the links, and when? Median and slowest time to close? How many `py2keep`? | `postgresql://udd-mirror:udd-mirror@udd-mirror.debian.net/udd` |
-| OpenStack Gerrit: topic `goal-remove-incubated-oslo-code` | How many changes, across how many repos? Created → merged times? How many cite a library release? | `review.opendev.org` REST |
-| Mozilla Bugzilla: bug 922464 and its 43 dependencies | Open → resolved times. How many comments say "wait for", "once X lands", or "blocked"? | `bugzilla.mozilla.org` REST |
+- 30 wait + planned, from 18 waiting teams and 18 blocking teams, 26 pairs. Vishwa's 4 others with no formal link make 34.
+- Blocked span (link added → blocker closed, N = 31): median **74 days**, p90 246, max 414.
+- Examples:
+  - #537634 vulnerability management: "work has now started, following the resolution of the blocker #543762" (security foundations).
+  - #547122 dap: "we need ai-assist#906 completed before we can start" (code creation).
+  - #552105 pipeline execution: "The migration is now completed! Marking this issue as unblocked" (ci platform).
 
-Go with whichever source gives the most blocks that pass the check in step 2, per hour of work. Most likely: Debian or OpenStack for blocks, Mozilla for stalls.
+**Caveats**
+- **A model judged the snippets** (`checked_by` says so). Only "wait" rows quote the blocker directly.
+- **Monorepo:** team = `group::` label. This tests team boundaries, not chains between repos.
+- **Ruby:** our Python resolvers can't run the code-edge check, so the evidence is the ticket and its comments, not imports.
+- **Current labels:** group labels are as they are today. Some teams were renamed or deprecated since.
+- 63 links point to blockers we can't see (private projects), so they weren't checked.
 
-## Step 2 · build the gold set
+## Next
 
-**Blocks (target 30+, pass bar: precision ≥ 0.90).** Sample 60 candidate pairs with a fixed seed. Keep a pair only if all three hold:
-1. **Code edge:** the downstream repo really imports or calls the upstream one. Check the source, not just the packaging metadata.
-2. **Order:** the downstream fix landed after the upstream fix or release.
-3. **Wait:** a comment, review, or version pin shows someone actually waited.
+1. **Merge the two lists of 30** into one deduplicated gold set. Both CSVs are local only (Vishwa's and ours), so share them, or agree to push a version with usernames removed.
+2. **Human spot-check:** 10 "wait" rows, 5 "planned", 5 "partial". If 9 of 10 waits hold, call the 22 gold.
+3. **To pass 30 on observed waits alone in our pass,** run the same pass on Jul–Dec 2024: `xt_*.py`, about an hour of API time. The 22 should roughly double.
+4. **#7 gold set:** Vishwa's 57 rows (`hand_check_*.csv`, now local only), after the same spot-check. End each spell at the earliest of: label removed, Status changed, or blocker closed.
+5. **Chains between repos are still untested.** None of the four sources has them. Keep that on fixtures and say so on screen.
+6. **Update 05-test:**
+   - Blocking, chains: use the GitLab pairs, precision ≥ 0.90 on the 30 hand-labelled edges.
+   - Stall reasons: start from the 57.
+   - Fragility: add a churn baseline, because GitLab's risky files don't beat churn.
 
-Check 3 is what stops this from being circular. Without it we'd be grading Meridian against its own method.
+## Rerun the cross-team pass
 
-**Stalls (target 30+).** Take tickets open 90+ days and code each reason as one of `upstream`, `owner`, `risk`, `capacity`, `other`, `unknown`. Only use `capacity` if someone said so. Inactivity alone isn't evidence. Add 10+ conda-forge "awaiting parents" cases as false blocks, so Meridian has to tell them apart.
-
-**One row per case** (merged from both reports):
+Python 3.9+, no token needed. Run in a scratch folder (the outputs are big), with the `xt_*.py` files copied in:
 
 ```
-migration_id, consumer_repo, consumer_team, upstream_repo, upstream_team,
-code_edge, deprecated_symbol_or_version, deprecation_at, removal_at,
-ticket_created_at, first_code_activity_at, resolved_at, blocked_from, unblocked_at,
-reason, evidence_type, evidence_url, confidence, synthetic
+python xt_pull_issues.py                                                # 32k issues, ~8 min
+# write human_iids.txt (iids not by the "[Test]" project bot), then:
+python xt_pull_notes.py human_iids.txt activity.jsonl ONLY_ACTIVITY      # ~30–60 min; split across files to parallelise
+python xt_edges.py && python xt_enrich.py && python xt_evidence.py      # edges → cross-team + order → comment snippets
 ```
 
-Use `resolved_at`, never the close time. HBASE-4233 took 4 days of work, then sat 4 years before being bulk-closed. Pair 2 found the same mass-close trap in Spark.
-
-## Step 3 · put it in Meridian's shape
-
-- Map repo → repo, maintainer team → owning team, bug or issue → Jira ticket, keeping the real dates.
-- Hide the block links from the ticket view, so Meridian has to rediscover them from code.
-- Synthetic is allowed only for the ticket workflow around a real code edge (e.g. a "wrong owner" reassignment), and those rows must be marked `synthetic=true`. Never synthesize the block itself.
-
-## Decisions needed
-
-1. **Who owns this?** It's cross-repo, so Pair 3 by default.
-2. **What to demo:** if step 1 shows fewer than 30 real blocks anywhere, #5 and #7 go in the demo on fixtures only, and we say so on screen.
-3. **Timebox:** about 1 hour for step 1, then 1–2 days for step 2.
+Verdicts go to `gitlab/xt_cross_team_blocks.csv`: one row per link, with an evidence quote and a verdict. It stays local under the folder's "CSVs aren't pushed" rule, as do Vishwa's confirmed 30.

@@ -1,2 +1,12 @@
 # CSV result files stay on your machine only. They are never committed or pushed.
 *.csv
+
+# Cross-team pass (xt_*.py) raw outputs
+cursor.txt
+human_iids.txt
+rest_*.txt
+cand_x.txt
+edges.json
+candidates.json
+evidence.json
+evidence.md
