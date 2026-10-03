@@ -11,7 +11,7 @@
 | Auto-promoting LLM-written policies | Unreviewed code decides | Never |
 | Removal commit as ground truth | ~0 call sites in it | Never |
 | `index_together` benchmark | Refs are tests, not usage | Cross-repo only |
-| Burndown as resolver proof | Grep gets 279 too | Never |
+| Burndown as resolver proof | Grep finds all 265 too | Never |
 | tree-sitter alone | No name resolution | Never |
 | Incremental-only parsing | Resolution crosses files | Never |
 | Kafka for the ticket join | 62% keyed | Robustness tests |

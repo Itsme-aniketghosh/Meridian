@@ -64,9 +64,9 @@ Our product finds every place in a codebase that calls a function which is being
 
 To test if we're any good at that, we need a case where **someone already did it and we know the right answer.**
 
-That case is Django. In 2019 Django removed a function called `ugettext` (it translated text into other languages). Every place that called it had to be changed. Django did the whole migration in one commit, so we can look at the code just before, count the call sites ourselves, and compare.
+That case is Django. In 2017 Django removed a function called `ugettext` (it translated text into other languages). Every place that called it had to be changed. Django did the whole migration in one commit, so we can look at the code just before, count the call sites ourselves, and compare.
 
-**279 call sites. 118 files. That's our answer key.**
+**265 lines to edit, in 115 files. That's our answer key.** (This brief first said 279: that was a plain text search. See Pair 1.)
 
 ---
 

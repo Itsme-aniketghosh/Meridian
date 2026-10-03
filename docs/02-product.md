@@ -79,7 +79,7 @@ Meridian · 3 notes · nothing blocks this merge
 
 ## Build order
 
-1. Extract + Join on Django → the 279
+1. Extract + Join on Django → the 265
 2. Push check P1, P7, P8 + replay equivalence
 3. Spark ticket links → P3, P5, ticket checks
 4. Graph, chains, P4, after the cross-repo check
@@ -91,6 +91,6 @@ Meridian · 3 notes · nothing blocks this merge
 | Gap | Effect | Decided by |
 |---|---|---|
 | No cross-repo corpus | Blocks, chains, P4 on fixtures only | Week-1: 20 packages |
-| Resolver misses aliased `_()` | About 480 calls lost | Week-1: pyright vs Jedi |
+| Resolver misses aliased `_()` | 542 calls lost | Week-1: both get 533 of 542 |
 | Weak ticket → code mapping | P3, P5, chains go quiet (Spark: 5% linked) | Mapping precision |
 | Few Elo matches | Learning stalls | Week-1: matches per month |
