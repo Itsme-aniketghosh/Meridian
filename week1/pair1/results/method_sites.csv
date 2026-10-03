@@ -1,0 +1,31 @@
+benchmark,snapshot,file,line,col,method,kind,receiver,changed_by_commit,text
+is_ajax,5d654e1e71,django/views/debug.py,51,15,is_ajax,call,request,yes,if request.is_ajax():
+is_ajax,5d654e1e71,django/views/i18n.py,36,33,is_ajax,call,request,yes,(next_url or not request.is_ajax()) and
+is_auth,c16b9dd8e0,django/contrib/auth/__init__.py,141,54,is_authenticated,call,user,yes,"if hasattr(user, 'is_authenticated') and not user.is_authenticated():"
+is_auth,c16b9dd8e0,django/contrib/auth/backends.py,48,46,is_anonymous,call,user_obj,yes,if not user_obj.is_active or user_obj.is_anonymous() or obj is not None:
+is_auth,c16b9dd8e0,django/contrib/auth/backends.py,76,46,is_anonymous,call,user_obj,yes,if not user_obj.is_active or user_obj.is_anonymous() or obj is not None:
+is_auth,c16b9dd8e0,django/contrib/auth/decorators.py,46,20,is_authenticated,call,u,yes,"lambda u: u.is_authenticated(),"
+is_auth,c16b9dd8e0,django/contrib/auth/middleware.py,73,63,is_authenticated,call,request.user,yes,if self.force_logout_if_no_header and request.user.is_authenticated():
+is_auth,c16b9dd8e0,django/contrib/auth/middleware.py,79,24,is_authenticated,call,request.user,yes,if request.user.is_authenticated():
+is_auth,c16b9dd8e0,django/contrib/auth/mixins.py,54,28,is_authenticated,call,request.user,yes,if not request.user.is_authenticated():
+is_auth,c16b9dd8e0,django/contrib/auth/views.py,71,52,is_authenticated,call,request.user,yes,if redirect_authenticated_user and request.user.is_authenticated():
+is_auth,c16b9dd8e0,django/contrib/flatpages/templatetags/flatpages.py,36,24,is_authenticated,call,user,yes,if not user.is_authenticated():
+is_auth,c16b9dd8e0,django/contrib/flatpages/views.py,55,52,is_authenticated,call,request.user,yes,if f.registration_required and not request.user.is_authenticated():
+is_auth,c16b9dd8e0,tests/auth_tests/test_auth_backends.py,145,13,is_anonymous,assign,user,yes,user.is_anonymous = lambda: True
+is_auth,c16b9dd8e0,tests/auth_tests/test_auth_backends.py,337,22,is_anonymous,call,user,yes,elif user.is_anonymous() and perm == 'anon':
+is_auth,c16b9dd8e0,tests/auth_tests/test_auth_backends.py,344,20,is_anonymous,call,user,yes,if not user.is_anonymous() and not user.is_active:
+is_auth,c16b9dd8e0,tests/auth_tests/test_auth_backends.py,355,16,is_anonymous,call,user,yes,if user.is_anonymous():
+is_auth,c16b9dd8e0,tests/auth_tests/test_auth_backends.py,581,33,is_anonymous,call,user,yes,self.assertTrue(user.is_anonymous())
+is_auth,c16b9dd8e0,tests/auth_tests/test_basic.py,47,26,is_authenticated,call,u,yes,self.assertTrue(u.is_authenticated())
+is_auth,c16b9dd8e0,tests/auth_tests/test_basic.py,73,27,is_authenticated,call,a,yes,self.assertFalse(a.is_authenticated())
+is_auth,c16b9dd8e0,tests/auth_tests/test_middleware.py,19,43,is_anonymous,call,self.request.user,yes,self.assertFalse(self.request.user.is_anonymous())
+is_auth,c16b9dd8e0,tests/auth_tests/test_middleware.py,27,42,is_anonymous,call,self.request.user,yes,self.assertTrue(self.request.user.is_anonymous())
+is_auth,c16b9dd8e0,tests/auth_tests/test_mixins.py,83,13,is_authenticated,assign,user,yes,user.is_authenticated = lambda: False
+is_auth,c16b9dd8e0,tests/auth_tests/test_remote_user.py,41,49,is_anonymous,call,response.context['user'],yes,self.assertTrue(response.context['user'].is_anonymous())
+is_auth,c16b9dd8e0,tests/auth_tests/test_remote_user.py,45,49,is_anonymous,call,response.context['user'],yes,self.assertTrue(response.context['user'].is_anonymous())
+is_auth,c16b9dd8e0,tests/auth_tests/test_remote_user.py,49,49,is_anonymous,call,response.context['user'],yes,self.assertTrue(response.context['user'].is_anonymous())
+is_auth,c16b9dd8e0,tests/auth_tests/test_remote_user.py,121,50,is_anonymous,call,response.context['user'],yes,"self.assertEqual(response.context['user'].is_anonymous(), True)"
+is_auth,c16b9dd8e0,tests/auth_tests/test_remote_user.py,151,49,is_anonymous,call,response.context['user'],yes,self.assertTrue(response.context['user'].is_anonymous())
+is_auth,c16b9dd8e0,tests/auth_tests/test_remote_user.py,170,49,is_anonymous,call,response.context['user'],yes,self.assertTrue(response.context['user'].is_anonymous())
+is_auth,c16b9dd8e0,tests/auth_tests/test_remote_user.py,271,50,is_anonymous,call,response.context['user'],yes,"self.assertEqual(response.context['user'].is_anonymous(), False)"
+is_auth,c16b9dd8e0,tests/urlpatterns_reverse/views.py,48,30,is_authenticated,call,u,yes,"@user_passes_test(lambda u: u.is_authenticated(), login_url=reverse_lazy('some-login-page'))"

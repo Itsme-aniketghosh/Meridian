@@ -1,0 +1,31 @@
+benchmark,file,line,kind,receiver,jedi_result,jedi_thinks_receiver_is,pyright_result,pyright_hover
+is_ajax,django/views/debug.py,51,call,request,no_answer,(unknown),no_answer,(parameter) request: Unknown
+is_ajax,django/views/i18n.py,36,call,request,no_answer,(unknown),no_answer,(parameter) request: Unknown
+is_auth,django/contrib/auth/__init__.py,141,call,user,no_answer,(unknown),no_answer,(variable) user: Any | None
+is_auth,django/contrib/auth/backends.py,48,call,user_obj,no_answer,(unknown),no_answer,(parameter) user_obj: Unknown
+is_auth,django/contrib/auth/backends.py,76,call,user_obj,no_answer,(unknown),no_answer,(parameter) user_obj: Unknown
+is_auth,django/contrib/auth/decorators.py,46,call,u,no_answer,(unknown),no_answer,(parameter) u: Unknown
+is_auth,django/contrib/auth/middleware.py,73,call,request.user,no_answer,(unknown),no_answer,(function) user: Unknown
+is_auth,django/contrib/auth/middleware.py,79,call,request.user,no_answer,(unknown),no_answer,(function) user: Unknown
+is_auth,django/contrib/auth/mixins.py,54,call,request.user,no_answer,(unknown),no_answer,(function) user: Unknown
+is_auth,django/contrib/auth/views.py,71,call,request.user,no_answer,(unknown),no_answer,(function) user: Unknown
+is_auth,django/contrib/flatpages/templatetags/flatpages.py,36,call,user,no_answer,(unknown),no_answer,(variable) user: __proxy__ | Unknown | float | int | SafeBytes | SafeText | None
+is_auth,django/contrib/flatpages/views.py,55,call,request.user,no_answer,(unknown),no_answer,(function) user: Unknown
+is_auth,tests/auth_tests/test_auth_backends.py,145,assign,user,no_answer,(unknown),no_answer,(variable) user: Unknown
+is_auth,tests/auth_tests/test_auth_backends.py,337,call,user,no_answer,(unknown),no_answer,(parameter) user: Unknown
+is_auth,tests/auth_tests/test_auth_backends.py,344,call,user,no_answer,(unknown),no_answer,(parameter) user: Unknown
+is_auth,tests/auth_tests/test_auth_backends.py,355,call,user,no_answer,(unknown),no_answer,(parameter) user: Unknown
+is_auth,tests/auth_tests/test_auth_backends.py,581,call,user,right,"AbstractBaseUser, AnonymousUser",right,(variable) user: Any | AnonymousUser
+is_auth,tests/auth_tests/test_basic.py,47,call,u,no_answer,(unknown),no_answer,(variable) u: Any
+is_auth,tests/auth_tests/test_basic.py,73,call,a,right,AnonymousUser,right,(variable) a: AnonymousUser
+is_auth,tests/auth_tests/test_middleware.py,19,call,self.request.user,right,"AbstractBaseUser, AnonymousUser",no_answer,(function) user: Unknown
+is_auth,tests/auth_tests/test_middleware.py,27,call,self.request.user,right,"AbstractBaseUser, AnonymousUser",no_answer,(function) user: Unknown
+is_auth,tests/auth_tests/test_mixins.py,83,assign,user,right,User,no_answer,(variable) user: Any
+is_auth,tests/auth_tests/test_remote_user.py,41,call,response.context['user'],no_answer,(unknown),no_answer,(nothing)
+is_auth,tests/auth_tests/test_remote_user.py,45,call,response.context['user'],no_answer,(unknown),no_answer,(nothing)
+is_auth,tests/auth_tests/test_remote_user.py,49,call,response.context['user'],no_answer,(unknown),no_answer,(nothing)
+is_auth,tests/auth_tests/test_remote_user.py,121,call,response.context['user'],no_answer,(unknown),no_answer,(nothing)
+is_auth,tests/auth_tests/test_remote_user.py,151,call,response.context['user'],no_answer,(unknown),no_answer,(nothing)
+is_auth,tests/auth_tests/test_remote_user.py,170,call,response.context['user'],no_answer,(unknown),no_answer,(nothing)
+is_auth,tests/auth_tests/test_remote_user.py,271,call,response.context['user'],no_answer,(unknown),no_answer,(nothing)
+is_auth,tests/urlpatterns_reverse/views.py,48,call,u,no_answer,(unknown),no_answer,(parameter) u: Unknown
