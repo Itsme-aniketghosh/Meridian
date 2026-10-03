@@ -2,11 +2,14 @@
 
 ## TL;DR (Pair 1)
 
-**Is it possible?** Yes. Tree-sitter plus a resolver finds the Django migration's call sites, aliases included.
+**Is it possible?** Yes for names and aliases. Not yet for method calls.
 
 - **Scanning is instant.** 0.78 s for all 2,374 files, 0 parse errors.
-- **The answer key is 265 lines, not 279.** The conversion commit changed 285 `.py` lines. 265 are real uses, and our scanner finds all 265 with 0 false finds. The other 20 are renames, comments, and rewrapping.
+- **The answer key is 265 lines, not 279.** The conversion commit changed 285 `.py` lines. 265 are real uses, and our scanner finds all 265 with 0 false finds. The other 20 are renames, comments, and rewrapping. 2 more code lines hide in a non-`.py` file: 265 of 267 overall.
+- **The 279 is a plain text search.** Grep finds all 265 plus 14 lines that aren't uses (comments, docstrings, strings, test names), once the 5 definitions are dropped. It sees none of the 542 alias calls.
 - **Aliases resolve.** Jedi and pyright each get 533 of 542 `_()` calls right (98.3%). The 9 misses all go through one `_ = ugettext_lazy` line, where both tools stop a step early. A one-hop rule fixes it.
+- **Method calls don't.** On `is_ajax()` and `is_authenticated()`, Jedi gets 5 of 30 and pyright 2 of 30, and each gets 0 of 12 in Django's own code. Both give up when the object is a function parameter, but they're never wrong. Jedi wins the tie, narrowly.
+- **Almost no junk.** 187 of the 265 edit lines are in Django itself and 78 in tests, 0 in docs, translations, migrations, generated, or vendored code. Tests are real work: keep them, labelled.
 - **Hand-checking is quick.** 30 of 30 sampled lines confirmed in 9.3 minutes, so all 279 would take about 1.5 hours. The week-4 freeze holds.
 - **The migration was 2017, not 2019.**
 
@@ -111,6 +114,8 @@ Tree-sitter sees `_("Hello")` and has no clue what `_` is. Try **jedi** or **pyr
 
 **4. Junk.** What's in this repo that we should skip? Test files? Auto-generated files? Anything else?
 
+> **Answer (Pair 1):** **Almost nothing.** Of the 265 edit lines, **187** are in `django/` and **78** in `tests/`, and **0** in docs, `django/conf/locale/`, migrations, generated, or vendored code. Keep tests, labelled: the commit changed all 78. Skip vendored `django/utils/six.py` and non-code (docs, 2,250 `.po` / `.mo` files). Watch for code outside `.py`: `tests/i18n/commands/code.sample` has 2 edit lines. Details: [pair1/README.md](pair1/README.md#q4--junk).
+
 ## Questions Pair 1 added
 
 **Does the 279 match what the commit changed?**
@@ -133,6 +138,33 @@ No. Same answer on all 542 calls. Each tool takes about 1 s for the whole set.
 
 **When did the migration actually happen?**
 2017. `c651331b34` was committed 2017-02-07, not 2019.
+
+**Where does the 279 come from?**
+Very likely a plain text search. `git grep` for the old names finds 284 `.py` lines. Drop the 5 definition lines and you get 279 lines in 118 files, 110 with the word "import" and 169 without: all four 03-data numbers. 14 of the 279 aren't uses.
+
+**Is a plain text search good enough?**
+For counting edits, nearly. It finds all 265, plus 19 lines that aren't uses: 5 definitions, 5 strings such as `__all__`, 5 test names, 2 docstrings, 2 comments. For aliases, no: it finds 0 of the 485 alias-call lines.
+
+**Are old names re-exported through another module?**
+No. No file imports a nickname from another file. The 14 `import *` lines that could bring one in pull from modules whose `__all__` leaves the old names out.
+
+**Should test files be skipped?**
+No. They hold 78 of the 265 edit lines, and the commit changed all 78: the old function can't be deleted while tests still call it. Label them instead.
+
+**Can migration files be spotted by their name?**
+No. 32 of the 128 aren't named like `0001_name.py`, and `tests/migrations/test_writer.py` is a test, not a migration. Look for `class Migration(migrations.Migration)`.
+
+**Is all Python code in `.py` files?**
+No. `tests/i18n/commands/code.sample` holds 2 lines the commit changed. A `.py`-only scanner never opens it, so the scanner finds 265 of 267.
+
+**Is `is_ajax()` big enough for the method-call benchmark?**
+No. Django's own code calls it twice. `is_authenticated()` / `is_anonymous()`, which became properties in `c1aec0feda`, gives 28 uses.
+
+**Can Jedi or pyright resolve method calls?**
+Rarely. Jedi 5 of 30, pyright 2 of 30, and 0 of 12 each in Django's own code. They answer only when they know the object's class (pyright: `(parameter) request: Unknown`), and they were never wrong.
+
+**Are method uses always calls?**
+No. Two tests replace the method on one object (`user.is_anonymous = lambda: True`). Those lines had to change too, and a call-only scanner misses them.
 
 ---
 
@@ -320,7 +352,7 @@ Yes. 812 of 854 fix commits (95%) name their ticket. The misses are Chart (SVN),
 | Pair | Number |
 |---|---|
 | 1 | Minutes for tree-sitter to scan Django: **0.013 min** (0.78 s) |
-| 1 | Can jedi or pyright resolve `_()`? **yes** (533 of 542, both tools) |
+| 1 | Can jedi or pyright resolve `_()`? **yes** (533 of 542, both tools; on method calls only Jedi 5 of 30, pyright 2 of 30) |
 | 1 | Minutes to hand-check 30 references: **9.3 min** (≈87 for 279) |
 | 2 | % of Spark commits with a ticket ID: **94.0%** |
 | 2 | Count of Bug + Fixed tickets: **144 of 853** linked (10,980 project-wide) |
