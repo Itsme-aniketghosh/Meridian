@@ -18,7 +18,7 @@
 | Collect | Fixture repo + mock Jira; force-push; kill and resume | 100% |
 | Determinism | Same snapshot twice; rebuild vs incremental; warm cache | 0 diffs, 0 LLM calls |
 | Candidates | Goldens: direct, alias, attribute, re-export, `getattr` (expected miss) | All |
-| Resolver | Django 279; one method-call deprecation | Recall ≥ 0.95, precision ≥ 0.98 |
+| Resolver | Django 265; one method-call deprecation | Recall ≥ 0.95, precision ≥ 0.98 |
 | Call site ID | Fixtures: insert, move, rename, duplicate, split. Django replay | 100%, replay errors ≤ 1% |
 | Burndown | Django weekly replay vs grep | Equal, 0 at conversion |
 | Ownership | Spark: owner vs next author. Baselines: last toucher, CODEOWNERS | Beats last toucher |
@@ -60,10 +60,10 @@ Replay each first-parent commit as a push against its parent's map.
 | Check | Decides |
 |---|---|
 | `url()` migration commit in 20 packages | ≥ 12 corpus · 5–11 partial · < 5 cross-repo untested |
-| pyright or Jedi on 480 aliased `_()` | Resolver, blast radius |
+| pyright or Jedi on 542 aliased `_()` | Resolver, blast radius |
 | Per-repo envs with internal packages | Cross-repo resolution |
 | Method-call benchmark | Resolver number means anything |
-| Time to hand-verify the 279 | Week-4 freeze |
+| Time to hand-verify the 265 | Week-4 freeze |
 | Collision pairs in Spark | Chains testable |
 | Bulk-closed share of Duplicates | Duplicate labels usable |
 | 50 Django pushes timed | Free runner fits |

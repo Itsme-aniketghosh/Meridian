@@ -18,10 +18,12 @@ intake (Slack, support, GitHub issues).
 ## Measured
 
 **Django**
-- `ugettext*` at `4353640ea9`: 279 lines to edit (110 imports, 169 calls), 118 files
-- 649 invocations, 480 through an alias `_()`
-- Conversion commit `c651331b34` agrees within 4%
-- Grep also finds 279, so the resolver is justified by blast radius, not burndown
+- `ugettext*` at `4353640ea9`: 265 lines to edit (113 import, 151 call, 1 alias), 115 files.
+  Plus 2 in `tests/i18n/commands/code.sample`, outside `.py`
+- 542 alias calls `_()` on 485 lines, 96 files
+- Conversion commit `c651331b34` (2017) changed 285 `.py` lines: the 265, plus 20 non-uses
+- Grep finds all 265 plus 19 non-uses, and 0 alias calls. The old 279 was grep minus the
+  5 definitions. The resolver is justified by blast radius, not burndown
 - Removal commits hold ~0 call sites (62.8% tests, 29.9% definition)
 
 **Spark + Jira** (2026-09-25)
@@ -33,8 +35,8 @@ intake (Slack, support, GitHub issues).
 
 ## Definitions
 
-- **Call site:** a line a human must edit (the 279)
-- **Blast radius:** every invocation reached, including aliases (the 649). Not in burndown
+- **Call site:** a line a human must edit (the 265)
+- **Blast radius:** every invocation reached, including the 542 alias calls. Not in burndown
 - **Ground truth:** references at the conversion commit's parent, hand-verified, frozen week 4
 - **Fragility:** bug-fix count on public data
 
