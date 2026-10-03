@@ -1,207 +1,222 @@
 # Cross-team · GitLab (gitlab-org/gitlab)
 
-Step 1 of [NEXT-STEPS](../NEXT-STEPS.md), on a source neither research report picked. Queried 2026-10-02 from gitlab.com's public API (GraphQL anonymous, REST with a `read_api` token) and a blobless clone of the repo. All read-only. Every number below is printed by a script in this folder. The "real wait?" calls are a hand read of each issue's full history.
+**The question:** can GitLab's own public data be used to test Meridian? This is step 1 of [NEXT-STEPS](../NEXT-STEPS.md), on a source neither research report picked.
 
-## Verdict
+**The data:**
+- Pulled on 2026-10-02 from gitlab.com: the public website API, plus a copy of the code history.
+- We only read data; nothing was changed.
+- Every number below comes from a script in this folder.
+- Every "was it really waiting?" answer comes from reading the issue's full history.
 
-- **Is it cross-team? The teams are. The blocks mostly aren't.**
-  - GitLab is one repo shared by about 100 teams (`group::` labels).
-  - 579 human-filed issues were blocked at some point, and the links point the way Meridian's `blocked_by` does.
-  - But only **5 of 57** hand-read blocks waited on another team. The rest waited on an issue in their own team.
-- **#5 (blocks): short of the bar, but the closest of our sources.**
-  - 5 real cross-team waits in 57 is about 9%.
-  - Applied to all 579, that suggests about 50 in six months, roughly 20 to 100 given N = 5.
-  - Mozilla found 3–4, and Debian and OpenStack found 0.
-  - A filtered hand read of the 579 could reach 30.
-- **#7 (stalls): usable. This is the strongest source we have.**
-  - 39 of 57 were really stuck, and 50 of 57 have a written reason.
-  - Blocked spells run a median 26 days, and 97 lasted 90+ days.
-  - Blocked issues miss their milestone 36% of the time, vs 16% for the rest.
-- **Filter first.** 54% of issues in the window are bot-filed flaky-test reports, and one person bulk-closed 5,143 of them in 4 hours. Every rate below is for the 14,668 human-filed issues.
+## The short answer
 
-## What it is
+- **Yes, GitLab is worth using.** It's the only dataset we found for two of Meridian's 7 problems:
+  - **#5, teams blocking each other:** 30 real cases. No other dataset got past 4.
+  - **#6, adding new uses of old code while others remove them:** clear examples, over 2 years.
+- **It's also the best for #7, why work got stuck:** 579 stuck issues, and people usually wrote down why.
+- **It's weaker for #2, #3 and #4** (closed-but-not-done tickets, stale owners, risky files). Other datasets do those better.
+- **It can't test #1**, finding out late about removed code. GitLab is written in Ruby, and our code tools only read Python.
+- **One warning:** more than half the issues (54%) are written by a robot that reports failing tests. We removed them. All numbers below are for the **14,668 issues written by people**.
 
-- **GitLab** builds its product in one large repo, `gitlab-org/gitlab` (Ruby on Rails + Vue).
-- **Teams** are `group::` labels, about 100 of them (Source Code, Code Review, Geo, …), each with its own engineers and managers.
-- **Issues** live in the same project. A team marks an issue stalled with the scoped label `workflow::blocked` (or, since 2025, Status **Blocked**). It links the blocker with "blocked by #N".
-- **In Meridian terms:**
-  - repo = monorepo
-  - `group::` = team
-  - issue = ticket
-  - "blocked by" = `blocked_by`
-- So this tests team boundaries inside a monorepo, like Mozilla, not chains between repos.
+## What GitLab is
+
+- **GitLab** is a company that makes software for teams to store code and track work.
+- It builds its own product in **one big shared code base**: `gitlab-org/gitlab`.
+- **About 100 teams** work in that one code base. Each team has a label, like `group::source code` or `group::database`.
+- **Each piece of work is an "issue"** (a ticket).
+- **When a team gets stuck**, it puts the label `workflow::blocked` on the issue. It often adds a link: "blocked by #1234".
+- **For Meridian:** this is close to the real situation Meridian is built for: many teams, one shared code base, and tickets.
 
 ## What we did
 
-1. **Pulled every issue created 2025-01-01 to 2025-07-01:** 32,166 issues with labels and blocking links, plus each issue's author (anonymous GraphQL, about 12 min).
-2. **Pulled the label history of every issue** (REST with a token, about 27 min). That gives each `workflow::blocked` spell its start and end.
-3. **Dropped the flaky-test bot.** 17,502 issues come from one bot account and are all "[Test] spec/…" reports. 14,668 are human-filed.
-4. **Compared three ways to spot "blocked"** on a seeded 1,000 sample:
-   - a block link
-   - the Status field
-   - the label
-5. **Hand-read 57 blocked issues:**
-   - 17 from the 1,000 sample, plus 40 seeded (`random.seed(2)`) from all 579.
-   - Each was read in full: description, comments, and label, milestone and state history.
-   - Coded with the NEXT-STEPS reasons (`upstream`, `owner`, `risk`, `capacity`, `other`, `unknown`).
-   - Cross-team = the thing waited on belongs to a different `group::`, or a comment names another team.
-6. **Also checked the other five failures** (ownership, risky files, closed-vs-done, deprecations, adds-while-removing) on the tickets and the git history. See [Beyond blocks and stalls](#beyond-blocks-and-stalls).
+1. **Downloaded every issue** created January to June 2025: 32,166 issues.
+2. **Removed the robot's issues.** 17,502 came from one test-reporting bot, which left 14,668 written by people.
+3. **Downloaded the full label history** of every issue. That shows exactly when each issue was marked "blocked" and when it was un-marked.
+4. **Read 57 stuck issues by hand,** picked at random, to see if they were really stuck and why.
+5. **Searched for teams waiting on other teams.**
+   - A script picked the 126 most likely issues.
+   - We read every one.
+   - We kept only the ones that passed all 3 of the team's tests.
+6. **Checked the other Meridian problems too:** owners, risky files, closed tickets, deprecations, and adding old code.
 
-## The numbers
+## The results
 
-| What it tells you | Need | We got | |
-|---|---|---|---|
-| Human-filed issues | 100s | **14,668** of 32,166 (the rest is one test bot) | ✅ |
-| Issues ever `workflow::blocked` | 30+ | **579** (3.9%) | ✅ |
-| Block links on issues now | a real share | **1,099** of 32,166 (3.4%). Spark: 2% | 🟡 |
-| Labels added by hand | most | **603 of 618** adds by a person. **0 of 57** sampled by a bot. One bulk day (15 issues) | ✅ |
-| Links point the way Meridian's do | yes | **Yes.** The waiting issue says "blocked by" its blocker | ✅ |
-| Blocked issues really stuck (hand read) | most | **39 of 57** y, 6 partly, 5 n, 7 unclear | ✅ |
-| Reason written down | most | **50 of 57** | ✅ |
-| Real waits on another team | 30+ | **5 of 57** (9%). About 50 across the 579, unchecked | 🔴 / 🟡 |
-| Blocked-by links that cross `group::` | a real share | **11 of 67** | 🔴 |
-| Blocked spell length | long enough to matter | median **26 days**, p75 76, p90 181. **97** at 90+ days (N = 462 closed spells) | ✅ |
-| Blocked → missed milestone | higher than the rest | **36%** (208 of 579) vs 16% (2,306 of 14,089) | ✅ |
-| Wait from filing to first `in dev` | not same-day (Spark: 45% within a day) | median **15 days**, 52% wait 2+ weeks (N = 3,473) | ✅ |
-| Spell dates match the real wait | most | **34 of 57**. The label is often left on | 🟡 |
+| Question | What we found | Good enough? |
+|---|---|---|
+| How many issues were ever marked "blocked"? | **579** (about 4 in 100) | ✅ |
+| Were they really stuck? (57 read by hand) | **39 yes**, 6 partly, 5 no, 7 unclear | ✅ |
+| Did someone write down why? | **50 of 57** | ✅ |
+| How long were they stuck? | Half were stuck **26 days or more**. 97 were stuck over 3 months | ✅ |
+| Do stuck issues finish late? | **Yes.** 36% of stuck issues missed their deadline, against 16% of the rest | ✅ |
+| How long until work even starts? | Half waited **15 days or more** before anyone started | ✅ |
+| Were any stuck because of **another team**? | **30 confirmed** (need 30) | ✅ just |
+| Were the "blocked" labels added by people, not robots? | **Yes.** 0 of 57 by a robot | ✅ |
+| Are the "blocked" dates accurate? | **Only 34 of 57.** People often forget to remove the label | 🟡 |
 
-**How to read it:**
-- **✅ The stall signal is real, labelled by people, and points the right way.** The reasons are in the comments.
-- **🔴 Cross-team waits are rare in any one sample,** but the population is big enough that a targeted read might reach 30.
+## Why issues got stuck (57 read by hand)
 
-## Three ways to spot "blocked"
-
-Seeded 1,000 sample ([methods.py](methods.py)):
-
-| Method | Token? | Issues |
-|---|---|---:|
-| Block link ever ("marked this issue as blocked by") | No | 59 |
-| Status set to **Blocked** | No | 7 |
-| `workflow::blocked` label | Yes | 16 |
-
-- **Status and label are one signal.** 6 of the 7 overlap.
-- **Link and label are different things.** Only 9 issues have both: a link names the blocker, and the label marks the stall.
-- **Use the label or Status for #7 and the link for #5.** Any one alone misses most of the 67.
-
-## The 57 hand-read issues
-
-[hand_check_17.csv](hand_check_17.csv), [hand_check_40.csv](hand_check_40.csv)
-
-| Reason | Issues | Detail |
+| Reason | How many | Example |
 |---|---:|---|
-| upstream | 41 | 35 waiting on another issue or MR in the same team · **5 on another team** · 1 deprioritized |
-| unknown | 7 | No reason anywhere |
-| other | 6 | Planned schedule or release wait (4), not a block (1), deprioritized (1) |
-| owner | 2 | Product decision |
-| risk | 1 | Flag rollout broke customer workflows |
-| capacity | 0 | Nobody said "no time" |
+| **Waiting on other work** ("upstream") | 41 | Waiting for another issue to finish first. 5 of these were another team's work |
+| **No reason written** | 7 | Nobody explained |
+| **Planned wait** | 6 | "Wait until the next release" |
+| **Waiting for a decision** ("owner") | 2 | A product manager had to decide |
+| **Too risky** | 1 | A new feature broke customers, so it was paused |
+| **No time** ("capacity") | 0 | Nobody said "we're too busy" |
 
-**The 5 cross-team waits:**
+**What we learned:**
+- **People forget to remove the "blocked" label.** 66 finished issues still say "blocked". So don't trust the label alone. Use whichever comes first: the label being removed, the status changing, or the blocking issue finishing.
+- **"Blocked" sometimes really means "we stopped caring".** The issue was moved to the backlog and nobody was assigned.
+- **Some real blocks never got the label.** So the label misses some.
+- **People delete "blocked by" links when work is done.** We used the issue's history, which keeps the deleted ones.
 
-| Issue | Team | Waited on | Evidence |
+## Teams blocking other teams (problem #5)
+
+**The problem:** only about 1 stuck issue in 11 is caused by another team. Reading at random, we'd need to read about 350 issues to find 30.
+
+**What we did instead:**
+
+```
+579 stuck issues
+   │
+   ▼  Step 1: a script picks the likely ones. It keeps an issue if:
+   │   • the issue blocking it belongs to a different team, or is in another team's project, or
+   │   • a comment says "waiting" AND names another team
+   ▼
+126 likely issues
+   │
+   ▼  Step 2: read every one, and keep it only if ALL 3 are true:
+   │   1. the work it waited on belongs to a DIFFERENT team
+   │   2. it really stayed stuck until that team finished
+   │   3. someone WROTE that they were waiting
+   ▼
+25 confirmed  +  5 from the earlier random read  =  30
+```
+
+- **Is the script any good?** It found 4 of the 5 cases we already knew about.
+- **Results of reading the 116 new ones:**
+  - **25** confirmed
+  - **43** maybe (another team, but weak proof)
+  - **45** turned out to be the same team
+  - **3** weren't really stuck
+
+**Who were teams waiting on? (all 30)**
+
+| Waiting on | How many | Example of what someone wrote |
+|---|---:|---|
+| The database team | 6 | "blocked until we get the OK to perform the necessary database migrations" ([543818](https://gitlab.com/gitlab-org/gitlab/-/issues/543818)) |
+| Another product team | 8 | Waiting for code review, package registry, editor extensions, and others to finish their part ([526771](https://gitlab.com/gitlab-org/gitlab/-/issues/526771)) |
+| The infrastructure team (servers, monitoring) | 4 | "input and collaboration with the Observability team is required" ([520343](https://gitlab.com/gitlab-org/gitlab/-/issues/520343)) |
+| The Git storage and runner teams | 4 | "we'll need [gitaly#6917] to be done for this" ([550474](https://gitlab.com/gitlab-org/gitlab/-/issues/550474)) |
+| The design system team | 3 | "wait until design.gitlab.com#1555 is complete" ([515448](https://gitlab.com/gitlab-org/gitlab/-/issues/515448)) |
+| The AI team | 1 | [521252](https://gitlab.com/gitlab-org/gitlab/-/issues/521252) |
+| A non-engineering team (Product, Legal, Quality) | 3 | Waiting for approval ([517640](https://gitlab.com/gitlab-org/gitlab/-/issues/517640)) |
+| An outside company (Amazon) | 1 | [531380](https://gitlab.com/gitlab-org/gitlab/-/issues/531380) |
+
+- **26 of the 30** are one team waiting on another team's **shared code or system**. That's exactly Meridian's problem #5.
+- Half waited **21 days or more**.
+
+**Why the script picked wrong ones** (so the next person knows):
+- The "other team" was really the **same person** who split their work into two issues.
+- The "other team" was a **sister team with the same people**, or an **old name** of the same team.
+- The comment only **mentioned** another team. It didn't say they were waiting on them.
+- The team **found a workaround** instead of waiting.
+
+## How GitLab compares with the other datasets
+
+| | Debian | Mozilla | OpenStack | Home Assistant | **GitLab** |
+|---|---|---|---|---|---|
+| "Blocked" links point the right way | ❌ backwards | ✅ | — | ❌ not used | ✅ |
+| Links added one by one by people | ❌ one person added all at once | ✅ | — | — | ✅ |
+| Waits checked by reading | ❌ word search, 0 of 13 | ✅ 3 of 7 | ❌ word search | ✅ 40 | ✅ **57 + 116** |
+| **Real waits on another team** | 0 | 3–4 | 0 | 0 | **30** |
+| **Stuck work with a written reason** | — | 1 | 0 | 32 of 40 | **50 of 57** |
+
+## The other Meridian problems
+
+| # | Problem (in plain words) | Does GitLab show it? | What we found |
 |---|---|---|---|
-| [552111](https://gitlab.com/gitlab-org/gitlab/-/issues/552111) | runner core | Database team | Index-limit exception, "Addressed in database-team/team-tasks#522". 3 days |
-| [540976](https://gitlab.com/gitlab-org/gitlab/-/issues/540976) | secrets manager application | Distribution (Runway) | "blocked by … distribution/team-tasks#1755", unblocked when promoted to an epic |
-| [525085](https://gitlab.com/gitlab-org/gitlab/-/issues/525085) | policy management | devops::verify | "we need to clarify with … ~devops::verify approach". 1 month |
-| [537059](https://gitlab.com/gitlab-org/gitlab/-/issues/537059) | secrets manager application | secrets manager OpenBao | Waited on OpenBao metadata CAS (#538174). Moved to in dev "since it's no longer blocked". 54 days |
-| [515448](https://gitlab.com/gitlab-org/gitlab/-/issues/515448) | optimize | Design system (design.gitlab.com) | "wait until design.gitlab.com#1555 is complete". Still blocked |
+| 6 | **New uses of old code get added while other teams remove them** | ✅ **Yes** | GitLab keeps a list of files that still use each banned coding pattern. **320 of 351** lists got shorter (teams cleaned up), but **51** lists got new files added in 3+ different months (others added more). One list: 1,112 files removed and 208 added over 27 months |
+| 4 | **Some files break much more often than others** | ✅ Yes, but… | Files with 3+ bug fixes in a year got **8.5 times** their share of next year's bug fixes. **But:** simply picking the most-edited files works just as well. So bug history doesn't add anything here |
+| 2 | **A ticket says "done", but the code isn't** | 🟡 A little | 36 issues closed **before** the fix was in. 25 still open **after** the fix was in. 6 of 20 "done" bugs were never fixed: a robot closed them for being old |
+| 3 | **The listed owner of the code is out of date** | 🟡 A little | GitLab lists big groups as owners, not people. Guessing "who changes this next" was about as good as "whoever changed it last" (16.3% vs 15.6%). On 43% of files, none of the listed team owners had touched the file in a year |
+| 1 | **Teams find out too late that code they use is being removed** | 🔴 Not really | GitLab has a clean list of 378 planned removals with dates. But the code is Ruby, so our tools can't find who uses it |
 
-**Patterns:**
-- **The label goes stale.**
-  - 15 of 57 spells have the wrong dates.
-  - 66 closed issues still carry `workflow::blocked`.
-  - 91 open issues have been "blocked" a median of 510 days, mostly abandoned.
-  - End a spell at the earliest of: label removed, Status changed, blocker closed.
-- **"Blocked" is sometimes "deprioritized"** (moved to Backlog and unassigned the same day), or a planned wait.
-- **Real blocks go unlabelled.** [513546](https://gitlab.com/gitlab-org/gitlab/-/issues/513546) had two real blocks, a QA test and #535230, and neither got the label.
-- **Links get deleted when work is done.** 59 sampled issues ever had one, and only 32 still do. Count from the activity log, not the current links.
+**Other facts:**
+- **76%** of code changes name their issue (Spark: 94%).
+- **99%** of commits link to their code change.
+- **About 7%** of people use two different emails.
+- **About 7%** of commits are made by robots.
 
-## How it compares
+## Things to be careful about
 
-| | Debian | Mozilla | OpenStack | **GitLab** |
-|---|---|---|---|---|
-| Links point Meridian's way | 🔴 reversed | ✅ "blocks" list | — | ✅ |
-| Links added one by one | 🔴 bulk, one person | ✅ | — | ✅ |
-| Waits read by hand | keyword, 0 of 13 | ✅ 3 of 7 | keyword | ✅ **57 read** |
-| Real cross-team waits | 0 | 3–4 | 0 | **5** (about 50 projected) |
-| Stalls with a written reason | — | 1 | 0 | **50 of 57** |
-
-## Beyond blocks and stalls
-
-We checked the other failures from [01-problem](../../../docs/01-problem.md) too, the same way Pair 2 checked Spark:
-
-| # | Failure | GitLab? | Evidence |
-|---|---|---|---|
-| 6 | Adds while others remove | ✅ Yes | RuboCop todo lists: **320 of 351** shrank, yet **51** got files added in 3+ separate months. 602 of 647 adding commits are small feature MRs |
-| 4 | Risky files | ✅ With a catch | Files with 3+ bug fixes get **8.5x** their share of next year's fixes (21,238 files, 616 risky). Churn alone gets the same (25.7% vs 24.6%) |
-| 2 | Ticket says done, code disagrees | 🟡 Partly | 36 closed before the fix merged, 25 open after it merged. 6 of 20 hand-read "done" bugs were never fixed (bot auto-close). The closing link covers 6.5%; related MRs bring it to 69% |
-| 3 | Stale owners | 🟡 Partly | Owner rule 16.3% vs last toucher 15.6%. CODEOWNERS is approver groups. Team sections stale on 43% of files |
-| 1 | Consumers find out late | 🟡 Tickets only | 378 curated deprecation records, median 4 milestones to removal, 2% slip. Ruby, so no resolver |
-
-Other numbers:
-- **Ticket key:** 76% of merged MRs name an issue (Spark 94%).
-- **Commits:** 99% point to their MR.
-- **Identities:** 6.9% are duplicates.
-- **Bots:** 6.7% of commits.
-
-## Caveats
-
-- **Checked by Claude, not by a person.** The 57 stall rows and 20 closed-bug rows were judged by Claude reading each issue's full API history. Two cross-team calls were checked against the raw comments. A human should spot-check about 5 of each.
-- **The 50 projection is rough.** It comes from 5 of 57, so the 95% range is wide (about 3–19%). Only a filtered hand read of the 579 can confirm it.
-- **Team = `group::` label.** It ignores stages and sibling groups. A blocker with no group label counts as unknown, not cross-team.
-- **Bots that look human.** The flaky-test bot files 54% of issues. gitlab-bot auto-closes 10,624. The Status field defaults to "Complete" on 98% of closed issues, so it means nothing.
-- **API traps.**
-  - Label history and REST `/links` need a token.
-  - `merge_requests_count` counts closing MRs only.
-  - `/closes_issues` is empty once an MR is merged.
-  - Merge commits now cite `…/merge_requests/N`, not `!N`.
-- **Code side is Ruby.** Pair 1's Python resolvers don't apply. Risky-file and ownership numbers come from git history and CODEOWNERS only.
+- **These were read by Claude, not a person.** The 57 stuck issues, the 116 cross-team checks and the 20 closed bugs were judged by Claude reading each issue's history. We double-checked a few quotes against the real comments, and they were all correct. **A person should still check about 5 of each.**
+- **30 is exactly the minimum.**
+  - A strict reviewer might remove a few.
+  - 4 of the 30 aren't engineering teams.
+  - The 43 "maybe" cases could add more after a person reads them.
+- **These are blocks people noticed.** Meridian wants to find blocks people **don't** know about. Every one of the 30 was written down by someone, so it shows the problem is real and costly. It doesn't test whether Meridian can find hidden ones from the code. That part still needs made-up test cases.
+- **"Team" means the `group::` label.** A team without a label counts as unknown.
+- **Robots look like people sometimes:**
+  - A test robot wrote 54% of the issues.
+  - Another robot closed 10,624 issues.
+  - The "Status" field says "Complete" on 98% of closed issues no matter what, so it's useless.
+- **Some data needs a login token** (label history and links). Most doesn't.
 
 ## What to do with it
 
-- **For #7 (stalls):** use it. The 57 rows are a gold-set start, after a human spot-check. Apply the spell-end rule before using durations.
-- **For #5 (blocks):** run one more targeted pass before giving up on real data.
-  1. Filter the 579 to issues whose blocker has a different `group::`, or whose comments name another team.
-  2. Hand-read those.
-  3. Keep a block only if it passes the NEXT-STEPS checks (order, plus a written wait). The code-edge check isn't possible here (Ruby).
-  4. If that reaches 30, GitLab answers #5. If not, #5 is fixtures only.
-- **For #6:** the RuboCop todo lists are the only real adds-while-removing data we've found. They need a random-team baseline.
-- **For #4:** add a churn baseline to 05-test. Bug history doesn't beat churn here, or in Home Assistant.
+- **#5, teams blocking each other:** use the 30 confirmed cases as the team's real examples, after a person checks about 5. Read the 43 "maybe" cases to grow the set.
+- **#7, why work got stuck:** use the 57 hand-read issues as real examples. Fix the forgotten-label dates first.
+- **#6, adding old code:** use GitLab's banned-pattern lists. Next, check how often the adds come from a *different* team than the removes, compared with chance.
+- **#4, risky files:** tell the team that "most-edited files" works as well as "most-bug-fixed files". Add that comparison to the test plan (05-test).
 
-## Reproduce
+## How to run it again
 
 Python 3.9+. Run from this folder:
-- Token steps need a GitLab `read_api` token in `~/.gitlab_token`.
-- Outputs go to `.jsonl` here and to `data/`, both git-ignored. Run `mkdir -p data/tix data/code` first.
+- Steps marked **(token)** need a GitLab read-only token saved in `~/.gitlab_token`.
+- Downloads go into this folder and into `data/`, which git ignores. Run `mkdir -p data/tix data/code` first.
 
 ```
-# Issues and authors (anonymous)
+# 1. Download issues and who wrote them (no token)
 python3 pull.py 2025-01-01T00:00:00Z 2025-07-01T00:00:00Z && python3 authors.py && python3 analyze.py
 
-# Blocked spells for every issue (token, ~27 min)
+# 2. Label history for every issue (token, ~27 min), then the stuck-issue numbers
 python3 labels_all.py && HUMAN=1 python3 analyze_all.py
 
-# The 1,000 sample and the three methods
+# 3. The 1,000-issue sample and the 3 ways to spot "blocked"
 python3 notes.py && python3 labels.py && python3 analyze_notes.py && python3 analyze_labels.py && python3 methods.py
 
-# Picking and reading the 40 (token)
+# 4. Pick and read the 40 random stuck issues (token)
 python3 pick_40.py && python3 fetch_issues.py sample_blocked_40.txt issues40.json
-REC=issues40.json python3 timeline.py <iid> ...
+REC=issues40.json python3 timeline.py <issue number> ...
 
-# Beyond blocks and stalls
+# 5. Teams blocking teams: download comments (token), filter, make reading batches
+python3 cross_pull.py && python3 cross_filter.py && python3 cross_dump.py cross_toread.txt 15
+
+# 6. The other problems
 python3 tix_pull_closing.py && python3 tix_pull_rest_issues.py && python3 tix_pull_related.py 5
 python3 tix_analyze_done.py && python3 tix_mr_ticketkey.py && python3 tix_analyze_mr.py
 python3 tix_deprecations.py && python3 tix_analyze_deprecations.py && python3 tix_labels_table.py
-sh code_run_all.sh      # clones gitlab-org/gitlab (blobless, 1.2 GB) into data/code, ~35 min fresh
+sh code_run_all.sh      # copies GitLab's code history (1.2 GB) into data/code, ~35 min the first time
 ```
 
-| Script | Prints | Writes (git-ignored) |
-|---|---|---|
-| [pull.py](pull.py), [authors.py](authors.py), [analyze.py](analyze.py) | Issue counts, team and workflow labels | `issues.jsonl`, `authors.jsonl` |
-| [labels_all.py](labels_all.py), [analyze_all.py](analyze_all.py) | Blocked spells, wait to start, milestone slips, cross-team links | `labels_all.jsonl`, `spells_all.json` |
-| [notes.py](notes.py), [labels.py](labels.py), [methods.py](methods.py) | The 1,000 sample and the three methods | `notes.jsonl`, `labels.jsonl` |
-| [pick_40.py](pick_40.py), [fetch_issues.py](fetch_issues.py), [fetch17.py](fetch17.py), [timeline.py](timeline.py) | Issues to read, and a readable timeline per issue | `issues40.json`, `issues17.json` |
-| `tix_*.py` | Closed-vs-done, MR → issue, deprecations, labels table | `data/tix/` |
-| `code_*.py`, `code_run_all.sh` | Git basics, CODEOWNERS, ownership, fragility, RuboCop todo | `data/code/` |
+| Files | What they do |
+|---|---|
+| `pull.py`, `authors.py`, `analyze.py` | Download the issues and count labels |
+| `labels_all.py`, `analyze_all.py` | Label history; how long issues were stuck |
+| `notes.py`, `labels.py`, `methods.py`, `analyze_notes.py`, `analyze_labels.py` | The 1,000 sample and the 3 ways to spot "blocked" |
+| `pick_40.py`, `fetch_issues.py`, `fetch17.py`, `timeline.py` | Pick issues and print their history for reading |
+| `cross_pull.py`, `cross_filter.py`, `cross_dump.py` | Find and prepare likely team-blocks-team issues |
+| `tix_*.py` | Closed-but-not-done, code changes naming issues, planned removals |
+| `code_*.py`, `code_run_all.sh` | Owners, risky files, and adding old code (from the code history) |
 
-Kept in git: [hand_check_17.csv](hand_check_17.csv) and [hand_check_40.csv](hand_check_40.csv) (the 57 read), [tix_closed_no_mr_20.csv](tix_closed_no_mr_20.csv), [labels_table.md](labels_table.md), and the seeded lists [sample_1000.txt](sample_1000.txt) and [sample_blocked_40.txt](sample_blocked_40.txt).
+**Result sheets (CSV), kept on Vishwa's machine only and not in git:**
+- `hand_check_17.csv`, `hand_check_40.csv`: the 57 stuck issues read by hand
+- `cross_hand_check_116.csv`: the team-blocks-team reading, with the 25 confirmed
+- `tix_closed_no_mr_20.csv`: 20 closed bugs read by hand
+
+Ask Vishwa for them.
+
+**In git:**
+- `labels_table.md`: ticket counts
+- `sample_1000.txt`, `sample_blocked_40.txt`, `cross_toread.txt`: the issue lists, so anyone gets the same samples
