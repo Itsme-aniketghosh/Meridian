@@ -1,0 +1,76 @@
+{
+  "commit": "4353640ea9495d58fabd0357253b82de3b069408",
+  "bucket_order": [
+    "vendored",
+    "generated",
+    "migrations",
+    "django/conf/locale/",
+    "docs/",
+    "tests/",
+    "other"
+  ],
+  "edit_lines": {
+    "total": 265,
+    "by_bucket": {
+      "vendored": 0,
+      "generated": 0,
+      "migrations": 0,
+      "django/conf/locale/": 0,
+      "docs/": 0,
+      "tests/": 78,
+      "other": 187
+    },
+    "files_by_bucket": {
+      "vendored": 0,
+      "generated": 0,
+      "migrations": 0,
+      "django/conf/locale/": 0,
+      "docs/": 0,
+      "tests/": 31,
+      "other": 84
+    },
+    "in_a_migrations_folder_but_not_a_migration": [
+      "tests/migrations/test_writer.py"
+    ]
+  },
+  "repo_py_files": {
+    "total": 2374,
+    "by_bucket": {
+      "vendored": 1,
+      "generated": 0,
+      "migrations": 128,
+      "django/conf/locale/": 141,
+      "docs/": 4,
+      "tests/": 1424,
+      "other": 676
+    }
+  },
+  "migration_files": {
+    "total": 128,
+    "in_tests": 110,
+    "named_like_0001_name": 96
+  },
+  "vendored_files": [
+    "django/utils/six.py"
+  ],
+  "generated_files": [],
+  "non_py_mentions": {
+    "files": 15,
+    "lines": 74,
+    "files_changed_by_commit": 12
+  },
+  "tracked_files": {
+    "total": 5686,
+    "by_type": {
+      ".py": 2374,
+      ".po": 1130,
+      ".mo": 1120,
+      ".txt": 424,
+      ".html": 295,
+      ".js": 44,
+      ".png": 44,
+      ".json": 44,
+      "everything else": 211
+    }
+  }
+}
