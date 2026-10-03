@@ -1,6 +1,0 @@
-benchmark,snapshot,file,line,method
-is_ajax,5d654e1e71,django/http/request.py,258,is_ajax
-is_auth,c16b9dd8e0,django/contrib/auth/base_user.py,82,is_anonymous
-is_auth,c16b9dd8e0,django/contrib/auth/base_user.py,89,is_authenticated
-is_auth,c16b9dd8e0,django/contrib/auth/models.py,441,is_anonymous
-is_auth,c16b9dd8e0,django/contrib/auth/models.py,444,is_authenticated
