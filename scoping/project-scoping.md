@@ -27,9 +27,10 @@ It does the cross-codebase review a staff engineer would do: it catches bugs tha
 | Apache Spark + Jira (snapshot 2026-10-01) | Ticket ↔ commit join, bug history, owners, ticket state over time | 45,312 commits, 59,491 tickets, 160,370 status changes. 179 MB SQLite | Git + Jira REST JSON |
 | Django packages moving off `url()` | Same migration across many repos | 20 repos (+8 spares), ~1,085 call sites, ~875 MB | Git repos, Python |
 | Defects4J + Fonte labels | Checks our "which commit caused the bug" code | 854 bugs, 17 Java projects, 130 bug-causing commits | Git + CSV |
-| Cross-team candidates (Debian py2removal, OpenStack, Mozilla) | Blocks between teams, stalled work | Not pulled yet | Bug trackers + git |
+| GitLab issues (`gitlab-org/gitlab`, Jan–Jun 2025) | Blocks between teams (#5), stalled work (#7) | 14,653 human-filed issues, 1,649 block links. 30+ cross-team blocks (two passes), 57 stalls read, 50 with a written reason | GitLab API (JSON) + git |
+| Debian, OpenStack, Mozilla (checked, not used) | Blocks between teams | 0, 0 and 3–4 real cross-team waits | Bug trackers + git |
 
-**Sources:** github.com/django/django · github.com/apache/spark · issues.apache.org/jira (REST, no login) · the 28 package repos listed in `week1/pair3/` · github.com/rjust/defects4j · github.com/coinse/fonte
+**Sources:** github.com/django/django · github.com/apache/spark · issues.apache.org/jira (REST, no login) · the 28 package repos listed in `week1/pair3/` · github.com/rjust/defects4j · github.com/coinse/fonte · gitlab.com API (gitlab-org/gitlab issues)
 
 **Rights and privacy**
 - All repos are open source (Django BSD-3, Spark Apache-2.0, Defects4J MIT). Package licenses are checked per repo.
@@ -129,7 +130,7 @@ flowchart LR
 
 | Risk | Mitigation |
 |---|---|
-| No public data shows cross-team blocks or stalls | Hand-checked gold set (Debian, OpenStack, Mozilla), or fixtures only, said on screen |
+| Cross-team data is thin | GitLab gives 30+ blocks and 57 stalls, read by a model. A person spot-checks them before they count. Chains across repos stay on fixtures, said on screen |
 | Method calls don't resolve (Jedi 5 of 30) | Keep unresolved matches, labelled |
 | Weak owner signal | Owner by team (Jira component) |
 | LLM invents numbers | A gate checks every fact; on a miss the template ships |
@@ -189,5 +190,5 @@ For more details on RSI - [Auditor Learning](../docs/04-architecture.md#9-audito
 ## 13. Additional information
 
 - Rejected ideas, and why: [06-dead-ideas.md](../docs/06-dead-ideas.md)
-- Open question: data for cross-team blocks (`week1/cross-team/NEXT-STEPS.md`)
+- Cross-team data: GitLab works for blocks and stalls, the other three sources didn't ([NEXT-STEPS](../week1/cross-team/NEXT-STEPS.md))
 - Scope: we suggest only. No PRs, no filed tickets, until suggestions get applied unchanged
