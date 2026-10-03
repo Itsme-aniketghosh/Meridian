@@ -20,14 +20,14 @@
 | Candidates | Goldens: direct, alias, attribute, re-export, `getattr` (expected miss) | All |
 | Resolver | Django 265; one method-call deprecation | Recall ≥ 0.95, precision ≥ 0.98 |
 | Call site ID | Fixtures: insert, move, rename, duplicate, split. Django replay | 100%, replay errors ≤ 1% |
-| Burndown | Django weekly replay vs grep | Equal, 0 at conversion |
+| Burndown | Django weekly replay vs the conversion commit's changed lines (grep over-counts by 19) | Equal, 0 at conversion |
 | Ownership | Spark: owner vs next author. Baselines: last toucher, CODEOWNERS | Beats last toucher |
 | Ticket links | Spark, hand-check 50 | Precision ≥ 0.95 |
 | Ticket → code | Spark: hide fix commits, map from text | Path, trace precision ≥ 0.90 |
-| SZZ, fragility | Defects4J; 50 hand labels; train < 2025, test 2025 | Beats `bug_fixes` count |
-| Blocking, chains | Fixtures; Spark same-function pairs in 30 days; 30 hand-labelled edges | 100%, precision ≥ 0.90 |
+| SZZ, fragility | Defects4J + Fonte (130 bug-inducing commits); 50 hand labels; train < 2025, test 2025. Baselines: `bug_fixes`, churn | Beats both |
+| Blocking, chains | Fixtures; Spark same-function pairs in 30 days; GitLab: 30+ cross-team blocks, spot-checked by a person | 100%, precision ≥ 0.90 |
 | Rules | Fixture per rule; order is topological; ETA error reported | Exact |
-| Stall reasons | Logged with verdicts | No claim below N = 30 |
+| Stall reasons | GitLab: 57 blocked issues with written reasons; then logged verdicts | No claim below N = 30 |
 | Auditor | Elo simulation with known skill; recompute twice; seeded ε ± 2% over 1,000; `known_at` leak; promotion guard | Ranks right, 100% |
 | Ticket checks | Spark 145 Incomplete, 534 Cannot Reproduce vs Fixed; GitHub needs-info | Beats description length |
 | Duplicates | Spark Duplicates | Beats title similarity |
