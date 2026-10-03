@@ -11,8 +11,9 @@ intake (Slack, support, GitHub issues).
 |---|---|
 | [Django](https://github.com/django/django) | Parser recall, burndown replay, diffs, push replay |
 | [Spark](https://github.com/apache/spark) + [Apache Jira](https://issues.apache.org/jira) | Ticket join, SZZ, fragility, ticket tools, push replay |
-| Django packages, `url()` → `path()` | Cross-repo, blocking. Unproven |
-| [Defects4J](https://github.com/rjust/defects4j) | Fragility sanity check |
+| Django packages, `url()` → `path()` | Cross-repo scanning (19 of 20 migrations found). Not blocking: they don't call each other |
+| [Defects4J](https://github.com/rjust/defects4j) + Fonte | SZZ answer key: 130 bug-inducing commits, mapped to v3 |
+| [GitLab](https://gitlab.com/gitlab-org/gitlab) issues | Cross-team blocks, stalls (one repo, ~100 teams) |
 | GitHub issues | Vague and duplicate labels |
 
 ## Measured
@@ -26,12 +27,21 @@ intake (Slack, support, GitHub issues).
   5 definitions. The resolver is justified by blast radius, not burndown
 - Removal commits hold ~0 call sites (62.8% tests, 29.9% definition)
 
-**Spark + Jira** (2026-09-25)
-- 95% of commits carry a ticket key (Kafka: 62%)
-- 59,365 tickets, 6,023 open, public REST
-- Incomplete 3,359 (3,214 bulk-closed → 145 real) · Duplicate 2,827 · Cannot Reproduce 534
+**Spark + Jira** (snapshot 2026-10-01)
+- 94.0% of the last 1,000 commits carry a ticket key (Kafka: 62%). 50 of 50 links correct
+- 59,491 tickets, 6,046 open, public REST
+- Incomplete 3,359 (96% bulk-closed → 141 real) · Duplicate 2,828 (2,094 usable) ·
+  Cannot Reproduce 534 (513 usable)
 - 1,036 tickets ever had a blocks link. Newest 500: 5% linked, 0 "Blocks", 25% of
   top-level have no description
+
+**GitLab** (issues created Jan–Jun 2025)
+- 14,653 human-filed issues (17,502 more from a test bot, dropped). 1,649 "blocked by" links
+- Cross-team blocks: 30+ with a written wait or stated prerequisite, in two independent
+  passes. Median wait 74 days. Read by a model, not yet spot-checked
+- Stalls: 57 blocked issues read, 50 with a written reason. Blocked issues miss their
+  milestone 36% of the time vs 16%
+- Debian, OpenStack, Mozilla checked too: 0, 0 and 3–4 real cross-team waits
 
 ## Definitions
 

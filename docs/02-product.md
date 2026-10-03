@@ -90,7 +90,8 @@ Meridian · 3 notes · nothing blocks this merge
 
 | Gap | Effect | Decided by |
 |---|---|---|
-| No cross-repo corpus | Blocks, chains, P4 on fixtures only | Week-1: 20 packages |
+| Cross-team blocks need a human check | GitLab has 30+, read by a model | Spot-check before 05-test uses them |
+| No chains across repos | Chains, P4 on fixtures only, said on screen | None of the 4 sources has them |
 | Resolver misses aliased `_()` | 542 calls lost | Week-1: both get 533 of 542 |
 | Weak ticket → code mapping | P3, P5, chains go quiet (Spark: 5% linked) | Mapping precision |
 | Few Elo matches | Learning stalls | Week-1: matches per month |
