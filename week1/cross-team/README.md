@@ -1,6 +1,6 @@
-# Cross-team blocks and stalls: where we are
+# Cross-team · blocks and stalls
 
-The gap was that no week-1 dataset could test feature #5 (hidden cross-team blocks) or #7 (why work stalled). Two deep-research reports ([Claude](claude-deep-research.md), [ChatGPT](chatgpt-deep-research-report.md)) suggested sources. We checked four of them.
+The gap was that no week-1 dataset could test feature #5 (hidden cross-team blocks) or #7 (why work stalled). Two deep-research reports ([Claude](research/claude-deep-research.md), [ChatGPT](research/chatgpt-deep-research-report.md)) suggested sources. We checked four of them.
 
 ## TL;DR
 
@@ -8,6 +8,15 @@ The gap was that no week-1 dataset could test feature #5 (hidden cross-team bloc
 - **#7 stalls: GitLab is usable.** Of 57 blocked issues read, 50 have a written reason.
 - **Both reports' top picks failed.** Debian's links are reversed and bulk-added. OpenStack had nothing to wait for.
 - **Big caveat:** a model read the evidence, not a person. A human spot-check comes before anything is called gold.
+
+## What counts as a block
+
+A cross-team block counts only if all 3 hold:
+1. **Code edge:** the waiting team's code really uses the other team's code. Check the source, not just package metadata. (GitLab is Ruby, so it's skipped there.)
+2. **Order:** the waiting work finished after the blocker did.
+3. **Wait:** a comment, review, or version pin shows someone actually waited. Check 3 stops us grading Meridian against its own dependency graph.
+
+A stall gets a reason only from a written statement: `upstream`, `owner`, `risk`, `capacity`, `other`, or `unknown`. Inactivity alone isn't a reason.
 
 ## What each source gave
 
@@ -53,19 +62,7 @@ The gap was that no week-1 dataset could test feature #5 (hidden cross-team bloc
 - **Current labels:** group labels are as they are today. Some teams were renamed or deprecated since.
 - 63 links point to blockers we can't see (private projects), so they weren't checked.
 
-## Next
-
-1. **Merge the two lists of 30** into one deduplicated gold set. Both CSVs are local only (Vishwa's and ours), so share them, or agree to push a version with usernames removed.
-2. **Human spot-check:** 10 "wait" rows, 5 "planned", 5 "partial". If 9 of 10 waits hold, call the 22 gold.
-3. **To pass 30 on observed waits alone in our pass,** run the same pass on Jul–Dec 2024: `xt_*.py`, about an hour of API time. The 22 should roughly double.
-4. **#7 gold set:** Vishwa's 57 rows (`hand_check_*.csv`, now local only), after the same spot-check. End each spell at the earliest of: label removed, Status changed, or blocker closed.
-5. **Chains between repos are still untested.** None of the four sources has them. Keep that on fixtures and say so on screen.
-6. **Update 05-test:**
-   - Blocking, chains: use the GitLab pairs, precision ≥ 0.90 on the 30 hand-labelled edges.
-   - Stall reasons: start from the 57.
-   - Fragility: add a churn baseline, because GitLab's risky files don't beat churn.
-
-## Rerun the cross-team pass
+## Rerun the link pass
 
 Python 3.9+, no token needed. Run in a scratch folder (the outputs are big), with the `xt_*.py` files copied in:
 
@@ -77,3 +74,5 @@ python xt_edges.py && python xt_enrich.py && python xt_evidence.py      # edges 
 ```
 
 Verdicts go to `gitlab/xt_cross_team_blocks.csv`: one row per link, with an evidence quote and a verdict. It stays local under the folder's "CSVs aren't pushed" rule, as do Vishwa's confirmed 30.
+
+What to do next is in [../NEXT-STEPS.md](../NEXT-STEPS.md).

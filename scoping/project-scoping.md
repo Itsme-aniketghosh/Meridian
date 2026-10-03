@@ -190,5 +190,5 @@ For more details on RSI - [Auditor Learning](../docs/04-architecture.md#9-audito
 ## 13. Additional information
 
 - Rejected ideas, and why: [06-dead-ideas.md](../docs/06-dead-ideas.md)
-- Cross-team data: GitLab works for blocks and stalls, the other three sources didn't ([NEXT-STEPS](../week1/cross-team/NEXT-STEPS.md))
+- Cross-team data: GitLab works for blocks and stalls, the other three sources didn't ([cross-team README](../week1/cross-team/README.md))
 - Scope: we suggest only. No PRs, no filed tickets, until suggestions get applied unchanged

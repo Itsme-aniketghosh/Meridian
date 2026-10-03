@@ -1,6 +1,6 @@
 # Cross-team · GitLab (gitlab-org/gitlab)
 
-**The question:** can GitLab's own public data be used to test Meridian? This is step 1 of [NEXT-STEPS](../NEXT-STEPS.md), on a source neither research report picked.
+**The question:** can GitLab's own public data be used to test Meridian? This is step 1 of the [cross-team check](../README.md), on a source neither research report picked.
 
 **The data:**
 - Pulled on 2026-10-02 from gitlab.com: the public website API, plus a copy of the code history.

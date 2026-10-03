@@ -1,6 +1,6 @@
 # Cross-team · Debian py2removal
 
-Step 1 of [NEXT-STEPS](../NEXT-STEPS.md) for the Claude report's #1 pick. Queried 2026-10-02 against the public UDD mirror and the Debian BTS (both read-only). Every number below is printed by a script in this folder.
+Step 1 of the [cross-team check](../README.md) for the Claude report's #1 pick. Queried 2026-10-02 against the public UDD mirror and the Debian BTS (both read-only). Every number below is printed by a script in this folder.
 
 ## Verdict
 
@@ -81,7 +81,7 @@ That's Meridian's **API owner burndown** ("can't delete `verify_token` until all
 
 ## What to do with it
 
-- **For #5 blocks:** don't use the links as labels. If we use Debian at all, flip to the consumer's view: pick an app whose Python 3 port landed after its library's port, then hand-check the app's bug for a real wait. That's the 3-check process in NEXT-STEPS step 2.
+- **For #5 blocks:** don't use the links as labels. If we use Debian at all, flip to the consumer's view: pick an app whose Python 3 port landed after its library's port, then hand-check the app's bug for a real wait. That's the 3 checks in the [cross-team README](../README.md#what-counts-as-a-block).
 - **For #7 stalls:** the slow bugs and the 36 `py2keep` bugs are worth a hand-coding pass. Reasons must come from comments, not from inactivity.
 - **Compare against OpenStack and Mozilla** (next) before picking a source.
 
