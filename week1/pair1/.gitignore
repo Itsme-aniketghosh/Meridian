@@ -1,6 +1,13 @@
-# Small result files are deliverables. The root .gitignore blocks data files.
+# The root .gitignore blocks data files. These results back the README, so keep them in git.
+# Everything else the scripts write to results/ is an intermediate step and stays local.
 !results/
-!results/*
-!*.csv
-!*.json
-!*.txt
+results/*
+!results/q1_speed.json
+!results/edit_sites.csv
+!results/scanner_vs_commit.csv
+!results/alias_resolution.csv
+!results/hand_check_30.csv
+!results/junk_buckets.csv
+!results/grep_hits.csv
+!results/method_resolution.csv
+!results/method_receivers.csv
