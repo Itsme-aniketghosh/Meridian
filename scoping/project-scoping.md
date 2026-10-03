@@ -166,7 +166,7 @@ flowchart LR
 - **Use:** each suggestion's outcome (applied, edited, ignored), and burndown before vs after
 - **Ops:** job memory, runtime, rebuild diffs, spend
 - **Why we are monitoring and collecting data?:** Right now, most of the problems we are solving, are being resolved by agents but we can improve that by training ML models which are trained specifically on the customer's data(so it will perform better than the LLM) for example to connect the Jira ticket to the commits(if it is not present in the ticket) is being resolved by an LLM but we can train a ML model on the features like time of commit, etc and for achieving faster results. We also have a recursive self improvement(RSI) architecture in the multi-agent architecture which adapts to the code base and enhances our search as more users begin to use the same code base.
-For more details on RSI - [Auditor Learning](docs/04-architecture.md#9-auditor-learning).
+For more details on RSI - [Auditor Learning](../docs/04-architecture.md#9-auditor-learning).
 
 ## 11. Success and acceptance
 
@@ -188,6 +188,6 @@ For more details on RSI - [Auditor Learning](docs/04-architecture.md#9-auditor-l
 
 ## 13. Additional information
 
-- Rejected ideas, and why: [06-dead-ideas.md](docs/06-dead-ideas.md)
+- Rejected ideas, and why: [06-dead-ideas.md](../docs/06-dead-ideas.md)
 - Open question: data for cross-team blocks (`week1/cross-team/NEXT-STEPS.md`)
 - Scope: we suggest only. No PRs, no filed tickets, until suggestions get applied unchanged
