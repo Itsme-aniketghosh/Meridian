@@ -1,6 +1,6 @@
 # Project Scoping · Meridian
 
-**Rough draft.** Numbers are from week 1 (`week1/`) and `docs/`.
+
 
 **Team:** Aniket Ghosh, Rochan Hanumanthu, Chaitali Vivek Nimse, Vishwa Divyeshbhai Pujara, Utkarsh Saraogi, Sree Rachnae Shyam
 
@@ -85,7 +85,7 @@ README.md   overview and doc index
 None of these covers #5 or #7.
 
 **Proposed solution:**
-- One dated map: call sites, owners, risk, and ticket links.
+- One dated map (Graph): call sites, owners, risk, and ticket links.
 - Hidden blocks found from the code.
 - A ranked list of stall reasons.
 - Suggested diffs and ticket rewrites.
