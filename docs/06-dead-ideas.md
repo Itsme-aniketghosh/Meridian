@@ -17,6 +17,8 @@
 | Kafka for the ticket join | 62% keyed | Robustness tests |
 | Raw "Incomplete" as vague label | 3,214 of 3,359 bulk-closed | Never |
 | Jira links as chain truth | 5% linked, 0 "Blocks" | Never |
+| Debian py2removal links as block truth | Reversed, bulk-added from the dependency graph | Never |
+| Counting waits by keyword | 3 of 5 hits were noise (Mozilla) | Never |
 | Blocks from imports | Floods false blocks | Never |
 | Fuzzy ticket ↔ code matching | Not grounded | Unclustered intake only |
 | Stripping bad LLM numbers | Broken sentences | Never |
