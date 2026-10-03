@@ -1,0 +1,16 @@
+file,lines_mentioning,changed_by_commit
+docs/howto/custom-model-fields.txt,1,yes
+docs/ref/applications.txt,3,yes
+docs/ref/contrib/admin/index.txt,1,yes
+docs/ref/contrib/flatpages.txt,1,yes
+docs/ref/models/instances.txt,1,yes
+docs/ref/settings.txt,2,yes
+docs/ref/urls.txt,1,yes
+docs/ref/utils.txt,5,no
+docs/ref/validators.txt,1,yes
+docs/releases/1.0-porting-guide.txt,2,no
+docs/releases/1.4.txt,1,no
+docs/topics/auth/passwords.txt,1,yes
+docs/topics/forms/modelforms.txt,1,yes
+docs/topics/i18n/translation.txt,51,yes
+tests/i18n/commands/code.sample,2,yes

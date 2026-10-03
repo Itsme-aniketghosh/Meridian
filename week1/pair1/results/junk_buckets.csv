@@ -1,0 +1,266 @@
+file,line,kind,bucket,symbol,text
+django/contrib/admin/actions.py,12,import,other,ugettext|ugettext_lazy,"from django.utils.translation import ugettext as _, ugettext_lazy"
+django/contrib/admin/actions.py,87,call,other,ugettext_lazy,"delete_selected.short_description = ugettext_lazy(""Delete selected %(verbose_name_plural)s"")"
+django/contrib/admin/apps.py,4,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/admin/filters.py,18,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/admin/forms.py,3,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/admin/helpers.py,16,import,other,ugettext|ugettext_lazy,"from django.utils.translation import ugettext, ugettext_lazy as _"
+django/contrib/admin/helpers.py,293,call,other,ugettext,'addText': ugettext('Add another %(verbose_name)s') % {
+django/contrib/admin/helpers.py,296,call,other,ugettext,"'deleteText': ugettext('Remove'),"
+django/contrib/admin/models.py,11,import,other,ugettext|ugettext_lazy,"from django.utils.translation import ugettext, ugettext_lazy as _"
+django/contrib/admin/models.py,71,call,other,ugettext,"return ugettext('Added ""%(object)s"".') % {'object': self.object_repr}"
+django/contrib/admin/models.py,73,call,other,ugettext,"return ugettext('Changed ""%(object)s"" - %(changes)s') % {"
+django/contrib/admin/models.py,78,call,other,ugettext,"return ugettext('Deleted ""%(object)s.""') % {'object': self.object_repr}"
+django/contrib/admin/models.py,80,call,other,ugettext,return ugettext('LogEntry Object')
+django/contrib/admin/models.py,105,call,other,ugettext,sub_message['added']['name'] = ugettext(sub_message['added']['name'])
+django/contrib/admin/models.py,106,call,other,ugettext,"messages.append(ugettext('Added {name} ""{object}"".').format(**sub_message['added']))"
+django/contrib/admin/models.py,108,call,other,ugettext,messages.append(ugettext('Added.'))
+django/contrib/admin/models.py,112,call,other,ugettext,"sub_message['changed']['fields'], ugettext('and')"
+django/contrib/admin/models.py,115,call,other,ugettext,sub_message['changed']['name'] = ugettext(sub_message['changed']['name'])
+django/contrib/admin/models.py,116,call,other,ugettext,"messages.append(ugettext('Changed {fields} for {name} ""{object}"".').format("
+django/contrib/admin/models.py,120,call,other,ugettext,messages.append(ugettext('Changed {fields}.').format(**sub_message['changed']))
+django/contrib/admin/models.py,123,call,other,ugettext,sub_message['deleted']['name'] = ugettext(sub_message['deleted']['name'])
+django/contrib/admin/models.py,124,call,other,ugettext,"messages.append(ugettext('Deleted {name} ""{object}"".').format(**sub_message['deleted']))"
+django/contrib/admin/models.py,127,call,other,ugettext,return change_message or ugettext('No fields changed.')
+django/contrib/admin/options.py,46,import,other,ugettext|ungettext,"from django.utils.translation import ugettext as _, ungettext"
+django/contrib/admin/options.py,1612,call,other,ungettext,msg = ungettext(
+django/contrib/admin/options.py,1644,call,other,ungettext,selection_note_all = ungettext(
+django/contrib/admin/sites.py,13,import,other,ugettext|ugettext_lazy,"from django.utils.translation import ugettext as _, ugettext_lazy"
+django/contrib/admin/sites.py,39,call,other,ugettext_lazy,site_title = ugettext_lazy('Django site admin')
+django/contrib/admin/sites.py,42,call,other,ugettext_lazy,site_header = ugettext_lazy('Django administration')
+django/contrib/admin/sites.py,45,call,other,ugettext_lazy,index_title = ugettext_lazy('Site administration')
+django/contrib/admin/templatetags/admin_list.py,22,import,other,ugettext,from django.utils.translation import ugettext as _
+django/contrib/admin/tests.py,5,import,other,ugettext,from django.utils.translation import ugettext as _
+django/contrib/admin/utils.py,18,import,other,ungettext,"override as translation_override, ungettext,"
+django/contrib/admin/utils.py,274,call,other,ungettext,"return ungettext(singular, plural, n or 0)"
+django/contrib/admin/views/main.py,21,import,other,ugettext,from django.utils.translation import ugettext
+django/contrib/admin/views/main.py,79,call,other,ugettext,title = ugettext('Select %s')
+django/contrib/admin/views/main.py,81,call,other,ugettext,title = ugettext('Select %s to change')
+django/contrib/admin/widgets.py,14,import,other,ugettext,from django.utils.translation import ugettext as _
+django/contrib/admindocs/apps.py,2,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/admindocs/views.py,23,import,other,ugettext,from django.utils.translation import ugettext as _
+django/contrib/auth/admin.py,19,import,other,ugettext|ugettext_lazy,"from django.utils.translation import ugettext, ugettext_lazy as _"
+django/contrib/auth/admin.py,147,call,other,ugettext,msg = ugettext('Password changed successfully.')
+django/contrib/auth/apps.py,4,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/auth/base_user.py,14,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/auth/forms.py,18,import,other,ugettext|ugettext_lazy,"from django.utils.translation import ugettext, ugettext_lazy as _"
+django/contrib/auth/forms.py,30,call,other,ugettext,"summary.append({'label': ugettext(""No password set."")})"
+django/contrib/auth/forms.py,35,call,other,ugettext,"summary.append({'label': ugettext(""Invalid password format or unknown hashing algorithm."")})"
+django/contrib/auth/forms.py,38,call,other,ugettext,"summary.append({'label': ugettext(key), 'value': value_})"
+django/contrib/auth/hashers.py,18,import,other,ugettext_noop,from django.utils.translation import ugettext_noop as _
+django/contrib/auth/models.py,10,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/auth/password_validation.py,15,import,other,ugettext|ungettext,"from django.utils.translation import ugettext as _, ungettext"
+django/contrib/auth/password_validation.py,102,call,other,ungettext,ungettext(
+django/contrib/auth/password_validation.py,112,call,other,ungettext,return ungettext(
+django/contrib/auth/validators.py,5,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/auth/views.py,24,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/contenttypes/apps.py,5,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/contenttypes/models.py,6,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/contenttypes/views.py,6,import,other,ugettext,from django.utils.translation import ugettext as _
+django/contrib/flatpages/admin.py,4,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/flatpages/apps.py,2,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/flatpages/forms.py,4,import,other,ugettext|ugettext_lazy,"from django.utils.translation import ugettext, ugettext_lazy as _"
+django/contrib/flatpages/forms.py,29,call,other,ugettext,"ugettext(""URL is missing a leading slash.""),"
+django/contrib/flatpages/forms.py,36,call,other,ugettext,"ugettext(""URL is missing a trailing slash.""),"
+django/contrib/flatpages/models.py,5,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/gis/apps.py,3,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/gis/db/models/fields.py,13,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/gis/forms/fields.py,3,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/gis/views.py,2,import,other,ugettext,from django.utils.translation import ugettext as _
+django/contrib/humanize/apps.py,2,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/humanize/templatetags/humanize.py,12,import,other,ugettext|ungettext,"from django.utils.translation import pgettext, ugettext as _, ungettext"
+django/contrib/humanize/templatetags/humanize.py,59,call,other,ungettext,"ungettext('%(value).1f million', '%(value).1f million', number),"
+django/contrib/humanize/templatetags/humanize.py,60,call,other,ungettext,"ungettext('%(value)s million', '%(value)s million', number),"
+django/contrib/humanize/templatetags/humanize.py,63,call,other,ungettext,"ungettext('%(value).1f billion', '%(value).1f billion', number),"
+django/contrib/humanize/templatetags/humanize.py,64,call,other,ungettext,"ungettext('%(value)s billion', '%(value)s billion', number),"
+django/contrib/humanize/templatetags/humanize.py,67,call,other,ungettext,"ungettext('%(value).1f trillion', '%(value).1f trillion', number),"
+django/contrib/humanize/templatetags/humanize.py,68,call,other,ungettext,"ungettext('%(value)s trillion', '%(value)s trillion', number),"
+django/contrib/humanize/templatetags/humanize.py,71,call,other,ungettext,"ungettext('%(value).1f quadrillion', '%(value).1f quadrillion', number),"
+django/contrib/humanize/templatetags/humanize.py,72,call,other,ungettext,"ungettext('%(value)s quadrillion', '%(value)s quadrillion', number),"
+django/contrib/humanize/templatetags/humanize.py,75,call,other,ungettext,"ungettext('%(value).1f quintillion', '%(value).1f quintillion', number),"
+django/contrib/humanize/templatetags/humanize.py,76,call,other,ungettext,"ungettext('%(value)s quintillion', '%(value)s quintillion', number),"
+django/contrib/humanize/templatetags/humanize.py,79,call,other,ungettext,"ungettext('%(value).1f sextillion', '%(value).1f sextillion', number),"
+django/contrib/humanize/templatetags/humanize.py,80,call,other,ungettext,"ungettext('%(value)s sextillion', '%(value)s sextillion', number),"
+django/contrib/humanize/templatetags/humanize.py,83,call,other,ungettext,"ungettext('%(value).1f septillion', '%(value).1f septillion', number),"
+django/contrib/humanize/templatetags/humanize.py,84,call,other,ungettext,"ungettext('%(value)s septillion', '%(value)s septillion', number),"
+django/contrib/humanize/templatetags/humanize.py,87,call,other,ungettext,"ungettext('%(value).1f octillion', '%(value).1f octillion', number),"
+django/contrib/humanize/templatetags/humanize.py,88,call,other,ungettext,"ungettext('%(value)s octillion', '%(value)s octillion', number),"
+django/contrib/humanize/templatetags/humanize.py,91,call,other,ungettext,"ungettext('%(value).1f nonillion', '%(value).1f nonillion', number),"
+django/contrib/humanize/templatetags/humanize.py,92,call,other,ungettext,"ungettext('%(value)s nonillion', '%(value)s nonillion', number),"
+django/contrib/humanize/templatetags/humanize.py,95,call,other,ungettext,"ungettext('%(value).1f decillion', '%(value).1f decillion', number),"
+django/contrib/humanize/templatetags/humanize.py,96,call,other,ungettext,"ungettext('%(value)s decillion', '%(value)s decillion', number),"
+django/contrib/humanize/templatetags/humanize.py,99,call,other,ungettext,"ungettext('%(value).1f googol', '%(value).1f googol', number),"
+django/contrib/humanize/templatetags/humanize.py,100,call,other,ungettext,"ungettext('%(value)s googol', '%(value)s googol', number),"
+django/contrib/humanize/templatetags/humanize.py,205,call,other,ungettext,return ungettext(
+django/contrib/humanize/templatetags/humanize.py,212,call,other,ungettext,return ungettext(
+django/contrib/humanize/templatetags/humanize.py,219,call,other,ungettext,return ungettext(
+django/contrib/humanize/templatetags/humanize.py,233,call,other,ungettext,return ungettext(
+django/contrib/humanize/templatetags/humanize.py,240,call,other,ungettext,return ungettext(
+django/contrib/humanize/templatetags/humanize.py,247,call,other,ungettext,return ungettext(
+django/contrib/messages/apps.py,2,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/postgres/apps.py,5,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/postgres/fields/array.py,9,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/postgres/fields/hstore.py,8,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/postgres/fields/jsonb.py,10,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/postgres/forms/array.py,10,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/postgres/forms/hstore.py,5,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/postgres/forms/jsonb.py,4,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/postgres/forms/ranges.py,6,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/postgres/validators.py,9,import,other,ugettext_lazy|ungettext_lazy,"from django.utils.translation import ugettext_lazy as _, ungettext_lazy"
+django/contrib/postgres/validators.py,13,call,other,ungettext_lazy,message = ungettext_lazy(
+django/contrib/postgres/validators.py,20,call,other,ungettext_lazy,message = ungettext_lazy(
+django/contrib/redirects/apps.py,2,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/redirects/models.py,3,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/sessions/apps.py,2,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/sessions/base_session.py,6,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/sitemaps/apps.py,2,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/sites/apps.py,3,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/sites/models.py,7,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/staticfiles/apps.py,4,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/contrib/syndication/apps.py,2,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/core/paginator.py,6,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/core/validators.py,11,import,other,ugettext_lazy|ungettext_lazy,"from django.utils.translation import ugettext_lazy as _, ungettext_lazy"
+django/core/validators.py,362,call,other,ungettext_lazy,message = ungettext_lazy(
+django/core/validators.py,377,call,other,ungettext_lazy,message = ungettext_lazy(
+django/core/validators.py,397,call,other,ungettext_lazy,'max_digits': ungettext_lazy(
+django/core/validators.py,402,call,other,ungettext_lazy,'max_decimal_places': ungettext_lazy(
+django/core/validators.py,407,call,other,ungettext_lazy,'max_whole_digits': ungettext_lazy(
+django/db/models/base.py,32,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/db/models/fields/__init__.py,33,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/db/models/fields/files.py,13,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/db/models/fields/related.py,17,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/forms/boundfield.py,12,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/forms/fields.py,33,import,other,ugettext_lazy|ungettext_lazy,"from django.utils.translation import ugettext_lazy as _, ungettext_lazy"
+django/forms/fields.py,537,call,other,ungettext_lazy,'max_length': ungettext_lazy(
+django/forms/forms.py,19,import,other,ugettext,from django.utils.translation import ugettext as _
+django/forms/formsets.py,9,import,other,ugettext|ungettext,"from django.utils.translation import ugettext as _, ungettext"
+django/forms/formsets.py,344,call,other,ungettext,raise ValidationError(ungettext(
+django/forms/formsets.py,351,call,other,ungettext,raise ValidationError(ungettext(
+django/forms/models.py,21,import,other,ugettext|ugettext_lazy,"from django.utils.translation import ugettext, ugettext_lazy as _"
+django/forms/models.py,722,call,other,ugettext,"return ugettext(""Please correct the duplicate data for %(field)s."") % {"
+django/forms/models.py,726,call,other,ugettext,"return ugettext(""Please correct the duplicate data for %(field)s, which must be unique."") % {"
+django/forms/models.py,731,call,other,ugettext,return ugettext(
+django/forms/models.py,741,call,other,ugettext,"return ugettext(""Please correct the duplicate values below."")"
+django/forms/utils.py,9,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/forms/widgets.py,20,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy
+django/forms/widgets.py,361,call,other,ugettext_lazy,clear_checkbox_label = ugettext_lazy('Clear')
+django/forms/widgets.py,362,call,other,ugettext_lazy,initial_text = ugettext_lazy('Currently')
+django/forms/widgets.py,363,call,other,ugettext_lazy,input_text = ugettext_lazy('Change')
+django/forms/widgets.py,693,call,other,ugettext_lazy,"('1', ugettext_lazy('Unknown')),"
+django/forms/widgets.py,694,call,other,ugettext_lazy,"('2', ugettext_lazy('Yes')),"
+django/forms/widgets.py,695,call,other,ugettext_lazy,"('3', ugettext_lazy('No')),"
+django/template/base.py,68,import,other,ugettext_lazy,"from django.utils.translation import pgettext_lazy, ugettext_lazy"
+django/template/base.py,827,call,other,ugettext_lazy,return ugettext_lazy(msgid)
+django/template/defaultfilters.py,22,import,other,ugettext|ungettext,"from django.utils.translation import ugettext, ungettext"
+django/template/defaultfilters.py,820,call,other,ugettext,"arg = ugettext('yes,no,maybe')"
+django/template/defaultfilters.py,849,call,other,ungettext,"value = ungettext(""%(size)d byte"", ""%(size)d bytes"", 0) % {'size': 0}"
+django/template/defaultfilters.py,866,call,other,ungettext,"value = ungettext(""%(size)d byte"", ""%(size)d bytes"", bytes_) % {'size': bytes_}"
+django/template/defaultfilters.py,868,call,other,ugettext,"value = ugettext(""%s KB"") % filesize_number_format(bytes_ / KB)"
+django/template/defaultfilters.py,870,call,other,ugettext,"value = ugettext(""%s MB"") % filesize_number_format(bytes_ / MB)"
+django/template/defaultfilters.py,872,call,other,ugettext,"value = ugettext(""%s GB"") % filesize_number_format(bytes_ / GB)"
+django/template/defaultfilters.py,874,call,other,ugettext,"value = ugettext(""%s TB"") % filesize_number_format(bytes_ / TB)"
+django/template/defaultfilters.py,876,call,other,ugettext,"value = ugettext(""%s PB"") % filesize_number_format(bytes_ / PB)"
+django/templatetags/i18n.py,16,call,other,ugettext,"context[self.variable] = [(k, translation.ugettext(v)) for k, v in settings.LANGUAGES]"
+django/templatetags/i18n.py,145,call,other,ungettext,"result = translation.ungettext(singular, plural, count)"
+django/templatetags/i18n.py,151,call,other,ugettext,result = translation.ugettext(singular)
+django/templatetags/i18n.py,270,call,other,ugettext,return translation.ugettext(english_name)
+django/utils/dateformat.py,23,import,other,ugettext,from django.utils.translation import ugettext as _
+django/utils/dates.py,3,import,other,ugettext_lazy,"from django.utils.translation import pgettext_lazy, ugettext_lazy as _"
+django/utils/ipv6.py,4,import,other,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+django/utils/text.py,12,import,other,ugettext|ugettext_lazy,"from django.utils.translation import pgettext, ugettext as _, ugettext_lazy"
+django/utils/text.py,243,call,other,ugettext_lazy,"def get_text_list(list_, last_word=ugettext_lazy('or')):"
+django/utils/timesince.py,6,import,other,ugettext|ungettext_lazy,"from django.utils.translation import ugettext, ungettext_lazy"
+django/utils/timesince.py,9,call,other,ungettext_lazy,"(60 * 60 * 24 * 365, ungettext_lazy('%d year', '%d years')),"
+django/utils/timesince.py,10,call,other,ungettext_lazy,"(60 * 60 * 24 * 30, ungettext_lazy('%d month', '%d months')),"
+django/utils/timesince.py,11,call,other,ungettext_lazy,"(60 * 60 * 24 * 7, ungettext_lazy('%d week', '%d weeks')),"
+django/utils/timesince.py,12,call,other,ungettext_lazy,"(60 * 60 * 24, ungettext_lazy('%d day', '%d days')),"
+django/utils/timesince.py,13,call,other,ungettext_lazy,"(60 * 60, ungettext_lazy('%d hour', '%d hours')),"
+django/utils/timesince.py,14,call,other,ungettext_lazy,"(60, ungettext_lazy('%d minute', '%d minutes'))"
+django/utils/timesince.py,58,call,other,ugettext,return avoid_wrapping(ugettext('0 minutes'))
+django/utils/timesince.py,69,call,other,ugettext,"result += ugettext(', ') + avoid_wrapping(name2 % count2)"
+django/utils/translation/__init__.py,253,call,other,ugettext_lazy,info['name_translated'] = ugettext_lazy(info['name'])
+django/views/csrf.py,4,import,other,ugettext,from django.utils.translation import ugettext as _
+django/views/debug.py,15,import,other,ugettext,from django.utils.translation import ugettext as _
+django/views/generic/dates.py,10,import,other,ugettext,from django.utils.translation import ugettext as _
+django/views/generic/detail.py,4,import,other,ugettext,from django.utils.translation import ugettext as _
+django/views/generic/list.py,5,import,other,ugettext,from django.utils.translation import ugettext as _
+django/views/static.py,18,import,other,ugettext|ugettext_lazy,"from django.utils.translation import ugettext as _, ugettext_lazy"
+django/views/static.py,98,call,other,ugettext_lazy,"template_translatable = ugettext_lazy(""Index of %(directory)s"")"
+tests/admin_utils/models.py,2,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/auth_tests/test_forms.py,20,import,tests/,ugettext,from django.utils.translation import ugettext as _
+tests/auth_tests/test_management.py,19,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/basic/tests.py,12,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy
+tests/basic/tests.py,319,call,tests/,ugettext_lazy,lazy = ugettext_lazy(notlazy)
+tests/flatpages_tests/test_forms.py,104,call,tests/,ugettext,{'sites': [translation.ugettext('This field is required.')]})
+tests/forms_tests/tests/test_i18n.py,6,import,tests/,ugettext_lazy,"from django.utils.translation import gettext_lazy, ugettext_lazy"
+tests/forms_tests/tests/test_i18n.py,12,call,tests/,ugettext_lazy,"username = CharField(max_length=10, label=ugettext_lazy('username'))"
+tests/forms_tests/tests/test_i18n.py,37,call,tests/,ugettext_lazy,"field_1 = CharField(max_length=10, label=ugettext_lazy('field_1'))"
+tests/forms_tests/tests/test_i18n.py,40,call,tests/,ugettext_lazy,"label=ugettext_lazy('field_2'),"
+tests/forms_tests/tests/test_utils.py,7,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy
+tests/forms_tests/tests/test_utils.py,69,call,tests/,ugettext_lazy,"str(ErrorList(ValidationError(ugettext_lazy(""Error."")).messages)),"
+tests/forms_tests/tests/test_utils.py,87,call,tests/,ugettext_lazy,"ugettext_lazy(""3. Error.""),"
+tests/humanize_tests/tests.py,10,import,tests/,ugettext,from django.utils.translation import ugettext as _
+tests/i18n/commands/__init__.py,1,import,tests/,ugettext|ungettext,"from django.utils.translation import ugettext as _, ungettext"
+tests/i18n/commands/__init__.py,12,call,tests/,ungettext,"dummy3 = ungettext(""%(number)s Foo"", ""%(number)s Foos"", number) % {'number': number}"
+tests/i18n/exclude/__init__.py,6,import,tests/,ugettext,from django.utils.translation import ugettext as _
+tests/i18n/models.py,4,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/i18n/patterns/urls/default.py,3,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/i18n/patterns/urls/namespace.py,2,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/i18n/patterns/urls/wrong.py,3,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/i18n/patterns/urls/wrong_namespace.py,3,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/i18n/project_dir/__init__.py,2,import,tests/,ugettext,from django.utils.translation import ugettext as _
+tests/i18n/project_dir/app_no_locale/models.py,1,import,tests/,ugettext,from django.utils.translation import ugettext as _
+tests/i18n/project_dir/app_with_locale/models.py,1,import,tests/,ugettext,from django.utils.translation import ugettext as _
+tests/i18n/test_compilation.py,18,import,tests/,ugettext,from django.utils.translation import ugettext
+tests/i18n/test_compilation.py,170,call,tests/,ugettext,"self.assertEqual(ugettext('Lenin'), 'Ленин')"
+tests/i18n/test_compilation.py,171,call,tests/,ugettext,"self.assertEqual(ugettext('Vodka'), 'Vodka')"
+tests/i18n/test_compilation.py,177,call,tests/,ugettext,"self.assertEqual(ugettext('Lenin'), 'Ленин')"
+tests/i18n/test_compilation.py,178,call,tests/,ugettext,"self.assertEqual(ugettext('Vodka'), 'Водка')"
+tests/i18n/tests.py,27,import,tests/,ugettext|ugettext_lazy,"npgettext, npgettext_lazy, pgettext, trans_real, ugettext, ugettext_lazy,"
+tests/i18n/tests.py,28,import,tests/,ungettext|ungettext_lazy,"ungettext, ungettext_lazy,"
+tests/i18n/tests.py,60,call,tests/,ungettext,"self.assertEqual(ungettext(""%d year"", ""%d years"", 0) % 0, ""0 année"")"
+tests/i18n/tests.py,61,call,tests/,ungettext,"self.assertEqual(ungettext(""%d year"", ""%d years"", 2) % 2, ""2 années"")"
+tests/i18n/tests.py,62,call,tests/,ungettext,"self.assertEqual(ungettext(""%(size)d byte"", ""%(size)d bytes"", 0) % {'size': 0}, ""0 octet"")"
+tests/i18n/tests.py,63,call,tests/,ungettext,"self.assertEqual(ungettext(""%(size)d byte"", ""%(size)d bytes"", 2) % {'size': 2}, ""2 octets"")"
+tests/i18n/tests.py,122,call,tests/,ugettext_lazy,s = ugettext_lazy('Add %(name)s')
+tests/i18n/tests.py,131,call,tests/,ugettext_lazy,s1 = ugettext_lazy('Add %(name)s')
+tests/i18n/tests.py,137,call,tests/,ugettext_lazy,s4 = ugettext_lazy('Some other string')
+tests/i18n/tests.py,141,call,tests/,ugettext_lazy,"s1 = ugettext_lazy(""test"")"
+tests/i18n/tests.py,148,call,tests/,ungettext_lazy,"simple_with_format = ungettext_lazy('%d good result', '%d good results')"
+tests/i18n/tests.py,150,call,tests/,ungettext_lazy,"simple_without_format = ungettext_lazy('good result', 'good results')"
+tests/i18n/tests.py,159,call,tests/,ungettext_lazy,"complex_nonlazy = ungettext_lazy('Hi %(name)s, %(num)d good result', 'Hi %(name)s, %(num)d good results', 4)"
+tests/i18n/tests.py,160,call,tests/,ungettext_lazy,complex_deferred = ungettext_lazy(
+tests/i18n/tests.py,182,call,tests/,ungettext_lazy,"self.assertTrue(ungettext_lazy('%d good result', '%d good results'))"
+tests/i18n/tests.py,183,call,tests/,ungettext_lazy,"self.assertFalse(ungettext_lazy('', ''))"
+tests/i18n/tests.py,186,call,tests/,ungettext_lazy,"s1 = ungettext_lazy('%d good result', '%d good results')"
+tests/i18n/tests.py,994,call,tests/,ugettext,"self.assertEqual(ugettext(""Image""), ""Bild"")"
+tests/i18n/tests.py,996,call,tests/,ugettext,"self.assertEqual(ugettext(""Image""), ""Image"")"
+tests/i18n/tests.py,998,call,tests/,ugettext,"self.assertEqual(ugettext(""Image""), ""Image"")"
+tests/i18n/tests.py,1000,call,tests/,ugettext,"self.assertEqual(ugettext(""Image""), ""Image"")"
+tests/i18n/tests.py,1226,call,tests/,ugettext,result = ugettext(msgid)
+tests/i18n/tests.py,1271,call,tests/,ugettext,"self.assertEqual(ugettext('Date/time'), 'Datum/Zeit')"
+tests/i18n/tests.py,1299,call,tests/,ugettext,"self.assertEqual(ugettext(""Title""), ""Title"")"
+tests/i18n/tests.py,1514,call,tests/,ugettext,"self.assertEqual(ugettext(""year""), ""reay"")"
+tests/i18n/tests.py,1527,call,tests/,ungettext,"self.assertEqual(ungettext('year', 'years', 2), 'years')"
+tests/i18n/urls.py,4,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/i18n/urls_default_unprefixed.py,4,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/mail/tests.py,29,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy
+tests/mail/tests.py,180,call,tests/,ugettext_lazy,"ugettext_lazy('Subject\nInjection Test'), 'Content', 'from@example.com', ['to@example.com']"
+tests/mail/tests.py,859,call,tests/,ugettext_lazy,"mail_managers(ugettext_lazy('Subject'), 'Content')"
+tests/mail/tests.py,864,call,tests/,ugettext_lazy,"mail_admins(ugettext_lazy('Subject'), 'Content')"
+tests/mail/tests.py,929,alias,tests/,ugettext_lazy,_ = ugettext_lazy
+tests/many_to_one/tests.py,8,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy
+tests/many_to_one/tests.py,434,call,tests/,ugettext_lazy,lazy = ugettext_lazy('test')
+tests/messages_tests/base.py,9,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy
+tests/messages_tests/base.py,103,call,tests/,ugettext_lazy,"storage.add(constants.INFO, ugettext_lazy('lazy message'))"
+tests/migrations/test_writer.py,27,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/queryset_pickle/models.py,4,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
+tests/serializers/test_json.py,12,import,tests/,ugettext_lazy,"from django.utils.translation import override, ugettext_lazy"
+tests/serializers/test_json.py,295,call,tests/,ugettext_lazy,"json.dumps({'lang': ugettext_lazy(""French"")}, cls=DjangoJSONEncoder),"
+tests/serializers/test_json.py,300,call,tests/,ugettext_lazy,"json.dumps({'lang': ugettext_lazy(""French"")}, cls=DjangoJSONEncoder),"
+tests/test_client_regress/tests.py,20,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy
+tests/test_client_regress/tests.py,157,call,tests/,ugettext_lazy,"self.assertContains(r, ugettext_lazy('once'))"
+tests/test_client_regress/tests.py,161,call,tests/,ugettext_lazy,"self.assertNotContains(r, ugettext_lazy('never'))"
+tests/utils_tests/test_text.py,7,import,tests/,ugettext_lazy,"from django.utils.translation import override, ugettext_lazy"
+tests/utils_tests/test_text.py,238,call,tests/,ugettext_lazy,"ugettext_lazy(""Added {name} \""{object}\"".""),"
+tests/view_tests/urls.py,6,import,tests/,ugettext_lazy,from django.utils.translation import ugettext_lazy as _
