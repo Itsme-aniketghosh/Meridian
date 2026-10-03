@@ -1,6 +1,6 @@
 """Q3 step 1: pick 30 of the edit lines with a fixed seed, and save the list before checking.
 
-Reads results/sites_279.csv. Writes results/hand_check_30_sample.csv
+Reads results/edit_sites.csv. Writes results/hand_check_30_sample.csv
 Usage: python scripts/q3_pick.py
 """
 import csv
@@ -9,7 +9,7 @@ import random
 
 SEED, N = 1, 30
 
-with open("results/sites_279.csv", newline="") as fh:
+with open("results/edit_sites.csv", newline="") as fh:
     rows = list(csv.DictReader(fh))
 
 random.seed(SEED)

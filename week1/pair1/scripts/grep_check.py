@@ -2,7 +2,7 @@
 
 Runs the search a person would: git grep for "ugettext" or "ungettext" in .py files. Then
 tree-sitter says what each line it finds really is, using the first label that fits:
-  real use      in the edit set (results/sites_279.csv)
+  real use      in the edit set (results/edit_sites.csv)
   definition    where the old names are defined (results/sites_other.csv)
   longer name   part of a longer name, e.g. def test_ungettext_lazy
   string        inside quoted text, e.g. a name listed in __all__
@@ -14,7 +14,7 @@ Also checks two things the search can't see:
   re-exports      a file importing a nickname for an old name from another file, not from
                   django.utils.translation
 
-Reads results/sites_279.csv, sites_other.csv, alias_calls.csv, scanner_vs_commit.csv. Writes:
+Reads results/edit_sites.csv, sites_other.csv, alias_calls.csv, scanner_vs_commit.csv. Writes:
   results/grep_hits.csv            one row per line the search finds, with its label
   results/grep_check_summary.json  counts
 
@@ -137,7 +137,7 @@ def main():
     if commit != EXPECTED_COMMIT:
         sys.exit(f"Wrong snapshot: {commit}. Run: git -C {REPO} checkout 4353640ea9")
 
-    with open("results/sites_279.csv", newline="") as fh:
+    with open("results/edit_sites.csv", newline="") as fh:
         edit_kind = {(r["file"], int(r["line"])): r["kind"] for r in csv.DictReader(fh)}
     edit = set(edit_kind)
     definitions = read_keys("results/sites_other.csv")

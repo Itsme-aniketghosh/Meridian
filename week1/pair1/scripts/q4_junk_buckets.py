@@ -11,7 +11,7 @@ Each file gets the first bucket that matches, in this order:
 
 Also lists the non-.py files that mention the old names, and whether c651331b34 changed them.
 
-Reads results/sites_279.csv. Writes:
+Reads results/edit_sites.csv. Writes:
   results/junk_buckets.csv           one row per edit line, with its bucket
   results/junk_non_py_mentions.csv   non-.py files that mention the old names
   results/junk_buckets_summary.json  counts per bucket, for the edit set and the whole repo
@@ -104,7 +104,7 @@ def main():
             named_like_migration += 1
 
     # The edit lines, with the bucket of their file
-    with open("results/sites_279.csv", newline="") as fh:
+    with open("results/edit_sites.csv", newline="") as fh:
         edit = list(csv.DictReader(fh))
     for row in edit:
         row["bucket"] = file_bucket[row["file"]]

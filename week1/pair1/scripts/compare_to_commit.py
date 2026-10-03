@@ -55,7 +55,7 @@ def load(csv_path):
 
 def main():
     removed = removed_lines()
-    scanner = load("results/sites_279.csv")
+    scanner = load("results/edit_sites.csv")
     other = load("results/sites_other.csv")
 
     rows = []

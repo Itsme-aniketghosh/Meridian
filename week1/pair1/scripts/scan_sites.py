@@ -1,7 +1,7 @@
 """Find every line at the snapshot that uses ugettext or one of its variants.
 
 Writes:
-  results/sites_279.csv    import and call lines (the edit set)
+  results/edit_sites.csv   import and call lines (the edit set)
   results/sites_other.csv  every other mention (definitions, passed as a value, ...)
 
 Usage: python scripts/scan_sites.py [path-to-django]
@@ -101,7 +101,7 @@ def main():
         (other if row["kind"] == "other" else edit).append(out)
 
     header = ["file", "line", "kind", "symbol", "text"]
-    for name, rows in (("results/sites_279.csv", edit), ("results/sites_other.csv", other)):
+    for name, rows in (("results/edit_sites.csv", edit), ("results/sites_other.csv", other)):
         with open(name, "w", newline="") as fh:
             writer = csv.writer(fh)
             writer.writerow(header)
@@ -110,7 +110,7 @@ def main():
     kinds = Counter(r[2] for r in edit)
     symbols = Counter(s for r in edit for s in r[3].split("|"))
     print(f"commit: {commit}")
-    print(f"edit lines: {len(edit)}  (target 279)")
+    print(f"edit lines: {len(edit)}  (commit changed 265)")
     print(f"  import lines: {kinds['import']}  (target 110)")
     print(f"  alias lines:  {kinds['alias']}  (like _ = ugettext_lazy)")
     print(f"  call lines:   {kinds['call']}  (target 169)")
