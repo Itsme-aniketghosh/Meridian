@@ -1,0 +1,10 @@
+{
+  "sites_checked": 30,
+  "yes": 30,
+  "no": 0,
+  "checked_by": "claude (read each line with context); a person still has to spot-check",
+  "changed_by_commit": 23,
+  "changed_by_removal": 30,
+  "jedi_right": 30,
+  "pyright_right": 29
+}

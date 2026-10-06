@@ -1,0 +1,2 @@
+# CSV result files stay on your machine only. They are never committed or pushed.
+*.csv

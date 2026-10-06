@@ -1,0 +1,87 @@
+{
+  "snapshot": "3a5cca3ff2",
+  "uses": 395,
+  "jedi": {
+    "right": 390,
+    "wrong": 0,
+    "no_answer": 5
+  },
+  "pyright": {
+    "right": 384,
+    "wrong": 0,
+    "no_answer": 11
+  },
+  "by_bucket": {
+    "components": {
+      "uses": 389,
+      "jedi": {
+        "right": 386,
+        "wrong": 0,
+        "no_answer": 3
+      },
+      "pyright": {
+        "right": 380,
+        "wrong": 0,
+        "no_answer": 9
+      }
+    },
+    "other": {
+      "uses": 4,
+      "jedi": {
+        "right": 4,
+        "wrong": 0,
+        "no_answer": 0
+      },
+      "pyright": {
+        "right": 4,
+        "wrong": 0,
+        "no_answer": 0
+      }
+    },
+    "tests": {
+      "uses": 2,
+      "jedi": {
+        "right": 0,
+        "wrong": 0,
+        "no_answer": 2
+      },
+      "pyright": {
+        "right": 0,
+        "wrong": 0,
+        "no_answer": 2
+      }
+    }
+  },
+  "by_receiver": {
+    "hass.config_entries": {
+      "uses": 382,
+      "jedi_right": 379,
+      "pyright_right": 379
+    },
+    "self._hass.config_entries": {
+      "uses": 4,
+      "jedi_right": 4,
+      "pyright_right": 1
+    },
+    "self.hass.config_entries": {
+      "uses": 9,
+      "jedi_right": 7,
+      "pyright_right": 4
+    }
+  },
+  "agreement": {
+    "both right": 384,
+    "only jedi": 6,
+    "only pyright": 0,
+    "neither": 5
+  },
+  "seconds": {
+    "jedi_total": 2.14,
+    "jedi_median_per_use": 0.0017,
+    "jedi_p95_per_use": 0.0024,
+    "pyright_startup": 0.52,
+    "pyright_total": 1.79,
+    "pyright_median_per_use": 0.0016,
+    "pyright_p95_per_use": 0.0075
+  }
+}
