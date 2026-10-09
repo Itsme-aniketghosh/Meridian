@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="1604" viewBox="0 0 1640 1604" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<rect width="1640" height="1604" fill="#fff"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/></marker></defs>
+<text x="24" y="48" font-size="30" font-weight="700" fill="#111827">Meridian pipeline · step 1 · 10 days</text>
+<text x="24" y="82" font-size="17" fill="#4b5563">Four people build the parts in parallel. Utkarsh joins them. Aniket builds the graph. Both freeze it on Day 10.</text>
+<circle cx="31" cy="108" r="6" fill="#dc2626"/><text x="44" y="114" font-size="15" fill="#374151">Critical path: if this slips, Day 10 slips</text>
+<rect x="10" y="130" width="1620" height="158" rx="14" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="32" y="168" font-size="14" font-weight="700" fill="#6b7280" letter-spacing="1.5">STAGE 0</text>
+<text x="32" y="198" font-size="24" font-weight="700" fill="#111827">Contracts</text>
+<text x="32" y="226" font-size="16" fill="#374151">Day 1</text>
+<rect x="557.0" y="142" width="726.0000000000001" height="134" rx="12" fill="#f3f4f6" stroke="#374151" stroke-width="2.5"/>
+<text x="575.0" y="176" font-size="21" font-weight="700" fill="#374151">Everyone</text>
+<circle cx="581.0" cy="202" r="6" fill="#dc2626"/>
+<text x="595.0" y="208" font-size="17" fill="#111827">Agree every table&#x27;s columns (Vishwa drafts)</text>
+<rect x="1221.0" y="189" width="46" height="25" rx="12.5" fill="#fff" stroke="#374151" stroke-width="1.5"/>
+<text x="1244.0" y="208" font-size="14" font-weight="700" text-anchor="middle" fill="#374151">D1</text>
+<circle cx="581.0" cy="234" r="4" fill="#374151"/>
+<text x="595.0" y="240" font-size="17" fill="#111827">Agree what a &quot;team&quot; is per dataset (Chaitali)</text>
+<rect x="1221.0" y="221" width="46" height="25" rx="12.5" fill="#fff" stroke="#374151" stroke-width="1.5"/>
+<text x="1244.0" y="240" font-size="14" font-weight="700" text-anchor="middle" fill="#374151">D1</text>
+<rect x="10" y="358" width="1620" height="294" rx="14" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="32" y="396" font-size="14" font-weight="700" fill="#6b7280" letter-spacing="1.5">STAGE 1</text>
+<text x="32" y="426" font-size="24" font-weight="700" fill="#111827">Build the parts</text>
+<text x="32" y="454" font-size="16" fill="#374151">Days 2–6 · four</text>
+<text x="32" y="476" font-size="16" fill="#374151">people in parallel</text>
+<rect x="230.0" y="370" width="330" height="270" rx="12" fill="#e8f0fe" stroke="#1a56db" stroke-width="2.5"/>
+<text x="248.0" y="404" font-size="21" font-weight="700" fill="#1a56db">Vishwa</text>
+<text x="248.0" y="428" font-size="15" fill="#374151">Collect + bug history</text>
+<circle cx="254.0" cy="452" r="4" fill="#374151"/>
+<text x="268.0" y="458" font-size="17" fill="#111827">Snapshot + config</text>
+<rect x="498.0" y="439" width="46" height="25" rx="12.5" fill="#fff" stroke="#1a56db" stroke-width="1.5"/>
+<text x="521.0" y="458" font-size="14" font-weight="700" text-anchor="middle" fill="#1a56db">D2</text>
+<circle cx="254.0" cy="484" r="4" fill="#374151"/>
+<text x="268.0" y="490" font-size="17" fill="#111827">SQLite writer</text>
+<rect x="498.0" y="471" width="46" height="25" rx="12.5" fill="#fff" stroke="#1a56db" stroke-width="1.5"/>
+<text x="521.0" y="490" font-size="14" font-weight="700" text-anchor="middle" fill="#1a56db">D3</text>
+<circle cx="254.0" cy="516" r="4" fill="#374151"/>
+<text x="268.0" y="522" font-size="17" fill="#111827">Jira snapshot + commit keys</text>
+<rect x="498.0" y="503" width="46" height="25" rx="12.5" fill="#fff" stroke="#1a56db" stroke-width="1.5"/>
+<text x="521.0" y="522" font-size="14" font-weight="700" text-anchor="middle" fill="#1a56db">D4</text>
+<circle cx="254.0" cy="548" r="4" fill="#374151"/>
+<text x="268.0" y="554" font-size="17" fill="#111827">SZZ + bug fixes per file</text>
+<rect x="498.0" y="535" width="46" height="25" rx="12.5" fill="#fff" stroke="#1a56db" stroke-width="1.5"/>
+<text x="521.0" y="554" font-size="14" font-weight="700" text-anchor="middle" fill="#1a56db">D6</text>
+<text x="248.0" y="624" font-size="16" font-weight="700" fill="#1a56db">→ Utkarsh</text>
+<rect x="580.0" y="370" width="330" height="270" rx="12" fill="#e6f6ec" stroke="#15803d" stroke-width="2.5"/>
+<text x="598.0" y="404" font-size="21" font-weight="700" fill="#15803d">Rachna</text>
+<text x="598.0" y="428" font-size="15" fill="#374151">Call sites</text>
+<circle cx="604.0" cy="452" r="6" fill="#dc2626"/>
+<text x="618.0" y="458" font-size="17" fill="#111827">Scanner: roles, junk labels</text>
+<rect x="848.0" y="439" width="46" height="25" rx="12.5" fill="#fff" stroke="#15803d" stroke-width="1.5"/>
+<text x="871.0" y="458" font-size="14" font-weight="700" text-anchor="middle" fill="#15803d">D3</text>
+<circle cx="604.0" cy="484" r="6" fill="#dc2626"/>
+<text x="618.0" y="490" font-size="17" fill="#111827">Freeze the 265 answer key</text>
+<rect x="848.0" y="471" width="46" height="25" rx="12.5" fill="#fff" stroke="#15803d" stroke-width="1.5"/>
+<text x="871.0" y="490" font-size="14" font-weight="700" text-anchor="middle" fill="#15803d">D4</text>
+<circle cx="604.0" cy="516" r="6" fill="#dc2626"/>
+<text x="618.0" y="522" font-size="17" fill="#111827">Candidates on Django +</text>
+<text x="618.0" y="546" font-size="17" fill="#111827">packages</text>
+<rect x="848.0" y="503" width="46" height="25" rx="12.5" fill="#fff" stroke="#15803d" stroke-width="1.5"/>
+<text x="871.0" y="522" font-size="14" font-weight="700" text-anchor="middle" fill="#15803d">D4</text>
+<circle cx="604.0" cy="572" r="4" fill="#374151"/>
+<text x="618.0" y="578" font-size="17" fill="#111827">Goldens for every case</text>
+<rect x="848.0" y="559" width="46" height="25" rx="12.5" fill="#fff" stroke="#15803d" stroke-width="1.5"/>
+<text x="871.0" y="578" font-size="14" font-weight="700" text-anchor="middle" fill="#15803d">D6</text>
+<text x="598.0" y="624" font-size="16" font-weight="700" fill="#15803d">→ Rochan, Utkarsh</text>
+<rect x="930.0" y="370" width="330" height="270" rx="12" fill="#fdf6dc" stroke="#a16207" stroke-width="2.5"/>
+<text x="948.0" y="404" font-size="21" font-weight="700" fill="#a16207">Rochan</text>
+<text x="948.0" y="428" font-size="15" fill="#374151">Resolver</text>
+<circle cx="954.0" cy="452" r="6" fill="#dc2626"/>
+<text x="968.0" y="458" font-size="17" fill="#111827">Jedi + one-hop alias rule</text>
+<rect x="1198.0" y="439" width="46" height="25" rx="12.5" fill="#fff" stroke="#a16207" stroke-width="1.5"/>
+<text x="1221.0" y="458" font-size="14" font-weight="700" text-anchor="middle" fill="#a16207">D4</text>
+<circle cx="954.0" cy="484" r="6" fill="#dc2626"/>
+<text x="968.0" y="490" font-size="17" fill="#111827">Resolve every candidate</text>
+<rect x="1198.0" y="471" width="46" height="25" rx="12.5" fill="#fff" stroke="#a16207" stroke-width="1.5"/>
+<text x="1221.0" y="490" font-size="14" font-weight="700" text-anchor="middle" fill="#a16207">D5</text>
+<circle cx="954.0" cy="516" r="4" fill="#374151"/>
+<text x="968.0" y="522" font-size="17" fill="#111827">Call edges, 3 deep</text>
+<rect x="1198.0" y="503" width="46" height="25" rx="12.5" fill="#fff" stroke="#a16207" stroke-width="1.5"/>
+<text x="1221.0" y="522" font-size="14" font-weight="700" text-anchor="middle" fill="#a16207">D6</text>
+<text x="948.0" y="624" font-size="16" font-weight="700" fill="#a16207">→ Utkarsh</text>
+<rect x="1280.0" y="370" width="330" height="270" rx="12" fill="#fbe9f2" stroke="#be185d" stroke-width="2.5"/>
+<text x="1298.0" y="404" font-size="21" font-weight="700" fill="#be185d">Chaitali</text>
+<text x="1298.0" y="428" font-size="15" fill="#374151">Owners</text>
+<circle cx="1304.0" cy="452" r="4" fill="#374151"/>
+<text x="1318.0" y="458" font-size="17" fill="#111827">Merge identities, drop bots</text>
+<rect x="1548.0" y="439" width="46" height="25" rx="12.5" fill="#fff" stroke="#be185d" stroke-width="1.5"/>
+<text x="1571.0" y="458" font-size="14" font-weight="700" text-anchor="middle" fill="#be185d">D3</text>
+<circle cx="1304.0" cy="484" r="4" fill="#374151"/>
+<text x="1318.0" y="490" font-size="17" fill="#111827">Owner rule</text>
+<rect x="1548.0" y="471" width="46" height="25" rx="12.5" fill="#fff" stroke="#be185d" stroke-width="1.5"/>
+<text x="1571.0" y="490" font-size="14" font-weight="700" text-anchor="middle" fill="#be185d">D4</text>
+<circle cx="1304.0" cy="516" r="4" fill="#374151"/>
+<text x="1318.0" y="522" font-size="17" fill="#111827">Team map + owner per file</text>
+<rect x="1548.0" y="503" width="46" height="25" rx="12.5" fill="#fff" stroke="#be185d" stroke-width="1.5"/>
+<text x="1571.0" y="522" font-size="14" font-weight="700" text-anchor="middle" fill="#be185d">D5</text>
+<circle cx="1304.0" cy="548" r="4" fill="#374151"/>
+<text x="1318.0" y="554" font-size="17" fill="#111827">GitLab gold set check</text>
+<rect x="1548.0" y="535" width="46" height="25" rx="12.5" fill="#fff" stroke="#be185d" stroke-width="1.5"/>
+<text x="1571.0" y="554" font-size="14" font-weight="700" text-anchor="middle" fill="#be185d">D6</text>
+<text x="1298.0" y="624" font-size="16" font-weight="700" fill="#be185d">→ Utkarsh</text>
+<rect x="10" y="722" width="1620" height="270" rx="14" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="32" y="760" font-size="14" font-weight="700" fill="#6b7280" letter-spacing="1.5">STAGE 2</text>
+<text x="32" y="790" font-size="24" font-weight="700" fill="#111827">Join</text>
+<text x="32" y="818" font-size="16" fill="#374151">Days 2–7</text>
+<rect x="656.0" y="734" width="528.0" height="246" rx="12" fill="#efeafd" stroke="#6d28d9" stroke-width="2.5"/>
+<text x="674.0" y="768" font-size="21" font-weight="700" fill="#6d28d9">Utkarsh</text>
+<text x="674.0" y="792" font-size="15" fill="#374151">Joins the four parts</text>
+<circle cx="680.0" cy="816" r="4" fill="#374151"/>
+<text x="694.0" y="822" font-size="17" fill="#111827">Prep: check 50 links, ID fixtures</text>
+<rect x="1122.0" y="803" width="46" height="25" rx="12.5" fill="#fff" stroke="#6d28d9" stroke-width="1.5"/>
+<text x="1145.0" y="822" font-size="14" font-weight="700" text-anchor="middle" fill="#6d28d9">D4</text>
+<circle cx="680.0" cy="848" r="4" fill="#374151"/>
+<text x="694.0" y="854" font-size="17" fill="#111827">Ticket → code links</text>
+<rect x="1122.0" y="835" width="46" height="25" rx="12.5" fill="#fff" stroke="#6d28d9" stroke-width="1.5"/>
+<text x="1145.0" y="854" font-size="14" font-weight="700" text-anchor="middle" fill="#6d28d9">D6</text>
+<circle cx="680.0" cy="880" r="6" fill="#dc2626"/>
+<text x="694.0" y="886" font-size="17" fill="#111827">Call-site IDs + row matching</text>
+<rect x="1122.0" y="867" width="46" height="25" rx="12.5" fill="#fff" stroke="#6d28d9" stroke-width="1.5"/>
+<text x="1145.0" y="886" font-size="14" font-weight="700" text-anchor="middle" fill="#6d28d9">D6</text>
+<circle cx="680.0" cy="912" r="6" fill="#dc2626"/>
+<text x="694.0" y="918" font-size="17" fill="#111827">One joined block of call_site rows</text>
+<rect x="1122.0" y="899" width="46" height="25" rx="12.5" fill="#fff" stroke="#6d28d9" stroke-width="1.5"/>
+<text x="1145.0" y="918" font-size="14" font-weight="700" text-anchor="middle" fill="#6d28d9">D7</text>
+<text x="674.0" y="964" font-size="16" font-weight="700" fill="#6d28d9">→ Aniket</text>
+<rect x="10" y="1062" width="1620" height="262" rx="14" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="32" y="1100" font-size="14" font-weight="700" fill="#6b7280" letter-spacing="1.5">STAGE 3</text>
+<text x="32" y="1130" font-size="24" font-weight="700" fill="#111827">Graph</text>
+<text x="32" y="1158" font-size="16" fill="#374151">Days 2–8</text>
+<rect x="656.0" y="1074" width="528.0" height="238" rx="12" fill="#fdeee2" stroke="#c2410c" stroke-width="2.5"/>
+<text x="674.0" y="1108" font-size="21" font-weight="700" fill="#c2410c">Aniket</text>
+<text x="674.0" y="1132" font-size="15" fill="#374151">Builds the graph</text>
+<circle cx="680.0" cy="1156" r="4" fill="#374151"/>
+<text x="694.0" y="1162" font-size="17" fill="#111827">Prep: fixtures + code for every rule</text>
+<rect x="1122.0" y="1143" width="46" height="25" rx="12.5" fill="#fff" stroke="#c2410c" stroke-width="1.5"/>
+<text x="1145.0" y="1162" font-size="14" font-weight="700" text-anchor="middle" fill="#c2410c">D4</text>
+<circle cx="680.0" cy="1188" r="4" fill="#374151"/>
+<text x="694.0" y="1194" font-size="17" fill="#111827">Tested on week-1 data</text>
+<rect x="1122.0" y="1175" width="46" height="25" rx="12.5" fill="#fff" stroke="#c2410c" stroke-width="1.5"/>
+<text x="1145.0" y="1194" font-size="14" font-weight="700" text-anchor="middle" fill="#c2410c">D6</text>
+<circle cx="680.0" cy="1220" r="6" fill="#dc2626"/>
+<text x="694.0" y="1226" font-size="17" fill="#111827">Run on the joined block: blast radius, chains,</text>
+<text x="694.0" y="1250" font-size="17" fill="#111827">blocked_by</text>
+<rect x="1122.0" y="1207" width="46" height="25" rx="12.5" fill="#fff" stroke="#c2410c" stroke-width="1.5"/>
+<text x="1145.0" y="1226" font-size="14" font-weight="700" text-anchor="middle" fill="#c2410c">D8</text>
+<text x="674.0" y="1296" font-size="16" font-weight="700" fill="#c2410c">→ Stage 4</text>
+<rect x="10" y="1394" width="1620" height="190" rx="14" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="32" y="1432" font-size="14" font-weight="700" fill="#6b7280" letter-spacing="1.5">STAGE 4</text>
+<text x="32" y="1462" font-size="24" font-weight="700" fill="#111827">Check + freeze</text>
+<text x="32" y="1490" font-size="16" fill="#374151">Days 8–10</text>
+<rect x="580.0" y="1406" width="330" height="166" rx="12" fill="#efeafd" stroke="#6d28d9" stroke-width="2.5"/>
+<text x="598.0" y="1440" font-size="21" font-weight="700" fill="#6d28d9">Utkarsh</text>
+<circle cx="604.0" cy="1466" r="6" fill="#dc2626"/>
+<text x="618.0" y="1472" font-size="17" fill="#111827">End-to-end run, together</text>
+<rect x="848.0" y="1453" width="46" height="25" rx="12.5" fill="#fff" stroke="#6d28d9" stroke-width="1.5"/>
+<text x="871.0" y="1472" font-size="14" font-weight="700" text-anchor="middle" fill="#6d28d9">D8</text>
+<circle cx="604.0" cy="1498" r="4" fill="#374151"/>
+<text x="618.0" y="1504" font-size="17" fill="#111827">Rebuild check + coverage</text>
+<rect x="848.0" y="1485" width="46" height="25" rx="12.5" fill="#fff" stroke="#6d28d9" stroke-width="1.5"/>
+<text x="871.0" y="1504" font-size="14" font-weight="700" text-anchor="middle" fill="#6d28d9">D9</text>
+<circle cx="604.0" cy="1530" r="6" fill="#dc2626"/>
+<text x="618.0" y="1536" font-size="17" fill="#111827">Freeze graph data block v1</text>
+<rect x="848.0" y="1517" width="46" height="25" rx="12.5" fill="#fff" stroke="#6d28d9" stroke-width="1.5"/>
+<text x="871.0" y="1536" font-size="14" font-weight="700" text-anchor="middle" fill="#6d28d9">D10</text>
+<rect x="930.0" y="1406" width="330" height="166" rx="12" fill="#fdeee2" stroke="#c2410c" stroke-width="2.5"/>
+<text x="948.0" y="1440" font-size="21" font-weight="700" fill="#c2410c">Aniket</text>
+<circle cx="954.0" cy="1466" r="6" fill="#dc2626"/>
+<text x="968.0" y="1472" font-size="17" fill="#111827">End-to-end run, together</text>
+<rect x="1198.0" y="1453" width="46" height="25" rx="12.5" fill="#fff" stroke="#c2410c" stroke-width="1.5"/>
+<text x="1221.0" y="1472" font-size="14" font-weight="700" text-anchor="middle" fill="#c2410c">D8</text>
+<circle cx="954.0" cy="1498" r="6" fill="#dc2626"/>
+<text x="968.0" y="1504" font-size="17" fill="#111827">Fix gaps with the four</text>
+<rect x="1198.0" y="1485" width="46" height="25" rx="12.5" fill="#fff" stroke="#c2410c" stroke-width="1.5"/>
+<text x="1221.0" y="1504" font-size="14" font-weight="700" text-anchor="middle" fill="#c2410c">D9</text>
+<circle cx="954.0" cy="1530" r="4" fill="#374151"/>
+<text x="968.0" y="1536" font-size="17" fill="#111827">Handoff note</text>
+<rect x="1198.0" y="1517" width="46" height="25" rx="12.5" fill="#fff" stroke="#c2410c" stroke-width="1.5"/>
+<text x="1221.0" y="1536" font-size="14" font-weight="700" text-anchor="middle" fill="#c2410c">D10</text>
+<path d="M920.0,278 C920.0,316 395.0,330 395.0,366" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<path d="M920.0,278 C920.0,316 745.0,330 745.0,366" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<path d="M920.0,278 C920.0,316 1095.0,330 1095.0,366" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<path d="M920.0,278 C920.0,316 1445.0,330 1445.0,366" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<path d="M395.0,642 C395.0,680 920.0,690 920.0,730" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<path d="M745.0,642 C745.0,680 920.0,690 920.0,730" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<path d="M1095.0,642 C1095.0,680 920.0,690 920.0,730" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<path d="M1445.0,642 C1445.0,680 920.0,690 920.0,730" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<line x1="920.0" y1="982" x2="920.0" y2="1070" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<path d="M920.0,1314 C920.0,1352 745.0,1366 745.0,1402" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<path d="M920.0,1314 C920.0,1352 1095.0,1366 1095.0,1402" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+<line x1="912.0" y1="505.0" x2="924.0" y2="505.0" stroke="#15803d" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+</svg>
