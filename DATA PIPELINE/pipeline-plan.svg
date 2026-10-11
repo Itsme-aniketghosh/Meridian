@@ -11,11 +11,11 @@
 <rect x="557.0" y="142" width="726.0000000000001" height="134" rx="12" fill="#f3f4f6" stroke="#374151" stroke-width="2.5"/>
 <text x="575.0" y="176" font-size="21" font-weight="700" fill="#374151">Everyone</text>
 <circle cx="581.0" cy="202" r="6" fill="#dc2626"/>
-<text x="595.0" y="208" font-size="17" fill="#111827">Agree every table&#x27;s columns (Vishwa drafts)</text>
+<text x="595.0" y="208" font-size="17" fill="#111827">Read CONTRACTS.md, raise blockers</text>
 <rect x="1221.0" y="189" width="46" height="25" rx="12.5" fill="#fff" stroke="#374151" stroke-width="1.5"/>
 <text x="1244.0" y="208" font-size="14" font-weight="700" text-anchor="middle" fill="#374151">D1</text>
 <circle cx="581.0" cy="234" r="4" fill="#374151"/>
-<text x="595.0" y="240" font-size="17" fill="#111827">Agree what a &quot;team&quot; is per dataset (Chaitali)</text>
+<text x="595.0" y="240" font-size="17" fill="#111827">Schema + team rules: final (Utkarsh)</text>
 <rect x="1221.0" y="221" width="46" height="25" rx="12.5" fill="#fff" stroke="#374151" stroke-width="1.5"/>
 <text x="1244.0" y="240" font-size="14" font-weight="700" text-anchor="middle" fill="#374151">D1</text>
 <rect x="10" y="358" width="1620" height="294" rx="14" fill="#f9fafb" stroke="#e5e7eb"/>
@@ -76,9 +76,13 @@
 <rect x="1198.0" y="471" width="46" height="25" rx="12.5" fill="#fff" stroke="#a16207" stroke-width="1.5"/>
 <text x="1221.0" y="490" font-size="14" font-weight="700" text-anchor="middle" fill="#a16207">D5</text>
 <circle cx="954.0" cy="516" r="4" fill="#374151"/>
-<text x="968.0" y="522" font-size="17" fill="#111827">Call edges, 3 deep</text>
+<text x="968.0" y="522" font-size="17" fill="#111827">Hand-check 30 alias calls</text>
 <rect x="1198.0" y="503" width="46" height="25" rx="12.5" fill="#fff" stroke="#a16207" stroke-width="1.5"/>
-<text x="1221.0" y="522" font-size="14" font-weight="700" text-anchor="middle" fill="#a16207">D6</text>
+<text x="1221.0" y="522" font-size="14" font-weight="700" text-anchor="middle" fill="#a16207">D5</text>
+<circle cx="954.0" cy="548" r="4" fill="#374151"/>
+<text x="968.0" y="554" font-size="17" fill="#111827">Call edges, 3 deep</text>
+<rect x="1198.0" y="535" width="46" height="25" rx="12.5" fill="#fff" stroke="#a16207" stroke-width="1.5"/>
+<text x="1221.0" y="554" font-size="14" font-weight="700" text-anchor="middle" fill="#a16207">D6</text>
 <text x="948.0" y="624" font-size="16" font-weight="700" fill="#a16207">→ Utkarsh</text>
 <rect x="1280.0" y="370" width="330" height="270" rx="12" fill="#fbe9f2" stroke="#be185d" stroke-width="2.5"/>
 <text x="1298.0" y="404" font-size="21" font-weight="700" fill="#be185d">Chaitali</text>
@@ -136,7 +140,7 @@
 <rect x="1122.0" y="1143" width="46" height="25" rx="12.5" fill="#fff" stroke="#c2410c" stroke-width="1.5"/>
 <text x="1145.0" y="1162" font-size="14" font-weight="700" text-anchor="middle" fill="#c2410c">D4</text>
 <circle cx="680.0" cy="1188" r="4" fill="#374151"/>
-<text x="694.0" y="1194" font-size="17" fill="#111827">Tested on week-1 data</text>
+<text x="694.0" y="1194" font-size="17" fill="#111827">Week-1 data + 50 collision pairs</text>
 <rect x="1122.0" y="1175" width="46" height="25" rx="12.5" fill="#fff" stroke="#c2410c" stroke-width="1.5"/>
 <text x="1145.0" y="1194" font-size="14" font-weight="700" text-anchor="middle" fill="#c2410c">D6</text>
 <circle cx="680.0" cy="1220" r="6" fill="#dc2626"/>

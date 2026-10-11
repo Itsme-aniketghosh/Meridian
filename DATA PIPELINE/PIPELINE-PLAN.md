@@ -29,6 +29,8 @@ One SQLite file per run, append-only, byte-identical on rebuild.
 
 ## Stage 0 · Contracts · Day 1 · everyone
 
+**Done.** Final versions: [CONTRACTS.md](CONTRACTS.md), [schema.sql](schema.sql), [meridian.toml](meridian.toml). Day 1 is now for everyone to read their tables and raise blockers.
+
 | Task | Owner | Due | Done when |
 |---|---|---|---|
 | Columns and types for every table: the 4 in [03-data](../docs/03-data.md) plus `candidate`, `resolution`, `call_edge`, `person_alias`, `team_map`, `ticket`, `commit_ticket`, `file_bug_fixes`, `blast_radius` | Vishwa drafts, everyone agrees their own | D1 | Every table has an owner and is agreed |
@@ -43,6 +45,7 @@ One SQLite file per run, append-only, byte-identical on rebuild.
 | Snapshot by `run_id` (repo SHAs, raw Jira and GitLab JSON), `run` row, `meridian.toml` loader | D2 | Fixture repo + mock Jira load |
 | SQLite writer: sorted output, content-hash IDs, append-only | D3 | Same rows twice → same file |
 | Jira rolled back to `snapshot_at`, mass closes excluded, commit keys → `commit_ticket`. Start from `week1/pair2/jira/` | D4 | 94% of last 1,000 Spark commits keyed, as in week 1 |
+| Run `make_labels.py` and `ticket_key_check.sh` once (week 1's only untested scripts) | D5 | Same 130 labels and 812 of 854 keyed |
 | SZZ + `bug_fixes` per file over 365 days, 2015+ | D6 | Beats churn on the 130 Defects4J labels |
 
 ### Rachna · Call sites → Rochan, Utkarsh
@@ -60,6 +63,7 @@ One SQLite file per run, append-only, byte-identical on rebuild.
 |---|---|---|
 | Pinned Jedi, one env per repo, one-hop rule (`_ = old_name`). Start from `q2_jedi.py` on week-1 candidates | D4 | 542 of 542 |
 | Resolve every candidate: `ast_resolved`, `ast_unresolved` (kept), dropped. Score on the old name | D5 | Precision ≥ 0.98 |
+| Hand-check 30 alias calls, so the 542 key isn't only from our own scripts | D5 | 30 of 30, or misses written down |
 | Caller → callee edges, resolved only, depth ≤ 3 → `call_edge` | D6 | Edge fixtures pass |
 
 ### Chaitali · Owners → Utkarsh
@@ -85,7 +89,7 @@ One SQLite file per run, append-only, byte-identical on rebuild.
 | Task | Needs | Due | Done when |
 |---|---|---|---|
 | Prep: one fixture per rule (`blocked_by`, blast radius, 4 chain types, cycles), and code that passes them | — | D4 | Fixtures 100% |
-| Tested on week-1 data (Spark tickets, Django call sites) | — | D6 | Runs without errors |
+| Tested on week-1 data (Spark tickets, Django call sites). Hand-check 50 Spark collision pairs, generic names (`apply`, `__hash__`) dropped first | — | D6 | Runs without errors · collision precision reported |
 | Run on Utkarsh's block: blast radius (depth ≤ 3), chains (`depends_on`, `duplicates`, `collides`, untracked), `blocked_by` (different owners, within 3 resolved calls, imports alone don't count) | Utkarsh | D8 | Precision ≥ 0.90 vs Chaitali's gold set |
 
 ## Stage 4 · Check + freeze · Days 8–10 · Utkarsh and Aniket
@@ -114,10 +118,12 @@ All from week 1. Nothing new to find.
 
 No single dataset fills every column. Django uses Trac, not Jira, so Django rows have no `ticket_map`. GitLab is Ruby, so code-level `blocked_by` runs on fixtures only. [02-product](../docs/02-product.md) already accepts both, and the screen says so.
 
-## Open on Day 1
+## Decided on Day 1
 
-1. **CSV policy** from [week 1](../week1/NEXT-STEPS.md): push result CSVs, or copies with usernames removed
-2. **Team for Django:** directories, or everything `unowned`
+- **CSV policy:** labels and results in git, scrubbed of people. Raw data never. See [CSV-POLICY.md](CSV-POLICY.md)
+- **Teams:** Jira component (Spark), folder path (Django, synthetic), repo (packages), `group::` label (GitLab). See [CONTRACTS.md](CONTRACTS.md)
+- **Gold set owner:** Chaitali
+- **Demo:** cross-team blocks shown from GitLab cases. Chains across repos stay on fixtures, and the screen says so
 
 ## Dropped first if we're behind
 
@@ -125,5 +131,8 @@ No single dataset fills every column. Django uses Trac, not Jira, so Django rows
 - Component-level owner test (Chaitali)
 - Defects4J bisection on the 724 unlabelled bugs
 - Replaying 50 Django pushes
+- GitLab link pass on Jul–Dec 2024, for more gold-set cases (Chaitali)
 
-Out of scope for step 1: push check (P1, P7, P8), stall rules, Jev, gate, views.
+Out of scope for step 1: push check (P1, P7, P8), stall rules, Jev (and its models in `meridian.toml`), gate, views.
+
+**Outside the pipeline (Utkarsh):** scoping doc needs the missing surnames, license checks, and the timeline lined up with course deadlines.
