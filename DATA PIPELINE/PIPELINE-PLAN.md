@@ -80,6 +80,7 @@ One SQLite file per run, append-only, byte-identical on rebuild.
 | Task | Needs | Due | Done when |
 |---|---|---|---|
 | Prep: hand-check 50 more Spark links. Call-site ID fixtures (insert, move, rename, duplicate, split) | — | D4 | 100 of 100 links · fixtures written |
+| Prep: GCP project (GCS bucket for snapshots, Artifact Registry for the image), Airflow environment, billing alert. DAG skeleton with stub tasks | — | D4 | Stub DAG runs end to end on GCP |
 | Ticket → code: linked-commit files, exact path, stack frame, exact symbol. No fuzzy matching → `ticket_map` | Vishwa, Rachna, Rochan | D6 | Path and trace precision ≥ 0.90 |
 | Call-site IDs + matching to last run (renames, `removed` / new, `effective_date`) | Rachna, Rochan | D6 | Fixtures 100% · Django replay error ≤ 1% |
 | One joined block: `call_site` rows with owner, `bug_fixes`, status, plus `call_edge` and `ticket_map` → Aniket | all four | D7 | Every row has an owner or `unowned`, and a status |
@@ -94,12 +95,25 @@ One SQLite file per run, append-only, byte-identical on rebuild.
 
 ## Stage 4 · Check + freeze · Days 8–10 · Utkarsh and Aniket
 
+**Orchestration (Utkarsh).** Once the parts work, Utkarsh puts them in Airflow on GCP. One DAG, run every night, with a full rebuild on Sundays:
+
+```
+collect ─┬─ history ─┬─ owners ──┐
+         │           └───────────┤
+         └─ scan ──── resolve ───┴─ join ─ graph ─ check ─ publish
+```
+
+- Each box is one Airflow task, running the part's command in a Cloud Run Job, so heavy work isn't on Airflow's own workers
+- `check` compares incremental with rebuild on Sundays and runs the coverage report. `publish` copies the block to GCS only if `check` passes. Otherwise the last good block stays
+- Retries: 2 per task. Failures and halts send an alert
+
 | Task | Owner | Due | Done when |
 |---|---|---|---|
-| First end-to-end run | Utkarsh + Aniket | D8 | One SQLite file, every table filled |
-| Rebuild check (same snapshot twice, full = incremental) + coverage report | Utkarsh | D9 | 0 diffs · every gap has a count |
+| Real parts wired into the DAG | Utkarsh | D8 | Every task runs its part's command |
+| First end-to-end run, triggered from Airflow | Utkarsh + Aniket | D8 | One SQLite file, every table filled |
+| Schedule on: nightly run + Sunday rebuild. Rebuild check (same snapshot twice, full = incremental) + coverage report | Utkarsh | D9 | One scheduled run finished on its own · 0 diffs · every gap has a count |
 | Fix gaps, with the four on their own parts | Aniket | D9 | Every pass bar met, or the miss written down |
-| Freeze graph data block v1, golden test in CI | Utkarsh | D10 | CI green |
+| Freeze graph data block v1, golden test in CI. Schedule stays on | Utkarsh | D10 | CI green · a second scheduled run matches |
 | Handoff note for stall rules, Jev, views | Aniket | D10 | One page, every table explained |
 
 ---
@@ -123,6 +137,7 @@ No single dataset fills every column. Django uses Trac, not Jira, so Django rows
 - **CSV policy:** labels and results in git, scrubbed of people. Raw data never. See [CSV-POLICY.md](CSV-POLICY.md)
 - **Teams:** Jira component (Spark), folder path (Django, synthetic), repo (packages), `group::` label (GitLab). See [CONTRACTS.md](CONTRACTS.md)
 - **Gold set owner:** Chaitali
+- **Orchestration:** Airflow on GCP, owned by Utkarsh. Every part runs as one command (see [CONTRACTS.md](CONTRACTS.md))
 - **Demo:** cross-team blocks shown from GitLab cases. Chains across repos stay on fixtures, and the screen says so
 
 ## Dropped first if we're behind
