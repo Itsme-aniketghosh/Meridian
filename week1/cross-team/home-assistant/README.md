@@ -198,6 +198,68 @@ Pair 1's Django method-call test had 30 uses in untyped code (Jedi 5, pyright 2)
 - **For the method-call gap:** Django (Pair 1) had 30 untyped uses and failed the 05-test resolver bar. HA fills that gap: the strict rerun passes recall ≥ 0.95 and precision ≥ 0.98 for both tools, and Claude's read of the seeded 30 found 30 of 30 real. A person should run `method_check.py` before calling it gold.
 - **For #4:** add a churn baseline to 05-test. Bug history ties churn here and in GitLab.
 
+## What the pipeline plan would look like with HA
+
+**Status: proposal.** Nothing in [PIPELINE-PLAN.md](../../../DATA%20PIPELINE/PIPELINE-PLAN.md) has changed yet. Contracts are locked after Day 1, so any change needs Utkarsh and Aniket's OK.
+
+**In short:** HA joins the pipeline as a third dataset next to Django and Spark. It runs on two parts only, the resolver (method calls) and owners. Every other part stays as planned.
+
+### Which data each part runs on, before and after
+
+| Part | Now | With HA |
+|---|---|---|
+| Call sites, resolver | Django (265 key, 542 aliases), packages | Same, **plus HA's 395 method-call uses** of `async_setup_platforms` at `3a5cca3ff2` |
+| Owners | Spark git | Spark git, **plus HA `codeowners`** as a second check, and the main source for stale owners (#3) |
+| Join | Django | Django, **plus HA** `call_site` rows with an owner (no `ticket_map`, see below) |
+| Jira, ticket links, ticket → code | Spark + Jira | No change. HA links too few PRs to issues (12.7%) |
+| SZZ, `bug_fixes` | Spark + Jira, Defects4J | No change. HA adds one check: a churn baseline, since churn ties bug history (7.4x vs 7.3x) |
+| Graph, `blocked_by` | Fixtures, GitLab gold set | No change. HA's blocks are self-blocks (11 of 11 in-repo) |
+| Stalls (step 2, not step 1) | GitLab | GitLab, **plus HA's 40 hand-read stalled PRs** in the handoff note |
+
+### Task changes, per person
+
+| Who | Change | Due | Done when |
+|---|---|---|---|
+| Vishwa | Collect: GitHub issues and PRs (GraphQL through `gh`) as a third ticket source, next to Jira and GitLab. HA repo SHA in the `run` row | D4 | HA snapshot loads by `run_id` |
+| Rachna | Scanner rule for one method: `hass.config_entries.async_setup_platforms` → candidates on HA | D4 | 395 of 395, as in `method_sites.py` |
+| Rochan | Resolver on HA's 395. Moves out of "dropped first": the 100+ use benchmark now exists | D5 | Recall ≥ 0.95, precision ≥ 0.98 (week 1: Jedi 390, pyright 384, 0 wrong) |
+| Rochan | A person spot-checks 5 of the seeded 30 with `method_check.py` | D5 | 5 of 5, or misses written down |
+| Chaitali | Team = an integration's `codeowners` in `manifest.json`. Identities by GitHub login, not git email (email gives a login only 40.6% of the time) | D3 | Written in `meridian.toml` |
+| Chaitali | Owner rule on HA as a second check | D5 | Beats last toucher (week 1: 26.1% vs 20.5%, N = 964) |
+| Utkarsh | HA rows in the joined block. Coverage report counts integrations with no listed owner (407 of 1,523) | D7 | Every HA row has an owner or `unowned` |
+| Aniket | Handoff note: HA as a second stall source, "waiting on owner or reviewer" (24 of 40) | D10 | In the note |
+
+Nothing changes for Aniket's graph or Utkarsh's ticket → code.
+
+### Pipeline flow
+
+Same DAG. HA adds inputs, not boxes:
+
+```
+collect ─┬─ history ─┬─ owners ──┐        collect: + GitHub issues/PRs, HA SHA
+         │           └───────────┤        owners:  + HA codeowners
+         └─ scan ──── resolve ───┴─ join ─ graph ─ check ─ publish
+                                          scan, resolve: + HA method calls
+```
+
+### What it costs
+
+- **Clone:** 929 MB, about 30 s. Tickets: 5,706 issues and 7,730 PRs for the 6-month window.
+- **Resolver time:** Jedi 2.1 s, pyright 1.8 s for all 395.
+- **No new dataset to find.** The scripts in this folder already pull and check it.
+
+### Not changing
+
+- `blocked_by` (#5) stays on fixtures and the GitLab gold set.
+- `ticket_map` and `commit_ticket` stay Spark + Jira. HA rows have no `ticket_map`, like Django.
+- The demo stays on GitLab cases.
+
+### Open questions for Utkarsh and the team
+
+1. Do we add HA in step 1, or only the resolver part (Rochan's gap) and leave owners for later?
+2. Does adding a third ticket source to Collect fit by D4, or does HA's collect stay on the week-1 scripts until after Day 10?
+3. Who does the human spot-checks (5 of the 30 method calls, 5 of the 40 stalls) before they count as gold?
+
 ## Reproduce
 
 Python 3.9+, `gh` logged in, `pip install jedi` (and pyright in a venv for the resolver). Run from this folder:
