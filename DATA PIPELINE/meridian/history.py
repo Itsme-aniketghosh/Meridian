@@ -1,8 +1,9 @@
-"""History · step 1 · D3: git_commit and commit_file for every repo in a snapshot. See CONTRACTS.md, "Vishwa · start kit".
+"""History · step 1 · D3 + D4: every Vishwa table after the run row. See CONTRACTS.md, "Vishwa · start kit".
 
     python -m meridian.history --run-id <run_id> --config meridian.toml   # snapshots/<run_id>/ -> out/<run_id>/*.jsonl
 
-Running it again for the same run replaces its own files with the same rows. D4-D6 add their tables here.
+Running it again for the same run replaces its own files with the same rows. D6 adds its tables here.
+D3: git_commit and commit_file, below. D4: ticket, ticket_event, ticket_link, commit_ticket, in meridian/tickets.py.
 
 - Every commit reachable from the pinned SHA. first_parent = 1 on the first-parent chain, and seq counts along
   that chain from 0 at the root. A commit that came in through a merge gets first_parent = 0 and the seq of the
@@ -13,9 +14,11 @@ Running it again for the same run replaces its own files with the same rows. D4-
 Same as week1/pair2/merged/build.py read_commits(), plus renames, merges, and every repo.
 """
 import json, subprocess
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from meridian import tickets
 from meridian.common import CONFIG, data_root, handoff, load_config, log, parser
 
 FMT = "%x1e%H%x1f%P%x1f%at%x1f%ae%x1f%ce%x1f%s"
@@ -79,6 +82,22 @@ def read_repo(co, repo, sha, run_id):
     return commits, files
 
 
+def messages(co, sha):
+    """[(sha, subject, body)] for every commit reachable from sha."""
+    out = git(co, "log", "--format=%x1e%H%x1f%s%x1f%b", sha)
+    return [tuple(rec.split("\x1f", 2)) for rec in out.split("\x1e")[1:]]
+
+
+def keyed(commits, commit_ticket, last=1000):
+    """Week 1's check: share of the last 1,000 first-parent commits with a key, from the subject, and counting the body."""
+    chain = sorted((c for c in commits if c["first_parent"]), key=lambda c: c["seq"])[-last:]
+    src = defaultdict(set)
+    for r in commit_ticket:
+        src[r["sha"]].add(r["source"])
+    return (sum("subject" in src[c["sha"]] for c in chain) / len(chain),
+            sum(bool(src[c["sha"]]) for c in chain) / len(chain), len(chain))
+
+
 def write_jsonl(path, rows, key):
     rows.sort(key=lambda r: tuple(r[k] for k in key))
     tmp = path.with_name(path.name + ".tmp")
@@ -95,8 +114,9 @@ def main(run_id, config=CONFIG, root=None):
         raise SystemExit(f"no snapshot {snap}: run meridian.collect first")
     manifest = json.loads((snap / "manifest.json").read_text())
     commits, files = [], []
+    co = lambda repo: snap / "repos" / repo.replace("/", "__")
     for repo, sha in sorted(manifest["repos"].items()):
-        c, f = read_repo(snap / "repos" / repo.replace("/", "__"), repo, sha, run_id)
+        c, f = read_repo(co(repo), repo, sha, run_id)
         log(f"{repo:45} {sum(r['first_parent'] for r in c):>7,} first-parent  {len(c):>7,} commits  {len(f):>9,} files")
         commits += c
         files += f
@@ -104,7 +124,16 @@ def main(run_id, config=CONFIG, root=None):
     out.mkdir(parents=True, exist_ok=True)
     write_jsonl(out / "git_commit.jsonl", commits, ("repo", "sha"))
     write_jsonl(out / "commit_file.jsonl", files, ("repo", "sha", "path"))
-    return commits, files
+
+    d4 = tickets.build(snap, manifest, cfg, run_id, lambda repo: messages(co(repo), manifest["repos"][repo]))
+    for repo in sorted({r["repo"] for r in d4["commit_ticket"]}):
+        subj, any_, n = keyed([c for c in commits if c["repo"] == repo], [r for r in d4["commit_ticket"] if r["repo"] == repo])
+        log(f"{repo:45} last {n:,} first-parent commits keyed: {subj:.1%} from the subject, {any_:.1%} counting the body")
+    write_jsonl(out / "ticket.jsonl", d4["ticket"], ("key",))
+    write_jsonl(out / "ticket_event.jsonl", d4["ticket_event"], ("key", "at", "seq"))
+    write_jsonl(out / "ticket_link.jsonl", d4["ticket_link"], ("key", "link_type", "other_key"))
+    write_jsonl(out / "commit_ticket.jsonl", d4["commit_ticket"], ("repo", "sha", "key"))
+    return commits, files, d4
 
 
 if __name__ == "__main__":
