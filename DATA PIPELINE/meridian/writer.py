@@ -1,19 +1,18 @@
 """Writer · step 1 · D3: load out/<run_id>/*.jsonl into one SQLite file, using schema.sql. See CONTRACTS.md.
 
-    python3 "DATA PIPELINE/collect/writer.py" out/<run_id>                    # -> out/<run_id>/meridian.sqlite
-    python3 "DATA PIPELINE/collect/writer.py" out/dev --db /tmp/dev.sqlite
+    python -m meridian.writer --run-id <run_id> --config meridian.toml        # -> out/<run_id>/meridian.sqlite
+    python -m meridian.writer --run-id dev --db /tmp/dev.sqlite
 
 Same rows + same SQLite version -> the same bytes. To get there, every row is checked against the schema
 (column names, types, NOT NULL, run_id, duplicate keys) before anything is written. Then rows go in sorted by
 primary key, tables in name order, in one transaction, into a fresh file, which is VACUUMed and moved into place.
 Any bad row stops the load with its file and line: a half-right database is worse than none.
 """
-import argparse, json, sqlite3, sys, tomllib
+import json, sqlite3, sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-SCHEMA = ROOT / "DATA PIPELINE" / "schema.sql"
-CONFIG = ROOT / "DATA PIPELINE" / "meridian.toml"
+from meridian.common import CONFIG, SCHEMA, handoff, load_config, log, parser
+
 PY_TYPES = {"TEXT": (str,), "INTEGER": (int,), "REAL": (int, float)}
 
 
@@ -73,7 +72,7 @@ def write(src, db=None, schema=SCHEMA, config=CONFIG):
     src = Path(src)
     run_id = src.name
     db = Path(db) if db else src / "meridian.sqlite"
-    pinned = tomllib.loads(Path(config).read_text())["run"].get("sqlite_version")
+    pinned = load_config(config)["run"].get("sqlite_version")
     if pinned and sqlite3.sqlite_version != pinned:
         raise SystemExit(f"SQLite is {sqlite3.sqlite_version}, meridian.toml pins {pinned}: the bytes would differ")
     sql = Path(schema).read_text()
@@ -108,15 +107,14 @@ def write(src, db=None, schema=SCHEMA, config=CONFIG):
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("src", help="out/<run_id>")
-    ap.add_argument("--db", help="default: <src>/meridian.sqlite")
+    ap = parser(__doc__, "loads out/<run_id>/")
+    ap.add_argument("--db", help="default: out/<run_id>/meridian.sqlite")
     a = ap.parse_args()
     try:
-        counts = write(a.src, a.db)
+        counts = write(handoff(load_config(a.config), a.run_id), a.db, config=a.config)
     except BadRow as e:
         sys.exit(f"not written: {e}")
     for t, n in counts.items():
         if n:
-            print(f"{n:>10,}  {t}")
-    print(f"{sum(1 for n in counts.values() if not n)} tables empty: {', '.join(t for t, n in counts.items() if not n)}")
+            log(f"{n:>10,}  {t}")
+    log(f"{sum(1 for n in counts.values() if not n)} tables empty: {', '.join(t for t, n in counts.items() if not n)}")
