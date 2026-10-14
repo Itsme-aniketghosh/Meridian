@@ -1,0 +1,191 @@
+# Meridian config · step 1 · v1
+# Every threshold lives here. Its hash goes on the run (run.config_hash).
+# Change a value only with a commit that says why.
+
+[run]
+schema_version = 1
+id_hash = "sha256"          # IDs = first 16 hex chars of sha256 over fields joined by \x1f
+id_length = 16
+time_format = "%Y-%m-%dT%H:%M:%SZ"   # UTC everywhere. No wall clock after Collect
+sqlite_version = "3.50.4"   # pinned (Python's sqlite3 module): same rows + same version = same bytes
+handoff_dir = "out/{run_id}"         # before the writer lands: one {table}.jsonl per table, sorted by primary key
+
+# ───────────── datasets ─────────────
+# snapshot_at is the only "now". Collect fills full 40-char SHAs into the manifest.
+
+[datasets.django]
+repos = [{ repo = "django/django", ref = "4353640ea9" }]   # parent of conversion commit c651331b34
+tracker = "none"            # Django uses Trac. No ticket_map on Django rows, by design
+owner_mode = "path"         # see [teams.django]
+symbols = [
+  { name = "ugettext",       module = "django.utils.translation" },
+  { name = "ugettext_lazy",  module = "django.utils.translation" },
+  { name = "ugettext_noop",  module = "django.utils.translation" },
+  { name = "ungettext",      module = "django.utils.translation" },
+  { name = "ungettext_lazy", module = "django.utils.translation" },
+]
+answer_key = { edit_lines = 265, alias_calls = 542, outside_py = 2 }
+
+[datasets.django_packages]
+# Each repo pinned at the parent of its url() migration commit (Pair 3 table).
+# Rachna freezes the 4 replacements' refs with the answer keys (Day 4).
+owner_mode = "repo"
+tracker = "none"
+symbols = [{ name = "url", module = "django.conf.urls" }]
+repos = [
+  { repo = "django-oscar/django-oscar",               ref = "10dce286b^1" },
+  { repo = "wagtail/wagtail",                         ref = "4076b9ef5e^1" },
+  { repo = "encode/django-rest-framework",            ref = "410575da^1" },
+  { repo = "django-cms/django-cms",                   ref = "fb0d4f235^1" },
+  { repo = "pennersr/django-allauth",                 ref = "c4d7b410^1" },
+  { repo = "jazzband/django-two-factor-auth",         ref = "fe57c40^1" },
+  { repo = "jazzband/django-debug-toolbar",           ref = "47d6b5e9^1" },
+  { repo = "django-guardian/django-guardian",         ref = "5a97f63^1" },
+  { repo = "django/channels",                         ref = "a12800e^1" },
+  { repo = "cookiecutter/cookiecutter-django",        ref = "6d4be405^1" },
+  { repo = "django-extensions/django-extensions",     ref = "b32f98e8^1" },
+  { repo = "django-haystack/django-haystack",         ref = "6fc7e8b^1" },
+  { repo = "graphql-python/graphene-django",          ref = "19ef9a0^1" },
+  { repo = "carltongibson/django-filter",             ref = "52eece7^1" },
+  { repo = "django-import-export/django-import-export", ref = "f6864ff^1" },
+  { repo = "django-tenants/django-tenants",           ref = "6735fca^1" },
+  { repo = "yourlabs/django-autocomplete-light",      ref = "TBD-day4" },
+  { repo = "iMerica/dj-rest-auth",                    ref = "TBD-day4" },
+  { repo = "jazzband/django-silk",                    ref = "TBD-day4" },
+  { repo = "django-tastypie/django-tastypie",         ref = "TBD-day4" },
+]
+
+[datasets.spark]
+repos = [{ repo = "apache/spark", ref = "f868de6914d0e6ede86309648614bb436b2b82e6" }]
+snapshot_at = "2026-10-01T01:23:03Z"   # = that commit's time. Jira is cut here too
+tracker = "jira"
+jira = { base = "https://issues.apache.org/jira/rest/api/2/search", jql = "project=SPARK ORDER BY key ASC", page = 100, expand = "changelog" }
+key_regex = '\bSPARK-\d+\b'
+owner_mode = "author"
+history_start = "2015-01-01T00:00:00Z" # 0% of commits before 2014 carry a key
+
+[datasets.gitlab]
+project = "gitlab-org/gitlab"
+tracker = "gitlab"
+issues_created = ["2025-01-01T00:00:00Z", "2025-07-01T00:00:00Z"]
+drop_titles_starting = ["[Test]"]      # the flaky-test bot: 17,502 issues
+owner_mode = "label"                   # tickets only. Ruby: no code rows
+key_format = "gitlab-org/gitlab#{iid}"
+
+# ───────────── teams · Chaitali ─────────────
+# One rule per dataset. Every team_map row names the rule that made it.
+
+[teams.spark]
+rule = "person_component"
+# A person's team = the Jira component most common across the tickets of their keyed commits
+# in the ownership window. A ticket with n components gives each 1/n. Tie → component of their
+# most recent keyed commit. No keyed commits → "unassigned".
+unassigned = "unassigned"
+
+[teams.gitlab]
+rule = "group_label"   # team = the issue's group:: label (as labelled today). None → "unassigned"
+prefix = "group::"
+
+[teams.django]
+rule = "path_prefix"   # Django has no teams. Synthetic, and the screen says so
+synthetic = true
+prefixes = [
+  { prefix = "django/contrib/{app}/", team = "contrib.{app}" },
+  { prefix = "django/{pkg}/",         team = "{pkg}" },
+  { prefix = "tests/",                team = "tests" },
+  { prefix = "",                      team = "root" },
+]
+
+[teams.django_packages]
+rule = "repo"          # each repo is one team: cross-repo = cross-team
+
+# ───────────── identity · Chaitali ─────────────
+
+[identity]
+use_mailmap = true
+merge_on = ["name", "email_local"]     # same as week1/pair2/merged/build.py
+lowercase_emails = true
+generic_names = ["root", "ubuntu", "unknown", "user", "admin", "spark", "localhost", "none", "test", "jenkins"]
+bot_patterns = ['\[bot\]$', '^dependabot', '^github-actions', '^renovate', '^noreply@github\.com$']
+use_author_not_committer = true
+coauthors_count = false                # Co-authored-by kept in data, not in ownership
+
+# ───────────── ownership · Chaitali ─────────────
+
+[ownership]
+window_days = 180
+skip_merges = true
+ignore_revs_file = ".git-blame-ignore-revs"
+owner = "team_share"                   # sum commit share per team; top team wins
+min_share = 0.30                       # below → "unowned"
+tie_break = "most_recent_commit"
+orphan_silent_days = 60                # for stall rule #4 later
+
+# ───────────── tickets · Vishwa ─────────────
+
+[tickets]
+key_regex_generic = '\b[A-Z][A-Z0-9]+-\d+\b'
+key_must_exist = true
+key_sources = ["subject", "body"]
+bulk_close = { label = "bulk-closed", per_person = 20, within_minutes = 60 }   # label OR 20 in an hour. Finds 2019-05-21 and 2021-05-25 for Spark
+subtask_takes_parent_type = true
+fields_as_of_snapshot = ["status", "resolution", "resolved_at"]   # others are as of the pull
+
+# ───────────── SZZ · Vishwa ─────────────
+
+[szz]
+fix = { effective_type = "Bug", resolution = "Fixed" }
+blame_at = "parent"
+skip_whitespace = true
+skip_comments = true
+bug_fixes_window_days = 365
+answer_key = "week1/pair3/defects4j/defects4j_bic_labels.csv"   # 130 labels
+
+# ───────────── scanner · Rachna ─────────────
+
+[scanner]
+tree_sitter_python = "pinned"          # exact version in the lockfile
+embedded_python = ["*.sample"]         # tests/i18n/commands/code.sample
+skip_paths = ["django/utils/six.py", "docs/", "*.po", "*.mo"]
+junk = { test = ["tests/", "test_*.py", "*_tests.py"], example = ["examples/"], migration_marker = "class Migration(migrations.Migration)" }
+
+# ───────────── resolver · Rochan ─────────────
+
+[resolver]
+tool = "jedi"                          # pinned in the lockfile
+one_hop_assignment = true              # _ = old_name → follow old_name
+score_on_old_name = true
+keep_unresolved = true                 # ast_unresolved, never dropped silently
+env = "per_repo_lockfile"
+call_edge_depth = 3
+
+# ───────────── join · Utkarsh ─────────────
+
+[join]
+call_site_id = ["repo", "symbol", "path", "scope", "normalized_line", "occurrence"]
+normalize_line = "strip_whitespace"
+match_order = ["git_line_map_with_renames", "same_repo_symbol_scope_normalized_line"]
+fuzzy_ticket_matching = false
+
+# ───────────── graph · Aniket ─────────────
+
+[graph]
+blocked_by_max_depth = 3
+blocked_by_needs_different_owners = true
+imports_count_as_edges = false
+blast_radius_max_depth = 3
+risky_bug_fixes = 3
+
+# ───────────── orchestration · Utkarsh ─────────────
+
+[orchestration]
+tool = "airflow"                   # on GCP
+dag_id = "meridian_nightly"
+schedule = "0 2 * * *"             # 02:00 UTC nightly, incremental
+full_rebuild_day = "sun"           # check: rebuild must equal incremental, else halt
+retries = 2
+task_runner = "cloud_run_job"      # Airflow starts each part as a Cloud Run Job
+image = "TBD"                      # Artifact Registry path, set by Utkarsh D4
+snapshot_bucket = "TBD"            # gs://..., set by Utkarsh D4
+publish_only_if_check_passes = true
+alert_on = ["failed", "halted", "partial"]
