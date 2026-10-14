@@ -45,6 +45,31 @@ Write each table as `out/<run_id>/<table>.jsonl`:
 
 The writer loads these unchanged, so nothing you write early is wasted. Use `run_id = "dev"` until Vishwa's manifest exists.
 
+## Every part runs as one command (for Airflow)
+
+The pipeline runs on a schedule in **Airflow on GCP**. Utkarsh builds the DAG from your parts once they work, so every part must be startable the same way:
+
+```
+python -m meridian.<part> --run-id <run_id> --config meridian.toml
+```
+
+| Part | Command | Reads | Writes |
+|---|---|---|---|
+| Vishwa | `meridian.collect` | the sources | `snapshots/<run_id>/`, `run` |
+| Vishwa | `meridian.history` | snapshot | `git_commit` … `file_bug_fixes` |
+| Rachna | `meridian.scan` | snapshot | `candidate`, `parse_failure` |
+| Rochan | `meridian.resolve` | snapshot, `candidate` | `resolution`, `call_edge` |
+| Chaitali | `meridian.owners` | `git_commit`, `ticket`, `commit_ticket` | `person` … `file_owner` |
+| Utkarsh | `meridian.join` | all of the above | `call_site`, `ticket_map`, `coverage` |
+| Aniket | `meridian.graph` | the joined block | `blocked_by`, `blast_radius`, `chain` |
+
+**Rules, so a part can become an Airflow task without changes:**
+- **Same run, same output.** Running a part twice for one `run_id` replaces its own tables with the same rows. Airflow retries depend on this.
+- **No clock, no hidden inputs.** Time comes from `run.snapshot_at`, never from Airflow's run date. Paths come from `meridian.toml` or the `MERIDIAN_DATA` variable, never hard-coded.
+- **Exit code 0 means done, anything else means failed.** Log to stdout. Never prompt for input.
+- **Write only your own tables.**
+- **One container image** holds every part, with dependencies from one lockfile, Python 3.11.
+
 ## Who writes and who reads each table
 
 | Table | Written by | Read by |
