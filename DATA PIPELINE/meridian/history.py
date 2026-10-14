@@ -1,6 +1,8 @@
-"""Collect · step 1 · D3: git_commit and commit_file for every repo in a snapshot. See CONTRACTS.md, "Vishwa · start kit".
+"""History · step 1 · D3: git_commit and commit_file for every repo in a snapshot. See CONTRACTS.md, "Vishwa · start kit".
 
-    python3 "DATA PIPELINE/collect/commits.py" <run_id>     # snapshots/<run_id>/ -> out/<run_id>/{git_commit,commit_file}.jsonl
+    python -m meridian.history --run-id <run_id> --config meridian.toml   # snapshots/<run_id>/ -> out/<run_id>/*.jsonl
+
+Running it again for the same run replaces its own files with the same rows. D4-D6 add their tables here.
 
 - Every commit reachable from the pinned SHA. first_parent = 1 on the first-parent chain, and seq counts along
   that chain from 0 at the root. A commit that came in through a merge gets first_parent = 0 and the seq of the
@@ -10,11 +12,12 @@
 - Times are UTC. Emails are lowercased. Author and committer both kept: ownership uses the author.
 Same as week1/pair2/merged/build.py read_commits(), plus renames, merges, and every repo.
 """
-import argparse, json, subprocess, sys
+import json, subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+from meridian.common import CONFIG, data_root, handoff, load_config, log, parser
+
 FMT = "%x1e%H%x1f%P%x1f%at%x1f%ae%x1f%ce%x1f%s"
 
 
@@ -85,17 +88,19 @@ def write_jsonl(path, rows, key):
     tmp.replace(path)
 
 
-def main(run_id, root=ROOT):
-    snap = Path(root) / "snapshots" / run_id
+def main(run_id, config=CONFIG, root=None):
+    cfg, root = load_config(config), Path(root or data_root())
+    snap = root / "snapshots" / run_id
+    if not (snap / "manifest.json").exists():
+        raise SystemExit(f"no snapshot {snap}: run meridian.collect first")
     manifest = json.loads((snap / "manifest.json").read_text())
     commits, files = [], []
     for repo, sha in sorted(manifest["repos"].items()):
         c, f = read_repo(snap / "repos" / repo.replace("/", "__"), repo, sha, run_id)
-        print(f"{repo:45} {sum(r['first_parent'] for r in c):>7,} first-parent  {len(c):>7,} commits  {len(f):>9,} files",
-              file=sys.stderr, flush=True)
+        log(f"{repo:45} {sum(r['first_parent'] for r in c):>7,} first-parent  {len(c):>7,} commits  {len(f):>9,} files")
         commits += c
         files += f
-    out = Path(root) / "out" / run_id
+    out = handoff(cfg, run_id, root)
     out.mkdir(parents=True, exist_ok=True)
     write_jsonl(out / "git_commit.jsonl", commits, ("repo", "sha"))
     write_jsonl(out / "commit_file.jsonl", files, ("repo", "sha", "path"))
@@ -103,8 +108,5 @@ def main(run_id, root=ROOT):
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("run_id")
-    ap.add_argument("--root", default=ROOT)
-    a = ap.parse_args()
-    main(a.run_id, a.root)
+    a = parser(__doc__).parse_args()
+    main(a.run_id, a.config)

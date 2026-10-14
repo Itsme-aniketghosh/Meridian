@@ -1,13 +1,13 @@
 """Collect tests (05-test: fixture repo + mock Jira; kill and resume). No network.
 
-    python3 -m unittest "DATA PIPELINE/collect/test_snapshot.py" -v
+    python -m unittest tests.test_collect -v      # from DATA PIPELINE/
 """
 import gzip, json, os, shutil, subprocess, sys, tempfile, threading, unittest, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-import snapshot as S
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import meridian.collect as S
 
 TOTAL = 250
 
@@ -142,6 +142,21 @@ min_share = {threshold}
         first = self.tmp / "p" / "page-000000.json.gz"
         self.assertEqual(gzip.decompress(first.read_bytes())[:1], b"{")
         self.assertEqual(first.read_bytes()[4:8], b"\0\0\0\0")  # gzip mtime field is 0
+
+    def test_one_command_for_airflow(self):
+        """CONTRACTS.md, "Every part runs as one command": data under $MERIDIAN_DATA, exit code, run_id last."""
+        cfg = self.config()
+        cmd = lambda run_id: subprocess.run([sys.executable, "-m", "meridian.collect", "--run-id", run_id, "--config", str(cfg)],
+                                            cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True,
+                                            env={**os.environ, "MERIDIAN_DATA": str(self.tmp / "data")})
+        new = cmd("new")
+        self.assertEqual(new.returncode, 0, new.stderr)
+        run_id = new.stdout.splitlines()[-1].removeprefix("run_id=")
+        self.assertTrue((self.tmp / "data" / "snapshots" / run_id / "manifest.json").exists())
+        self.assertEqual(cmd(run_id).returncode, 0)  # an Airflow retry: same run
+        wrong = cmd("0000000000000000")
+        self.assertNotEqual(wrong.returncode, 0)
+        self.assertIn("inputs now give", wrong.stderr)
 
 
 if __name__ == "__main__":

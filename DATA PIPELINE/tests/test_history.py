@@ -1,13 +1,13 @@
 """D3 tests: the writer (same rows -> same bytes, bad rows refused) and git_commit / commit_file on a fixture repo.
 
-    python3 -m unittest "DATA PIPELINE/collect/test_d3.py" -v
+    python -m unittest tests.test_history -v      # from DATA PIPELINE/
 """
 import filecmp, json, os, shutil, sqlite3, subprocess, sys, tempfile, unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-import commits as C
-import writer as W
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import meridian.history as C
+import meridian.writer as W
 
 RUN = "abcdef0123456789"
 
@@ -80,6 +80,35 @@ class Commits(unittest.TestCase):
         C.write_jsonl(out / "commit_file.jsonl", self.files, ("repo", "sha", "path"))
         counts = W.write(out)
         self.assertEqual((counts["git_commit"], counts["commit_file"]), (6, len(self.files)))
+
+
+class Commands(unittest.TestCase):
+    """CONTRACTS.md, "Every part runs as one command"."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def cmd(self, part, *args):
+        return subprocess.run([sys.executable, "-m", f"meridian.{part}", "--run-id", RUN, *args],
+                              cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True,
+                              env={**os.environ, "MERIDIAN_DATA": str(self.tmp)})
+
+    def test_history_then_writer(self):
+        self.assertNotEqual(self.cmd("history").returncode, 0)  # no snapshot yet: fails, never guesses
+        snap = self.tmp / "snapshots" / RUN
+        (snap / "repos").mkdir(parents=True)
+        sha = fixture_repo(snap / "repos" / "fix__repo")
+        (snap / "manifest.json").write_text(json.dumps({"run_id": RUN, "repos": {"fix/repo": sha}}))
+        for _ in range(2):  # an Airflow retry replaces the same rows
+            r = self.cmd("history")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("fix/repo", r.stdout)
+        r = self.cmd("writer")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        db = sqlite3.connect(self.tmp / "out" / RUN / "meridian.sqlite")
+        self.assertEqual(db.execute("SELECT count(*) FROM git_commit").fetchone(), (6,))
 
 
 class Writer(unittest.TestCase):
