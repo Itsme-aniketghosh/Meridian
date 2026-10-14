@@ -100,11 +100,14 @@ class Commands(unittest.TestCase):
         snap = self.tmp / "snapshots" / RUN
         (snap / "repos").mkdir(parents=True)
         sha = fixture_repo(snap / "repos" / "fix__repo")
-        (snap / "manifest.json").write_text(json.dumps({"run_id": RUN, "repos": {"fix/repo": sha}}))
+        (snap / "manifest.json").write_text(json.dumps({"run_id": RUN, "snapshot_at": "2026-02-01T00:00:00Z",
+                                                        "repos": {"fix/repo": sha}, "sources": {}}))
         for _ in range(2):  # an Airflow retry replaces the same rows
             r = self.cmd("history")
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertIn("fix/repo", r.stdout)
+            self.assertIn("jira/SPARK", r.stdout)  # no ticket source in this snapshot: said, not skipped silently
+        self.assertEqual((self.tmp / "out" / RUN / "ticket.jsonl").read_text(), "")
         r = self.cmd("writer")
         self.assertEqual(r.returncode, 0, r.stderr)
         db = sqlite3.connect(self.tmp / "out" / RUN / "meridian.sqlite")
