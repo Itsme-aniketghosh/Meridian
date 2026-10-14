@@ -175,3 +175,17 @@ blocked_by_needs_different_owners = true
 imports_count_as_edges = false
 blast_radius_max_depth = 3
 risky_bug_fixes = 3
+
+# ───────────── orchestration · Utkarsh ─────────────
+
+[orchestration]
+tool = "airflow"                   # on GCP
+dag_id = "meridian_nightly"
+schedule = "0 2 * * *"             # 02:00 UTC nightly, incremental
+full_rebuild_day = "sun"           # check: rebuild must equal incremental, else halt
+retries = 2
+task_runner = "cloud_run_job"      # Airflow starts each part as a Cloud Run Job
+image = "TBD"                      # Artifact Registry path, set by Utkarsh D4
+snapshot_bucket = "TBD"            # gs://..., set by Utkarsh D4
+publish_only_if_check_passes = true
+alert_on = ["failed", "halted", "partial"]
