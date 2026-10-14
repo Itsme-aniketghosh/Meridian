@@ -1,8 +1,13 @@
 """Collect · step 1 · D2: freeze one snapshot and write its `run` row. See CONTRACTS.md, "Snapshot".
 
-    python3 "DATA PIPELINE/collect/snapshot.py"                       # every dataset in meridian.toml
-    python3 "DATA PIPELINE/collect/snapshot.py" --datasets spark      # just these
-    python3 "DATA PIPELINE/collect/snapshot.py" --refresh jira/SPARK  # pull a source again instead of reusing it
+    python -m meridian.collect --run-id new --config meridian.toml               # every dataset in meridian.toml
+    python -m meridian.collect --run-id f514bff55cc9ebb3 --config meridian.toml  # again: must give the same run
+    python -m meridian.collect --run-id new --datasets spark                     # just these
+    python -m meridian.collect --run-id new --refresh jira/SPARK                 # pull a source again instead of reusing it
+
+The run_id comes out of the inputs, so it can't be chosen up front: 'new' makes whatever run the inputs give.
+A run_id instead checks the inputs still give that run, and fails if anything changed. Either way the last
+line printed is `run_id=<run_id>`, for the tasks after this one.
 
 1. Fills a cache in snapshots/_cache/: one bare clone per repo, raw Jira pages, raw GitLab issues.
    Kill it any time and rerun: it resumes. A finished source is reused as is, never re-queried, unless --refresh.
@@ -15,12 +20,12 @@
 A repo whose ref can't be resolved (TBD, or not in the repo) and a source whose pull fails are left out,
 and the run is 'partial' with the reason in run.notes. Nothing is dropped silently.
 """
-import argparse, gzip, hashlib, json, os, re, shutil, sqlite3, subprocess, sys, time, tomllib, urllib.parse
+import gzip, hashlib, json, os, re, shutil, sqlite3, subprocess, sys, time, urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-CONFIG = ROOT / "DATA PIPELINE" / "meridian.toml"
+from meridian.common import CONFIG, data_root, handoff, load_config, log, parser
+
 GITLAB_GRAPHQL = "https://gitlab.com/api/graphql"
 
 
@@ -35,10 +40,6 @@ def sha256(b):
 
 def now():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def log(*a):
-    print(*a, file=sys.stderr, flush=True)
 
 
 def write_atomic(path, data):
@@ -285,9 +286,9 @@ def image_digest():
                          "git": git("--version").strip(), "collect": sha256(Path(__file__).read_bytes())}).encode())
 
 
-def snapshot(config=CONFIG, datasets=None, root=ROOT, refresh=(), snapshot_at=None):
-    config = Path(config)
-    cfg = tomllib.loads(config.read_text())
+def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=None):
+    config, root = Path(config), Path(root or data_root())
+    cfg = load_config(config)
     names = datasets or list(cfg["datasets"])
     if unknown := [n for n in names if n not in cfg["datasets"]]:
         raise SystemExit(f"not in {config.name}: {unknown}")
@@ -298,7 +299,7 @@ def snapshot(config=CONFIG, datasets=None, root=ROOT, refresh=(), snapshot_at=No
             raise SystemExit(f"need one snapshot_at, the config gives {sorted(declared) or 'none'}: pass --snapshot-at")
         snapshot_at = declared.pop()
 
-    snaps = Path(root) / "snapshots"
+    snaps = root / "snapshots"
     cache = snaps / "_cache"
     repos, sources, src_dirs, gaps, pulls = {}, {}, {}, [], []
 
@@ -377,22 +378,28 @@ def snapshot(config=CONFIG, datasets=None, root=ROOT, refresh=(), snapshot_at=No
     row = {"run_id": run_id, "snapshot_at": snapshot_at, "repo_shas": canon(repos), "source_hashes": canon(sources),
            "config_hash": manifest["config_hash"], "image_digest": image_digest(), "model_versions": "{}",
            "status": "partial" if gaps else "complete", "notes": " | ".join(notes)}
-    out = Path(root) / cfg["run"]["handoff_dir"].format(run_id=run_id)
+    out = handoff(cfg, run_id, root)
     out.mkdir(parents=True, exist_ok=True)
     write_atomic(out / "run.jsonl", (json.dumps(row, ensure_ascii=False) + "\n").encode())
     return row
 
 
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--config", default=CONFIG)
+def main(argv=None):
+    ap = parser(__doc__, "'new' for whatever run the inputs give, or a run_id the inputs must still give")
     ap.add_argument("--datasets", help="comma-separated, default all")
-    ap.add_argument("--root", default=ROOT, help="where snapshots/ and out/ go (default: repo root)")
     ap.add_argument("--refresh", default="", help="comma-separated sources to pull again, e.g. jira/SPARK,gitlab")
     ap.add_argument("--snapshot-at", help="only when the chosen datasets don't declare exactly one")
-    a = ap.parse_args()
-    row = snapshot(a.config, a.datasets.split(",") if a.datasets else None, a.root,
+    a = ap.parse_args(argv)
+    row = snapshot(a.config, a.datasets.split(",") if a.datasets else None, None,
                    tuple(filter(None, a.refresh.split(","))), a.snapshot_at)
-    print(f"run_id {row['run_id']}  status {row['status']}")
+    log(f"status {row['status']}")
     for n in filter(None, row["notes"].split(" | ")):
-        print(f"  {n}")
+        log(f"  {n}")
+    if a.run_id != "new" and row["run_id"] != a.run_id:
+        raise SystemExit(f"asked for run {a.run_id}, but the inputs now give {row['run_id']}: config, a ref or a source changed")
+    log(f"run_id={row['run_id']}")
+    return row
+
+
+if __name__ == "__main__":
+    main()
