@@ -254,12 +254,6 @@ collect ─┬─ history ─┬─ owners ──┐        collect: + GitHub is
 - `ticket_map` and `commit_ticket` stay Spark + Jira. HA rows have no `ticket_map`, like Django.
 - The demo stays on GitLab cases.
 
-### Open questions for Utkarsh and the team
-
-1. Do we add HA in step 1, or only the resolver part (Rochan's gap) and leave owners for later?
-2. Does adding a third ticket source to Collect fit by D4, or does HA's collect stay on the week-1 scripts until after Day 10?
-3. Who does the human spot-checks (5 of the 30 method calls, 5 of the 40 stalls) before they count as gold?
-
 ## Reproduce
 
 Python 3.9+, `gh` logged in, `pip install jedi` (and pyright in a venv for the resolver). Run from this folder:
