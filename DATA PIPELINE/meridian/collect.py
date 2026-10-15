@@ -1,7 +1,7 @@
 """Collect · step 1 · D2: freeze one snapshot and write its `run` row. See CONTRACTS.md, "Snapshot".
 
     python -m meridian.collect --run-id new --config meridian.toml               # every dataset in meridian.toml
-    python -m meridian.collect --run-id f514bff55cc9ebb3 --config meridian.toml  # again: must give the same run
+    python -m meridian.collect --run-id <run_id> --config meridian.toml          # again: must give the same run
     python -m meridian.collect --run-id new --datasets spark                     # just these
     python -m meridian.collect --run-id new --refresh jira/SPARK                 # pull a source again instead of reusing it
 
