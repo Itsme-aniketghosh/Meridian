@@ -70,9 +70,18 @@ The first time, it clones the 18 repos (about 1.6 GB). It does not contact Jira 
 python3 -m meridian.history --run-id 973531f7fd4cfd5e --config meridian.toml
 ```
 
-Expect 134,107 `git_commit` and 833,331 `commit_file` rows.
+This writes the commit tables (D3) and the ticket tables (D4) in one go. Expect:
 
-**Ticket tables (D4)** (`ticket`, `ticket_event`, `ticket_link`, `commit_ticket`) are on the `vishwa-collect` branch for now. To get them, run step 7 on that branch. Expect 74,015 tickets and 42,191 `commit_ticket` rows.
+| Table | Rows |
+|---|---:|
+| `git_commit` | 134,107 |
+| `commit_file` | 833,331 |
+| `ticket` | 74,015 (59,491 Spark, 14,524 GitLab) |
+| `ticket_event` | 235,252 |
+| `ticket_link` | 61,616 |
+| `commit_ticket` | 42,191 |
+
+The log should also say `94.0% from the subject` for the last 1,000 Spark commits, and `3 dead keys`.
 
 ## Rules
 
