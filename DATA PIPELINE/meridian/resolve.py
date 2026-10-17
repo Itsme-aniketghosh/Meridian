@@ -1,11 +1,18 @@
-"""Resolve · step 1 · D4: what each name really is, starting with the alias calls the scanner can't see. See CONTRACTS.md.
+"""Resolve · step 1 · D4–D5: what each name really is. See CONTRACTS.md.
 
     python -m meridian.resolve --run-id <run_id> --config meridian.toml
 
-Reads the code in snapshots/<run_id>/ (every repo in the manifest whose dataset lists symbols).
-Writes out/<run_id>/resolution.jsonl, one row per alias call, sorted by primary key, for the writer.
+Reads the code in snapshots/<run_id>/ (every repo in the manifest whose dataset lists symbols) and Rachna's
+out/<run_id>/candidate.jsonl. Writes out/<run_id>/resolution.jsonl, sorted by primary key, for the writer:
+one row per candidate (same key), plus one row per alias call the scanner can't see.
 
-Alias calls. The scanner finds old names. It can't see a call made through a second name:
+Candidates (D5). Jedi (pinned) is asked where each old name leads (goto, following imports). Scored on the old
+name ([resolver] score_on_old_name): the row is ast_resolved only if it lands on the candidate's own symbol,
+e.g. django.utils.translation.ugettext, never the gettext it is a second name for. via is 'reexport' when the
+file imports the name from some other module that passes it on (guardian.compat), otherwise 'direct'.
+A candidate whose line doesn't hold its symbol at its column is kept as ast_unresolved and logged.
+
+Alias calls (D4). The scanner finds old names. It can't see a call made through a second name:
     from django.utils.translation import ugettext_lazy as _     ->  via = 'import_alias'
     _ = ugettext_lazy                                            ->  via = 'assign_alias'
     _("Hello")                                                   <-  the call, a new row
@@ -19,19 +26,34 @@ is a second name for.
     ast_unresolved  Jedi has no answer. Kept, never dropped silently ([resolver] keep_unresolved)
     dropped         lands on something else, e.g. a `_` that a function redefines
 
-Environment. One jedi.Project per repo, on the interpreter running this part, so the result doesn't depend
-on which virtualenv happens to be active.
+Environment. One jedi.Project per repo. Jedi runs inside this process (InterpreterEnvironment), not in a helper
+subprocess, so the result doesn't depend on which virtualenv happens to be active. When a repo uses a tracked
+module it doesn't contain (the packages use django.conf.urls), the snapshot repo that does contain it goes on that
+project's path: the dependency comes from the same pinned snapshot, with nothing installed.
+
+Same run, same bytes. Every question gets a fresh jedi.Script: with one Script per file, what Jedi had inferred for
+earlier names changed a later answer from run to run (1 row in 3,451 on the packages). And parso never evicts during
+a run (below): otherwise Jedi failed on names whose file had just been evicted, 30 on the packages, depending on what
+was parsed before. Now repeated runs and any PYTHONHASHSEED give the same bytes. Parsing stays cached, so the
+packages still take about 19 s, with a peak of about 780 MB.
 """
-import json, subprocess, sys
+import json, subprocess
 from collections import Counter
 from fnmatch import fnmatch
 from pathlib import Path
 
 import jedi
+import parso.cache
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser
 
 from meridian.common import data_root, handoff, load_config, log, parser
+
+# parso (pinned in requirements.txt) evicts parsed files from memory once it holds 600, judging age by the file's
+# mtime. Every file in a fresh checkout looks old, so a file Jedi has just parsed can be evicted mid-question, and
+# Jedi then fails with KeyError on that path. How often depends on what was parsed before, so it broke "same run,
+# same bytes". Never evict during a run.
+parso.cache._CACHED_SIZE_TRIGGER = float("inf")
 
 RESOLVER = f"jedi=={jedi.__version__}"
 COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "detection", "via", "resolved_to", "resolver"]
@@ -109,13 +131,13 @@ def alias_calls(root, source, binds):
 class Repo:
     """One repo of the snapshot: its own jedi.Project, and every file parsed at most once."""
 
-    def __init__(self, repo_dir, symbols):
+    def __init__(self, repo_dir, symbols, extra_paths=()):
         self.dir = repo_dir
         self.symbols = symbols                                        # {old name: module}
         self.targets = {f"{m}.{n}": n for n, m in symbols.items()}   # full name -> old name
-        self.env = jedi.create_environment(sys.executable, safe=False)
-        self.project = jedi.Project(repo_dir)
-        self.scripts, self.trees = {}, {}
+        self.env = jedi.InterpreterEnvironment()                      # no helper subprocess: see "Environment"
+        self.project = jedi.Project(repo_dir, added_sys_path=[str(p) for p in extra_paths])
+        self.code, self.trees = {}, {}
 
     def source(self, path):
         return (self.dir / path).read_bytes()
@@ -126,11 +148,65 @@ class Repo:
             self.trees[path] = (src, PY.parse(src).root_node)
         return self.trees[path]
 
-    def goto(self, path, line, col):
-        if path not in self.scripts:
-            self.scripts[path] = jedi.Script(code=self.source(path).decode("utf-8", errors="replace"),
-                                             path=str(self.dir / path), project=self.project, environment=self.env)
-        return self.scripts[path].goto(line, col, follow_imports=True)
+    def goto(self, path, line, col, follow_imports=True):
+        """A fresh jedi.Script per question: what Jedi inferred for one name can't change its answer for the next."""
+        if path not in self.code:
+            self.code[path] = self.source(path).decode("utf-8", errors="replace")
+        script = jedi.Script(code=self.code[path], path=str(self.dir / path), project=self.project, environment=self.env)
+        return script.goto(line, col, follow_imports=follow_imports)
+
+    def locate(self, path, line, col, symbol):
+        """The character column where symbol starts, accepting a column in characters or bytes. None if neither."""
+        lines = self.source(path).split(b"\n")
+        if not 1 <= line <= len(lines):
+            return None
+        raw = lines[line - 1]
+        text = raw.decode("utf-8", errors="replace")
+        if text[col:col + len(symbol)] == symbol:
+            return col
+        if raw[col:col + len(symbol)] == symbol.encode():
+            return len(raw[:col].decode("utf-8", errors="replace"))
+        return None
+
+    def import_module_at(self, path, line, col):
+        """If line:col sits in a `from X import ...` statement, X. Otherwise None."""
+        src, root = self.tree(path)
+        text = src.split(b"\n")[line - 1].decode("utf-8", errors="replace")
+        point = (line - 1, len(text[:col].encode()))
+        node = root.descendant_for_point_range(point, point)
+        while node is not None and node.type != "import_from_statement":
+            node = node.parent
+        return node.child_by_field_name("module_name").text.decode() if node is not None else None
+
+    def imported_from(self, path, line, col):
+        """The module this file imports the name at line:col from, or None if the file doesn't import it."""
+        if module := self.import_module_at(path, line, col):  # the candidate is the import itself
+            return module
+        for n in self.ordered(self.goto(path, line, col, follow_imports=False)):
+            spot = self.where(n)
+            if spot is not None and spot[0] == path and spot[1] is not None:
+                if module := self.import_module_at(path, spot[1], spot[2]):
+                    return module
+        return None
+
+    def resolve_candidate(self, c):
+        """(detection, via, resolved_to) for one candidate row, scored on its own old name."""
+        col = self.locate(c["path"], c["line"], c["col"], c["symbol"])
+        if col is None:
+            log(f"  {c['path']}:{c['line']}:{c['col']} doesn't hold {c['symbol']}: kept as ast_unresolved")
+            return "ast_unresolved", "none", None
+        try:
+            names = self.goto(c["path"], c["line"], col)
+        except Exception as e:  # a crash in Jedi is a missing answer, not a missing row
+            log(f"  jedi failed at {c['path']}:{c['line']}:{col}: {type(e).__name__}: {e}")
+            names = []
+        if not names:
+            return "ast_unresolved", "none", None
+        expected = f"{self.symbols[c['symbol']]}.{c['symbol']}"
+        if any(n.full_name == expected for n in names):
+            module = self.imported_from(c["path"], c["line"], col)
+            return "ast_resolved", ("reexport" if module and module != self.symbols[c["symbol"]] else "direct"), expected
+        return "dropped", "none", self.first(names)
 
     def where(self, name):
         """A Jedi answer as (repo-relative path, line, col), or None when it's outside the repo."""
@@ -139,6 +215,18 @@ class Repo:
         except (TypeError, ValueError):
             return None
         return path, name.line, name.column
+
+    def describe(self, name):
+        """What a Jedi answer points at, as text: its full name, else path:line in the repo, else its bare name."""
+        spot = self.where(name)
+        return name.full_name or (f"{spot[0]}:{spot[1]}" if spot else name.name)
+
+    def ordered(self, names):
+        """Jedi can list several answers in a different order each run. Always walk them in the same order."""
+        return sorted(names, key=lambda n: (self.describe(n), str(n.module_path), n.line or 0, n.column or 0))
+
+    def first(self, names):
+        return self.describe(self.ordered(names)[0])
 
     def one_hop(self, name):
         """If Jedi stopped at `alias = old_name`, where does old_name lead? Otherwise None."""
@@ -172,18 +260,29 @@ class Repo:
         hits = sorted({n.full_name for n in names if n.full_name in self.targets})
         if hits:
             return "ast_resolved", "direct", hits[0]
-        for n in names:
+        for n in self.ordered(names):
             hop = [h.full_name for h in (self.one_hop(n) or []) if h.full_name in self.targets]
             if hop:
                 return "ast_resolved", "one_hop", sorted(hop)[0]
-        first = names[0]
-        spot = self.where(first)
-        return "dropped", None, first.full_name or (f"{spot[0]}:{spot[1]}" if spot else first.name)
+        return "dropped", None, self.first(names)
 
 
-def resolve_aliases(run_id, repo, repo_dir, symbols, skip=()):
+def resolve_candidates(run_id, repo, repo_dir, symbols, candidates, r=None):
+    """One resolution row per candidate, with the candidate's key."""
+    r = r or Repo(repo_dir, symbols)
+    rows = []
+    for c in candidates:
+        if c["symbol"] not in symbols:
+            raise SystemExit(f"{repo} {c['path']}:{c['line']}: candidate symbol {c['symbol']!r} isn't tracked in meridian.toml")
+        detection, via, resolved_to = r.resolve_candidate(c)
+        rows.append(dict(zip(COLUMNS, [run_id, repo, c["path"], c["line"], c["col"], c["symbol"], detection, via,
+                                       resolved_to, RESOLVER])))
+    return rows
+
+
+def resolve_aliases(run_id, repo, repo_dir, symbols, skip=(), r=None):
     """One resolution row per alias call in the repo."""
-    r = Repo(repo_dir, symbols)
+    r = r or Repo(repo_dir, symbols)
     rows = []
     for path in py_files(repo_dir, skip):
         src, root = r.tree(path)
@@ -214,13 +313,46 @@ def write_jsonl(path, rows):
     tmp.replace(path)
 
 
+def load_candidates(out, run_id):
+    path = out / "candidate.jsonl"
+    if not path.exists():
+        raise SystemExit(f"no candidate table: {path} is missing. Run meridian.scan first")
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    if wrong := sorted({c["run_id"] for c in rows} - {run_id}):
+        raise SystemExit(f"{path} has rows for run_id {wrong}, not {run_id!r}")
+    return rows
+
+
+def dependency_paths(snap, manifest, repo, symbols):
+    """Snapshot repos that contain a tracked module this repo uses but doesn't have itself (packages -> django)."""
+    paths = []
+    for top in sorted({m.split(".")[0] for m in symbols.values()}):
+        if (snap / "repos" / repo.replace("/", "__") / top / "__init__.py").exists():
+            continue
+        paths += [snap / "repos" / other.replace("/", "__") for other in sorted(manifest["repos"])
+                  if other != repo and (snap / "repos" / other.replace("/", "__") / top / "__init__.py").exists()]
+    return paths
+
+
+def summary(rows):
+    c = Counter(x["detection"] for x in rows)
+    return (f"ast_resolved {c['ast_resolved']} · ast_unresolved {c['ast_unresolved']} · dropped {c['dropped']} · "
+            f"via {dict(sorted(Counter(x['via'] for x in rows).items()))}")
+
+
 def run(run_id, cfg, root=None):
     snap = Path(root or data_root()) / "snapshots" / run_id
     manifest_path = snap / "manifest.json"
     if not manifest_path.exists():
         raise SystemExit(f"no snapshot: {manifest_path} is missing. Run meridian.collect first")
     manifest = json.loads(manifest_path.read_text())
+    out = handoff(cfg, run_id, root)
+    by_repo = {}
+    for c in load_candidates(out, run_id):
+        by_repo.setdefault(c["repo"], []).append(c)
     wanted = tracked(cfg)
+    if stray := sorted(set(by_repo) - (set(manifest["repos"]) & set(wanted))):
+        raise SystemExit(f"candidates for repos this run can't resolve (not in the snapshot, or no symbols): {stray}")
     skip = cfg.get("scanner", {}).get("skip_paths", [])
     rows = []
     for repo, sha in sorted(manifest["repos"].items()):
@@ -229,14 +361,18 @@ def run(run_id, cfg, root=None):
         repo_dir = snap / "repos" / repo.replace("/", "__")
         if head(repo_dir) != sha:
             raise SystemExit(f"{repo}: checkout is at {head(repo_dir)}, the manifest says {sha}")
-        found = resolve_aliases(run_id, repo, repo_dir, wanted[repo], skip)
-        c = Counter(x["detection"] for x in found)
-        log(f"{repo}: {len(found)} alias calls · ast_resolved {c['ast_resolved']} · "
-            f"ast_unresolved {c['ast_unresolved']} · dropped {c['dropped']} · "
-            f"via {dict(sorted(Counter(x['via'] for x in found).items()))}")
-        rows += found
+        deps = dependency_paths(snap, manifest, repo, wanted[repo])
+        r = Repo(repo_dir, wanted[repo], deps)
+        cands = resolve_candidates(run_id, repo, repo_dir, wanted[repo], sorted(
+            by_repo.get(repo, []), key=lambda c: (c["path"], c["line"], c["col"])), r)
+        taken = {(x["path"], x["line"], x["col"]) for x in cands}
+        aliases = [x for x in resolve_aliases(run_id, repo, repo_dir, wanted[repo], skip, r)
+                   if (x["path"], x["line"], x["col"]) not in taken]  # a candidate already covers that spot
+        log(f"{repo}{' (on the path: ' + ', '.join(p.name for p in deps) + ')' if deps else ''}")
+        log(f"  {len(cands)} candidates · {summary(cands)}")
+        log(f"  {len(aliases)} alias calls · {summary(aliases)}")
+        rows += cands + aliases
     rows.sort(key=lambda x: (x["repo"], x["path"], x["line"], x["col"]))
-    out = handoff(cfg, run_id, root)
     out.mkdir(parents=True, exist_ok=True)
     write_jsonl(out / "resolution.jsonl", rows)
     log(f"{len(rows)} resolution rows -> {out / 'resolution.jsonl'} ({RESOLVER})")
