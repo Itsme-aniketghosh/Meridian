@@ -2,8 +2,9 @@
 
     python -m meridian.history --run-id <run_id> --config meridian.toml   # snapshots/<run_id>/ -> out/<run_id>/*.jsonl
 
-Running it again for the same run replaces its own files with the same rows. D6 adds its tables here.
+Running it again for the same run replaces its own files with the same rows.
 D3: git_commit and commit_file, below. D4: ticket, ticket_event, ticket_link, commit_ticket, in meridian/tickets.py.
+D6: bug_inducing and file_bug_fixes, in meridian/szz.py.
 
 - Every commit reachable from the pinned SHA. first_parent = 1 on the first-parent chain, and seq counts along
   that chain from 0 at the root. A commit that came in through a merge gets first_parent = 0 and the seq of the
@@ -18,7 +19,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from meridian import tickets
+from meridian import szz, tickets
 from meridian.common import CONFIG, data_root, handoff, load_config, log, parser
 
 FMT = "%x1e%H%x1f%P%x1f%at%x1f%ae%x1f%ce%x1f%s"
@@ -133,7 +134,11 @@ def main(run_id, config=CONFIG, root=None):
     write_jsonl(out / "ticket_event.jsonl", d4["ticket_event"], ("key", "at", "seq"))
     write_jsonl(out / "ticket_link.jsonl", d4["ticket_link"], ("key", "link_type", "other_key"))
     write_jsonl(out / "commit_ticket.jsonl", d4["commit_ticket"], ("repo", "sha", "key"))
-    return commits, files, d4
+
+    d6 = szz.build(commits, files, d4, manifest, cfg, run_id, co)
+    write_jsonl(out / "bug_inducing.jsonl", d6["bug_inducing"], ("repo", "fix_sha", "path", "inducing_sha"))
+    write_jsonl(out / "file_bug_fixes.jsonl", d6["file_bug_fixes"], ("repo", "path"))
+    return commits, files, d4, d6
 
 
 if __name__ == "__main__":
