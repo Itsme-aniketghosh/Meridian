@@ -138,8 +138,10 @@ def alias_calls(root, source, binds):
 class Repo:
     """One repo of the snapshot: its own jedi.Project, and every file parsed at most once."""
 
-    def __init__(self, repo_dir, symbols, extra_paths=()):
+    def __init__(self, repo_dir, symbols, extra_paths=(), one_hop=True, score_on_old_name=True):
         self.dir = repo_dir
+        self.one_hop_rule = one_hop                                   # [resolver] one_hop_assignment
+        self.score_on_old_name = score_on_old_name                    # [resolver] score_on_old_name
         self.symbols = symbols                                        # {old name: module}
         self.targets = {f"{m}.{n}": n for n, m in symbols.items()}   # full name -> old name
         self.env = jedi.InterpreterEnvironment()                      # no helper subprocess: see "Environment"
@@ -210,9 +212,10 @@ class Repo:
         if not names:
             return "ast_unresolved", "none", None
         expected = f"{self.symbols[c['symbol']]}.{c['symbol']}"
-        if any(n.full_name == expected for n in names):
+        accepted = {expected} if self.score_on_old_name else set(self.targets)  # off: any tracked symbol counts
+        if hits := sorted({n.full_name for n in names if n.full_name in accepted}):
             module = self.imported_from(c["path"], c["line"], col)
-            return "ast_resolved", ("reexport" if module and module != self.symbols[c["symbol"]] else "direct"), expected
+            return "ast_resolved", ("reexport" if module and module != self.symbols[c["symbol"]] else "direct"), hits[0]
         return "dropped", "none", self.first(names)
 
     def where(self, name):
@@ -267,7 +270,7 @@ class Repo:
         hits = sorted({n.full_name for n in names if n.full_name in self.targets})
         if hits:
             return "ast_resolved", "direct", hits[0]
-        for n in self.ordered(names):
+        for n in self.ordered(names) if self.one_hop_rule else []:
             hop = [h.full_name for h in (self.one_hop(n) or []) if h.full_name in self.targets]
             if hop:
                 return "ast_resolved", "one_hop", sorted(hop)[0]
@@ -445,7 +448,11 @@ def run(run_id, cfg, root=None):
     if stray := sorted(set(by_repo) - (set(manifest["repos"]) & set(wanted))):
         raise SystemExit(f"candidates for repos this run can't resolve (not in the snapshot, or no symbols): {stray}")
     skip = cfg.get("scanner", {}).get("skip_paths", [])
-    depth = cfg.get("resolver", {}).get("call_edge_depth", 3)
+    settings = cfg.get("resolver", {})
+    depth = settings.get("call_edge_depth", 3)
+    if not settings.get("keep_unresolved", True):  # CONTRACTS.md rule 9: nothing is silently dropped
+        raise SystemExit("[resolver] keep_unresolved = false would drop rows silently, which CONTRACTS.md rule 9 forbids")
+    rules = dict(one_hop=settings.get("one_hop_assignment", True), score_on_old_name=settings.get("score_on_old_name", True))
     roles = {(c["repo"], c["path"], c["line"], c["col"]): c["role"] for cs in by_repo.values() for c in cs}
     rows, edges = [], []
     for repo, sha in sorted(manifest["repos"].items()):
@@ -455,7 +462,7 @@ def run(run_id, cfg, root=None):
         if head(repo_dir) != sha:
             raise SystemExit(f"{repo}: checkout is at {head(repo_dir)}, the manifest says {sha}")
         deps = dependency_paths(snap, manifest, repo, wanted[repo])
-        r = Repo(repo_dir, wanted[repo], deps)
+        r = Repo(repo_dir, wanted[repo], deps, **rules)
         cands = resolve_candidates(run_id, repo, repo_dir, wanted[repo], sorted(
             by_repo.get(repo, []), key=lambda c: (c["path"], c["line"], c["col"])), r)
         taken = {(x["path"], x["line"], x["col"]) for x in cands}
