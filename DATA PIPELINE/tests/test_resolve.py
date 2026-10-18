@@ -7,7 +7,7 @@ aren't in that snapshot. To run them on the team data (the package test takes ab
 
     MERIDIAN_RUN_ID=973531f7fd4cfd5e python -m unittest tests.test_resolve -v
 """
-import csv, json, os, sqlite3, subprocess, sys, tempfile, unittest
+import contextlib, csv, io, json, os, sqlite3, subprocess, sys, tempfile, unittest
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
@@ -128,8 +128,8 @@ EXPECTED = {   # (path, line, col): (detection, via, resolved_to, symbol)
 }
 
 
-def fixture_repo(path):
-    for rel, text in FILES.items():
+def fixture_repo(path, files=None):
+    for rel, text in (files or FILES).items():
         (path / rel).parent.mkdir(parents=True, exist_ok=True)
         (path / rel).write_text(text)
     env = {**os.environ, "GIT_AUTHOR_DATE": "2026-01-01T00:00:00Z", "GIT_COMMITTER_DATE": "2026-01-01T00:00:00Z"}
@@ -298,6 +298,100 @@ class Command(unittest.TestCase):
         r = self.resolve()
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("the manifest says", r.stderr)
+
+
+EDGE_FILES = {
+    "lib/__init__.py": "",
+    "lib/translation.py": "def gettext(m):\n    return m\n\nugettext = gettext\n",
+    "app/__init__.py": "",
+    "app/chain.py": (
+        "from lib.translation import ugettext\n"
+        "\n"
+        "def level1():\n"
+        "    return ugettext('a')\n"          # depth 1
+        "\n"
+        "def level2():\n"
+        "    return level1()\n"               # depth 2
+        "\n"
+        "def level3():\n"
+        "    return level2()\n"               # depth 3
+        "\n"
+        "def level4():\n"
+        "    return level3()\n"               # depth 4: too far, no edge
+        "\n"
+        "class Labels:\n"
+        "    title = ugettext('t')\n"         # class body: an edge, but nobody calls a class body
+        "\n"
+        "TOP = ugettext('top')\n"             # module: an edge, and the walk stops
+    ),
+    "app/importer.py": (
+        "from app.chain import level1\n"      # an import is never an edge
+        "\n"
+        "def uses_it(obj):\n"
+        "    obj.level1()\n"                  # unknown receiver: Jedi can't confirm it, so no edge
+        "    return level1()\n"
+    ),
+    "app/cycle.py": (
+        "from lib.translation import ugettext\n"
+        "\n"
+        "def ping(n):\n"
+        "    return pong(n) if n else ugettext('p')\n"
+        "\n"
+        "def pong(n):\n"
+        "    return ping(n - 1)\n"            # a cycle: the walk must stop
+    ),
+}
+
+EDGES = {   # (caller_path, caller_scope, line, callee_path, callee_scope)
+    ("app/chain.py", "level1", 4, "lib/translation.py", "ugettext"),
+    ("app/chain.py", "level2", 7, "app/chain.py", "level1"),
+    ("app/chain.py", "level3", 10, "app/chain.py", "level2"),
+    ("app/chain.py", "Labels", 16, "lib/translation.py", "ugettext"),
+    ("app/chain.py", "<module>", 18, "lib/translation.py", "ugettext"),
+    ("app/importer.py", "uses_it", 5, "app/chain.py", "level1"),
+    ("app/cycle.py", "ping", 4, "lib/translation.py", "ugettext"),
+    ("app/cycle.py", "pong", 7, "app/cycle.py", "ping"),
+    ("app/cycle.py", "ping", 4, "app/cycle.py", "pong"),
+}
+
+
+class Edges(unittest.TestCase):
+    """D6: call_edge on fixtures. Resolved calls only, never imports, depth <= 3, cycles stop."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        root = Path(cls.tmp.name)
+        repo_dir = root / "snapshots" / RUN / "repos" / "fix__edges"
+        repo_dir.mkdir(parents=True)
+        sha = fixture_repo(repo_dir, EDGE_FILES)
+        (root / "snapshots" / RUN / "manifest.json").write_text(json.dumps({"run_id": RUN, "repos": {"fix/edges": sha}}))
+        cfg = {"run": {"handoff_dir": "out/{run_id}"}, "scanner": {}, "resolver": {"call_edge_depth": 3},
+               "datasets": {"edges": {"repos": [{"repo": "fix/edges", "ref": sha}],
+                                      "symbols": [{"name": "ugettext", "module": "lib.translation"}]}}}
+        (root / "out" / RUN).mkdir(parents=True)
+        R.write_jsonl(root / "out" / RUN / "candidate.jsonl", standin(RUN, "fix/edges", repo_dir, {"ugettext": "lib.translation"}, {}))
+        with contextlib.redirect_stdout(io.StringIO()):
+            R.run(RUN, cfg, root)
+        cls.path = root / "out" / RUN / "call_edge.jsonl"
+        cls.rows = [json.loads(l) for l in cls.path.read_text().splitlines()]
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_exact_edges(self):
+        got = {(e["caller_path"], e["caller_scope"], e["line"], e["callee_path"], e["callee_scope"]) for e in self.rows}
+        self.assertEqual(got, EDGES)
+
+    def test_no_edge_from_imports_or_past_depth_3(self):
+        self.assertFalse([e for e in self.rows if e["caller_path"] == "app/importer.py" and e["line"] == 1])
+        self.assertFalse([e for e in self.rows if e["caller_scope"] == "level4"])
+
+    def test_rows_fit_the_schema(self):
+        schema = (HERE / "schema.sql").read_text()
+        rows = W.read_rows(self.path, W.tables(schema)["call_edge"], RUN)
+        self.assertEqual(len(rows), len(EDGES))
 
 
 RUN_ID = os.environ.get("MERIDIAN_RUN_ID", "dev")

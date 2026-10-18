@@ -1,10 +1,17 @@
-"""Resolve · step 1 · D4–D5: what each name really is. See CONTRACTS.md.
+"""Resolve · step 1 · D4–D6: what each name really is, and who calls it. See CONTRACTS.md.
 
     python -m meridian.resolve --run-id <run_id> --config meridian.toml
 
 Reads the code in snapshots/<run_id>/ (every repo in the manifest whose dataset lists symbols) and Rachna's
-out/<run_id>/candidate.jsonl. Writes out/<run_id>/resolution.jsonl, sorted by primary key, for the writer:
-one row per candidate (same key), plus one row per alias call the scanner can't see.
+out/<run_id>/candidate.jsonl. Writes, sorted by primary key, for the writer:
+    out/<run_id>/resolution.jsonl   one row per candidate (same key), plus one per alias call the scanner can't see
+    out/<run_id>/call_edge.jsonl    caller -> callee: every confirmed call of a tracked symbol, then up to
+                                    [resolver] call_edge_depth levels of the callers of the functions holding one
+
+Call edges (D6). Only calls Jedi confirms count, never imports. Depth 1 is a confirmed call of the old symbol
+(caller's function -> the symbol); depth 2 is a resolved call of a function holding one; depth 3 one more level up.
+Module and class bodies get their edges but nobody calls them, so the walk stops there. On the team run:
+2,054 edges, about 76 s and 1.2 GB.
 
 Candidates (D5). Jedi (pinned) is asked where each old name leads (goto, following imports). Scored on the old
 name ([resolver] score_on_old_name): the row is ast_resolved only if it lands on the candidate's own symbol,
@@ -334,6 +341,90 @@ def dependency_paths(snap, manifest, repo, symbols):
     return paths
 
 
+EDGE_COLUMNS = ["run_id", "repo", "caller_path", "caller_scope", "line", "col", "callee_path", "callee_repo", "callee_scope"]
+
+
+def scope_of(root, src, line, col):
+    """(dotted scope, is it a function, line of that def) for the code at line:col. '<module>' at top level."""
+    text = src.split(b"\n")[line - 1].decode("utf-8", errors="replace")
+    point = (line - 1, len(text[:col].encode()))
+    up = root.descendant_for_point_range(point, point)
+    names, kind, def_line = [], None, None
+    while up is not None:
+        if up.type in ("function_definition", "class_definition"):
+            name = up.child_by_field_name("name")
+            names.append(name.text.decode())
+            if kind is None:
+                kind, def_line = up.type, name.start_point[0] + 1
+        up = up.parent
+    return ".".join(reversed(names)) or "<module>", kind == "function_definition", def_line
+
+
+def call_sites(r, files):
+    """{called name: [(path, line, col)]} for every call in the repo: f(...) and x.f(...)."""
+    index = {}
+    for path in files:
+        src, root = r.tree(path)
+        for node in walk(root):
+            if node.type == "call":
+                fn = node.child_by_field_name("function")
+                if fn is not None and fn.type == "attribute":
+                    fn = fn.child_by_field_name("attribute")
+                if fn is not None and fn.type == "identifier":
+                    index.setdefault(fn.text.decode(), []).append((path, fn.start_point[0] + 1, char_col(src, fn)))
+    return index
+
+
+def symbol_home(snap, repo_dir, deps, module):
+    """(repo, path) of the file that defines a tracked module: this repo first, then its dependencies."""
+    for base in [repo_dir, *deps]:
+        stem = base / Path(*module.split("."))
+        for p in (stem / "__init__.py", stem.with_suffix(".py")):
+            if p.exists():
+                return base.name.replace("__", "/", 1), p.relative_to(base).as_posix()
+    return None, None
+
+
+def call_edges(run_id, repo, r, uses, files, depth):
+    """Resolved caller -> callee edges, from each confirmed use of a tracked symbol up through its callers.
+
+    uses: [(path, line, col, callee_repo, callee_path, callee_scope)], the confirmed calls of tracked symbols (depth 1).
+    Then the callers of every function holding one (depth 2), and their callers (depth 3, [resolver] call_edge_depth).
+    A call counts only when Jedi lands on that very function's def. Module and class bodies get edges but have no
+    callers, so they stop the walk. Imports never make edges.
+    """
+    edges, frontier, seen, answers = {}, {}, set(), {}
+
+    def add(path, line, col, callee_repo, callee_path, callee_scope):
+        src, root = r.tree(path)
+        scope, is_function, def_line = scope_of(root, src, line, col)
+        row = dict(zip(EDGE_COLUMNS, [run_id, repo, path, scope, line, col, callee_path, callee_repo, callee_scope]))
+        edges[(path, line, col, callee_repo, callee_path, callee_scope)] = row
+        if is_function and (path, def_line) not in seen:
+            seen.add((path, def_line))
+            frontier[(path, def_line)] = scope
+
+    for use in uses:
+        add(*use)
+    index = None
+    for _ in range(depth - 1):
+        targets, frontier = sorted(frontier.items()), {}
+        if not targets:
+            break
+        index = index if index is not None else call_sites(r, files)
+        for (t_path, t_line), t_scope in targets:
+            for site in index.get(t_scope.split(".")[-1], []):
+                if site not in answers:  # one Jedi question per call site, however many functions share its name
+                    try:
+                        answers[site] = {r.where(n)[:2] for n in r.goto(*site) if r.where(n)}
+                    except Exception as e:
+                        log(f"  jedi failed at {site[0]}:{site[1]}:{site[2]}: {type(e).__name__}: {e}")
+                        answers[site] = set()
+                if (t_path, t_line) in answers[site]:
+                    add(*site, repo, t_path, t_scope)
+    return [edges[k] for k in sorted(edges)]
+
+
 def summary(rows):
     c = Counter(x["detection"] for x in rows)
     return (f"ast_resolved {c['ast_resolved']} · ast_unresolved {c['ast_unresolved']} · dropped {c['dropped']} · "
@@ -354,7 +445,9 @@ def run(run_id, cfg, root=None):
     if stray := sorted(set(by_repo) - (set(manifest["repos"]) & set(wanted))):
         raise SystemExit(f"candidates for repos this run can't resolve (not in the snapshot, or no symbols): {stray}")
     skip = cfg.get("scanner", {}).get("skip_paths", [])
-    rows = []
+    depth = cfg.get("resolver", {}).get("call_edge_depth", 3)
+    roles = {(c["repo"], c["path"], c["line"], c["col"]): c["role"] for cs in by_repo.values() for c in cs}
+    rows, edges = [], []
     for repo, sha in sorted(manifest["repos"].items()):
         if repo not in wanted:
             continue
@@ -372,10 +465,24 @@ def run(run_id, cfg, root=None):
         log(f"  {len(cands)} candidates · {summary(cands)}")
         log(f"  {len(aliases)} alias calls · {summary(aliases)}")
         rows += cands + aliases
+        # call_edge: confirmed calls only (candidate role 'call', and every alias call), never imports
+        uses = []
+        for x in cands + aliases:
+            is_call = roles.get((repo, x["path"], x["line"], x["col"]), "call") == "call"
+            if x["detection"] == "ast_resolved" and is_call:
+                module, name = x["resolved_to"].rsplit(".", 1)
+                home_repo, home_path = symbol_home(snap, repo_dir, deps, module)
+                if home_path:
+                    uses.append((x["path"], x["line"], x["col"], home_repo, home_path, name))
+        found = call_edges(run_id, repo, r, uses, py_files(repo_dir, skip), depth)
+        log(f"  {len(found)} call edges ({len(uses)} from confirmed calls, {len(found) - len(uses)} from their callers)")
+        edges += found
     rows.sort(key=lambda x: (x["repo"], x["path"], x["line"], x["col"]))
+    edges.sort(key=lambda e: (e["repo"], e["caller_path"], e["line"], e["col"], e["callee_repo"], e["callee_path"], e["callee_scope"]))
     out.mkdir(parents=True, exist_ok=True)
     write_jsonl(out / "resolution.jsonl", rows)
-    log(f"{len(rows)} resolution rows -> {out / 'resolution.jsonl'} ({RESOLVER})")
+    write_jsonl(out / "call_edge.jsonl", edges)
+    log(f"{len(rows)} resolution rows, {len(edges)} call edges -> {out} ({RESOLVER})")
     return rows
 
 
