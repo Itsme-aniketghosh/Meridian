@@ -54,7 +54,7 @@ python -m tests.standin_candidates --run-id <run_id> --config meridian.toml     
 python -m meridian.resolve --run-id <run_id> --config meridian.toml
 python -m tests.score_packages --run-id <run_id> --config meridian.toml          # package precision and recall
 python -m tests.hand_check_aliases --run-id <run_id> --config meridian.toml --initials XX   # interactive
-MERIDIAN_RUN_ID=<run_id> python -m unittest tests.test_resolve -v                # 21 tests, Django + package checks
+MERIDIAN_RUN_ID=<run_id> python -m unittest tests.test_resolve -v                # 24 tests, Django + package checks
 ```
 
 | File | What |
