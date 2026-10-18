@@ -194,6 +194,11 @@ class Aliases(unittest.TestCase):
     def test_skipped_paths_have_no_rows(self):
         self.assertFalse([r for r in self.rows if r["path"].startswith("docs/")])
 
+    def test_one_hop_switched_off(self):
+        r = R.Repo(self.repo_dir, SYMBOLS, one_hop=False)
+        rows = R.resolve_aliases(RUN, "fix/app", self.repo_dir, SYMBOLS, ["docs/"], r)
+        self.assertEqual({row["detection"] for row in rows if row["path"] == "app/assigns.py"}, {"dropped"})
+
     def test_bindings(self):
         src = b"from x import ugettext as _, ugettext_lazy\nT = ugettext_lazy\nfrom y import ugettext as ugettext\n"
         binds = R.bindings(R.PY.parse(src).root_node, {"ugettext", "ugettext_lazy"})
@@ -244,6 +249,17 @@ class Candidates(unittest.TestCase):
         c = dict(self.by_line[("app/direct.py", 4)][0])
         self.assertEqual(self.repo.resolve_candidate({**c, "col": 0}), ("ast_unresolved", "none", None))
 
+    def test_score_on_old_name_switched_off(self):
+        with tempfile.TemporaryDirectory() as tmp:   # spelled ugettext, but it is ugettext_lazy
+            repo = Path(tmp)
+            fixture_repo(repo, {"lib/__init__.py": "", "lib/translation.py": FILES["lib/translation.py"],
+                                "app/__init__.py": "", "app/swap.py": "from lib.translation import ugettext_lazy as ugettext\n\nugettext('x')\n"})
+            c = {"path": "app/swap.py", "line": 3, "col": 0, "symbol": "ugettext"}
+            strict = R.Repo(repo, SYMBOLS).resolve_candidate(c)
+            loose = R.Repo(repo, SYMBOLS, score_on_old_name=False).resolve_candidate(c)
+        self.assertEqual(strict[0], "dropped")                                       # not its own old name
+        self.assertEqual((loose[0], loose[2]), ("ast_resolved", "lib.translation.ugettext_lazy"))
+
     def test_untracked_symbol_halts(self):
         c = dict(self.by_line[("app/direct.py", 4)][0])
         with self.assertRaises(SystemExit):
@@ -291,6 +307,12 @@ class Command(unittest.TestCase):
         r = self.resolve()
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("no candidate table", r.stderr)
+
+    def test_keep_unresolved_false_halts(self):
+        self.config.write_text(self.config.read_text() + "\n[resolver]\nkeep_unresolved = false\n")
+        r = self.resolve()
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("rule 9", r.stderr)
 
     def test_checkout_not_at_the_manifest_sha_halts(self):
         manifest = self.root / "snapshots" / RUN / "manifest.json"
