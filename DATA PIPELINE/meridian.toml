@@ -104,6 +104,8 @@ rule = "repo"          # each repo is one team: cross-repo = cross-team
 [identity]
 use_mailmap = true
 merge_on = ["name", "email_local"]     # same as week1/pair2/merged/build.py
+local_part_max_names = 2               # a local part seen under 3+ names (chris@, contact@) is not one person: never merged on.
+                                       # Without it, 18 repos chain 112 strangers into one group
 lowercase_emails = true
 generic_names = ["root", "ubuntu", "unknown", "user", "admin", "spark", "localhost", "none", "test", "jenkins"]
 bot_patterns = ['\[bot\]$', '^dependabot', '^github-actions', '^renovate', '^noreply@github\.com$']
