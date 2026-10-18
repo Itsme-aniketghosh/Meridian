@@ -137,6 +137,13 @@ class Merge(unittest.TestCase):
         self.assertEqual(len({a["person_id"] for a in alias}), 3)
         self.assertEqual(stats["shared"], {"chris"})
 
+    def test_config_the_code_doesnt_implement_stops(self):
+        O.check_config(load_config(CONFIG))  # the real config is what the code does
+        cfg = load_config(CONFIG)
+        cfg["ownership"]["skip_merges"] = False
+        with self.assertRaises(SystemExit):
+            O.check_config(cfg)
+
     def test_generic_name_with_real_email_not_merged_on_name(self):
         _, alias, _ = O.merge([("alice@a.example", "alice@a.example", "jenkins", []),
                                ("bob@b.example", "bob@b.example", "jenkins", [])], self.ident)
