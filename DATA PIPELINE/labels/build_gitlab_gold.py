@@ -13,6 +13,8 @@ Writes, next to this script:
   gitlab_cross_team_blocks.csv  one row per (blocked_ref, blocker_ref). A pair in both lists -> source 'both', the
                                 stronger verdict and its evidence. human_verdict stays blank until the spot-check
   gitlab_stall_reasons.csv      one row per stall read
+Over the week-1 verdicts: same team on both sides -> no; a blocked-by link removed while the blocker was open -> no;
+then gitlab_spot_check_model.csv, a second model read of sampled pairs, wins where it disagrees.
 Scrubbed: no people columns, emails -> [email], @handles -> @user, any GitLab username in the run -> user, quotes <= 200.
 """
 import csv, gzip, hashlib, json, re, sys
@@ -187,6 +189,8 @@ def main(src, run):
     print(f"gitlab_stall_reasons.csv  {len(stall_rows)} stalls · reasons {by(stall_rows, 'reason')} · ended_by {by(stall_rows, 'ended_by')}")
 
     # The spot-check: 10 wait, 5 planned, 5 partial, one per waiting issue, picked by hash so anyone gets the same 20
+    # A wait or planned case holds if the person finds a wait or planned; a partial one if they find any real dependency
+    holds = {"wait": {"wait", "planned"}, "planned": {"wait", "planned"}, "partial": {"wait", "planned", "partial"}}
     print("\nspot-check (fill human_verdict in gitlab_cross_team_blocks.csv):")
     for verdict, n in (("wait", 10), ("planned", 5), ("partial", 5)):
         seen, picked = set(), []
@@ -196,7 +200,7 @@ def main(src, run):
                 seen.add(r["blocked_ref"])
                 picked.append(r)
         held = [r for r in picked if r["human_verdict"]]
-        print(f"  {verdict}: {len(held)} of {len(picked)} checked, {sum(r['human_verdict'] == verdict for r in held)} hold")
+        print(f"  {verdict}: {len(held)} of {len(picked)} checked, {sum(r['human_verdict'] in holds[verdict] for r in held)} hold")
         for r in picked:
             print(f"    {r['human_verdict'] or '____':12} {r['blocked_ref']} waits on {r['blocker_ref']}  {r['evidence_url']}")
 

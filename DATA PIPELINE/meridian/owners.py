@@ -267,8 +267,24 @@ def read_jsonl(path):
         return [json.loads(line) for line in f if line.strip()]
 
 
+IMPLEMENTED = {  # [identity] and [ownership] settings this code follows but has no switch for
+    ("identity", "use_mailmap"): True, ("identity", "merge_on"): ["name", "email_local"],
+    ("identity", "lowercase_emails"): True, ("identity", "use_author_not_committer"): True,
+    ("identity", "coauthors_count"): False, ("ownership", "skip_merges"): True,
+    ("ownership", "owner"): "team_share", ("ownership", "tie_break"): "most_recent_commit",
+}
+
+
+def check_config(cfg):
+    """A changed setting the code doesn't implement stops the run, rather than being silently ignored."""
+    bad = [f"[{s}] {k} = {cfg[s].get(k)!r}, owners.py does {v!r}" for (s, k), v in IMPLEMENTED.items() if cfg[s].get(k) != v]
+    if bad:
+        raise SystemExit("meridian.toml asks for what owners.py doesn't do: " + "; ".join(bad))
+
+
 def main(run_id, config=CONFIG, root=None, top=0):
     cfg, root = load_config(config), Path(root or data_root())
+    check_config(cfg)
     snap = root / "snapshots" / run_id
     if not (snap / "manifest.json").exists():
         raise SystemExit(f"no snapshot {snap}: run meridian.collect first")
