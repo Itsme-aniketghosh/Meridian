@@ -73,6 +73,6 @@ python xt_pull_notes.py human_iids.txt activity.jsonl ONLY_ACTIVITY      # ~30�
 python xt_edges.py && python xt_enrich.py && python xt_evidence.py      # edges → cross-team + order → comment snippets
 ```
 
-Verdicts go to `gitlab/xt_cross_team_blocks.csv`: one row per link, with an evidence quote and a verdict. It stays local under the folder's "CSVs aren't pushed" rule, as do Vishwa's confirmed 30.
+Verdicts go to `gitlab/xt_cross_team_blocks.csv`: one row per link, with an evidence quote and a verdict. It's committed so the team can review it, but the verdicts are unverified. Vishwa's confirmed 30 stay local.
 
 What to do next is in [../NEXT-STEPS.md](../NEXT-STEPS.md).
