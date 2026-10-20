@@ -49,10 +49,10 @@ repos = [
   { repo = "carltongibson/django-filter",             ref = "52eece7^1" },
   { repo = "django-import-export/django-import-export", ref = "f6864ff^1" },
   { repo = "django-tenants/django-tenants",           ref = "6735fca^1" },
-  { repo = "yourlabs/django-autocomplete-light",      ref = "TBD-day4" },
-  { repo = "iMerica/dj-rest-auth",                    ref = "TBD-day4" },
-  { repo = "jazzband/django-silk",                    ref = "TBD-day4" },
-  { repo = "django-tastypie/django-tastypie",         ref = "TBD-day4" },
+  { repo = "yourlabs/django-autocomplete-light",      ref = "1f500ad4^1" },
+  { repo = "iMerica/dj-rest-auth",                    ref = "ea14056^1" },
+  { repo = "jazzband/django-silk",                    ref = "8d9b48b^1" },
+  { repo = "django-tastypie/django-tastypie",         ref = "6d06e29^1" },
 ]
 
 [datasets.spark]
