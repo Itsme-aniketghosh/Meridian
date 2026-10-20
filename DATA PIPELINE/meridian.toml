@@ -158,8 +158,9 @@ tool = "jedi"                          # pinned in the lockfile
 one_hop_assignment = true              # _ = old_name → follow old_name
 score_on_old_name = true
 keep_unresolved = true                 # ast_unresolved, never dropped silently
-env = "per_repo_lockfile"
-call_edge_depth = 3
+env = "snapshot"                       # packages resolve against the snapshot's own django/django checkout, nothing installed.
+                                       # Per-repo lockfiles can't work: none of the 16 has one, and django>=2.2 today has no url(). See RESOLVER.md
+call_edge_depth = 3                    # not final: picked during model training, with [graph] blocked_by_max_depth and blast_radius_max_depth
 
 # ───────────── join · Utkarsh ─────────────
 
@@ -178,16 +179,5 @@ imports_count_as_edges = false
 blast_radius_max_depth = 3
 risky_bug_fixes = 3
 
-# ───────────── orchestration · Utkarsh ─────────────
-
-[orchestration]
-tool = "airflow"                   # on GCP
-dag_id = "meridian_nightly"
-schedule = "0 2 * * *"             # 02:00 UTC nightly, incremental
-full_rebuild_day = "sun"           # check: rebuild must equal incremental, else halt
-retries = 2
-task_runner = "cloud_run_job"      # Airflow starts each part as a Cloud Run Job
-image = "TBD"                      # Artifact Registry path, set by Utkarsh D4
-snapshot_bucket = "TBD"            # gs://..., set by Utkarsh D4
-publish_only_if_check_passes = true
-alert_on = ["failed", "halted", "partial"]
+# Orchestration (Airflow, GCP) lives in infra.toml: where and when the pipeline runs, not what it computes,
+# so changing it never changes the run_id.

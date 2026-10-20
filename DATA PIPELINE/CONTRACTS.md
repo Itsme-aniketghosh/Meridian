@@ -5,10 +5,11 @@
 | File | What it fixes |
 |---|---|
 | [schema.sql](schema.sql) | Every table: columns, types, keys, allowed values |
-| [meridian.toml](meridian.toml) | Datasets, pinned refs, team rules, every threshold |
+| [meridian.toml](meridian.toml) | Datasets, pinned refs, team rules, every threshold. Hashed into the `run_id` |
+| [infra.toml](infra.toml) | Where and when it runs: Airflow, GCP, schedule. Utkarsh's. Not in the `run_id`, so it can change any time |
 | This page | The rules behind both, and what Vishwa and Chaitali get and deliver |
 
-To change any of the three, ask Utkarsh and Aniket. If you're blocked, ship the version that works and log the change you need. Don't change the contract yourself.
+To change `schema.sql`, `meridian.toml` or this page, ask Utkarsh and Aniket. If you're blocked, ship the version that works and log the change you need. Don't change the contract yourself.
 
 ## Rules for every table
 

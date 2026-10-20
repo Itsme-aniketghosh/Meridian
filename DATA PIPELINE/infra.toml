@@ -1,0 +1,16 @@
+# Meridian infra · step 1 · v1
+# Where and when the pipeline runs: Airflow on GCP. Read by the Airflow DAG, never by a part.
+# Not part of the run_id: collect hashes only meridian.toml, so this file can change any time without a rerun.
+# Everything that changes what a part computes belongs in meridian.toml instead.
+
+[orchestration]
+tool = "airflow"                   # on GCP
+dag_id = "meridian_nightly"
+schedule = "0 2 * * *"             # 02:00 UTC nightly, incremental
+full_rebuild_day = "sun"           # check: rebuild must equal incremental, else halt
+retries = 2
+task_runner = "cloud_run_job"      # Airflow starts each part as a Cloud Run Job
+image = "us-east1-docker.pkg.dev/meridian-pipeline/meridian/pipeline"   # Artifact Registry path. Placeholder until GCP is set up
+snapshot_bucket = "gs://meridian-pipeline-snapshots"                   # raw pulls and snapshots, replaces shared-snapshot/. Placeholder until GCP is set up
+publish_only_if_check_passes = true
+alert_on = ["failed", "halted", "partial"]

@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="1242" viewBox="0 0 1640 1242" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<rect width="1640" height="1242" fill="#fff"/>
+<text x="24" y="48" font-size="30" font-weight="700" fill="#111827">Pending tasks · the four parts</text>
+<text x="24" y="82" font-size="17" fill="#4b5563">What Vishwa, Rachna, Rochan and Chaitali still owe before the join and graph can finish. 3 days left.</text>
+<circle cx="31" cy="112" r="7" fill="#dc2626"/><text x="46" y="118" font-size="15" fill="#374151">Blocks someone else: do first</text>
+<circle cx="281" cy="112" r="5" fill="#374151"/><text x="296" y="118" font-size="15" fill="#374151">To do</text>
+<text x="380" y="118" font-size="15" fill="#374151">D1, D2 = day of the 3-day plan · NOW = can start today</text>
+<rect x="20" y="142" width="1600" height="66" rx="12" fill="#fee2e2" stroke="#b91c1c" stroke-width="2"/>
+<text x="42" y="171" font-size="19" font-weight="700" fill="#b91c1c">Rachna, Rochan, Chaitali: don't run your part or push until Vishwa pushes the new run_id</text>
+<text x="42" y="196" font-size="15" fill="#7f1d1d">Anything run on the old run 973531f7fd4cfd5e has to be redone. Tasks marked NOW don't run the pipeline, so they can start today.</text>
+<text x="24" y="252" font-size="20" font-weight="700" fill="#111827">What happened, in order</text>
+<line x1="109" y1="290" x2="1531" y2="290" stroke="#d1d5db" stroke-width="3"/>
+<circle cx="109" cy="290" r="7" fill="#374151" stroke="#374151" stroke-width="3"/>
+<text x="109" y="324" font-size="15" font-weight="700" text-anchor="middle" fill="#374151">Oct 9–10</text>
+<text x="109" y="346" font-size="14" font-weight="600" text-anchor="middle" fill="#111827">Utkarsh</text>
+<text x="109" y="366" font-size="14" text-anchor="middle" fill="#374151">Plan + contracts</text>
+<text x="109" y="386" font-size="13" text-anchor="middle" fill="#6b7280">4 refs left TBD</text>
+<circle cx="287" cy="290" r="7" fill="#374151" stroke="#374151" stroke-width="3"/>
+<text x="287" y="324" font-size="15" font-weight="700" text-anchor="middle" fill="#374151">Oct 13</text>
+<text x="287" y="346" font-size="14" font-weight="600" text-anchor="middle" fill="#111827">Utkarsh</text>
+<text x="287" y="366" font-size="14" text-anchor="middle" fill="#374151">Airflow rules</text>
+<text x="287" y="386" font-size="13" text-anchor="middle" fill="#6b7280">now in infra.toml</text>
+<circle cx="464" cy="290" r="7" fill="#374151" stroke="#374151" stroke-width="3"/>
+<text x="464" y="324" font-size="15" font-weight="700" text-anchor="middle" fill="#374151">Oct 14</text>
+<text x="464" y="346" font-size="14" font-weight="600" text-anchor="middle" fill="#111827">Vishwa</text>
+<text x="464" y="366" font-size="14" text-anchor="middle" fill="#374151">First team run</text>
+<text x="464" y="386" font-size="13" text-anchor="middle" fill="#6b7280">partial, as planned</text>
+<circle cx="642" cy="290" r="7" fill="#374151" stroke="#374151" stroke-width="3"/>
+<text x="642" y="324" font-size="15" font-weight="700" text-anchor="middle" fill="#374151">Oct 16–17</text>
+<text x="642" y="346" font-size="14" font-weight="600" text-anchor="middle" fill="#111827">Rochan</text>
+<text x="642" y="366" font-size="14" text-anchor="middle" fill="#374151">Resolver</text>
+<text x="642" y="386" font-size="13" text-anchor="middle" fill="#6b7280">on the old run</text>
+<circle cx="820" cy="290" r="7" fill="#374151" stroke="#374151" stroke-width="3"/>
+<text x="820" y="324" font-size="15" font-weight="700" text-anchor="middle" fill="#374151">Oct 17</text>
+<text x="820" y="346" font-size="14" font-weight="600" text-anchor="middle" fill="#111827">Vishwa</text>
+<text x="820" y="366" font-size="14" text-anchor="middle" fill="#374151">SZZ</text>
+<text x="820" y="386" font-size="13" text-anchor="middle" fill="#6b7280">on the old run</text>
+<circle cx="998" cy="290" r="9" fill="#dc2626" stroke="#dc2626" stroke-width="3"/>
+<text x="998" y="324" font-size="15" font-weight="700" text-anchor="middle" fill="#dc2626">Oct 18</text>
+<text x="998" y="346" font-size="14" font-weight="600" text-anchor="middle" fill="#111827">Chaitali</text>
+<text x="998" y="366" font-size="14" text-anchor="middle" fill="#374151">Owners</text>
+<text x="998" y="386" font-size="13" text-anchor="middle" fill="#dc2626">toml changed: run moves</text>
+<circle cx="1176" cy="290" r="9" fill="#dc2626" stroke="#dc2626" stroke-width="3"/>
+<text x="1176" y="324" font-size="15" font-weight="700" text-anchor="middle" fill="#dc2626">Oct 20</text>
+<text x="1176" y="346" font-size="14" font-weight="600" text-anchor="middle" fill="#111827">Rachna</text>
+<text x="1176" y="366" font-size="14" text-anchor="middle" fill="#374151">Scanner</text>
+<text x="1176" y="386" font-size="13" text-anchor="middle" fill="#dc2626">refs pinned: run moves</text>
+<circle cx="1353" cy="290" r="9" fill="#dc2626" stroke="#dc2626" stroke-width="3"/>
+<text x="1353" y="324" font-size="15" font-weight="700" text-anchor="middle" fill="#dc2626">Oct 20</text>
+<text x="1353" y="346" font-size="14" font-weight="600" text-anchor="middle" fill="#111827">Utkarsh</text>
+<text x="1353" y="366" font-size="14" text-anchor="middle" fill="#374151">Decisions made</text>
+<text x="1353" y="386" font-size="13" text-anchor="middle" fill="#dc2626">pushed: run moves</text>
+<circle cx="1531" cy="290" r="9" fill="#fff" stroke="#1a56db" stroke-width="3"/>
+<text x="1531" y="324" font-size="15" font-weight="700" text-anchor="middle" fill="#1a56db">Now</text>
+<text x="1531" y="346" font-size="14" font-weight="600" text-anchor="middle" fill="#111827">Vishwa</text>
+<text x="1531" y="366" font-size="14" text-anchor="middle" fill="#374151">New run_id</text>
+<text x="1531" y="386" font-size="13" text-anchor="middle" fill="#6b7280">then all 3 rerun</text>
+<text x="24" y="422" font-size="15" fill="#4b5563">Vishwa delivered first and on schedule. The run had to move once the refs were pinned (Oct 18–20), so the new run_id can only come now.</text>
+<rect x="20" y="470" width="790" height="262" rx="12" fill="#e8f0fe" stroke="#1a56db" stroke-width="2.5"/>
+<text x="42" y="508" font-size="23" font-weight="700" fill="#1a56db">Vishwa</text>
+<text x="42" y="532" font-size="15" fill="#374151">Collect + bug history · delivered first · 2 pending</text>
+<circle cx="50" cy="564" r="7" fill="#dc2626"/>
+<text x="68" y="570" font-size="18" font-weight="600" fill="#111827">Post the new run_id</text>
+<text x="68" y="596" font-size="15" fill="#4b5563">Start now: decisions are on main. Rerun collect + history, push only the README</text>
+<rect x="628" y="549" width="98" height="26" rx="13" fill="#fee2e2" stroke="#b91c1c" stroke-width="1.5"/>
+<text x="677" y="567" font-size="13" font-weight="700" text-anchor="middle" fill="#b91c1c">Next step</text>
+<rect x="736" y="549" width="52" height="26" rx="13" fill="#fff" stroke="#1a56db" stroke-width="1.5"/>
+<text x="762" y="567" font-size="14" font-weight="700" text-anchor="middle" fill="#1a56db">NOW</text>
+<circle cx="50" cy="642" r="5" fill="#374151"/>
+<text x="68" y="648" font-size="18" font-weight="600" fill="#111827">D5: run make_labels.py and ticket_key_check.sh</text>
+<text x="68" y="674" font-size="15" fill="#4b5563">Expect 130 labels, 812 of 854 keyed. If already done, write it down</text>
+<rect x="661" y="627" width="65" height="26" rx="13" fill="#fff" stroke="#374151" stroke-width="1.5"/>
+<text x="694" y="645" font-size="13" font-weight="700" text-anchor="middle" fill="#374151">Check</text>
+<rect x="736" y="627" width="52" height="26" rx="13" fill="#fff" stroke="#1a56db" stroke-width="1.5"/>
+<text x="762" y="645" font-size="14" font-weight="700" text-anchor="middle" fill="#1a56db">NOW</text>
+<rect x="830" y="470" width="790" height="262" rx="12" fill="#e6f6ec" stroke="#15803d" stroke-width="2.5"/>
+<text x="852" y="508" font-size="23" font-weight="700" fill="#15803d">Rachna</text>
+<text x="852" y="532" font-size="15" fill="#374151">Call sites · 2 pending</text>
+<circle cx="860" cy="564" r="7" fill="#dc2626"/>
+<text x="878" y="570" font-size="18" font-weight="600" fill="#111827">Rerun scan on the new run_id</text>
+<text x="878" y="596" font-size="15" fill="#4b5563">Picks up the 4 newly pinned packages, about 179 sites</text>
+<rect x="1422" y="549" width="114" height="26" rx="13" fill="#fee2e2" stroke="#b91c1c" stroke-width="1.5"/>
+<text x="1479" y="567" font-size="13" font-weight="700" text-anchor="middle" fill="#b91c1c">Blocks join</text>
+<rect x="1546" y="549" width="52" height="26" rx="13" fill="#fff" stroke="#15803d" stroke-width="1.5"/>
+<text x="1572" y="567" font-size="14" font-weight="700" text-anchor="middle" fill="#15803d">D1</text>
+<circle cx="860" cy="642" r="5" fill="#374151"/>
+<text x="878" y="648" font-size="18" font-weight="600" fill="#111827">Keep or drop the 315 keyword-arg names</text>
+<text x="878" y="674" font-size="15" fill="#4b5563">With Rochan, before the rerun. KEEP_NAME_ONLY in scan.py</text>
+<rect x="1446" y="627" width="90" height="26" rx="13" fill="#fff" stroke="#374151" stroke-width="1.5"/>
+<text x="1491" y="645" font-size="13" font-weight="700" text-anchor="middle" fill="#374151">Decision</text>
+<rect x="1546" y="627" width="52" height="26" rx="13" fill="#fff" stroke="#15803d" stroke-width="1.5"/>
+<text x="1572" y="645" font-size="14" font-weight="700" text-anchor="middle" fill="#15803d">NOW</text>
+<rect x="20" y="752" width="790" height="340" rx="12" fill="#fdf6dc" stroke="#a16207" stroke-width="2.5"/>
+<text x="42" y="790" font-size="23" font-weight="700" fill="#a16207">Rochan</text>
+<text x="42" y="814" font-size="15" fill="#374151">Resolver · 2 pending</text>
+<circle cx="50" cy="846" r="7" fill="#dc2626"/>
+<text x="68" y="852" font-size="18" font-weight="600" fill="#111827">Rerun resolve on Rachna's new candidates</text>
+<text x="68" y="878" font-size="15" fill="#4b5563">Then rerun score_packages on the new run_id</text>
+<rect x="612" y="831" width="114" height="26" rx="13" fill="#fee2e2" stroke="#b91c1c" stroke-width="1.5"/>
+<text x="669" y="849" font-size="13" font-weight="700" text-anchor="middle" fill="#b91c1c">Blocks join</text>
+<rect x="736" y="831" width="52" height="26" rx="13" fill="#fff" stroke="#a16207" stroke-width="1.5"/>
+<text x="762" y="849" font-size="14" font-weight="700" text-anchor="middle" fill="#a16207">D1</text>
+<circle cx="50" cy="924" r="5" fill="#374151"/>
+<text x="68" y="930" font-size="18" font-weight="600" fill="#111827">Keep or drop the 315 keyword-arg names</text>
+<text x="68" y="956" font-size="15" fill="#4b5563">With Rachna, before her rerun</text>
+<rect x="636" y="909" width="90" height="26" rx="13" fill="#fff" stroke="#374151" stroke-width="1.5"/>
+<text x="681" y="927" font-size="13" font-weight="700" text-anchor="middle" fill="#374151">Decision</text>
+<rect x="736" y="909" width="52" height="26" rx="13" fill="#fff" stroke="#a16207" stroke-width="1.5"/>
+<text x="762" y="927" font-size="14" font-weight="700" text-anchor="middle" fill="#a16207">NOW</text>
+<rect x="830" y="752" width="790" height="340" rx="12" fill="#fbe9f2" stroke="#be185d" stroke-width="2.5"/>
+<text x="852" y="790" font-size="23" font-weight="700" fill="#be185d">Chaitali</text>
+<text x="852" y="814" font-size="15" fill="#374151">Owners + gold set · 3 pending</text>
+<circle cx="860" cy="846" r="7" fill="#dc2626"/>
+<text x="878" y="852" font-size="18" font-weight="600" fill="#111827">Human spot-check of 10 waits in the gold set</text>
+<text x="878" y="878" font-size="15" fill="#4b5563">Fill human_verdict. Today 0 of 262 rows have one. Bar: 9 of 10 hold</text>
+<rect x="1364" y="831" width="172" height="26" rx="13" fill="#fee2e2" stroke="#b91c1c" stroke-width="1.5"/>
+<text x="1450" y="849" font-size="13" font-weight="700" text-anchor="middle" fill="#b91c1c">Blocks graph score</text>
+<rect x="1546" y="831" width="52" height="26" rx="13" fill="#fff" stroke="#be185d" stroke-width="1.5"/>
+<text x="1572" y="849" font-size="14" font-weight="700" text-anchor="middle" fill="#be185d">NOW</text>
+<circle cx="860" cy="924" r="5" fill="#374151"/>
+<text x="878" y="930" font-size="18" font-weight="600" fill="#111827">Hand-check the 20 biggest identity groups</text>
+<text x="878" y="956" font-size="15" fill="#4b5563">owners.py --top 20. No record yet that it was done</text>
+<rect x="1438" y="909" width="98" height="26" rx="13" fill="#fff" stroke="#374151" stroke-width="1.5"/>
+<text x="1487" y="927" font-size="13" font-weight="700" text-anchor="middle" fill="#374151">Plan task</text>
+<rect x="1546" y="909" width="52" height="26" rx="13" fill="#fff" stroke="#be185d" stroke-width="1.5"/>
+<text x="1572" y="927" font-size="14" font-weight="700" text-anchor="middle" fill="#be185d">D1</text>
+<circle cx="860" cy="1002" r="5" fill="#374151"/>
+<text x="878" y="1008" font-size="18" font-weight="600" fill="#111827">Rerun owners on the new run_id</text>
+<text x="878" y="1034" font-size="15" fill="#4b5563">Check the person and file_owner counts again</text>
+<rect x="1471" y="987" width="65" height="26" rx="13" fill="#fff" stroke="#374151" stroke-width="1.5"/>
+<text x="1504" y="1005" font-size="13" font-weight="700" text-anchor="middle" fill="#374151">Rerun</text>
+<rect x="1546" y="987" width="52" height="26" rx="13" fill="#fff" stroke="#be185d" stroke-width="1.5"/>
+<text x="1572" y="1005" font-size="14" font-weight="700" text-anchor="middle" fill="#be185d">D1</text>
+<rect x="20" y="1122" width="1600" height="96" rx="12" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="42" y="1160" font-size="19" font-weight="700" fill="#111827">Decided (Utkarsh): keep local_part_max_names · env = snapshot · orchestration moved to infra.toml</text>
+<text x="42" y="1192" font-size="16" fill="#4b5563">Still open, none block the new run_id: call depth (model training) · GCP names · keyword-arg names · unowned Spark files · week1 CSV usernames</text>
+</svg>

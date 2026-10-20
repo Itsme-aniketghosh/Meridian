@@ -1,6 +1,6 @@
 # Shared snapshot · temporary
 
-**Temporary.** This folder exists only until Utkarsh's GCS bucket is ready (`snapshot_bucket` in [meridian.toml](../meridian.toml)). Then collect uploads and downloads the raw pulls itself, and this folder gets deleted.
+**Temporary.** This folder exists only until Utkarsh's GCS bucket is ready (`snapshot_bucket` in [infra.toml](../infra.toml)). Then collect uploads and downloads the raw pulls itself, and this folder gets deleted.
 
 ## Why this exists
 
@@ -91,7 +91,7 @@ The log should also say `94.0% from the subject` for the last 1,000 Spark commit
 
 ## When the run changes
 
-Around D4, Rachna's 4 package refs and Utkarsh's bucket settings land in `meridian.toml`. That gives a new `run_id`, and Vishwa posts it.
+Around D4, Rachna's 4 package refs land in `meridian.toml`. That gives a new `run_id`, and Vishwa posts it. Utkarsh's bucket settings are in `infra.toml`, which doesn't change the `run_id`.
 
 - **Keep the zip.** Those changes don't touch the Jira or GitLab pulls, so the same zip works for the next run.
 - When a new `run_id` is posted: `git pull`, redo steps 5–7 with the new ID, then rerun your own part with it. No code changes are needed.
