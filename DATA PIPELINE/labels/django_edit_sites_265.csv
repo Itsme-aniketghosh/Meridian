@@ -1,0 +1,266 @@
+path,line,kind,symbol,is_edit_line,note,seconds,checked_by,checked_in
+django/contrib/admin/actions.py,12,import,ugettext|ugettext_lazy,yes,multi-line import,11.3,RS,week1
+django/contrib/admin/actions.py,87,call,ugettext_lazy,yes,an import,54.9,RS,day4
+django/contrib/admin/apps.py,4,import,ugettext_lazy,yes,an import,20.4,RS,day4
+django/contrib/admin/filters.py,18,import,ugettext_lazy,yes,an import,13.6,RS,day4
+django/contrib/admin/forms.py,3,import,ugettext_lazy,yes,an import,9.4,RS,day4
+django/contrib/admin/helpers.py,16,import,ugettext|ugettext_lazy,yes,multi import,12.2,RS,day4
+django/contrib/admin/helpers.py,293,call,ugettext,yes,calling function,11.4,RS,day4
+django/contrib/admin/helpers.py,296,call,ugettext,yes,used to define or call something,13.1,RS,week1
+django/contrib/admin/models.py,11,import,ugettext|ugettext_lazy,yes,multi import,13.0,RS,day4
+django/contrib/admin/models.py,71,call,ugettext,yes,returns function,18.6,RS,day4
+django/contrib/admin/models.py,73,call,ugettext,yes,return function,8.1,RS,day4
+django/contrib/admin/models.py,78,call,ugettext,yes,return function,10.4,RS,day4
+django/contrib/admin/models.py,80,call,ugettext,yes,return function,10.5,RS,day4
+django/contrib/admin/models.py,105,call,ugettext,yes,an alias,19.8,RS,day4
+django/contrib/admin/models.py,106,call,ugettext,yes,function,7.4,RS,day4
+django/contrib/admin/models.py,108,call,ugettext,yes,function,7.3,RS,day4
+django/contrib/admin/models.py,112,call,ugettext,yes,function,6.9,RS,day4
+django/contrib/admin/models.py,115,call,ugettext,yes,an alias,7.7,RS,day4
+django/contrib/admin/models.py,116,call,ugettext,yes,function,7.2,RS,day4
+django/contrib/admin/models.py,120,call,ugettext,yes,function,7.4,RS,day4
+django/contrib/admin/models.py,123,call,ugettext,yes,an alias,4.5,RS,day4
+django/contrib/admin/models.py,124,call,ugettext,yes,function,7.2,RS,day4
+django/contrib/admin/models.py,127,call,ugettext,yes,return function,11.9,RS,day4
+django/contrib/admin/options.py,46,import,ugettext|ungettext,yes,multi import,19.0,RS,day4
+django/contrib/admin/options.py,1612,call,ungettext,yes,function call,15.8,RS,day4
+django/contrib/admin/options.py,1644,call,ungettext,yes,function,5.5,RS,day4
+django/contrib/admin/sites.py,13,import,ugettext|ugettext_lazy,yes,multi-line import,13.0,RS,week1
+django/contrib/admin/sites.py,39,call,ugettext_lazy,yes,an alias,12.6,RS,day4
+django/contrib/admin/sites.py,42,call,ugettext_lazy,yes,an alias,6.9,RS,day4
+django/contrib/admin/sites.py,45,call,ugettext_lazy,yes,an alias,5.9,RS,day4
+django/contrib/admin/templatetags/admin_list.py,22,import,ugettext,yes,an import,15.1,RS,day4
+django/contrib/admin/tests.py,5,import,ugettext,yes,an import,7.6,RS,day4
+django/contrib/admin/utils.py,18,import,ungettext,yes,multi-line import,20.1,RS,week1
+django/contrib/admin/utils.py,274,call,ungettext,yes,return function,7.5,RS,day4
+django/contrib/admin/views/main.py,21,import,ugettext,yes,an import,6.0,RS,day4
+django/contrib/admin/views/main.py,79,call,ugettext,yes,an alias,4.6,RS,day4
+django/contrib/admin/views/main.py,81,call,ugettext,yes,an alias,10.0,RS,day4
+django/contrib/admin/widgets.py,14,import,ugettext,yes,an import,9.2,RS,day4
+django/contrib/admindocs/apps.py,2,import,ugettext_lazy,yes,an import,15.2,RS,day4
+django/contrib/admindocs/views.py,23,import,ugettext,yes,an import,5.7,RS,day4
+django/contrib/auth/admin.py,19,import,ugettext|ugettext_lazy,yes,multi import,7.3,RS,day4
+django/contrib/auth/admin.py,147,call,ugettext,yes,an alias,5.1,RS,day4
+django/contrib/auth/apps.py,4,import,ugettext_lazy,yes,an import,8.0,RS,day4
+django/contrib/auth/base_user.py,14,import,ugettext_lazy,yes,an import,5.7,RS,day4
+django/contrib/auth/forms.py,18,import,ugettext|ugettext_lazy,yes,multi import,5.9,RS,day4
+django/contrib/auth/forms.py,30,call,ugettext,yes,function,10.5,RS,day4
+django/contrib/auth/forms.py,35,call,ugettext,yes,function call,8.3,RS,day4
+django/contrib/auth/forms.py,38,call,ugettext,yes,a call,16.3,RS,day4
+django/contrib/auth/hashers.py,18,import,ugettext_noop,yes,multi-line import,17.5,RS,week1
+django/contrib/auth/models.py,10,import,ugettext_lazy,yes,an import,9.2,RS,day4
+django/contrib/auth/password_validation.py,15,import,ugettext|ungettext,yes,multi import,4.8,RS,day4
+django/contrib/auth/password_validation.py,102,call,ungettext,yes,definition,7.9,RS,day4
+django/contrib/auth/password_validation.py,112,call,ungettext,yes,function definition,11.8,RS,day4
+django/contrib/auth/validators.py,5,import,ugettext_lazy,yes,an import,6.5,RS,day4
+django/contrib/auth/views.py,24,import,ugettext_lazy,yes,an import,5.6,RS,day4
+django/contrib/contenttypes/apps.py,5,import,ugettext_lazy,yes,an import,5.6,RS,day4
+django/contrib/contenttypes/models.py,6,import,ugettext_lazy,yes,an import,4.8,RS,day4
+django/contrib/contenttypes/views.py,6,import,ugettext,yes,an import,6.2,RS,day4
+django/contrib/flatpages/admin.py,4,import,ugettext_lazy,yes,used to import something,12.1,RS,week1
+django/contrib/flatpages/apps.py,2,import,ugettext_lazy,yes,an import,5.0,RS,day4
+django/contrib/flatpages/forms.py,4,import,ugettext|ugettext_lazy,yes,two name in one line,12.5,RS,week1
+django/contrib/flatpages/forms.py,29,call,ugettext,yes,function,34.4,RS,day4
+django/contrib/flatpages/forms.py,36,call,ugettext,yes,a call,11.3,RS,day4
+django/contrib/flatpages/models.py,5,import,ugettext_lazy,yes,an import,7.2,RS,day4
+django/contrib/gis/apps.py,3,import,ugettext_lazy,yes,an import,5.4,RS,day4
+django/contrib/gis/db/models/fields.py,13,import,ugettext_lazy,yes,an import,5.1,RS,day4
+django/contrib/gis/forms/fields.py,3,import,ugettext_lazy,yes,an import,5.9,RS,day4
+django/contrib/gis/views.py,2,import,ugettext,yes,an import,3.9,RS,day4
+django/contrib/humanize/apps.py,2,import,ugettext_lazy,yes,multi-line import,31.9,RS,week1
+django/contrib/humanize/templatetags/humanize.py,12,import,ugettext|ungettext,yes,multi import,5.3,RS,day4
+django/contrib/humanize/templatetags/humanize.py,59,call,ungettext,yes,a call,7.3,RS,day4
+django/contrib/humanize/templatetags/humanize.py,60,call,ungettext,yes,a call,7.9,RS,day4
+django/contrib/humanize/templatetags/humanize.py,63,call,ungettext,yes,a call,10.4,RS,day4
+django/contrib/humanize/templatetags/humanize.py,64,call,ungettext,yes,a call,10.3,RS,day4
+django/contrib/humanize/templatetags/humanize.py,67,call,ungettext,yes,a call,5.7,RS,day4
+django/contrib/humanize/templatetags/humanize.py,68,call,ungettext,yes,a call,4.7,RS,day4
+django/contrib/humanize/templatetags/humanize.py,71,call,ungettext,yes,a call,4.0,RS,day4
+django/contrib/humanize/templatetags/humanize.py,72,call,ungettext,yes,a call,4.7,RS,day4
+django/contrib/humanize/templatetags/humanize.py,75,call,ungettext,yes,a call,4.8,RS,day4
+django/contrib/humanize/templatetags/humanize.py,76,call,ungettext,yes,a call,9.1,RS,day4
+django/contrib/humanize/templatetags/humanize.py,79,call,ungettext,yes,a call,4.2,RS,day4
+django/contrib/humanize/templatetags/humanize.py,80,call,ungettext,yes,used to define somthing,13.3,RS,week1
+django/contrib/humanize/templatetags/humanize.py,83,call,ungettext,yes,a call,5.6,RS,day4
+django/contrib/humanize/templatetags/humanize.py,84,call,ungettext,yes,a call,4.6,RS,day4
+django/contrib/humanize/templatetags/humanize.py,87,call,ungettext,yes,a call,4.0,RS,day4
+django/contrib/humanize/templatetags/humanize.py,88,call,ungettext,yes,a call,5.2,RS,day4
+django/contrib/humanize/templatetags/humanize.py,91,call,ungettext,yes,a call,4.1,RS,day4
+django/contrib/humanize/templatetags/humanize.py,92,call,ungettext,yes,a call,7.0,RS,day4
+django/contrib/humanize/templatetags/humanize.py,95,call,ungettext,yes,a call,3.9,RS,day4
+django/contrib/humanize/templatetags/humanize.py,96,call,ungettext,yes,a call,3.2,RS,day4
+django/contrib/humanize/templatetags/humanize.py,99,call,ungettext,yes,a call,4.5,RS,day4
+django/contrib/humanize/templatetags/humanize.py,100,call,ungettext,yes,a call,4.2,RS,day4
+django/contrib/humanize/templatetags/humanize.py,205,call,ungettext,yes,a function,8.1,RS,day4
+django/contrib/humanize/templatetags/humanize.py,212,call,ungettext,yes,a definition,9.9,RS,day4
+django/contrib/humanize/templatetags/humanize.py,219,call,ungettext,yes,a definition,12.1,RS,day4
+django/contrib/humanize/templatetags/humanize.py,233,call,ungettext,yes,a definition,9.8,RS,day4
+django/contrib/humanize/templatetags/humanize.py,240,call,ungettext,yes,a call,7.2,RS,day4
+django/contrib/humanize/templatetags/humanize.py,247,call,ungettext,yes,a call,4.2,RS,day4
+django/contrib/messages/apps.py,2,import,ugettext_lazy,yes,an import,6.0,RS,day4
+django/contrib/postgres/apps.py,5,import,ugettext_lazy,yes,multi-line import,8.7,RS,week1
+django/contrib/postgres/fields/array.py,9,import,ugettext_lazy,yes,an import,6.2,RS,day4
+django/contrib/postgres/fields/hstore.py,8,import,ugettext_lazy,yes,an import,4.2,RS,day4
+django/contrib/postgres/fields/jsonb.py,10,import,ugettext_lazy,yes,an import,4.7,RS,day4
+django/contrib/postgres/forms/array.py,10,import,ugettext_lazy,yes,an import,4.8,RS,day4
+django/contrib/postgres/forms/hstore.py,5,import,ugettext_lazy,yes,an import,4.2,RS,day4
+django/contrib/postgres/forms/jsonb.py,4,import,ugettext_lazy,yes,an import,5.1,RS,day4
+django/contrib/postgres/forms/ranges.py,6,import,ugettext_lazy,yes,an import,5.0,RS,day4
+django/contrib/postgres/validators.py,9,import,ugettext_lazy|ungettext_lazy,yes,multi-line import,11.9,RS,week1
+django/contrib/postgres/validators.py,13,call,ungettext_lazy,yes,multi import,6.2,RS,day4
+django/contrib/postgres/validators.py,20,call,ungettext_lazy,yes,a call,14.9,RS,day4
+django/contrib/redirects/apps.py,2,import,ugettext_lazy,yes,used for import,44.4,RS,week1
+django/contrib/redirects/models.py,3,import,ugettext_lazy,yes,an import,5.5,RS,day4
+django/contrib/sessions/apps.py,2,import,ugettext_lazy,yes,am import,5.4,RS,day4
+django/contrib/sessions/base_session.py,6,import,ugettext_lazy,yes,an import,9.3,RS,day4
+django/contrib/sitemaps/apps.py,2,import,ugettext_lazy,yes,used to import,8.5,RS,week1
+django/contrib/sites/apps.py,3,import,ugettext_lazy,yes,an import,5.7,RS,day4
+django/contrib/sites/models.py,7,import,ugettext_lazy,yes,an import,6.0,RS,day4
+django/contrib/staticfiles/apps.py,4,import,ugettext_lazy,yes,an import,5.9,RS,day4
+django/contrib/syndication/apps.py,2,import,ugettext_lazy,yes,an import,5.3,RS,day4
+django/core/paginator.py,6,import,ugettext_lazy,yes,an import,22.6,RS,day4
+django/core/validators.py,11,import,ugettext_lazy|ungettext_lazy,yes,multi import,6.9,RS,day4
+django/core/validators.py,362,call,ungettext_lazy,yes,an alias,17.7,RS,day4
+django/core/validators.py,377,call,ungettext_lazy,yes,an alias,4.2,RS,day4
+django/core/validators.py,397,call,ungettext_lazy,yes,a function,32.1,RS,day4
+django/core/validators.py,402,call,ungettext_lazy,yes,used to call something,19.6,RS,week1
+django/core/validators.py,407,call,ungettext_lazy,yes,a functino,5.1,RS,day4
+django/db/models/base.py,32,import,ugettext_lazy,yes,an import,8.4,RS,day4
+django/db/models/fields/__init__.py,33,import,ugettext_lazy,yes,an import,6.1,RS,day4
+django/db/models/fields/files.py,13,import,ugettext_lazy,yes,an import,7.6,RS,day4
+django/db/models/fields/related.py,17,import,ugettext_lazy,yes,an import,4.7,RS,day4
+django/forms/boundfield.py,12,import,ugettext_lazy,yes,multi-line import,19.7,RS,week1
+django/forms/fields.py,33,import,ugettext_lazy|ungettext_lazy,yes,multi import,6.2,RS,day4
+django/forms/fields.py,537,call,ungettext_lazy,yes,a function,19.9,RS,day4
+django/forms/forms.py,19,import,ugettext,yes,an import,8.4,RS,day4
+django/forms/formsets.py,9,import,ugettext|ungettext,yes,multi import,6.5,RS,day4
+django/forms/formsets.py,344,call,ungettext,yes,a call,70.0,RS,day4
+django/forms/formsets.py,351,call,ungettext,yes,a call,5.4,RS,day4
+django/forms/models.py,21,import,ugettext|ugettext_lazy,yes,multi import,5.7,RS,day4
+django/forms/models.py,722,call,ugettext,yes,a return function,11.3,RS,day4
+django/forms/models.py,726,call,ugettext,yes,a return function,6.2,RS,day4
+django/forms/models.py,731,call,ugettext,yes,a return function,11.0,RS,day4
+django/forms/models.py,741,call,ugettext,yes,a return function,11.9,RS,day4
+django/forms/utils.py,9,import,ugettext_lazy,yes,an import,5.6,RS,day4
+django/forms/widgets.py,20,import,ugettext_lazy,yes,an import,4.1,RS,day4
+django/forms/widgets.py,361,call,ugettext_lazy,yes,rechecked: call on the right of = (first pass said no: definition),15.1,RS,day4
+django/forms/widgets.py,362,call,ugettext_lazy,yes,an alias,18.0,RS,day4
+django/forms/widgets.py,363,call,ugettext_lazy,yes,an alias,4.5,RS,day4
+django/forms/widgets.py,693,call,ugettext_lazy,yes,an alias,2.8,RS,day4
+django/forms/widgets.py,694,call,ugettext_lazy,yes,a function,10.8,RS,day4
+django/forms/widgets.py,695,call,ugettext_lazy,yes,a function,4.5,RS,day4
+django/template/base.py,68,import,ugettext_lazy,yes,an import,21.6,RS,day4
+django/template/base.py,827,call,ugettext_lazy,yes,used to define something,12.4,RS,week1
+django/template/defaultfilters.py,22,import,ugettext|ungettext,yes,multi import,7.4,RS,day4
+django/template/defaultfilters.py,820,call,ugettext,yes,an alias,5.4,RS,day4
+django/template/defaultfilters.py,849,call,ungettext,yes,an alias,8.4,RS,day4
+django/template/defaultfilters.py,866,call,ungettext,yes,used to call something,12.0,RS,week1
+django/template/defaultfilters.py,868,call,ugettext,yes,an alias,7.2,RS,day4
+django/template/defaultfilters.py,870,call,ugettext,yes,an alias,3.4,RS,day4
+django/template/defaultfilters.py,872,call,ugettext,yes,an alias,4.3,RS,day4
+django/template/defaultfilters.py,874,call,ugettext,yes,an alias,4.4,RS,day4
+django/template/defaultfilters.py,876,call,ugettext,yes,an alias,3.9,RS,day4
+django/templatetags/i18n.py,16,call,ugettext,yes,a function call,9.6,RS,day4
+django/templatetags/i18n.py,145,call,ungettext,yes,a function call,6.3,RS,day4
+django/templatetags/i18n.py,151,call,ugettext,yes,a function call,6.4,RS,day4
+django/templatetags/i18n.py,270,call,ugettext,yes,a return function,8.4,RS,day4
+django/utils/dateformat.py,23,import,ugettext,yes,an import,6.4,RS,day4
+django/utils/dates.py,3,import,ugettext_lazy,yes,an import,6.8,RS,day4
+django/utils/ipv6.py,4,import,ugettext_lazy,yes,an import,10.1,RS,day4
+django/utils/text.py,12,import,ugettext|ugettext_lazy,yes,multi import,18.9,RS,day4
+django/utils/text.py,243,call,ugettext_lazy,yes,an alias,6.4,RS,day4
+django/utils/timesince.py,6,import,ugettext|ungettext_lazy,yes,import with two old names,45.6,RS,day4
+django/utils/timesince.py,9,call,ungettext_lazy,yes,call,22.5,RS,day4
+django/utils/timesince.py,10,call,ungettext_lazy,yes,call,5.6,RS,day4
+django/utils/timesince.py,11,call,ungettext_lazy,yes,call,5.3,RS,day4
+django/utils/timesince.py,12,call,ungettext_lazy,yes,call,3.9,RS,day4
+django/utils/timesince.py,13,call,ungettext_lazy,yes,call,3.0,RS,day4
+django/utils/timesince.py,14,call,ungettext_lazy,yes,call,3.5,RS,day4
+django/utils/timesince.py,58,call,ugettext,yes,call,4.1,RS,day4
+django/utils/timesince.py,69,call,ugettext,yes,used to define something,8.7,RS,week1
+django/utils/translation/__init__.py,253,call,ugettext_lazy,yes,an alias,5.4,RS,day4
+django/views/csrf.py,4,import,ugettext,yes,an import,8.5,RS,day4
+django/views/debug.py,15,import,ugettext,yes,an import,4.4,RS,day4
+django/views/generic/dates.py,10,import,ugettext,yes,an import,9.4,RS,day4
+django/views/generic/detail.py,4,import,ugettext,yes,an import,6.3,RS,day4
+django/views/generic/list.py,5,import,ugettext,yes,used to import something,17.3,RS,week1
+django/views/static.py,18,import,ugettext|ugettext_lazy,yes,import with two old names,11.3,RS,day4
+django/views/static.py,98,call,ugettext_lazy,yes,an alias,5.1,RS,day4
+tests/admin_utils/models.py,2,import,ugettext_lazy,yes,import,4.5,RS,day4
+tests/auth_tests/test_forms.py,20,import,ugettext,yes,import,5.3,RS,day4
+tests/auth_tests/test_management.py,19,import,ugettext_lazy,yes,import,6.8,RS,day4
+tests/basic/tests.py,12,import,ugettext_lazy,yes,import,4.0,RS,day4
+tests/basic/tests.py,319,call,ugettext_lazy,yes,alias,4.2,RS,day4
+tests/flatpages_tests/test_forms.py,104,call,ugettext,yes,call,5.0,RS,day4
+tests/forms_tests/tests/test_i18n.py,6,import,ugettext_lazy,yes,y,33.4,RS,day4
+tests/forms_tests/tests/test_i18n.py,12,call,ugettext_lazy,yes,used to call something,82.8,RS,week1
+tests/forms_tests/tests/test_i18n.py,37,call,ugettext_lazy,yes,used to define something,11.3,RS,week1
+tests/forms_tests/tests/test_i18n.py,40,call,ugettext_lazy,yes,used to define something,10.4,RS,week1
+tests/forms_tests/tests/test_utils.py,7,import,ugettext_lazy,yes,import with one old line and one new line,28.2,RS,day4
+tests/forms_tests/tests/test_utils.py,69,call,ugettext_lazy,yes,call,5.4,RS,day4
+tests/forms_tests/tests/test_utils.py,87,call,ugettext_lazy,yes,call,3.6,RS,day4
+tests/humanize_tests/tests.py,10,import,ugettext,yes,import,4.6,RS,day4
+tests/i18n/commands/__init__.py,1,import,ugettext|ungettext,yes,import with two old names,9.5,RS,day4
+tests/i18n/commands/__init__.py,12,call,ungettext,yes,alias,5.8,RS,day4
+tests/i18n/exclude/__init__.py,6,import,ugettext,yes,import,4.8,RS,day4
+tests/i18n/models.py,4,import,ugettext_lazy,yes,import,3.4,RS,day4
+tests/i18n/patterns/urls/default.py,3,import,ugettext_lazy,yes,single import line for something,46.1,RS,week1
+tests/i18n/patterns/urls/namespace.py,2,import,ugettext_lazy,yes,import,3.7,RS,day4
+tests/i18n/patterns/urls/wrong.py,3,import,ugettext_lazy,yes,import,4.4,RS,day4
+tests/i18n/patterns/urls/wrong_namespace.py,3,import,ugettext_lazy,yes,import,4.9,RS,day4
+tests/i18n/project_dir/__init__.py,2,import,ugettext,yes,import,4.4,RS,day4
+tests/i18n/project_dir/app_no_locale/models.py,1,import,ugettext,yes,import,3.7,RS,day4
+tests/i18n/project_dir/app_with_locale/models.py,1,import,ugettext,yes,import,3.3,RS,day4
+tests/i18n/test_compilation.py,18,import,ugettext,yes,import,8.1,RS,day4
+tests/i18n/test_compilation.py,170,call,ugettext,yes,used to compare something,11.9,RS,week1
+tests/i18n/test_compilation.py,171,call,ugettext,yes,call,4.8,RS,day4
+tests/i18n/test_compilation.py,177,call,ugettext,yes,call,3.8,RS,day4
+tests/i18n/test_compilation.py,178,call,ugettext,yes,call,4.0,RS,day4
+tests/i18n/tests.py,27,import,ugettext|ugettext_lazy,yes,import with four old names,16.1,RS,day4
+tests/i18n/tests.py,28,import,ungettext|ungettext_lazy,yes,import two old names,21.4,RS,day4
+tests/i18n/tests.py,60,call,ungettext,yes,call,7.2,RS,day4
+tests/i18n/tests.py,61,call,ungettext,yes,call,3.5,RS,day4
+tests/i18n/tests.py,62,call,ungettext,yes,call,2.9,RS,day4
+tests/i18n/tests.py,63,call,ungettext,yes,call,2.4,RS,day4
+tests/i18n/tests.py,122,call,ugettext_lazy,yes,alias,3.4,RS,day4
+tests/i18n/tests.py,131,call,ugettext_lazy,yes,alias,4.4,RS,day4
+tests/i18n/tests.py,137,call,ugettext_lazy,yes,alias,3.3,RS,day4
+tests/i18n/tests.py,141,call,ugettext_lazy,yes,alias,7.4,RS,day4
+tests/i18n/tests.py,148,call,ungettext_lazy,yes,alias,3.9,RS,day4
+tests/i18n/tests.py,150,call,ungettext_lazy,yes,used to call something,13.5,RS,week1
+tests/i18n/tests.py,159,call,ungettext_lazy,yes,alias,4.4,RS,day4
+tests/i18n/tests.py,160,call,ungettext_lazy,yes,multi-line import,15.9,RS,week1
+tests/i18n/tests.py,182,call,ungettext_lazy,yes,call,3.8,RS,day4
+tests/i18n/tests.py,183,call,ungettext_lazy,yes,call,3.4,RS,day4
+tests/i18n/tests.py,186,call,ungettext_lazy,yes,alias,4.7,RS,day4
+tests/i18n/tests.py,994,call,ugettext,yes,call,4.1,RS,day4
+tests/i18n/tests.py,996,call,ugettext,yes,call,2.7,RS,day4
+tests/i18n/tests.py,998,call,ugettext,yes,call,2.3,RS,day4
+tests/i18n/tests.py,1000,call,ugettext,yes,call,4.6,RS,day4
+tests/i18n/tests.py,1226,call,ugettext,yes,alias,4.6,RS,day4
+tests/i18n/tests.py,1271,call,ugettext,yes,call,4.5,RS,day4
+tests/i18n/tests.py,1299,call,ugettext,yes,call,3.9,RS,day4
+tests/i18n/tests.py,1514,call,ugettext,yes,unsure,16.1,RS,week1
+tests/i18n/tests.py,1527,call,ungettext,yes,call,3.3,RS,day4
+tests/i18n/urls.py,4,import,ugettext_lazy,yes,import,4.3,RS,day4
+tests/i18n/urls_default_unprefixed.py,4,import,ugettext_lazy,yes,import,4.3,RS,day4
+tests/mail/tests.py,29,import,ugettext_lazy,yes,import,4.0,RS,day4
+tests/mail/tests.py,180,call,ugettext_lazy,yes,call function,12.3,RS,day4
+tests/mail/tests.py,859,call,ugettext_lazy,yes,call,3.5,RS,day4
+tests/mail/tests.py,864,call,ugettext_lazy,yes,call,3.0,RS,day4
+tests/mail/tests.py,929,alias,ugettext_lazy,yes,alias,4.9,RS,day4
+tests/many_to_one/tests.py,8,import,ugettext_lazy,yes,import,5.3,RS,day4
+tests/many_to_one/tests.py,434,call,ugettext_lazy,yes,alias,3.0,RS,day4
+tests/messages_tests/base.py,9,import,ugettext_lazy,yes,import,10.9,RS,day4
+tests/messages_tests/base.py,103,call,ugettext_lazy,yes,unsure,24.0,RS,week1
+tests/migrations/test_writer.py,27,import,ugettext_lazy,yes,import,3.7,RS,day4
+tests/queryset_pickle/models.py,4,import,ugettext_lazy,yes,import,3.6,RS,day4
+tests/serializers/test_json.py,12,import,ugettext_lazy,yes,import with one old name,7.9,RS,day4
+tests/serializers/test_json.py,295,call,ugettext_lazy,yes,call,4.9,RS,day4
+tests/serializers/test_json.py,300,call,ugettext_lazy,yes,call,5.2,RS,day4
+tests/test_client_regress/tests.py,20,import,ugettext_lazy,yes,single line import,10.1,RS,week1
+tests/test_client_regress/tests.py,157,call,ugettext_lazy,yes,call,4.8,RS,day4
+tests/test_client_regress/tests.py,161,call,ugettext_lazy,yes,call,3.1,RS,day4
+tests/utils_tests/test_text.py,7,import,ugettext_lazy,yes,import with one old name,9.2,RS,day4
+tests/utils_tests/test_text.py,238,call,ugettext_lazy,yes,function call,8.3,RS,day4
+tests/view_tests/urls.py,6,import,ugettext_lazy,yes,used to import something,7.8,RS,week1

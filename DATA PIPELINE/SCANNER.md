@@ -18,7 +18,7 @@ python -m meridian.scan --run-id <run_id> --config meridian.toml      # from DAT
 | D4 · Candidates on Django | 265 of 265, 0 false | **265 of 265, 0 false** (vs `week1/pair1/results/edit_sites.csv`), plus 2 of 2 in `code.sample` | ✅ |
 | D4 · Candidates on packages → Rochan | ≥ 97% | resolver on these rows: **1,059 of 1,059**, precision 1.000 | ✅ |
 | D4 · The 4 replacement refs | pinned | autocomplete-light, dj-rest-auth, silk, tastypie pinned (below) | ✅ |
-| D4 · Freeze the Django 265 key | hand-checked, committed | 30 of 30 hand-checked in week 1. The other 235: next | ⏳ |
+| D4 · Freeze the Django 265 key | hand-checked, committed | **265 of 265** confirmed in 41.6 min (30 in week 1, 235 in 32.3 min). One first-pass slip, `widgets.py:361`, fixed on review | ✅ |
 | D6 · Goldens, every case | all pass | 11 golden tests (cases below) | ✅ |
 | Same run, same bytes | 0 diffs | `cmp` identical on a second run | ✅ |
 
@@ -78,9 +78,8 @@ dj-rest-auth and silk had more uses earlier (peaks 61 and 35) than just before t
 
 ## Next
 
-1. Hand-check the other 235 Django edit lines and freeze the key in `labels/` (week 1 pace: about 75 min).
-2. Rerun on the new `run_id` once Vishwa posts it.
-3. Agree with Rochan on keyword-argument and parameter names.
+1. Rerun on the new `run_id` once Vishwa posts it.
+2. Agree with Rochan on keyword-argument and parameter names.
 
 ## Rerun
 
@@ -90,6 +89,7 @@ python -m meridian.scan --run-id <run_id> --config meridian.toml
 python -m meridian.resolve --run-id <run_id> --config meridian.toml              # Rochan's part, on these rows
 python -m tests.score_packages --run-id <run_id> --config meridian.toml
 MERIDIAN_RUN_ID=<run_id> python -m unittest tests.test_scan -v                   # 17 tests, Django answer key included
+python -m tests.hand_check_edit_sites --run-id <run_id> --config meridian.toml --initials XX   # interactive, resumable
 ```
 
 | File | What |
@@ -97,3 +97,4 @@ MERIDIAN_RUN_ID=<run_id> python -m unittest tests.test_scan -v                  
 | `meridian/scan.py` | The part |
 | `tests/test_scan.py` | Goldens, the one command, Django answer key |
 | `week1/pair3/django-packages/scan.py` | Finds each package's migration commit |
+| `tests/hand_check_edit_sites.py`, `labels/django_edit_sites_265.csv` | Hand check and the frozen key (265 of 265) |
