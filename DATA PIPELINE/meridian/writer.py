@@ -68,14 +68,19 @@ def read_rows(path, cols, run_id):
     return [(where, r) for _, where, r in rows]
 
 
-def write(src, db=None, schema=SCHEMA, config=CONFIG):
-    src = Path(src)
-    run_id = src.name
-    db = Path(db) if db else src / "meridian.sqlite"
+def check_sqlite(config=CONFIG):
+    """The command refuses a SQLite other than the pinned one: the file header records the version, so the bytes differ.
+    write() itself doesn't check, so tests prove same-rows-same-bytes on whatever SQLite the machine has."""
     pinned = load_config(config)["run"].get("sqlite_version")
     if pinned and sqlite3.sqlite_version != pinned:
         raise SystemExit(f"SQLite is {sqlite3.sqlite_version}, meridian.toml pins {pinned}: the bytes would differ")
-    sql = Path(schema).read_text()
+
+
+def write(src, db=None, schema=SCHEMA):
+    src = Path(src)
+    run_id = src.name
+    db = Path(db) if db else src / "meridian.sqlite"
+    sql = Path(schema).read_text(encoding="utf-8")
     spec = tables(sql)
     files = sorted(src.glob("*.jsonl"))
     if unknown := [p.name for p in files if p.stem not in spec]:
@@ -110,8 +115,9 @@ if __name__ == "__main__":
     ap = parser(__doc__, "loads out/<run_id>/")
     ap.add_argument("--db", help="default: out/<run_id>/meridian.sqlite")
     a = ap.parse_args()
+    check_sqlite(a.config)
     try:
-        counts = write(handoff(load_config(a.config), a.run_id), a.db, config=a.config)
+        counts = write(handoff(load_config(a.config), a.run_id), a.db)
     except BadRow as e:
         sys.exit(f"not written: {e}")
     for t, n in counts.items():

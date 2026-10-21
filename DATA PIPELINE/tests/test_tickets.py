@@ -2,7 +2,7 @@
 
     python -m unittest tests.test_tickets -v      # from DATA PIPELINE/
 """
-import re, sys, unittest
+import gzip, json, re, shutil, sys, tempfile, unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -54,12 +54,22 @@ class Jira(unittest.TestCase):
                 history(2, "2026-04-01T00:00:00Z", ("Link", "This issue is blocked by SPARK-2", None)),
                 history(3, "2026-10-03T00:00:00Z", ("Link", None, "This issue is blocked by SPARK-3"))]),
             issue("SPARK-6", labels=["bulk-closed"], status="Closed", resolution="Incomplete", resolved="2026-01-02T00:00:00Z"),
+            # fixed before, reopened after: Jira cleared resolutiondate, but it was Fixed at the snapshot
+            issue("SPARK-7", status="Reopened", histories=[
+                history(1, "2026-02-01T00:00:00Z", ("status", "Open", "Resolved"), ("resolution", None, "Fixed")),
+                history(2, "2026-10-04T00:00:00Z", ("status", "Resolved", "Reopened"), ("resolution", "Fixed", None))]),
         ]
-        # 20 resolved by one person within one hour: a mass close
-        issues += [issue(f"SPARK-{100 + i}", status="Closed", resolution="Won't Fix", resolved="2026-05-01T10:30:00Z",
-                         histories=[history(1, f"2026-05-01T10:{i:02d}:00Z", ("resolution", None, "Won't Fix"), who="bot")])
+        issues[-1]["changelog"]["total"] = 3  # Jira returned 2 of 3 histories
+        # 20 resolved by one person within one hour, across a clock hour (10:50-11:09): a mass close
+        issues += [issue(f"SPARK-{100 + i}", status="Closed", resolution="Won't Fix", resolved="2026-05-01T11:30:00Z",
+                         histories=[history(1, f"2026-05-01T{10 + (50 + i) // 60}:{(50 + i) % 60:02d}:00Z",
+                                            ("resolution", None, "Won't Fix"), who="bot")])
                    for i in range(20)]
-        tickets, events, links = T.jira(issues, SNAP, RULES, RUN, "SPARK")
+        # 20 in one hour with no author: anonymous entries are no one, never pooled into one person
+        issues += [issue(f"SPARK-{200 + i}", status="Closed", resolution="Won't Fix", resolved="2026-06-01T10:30:00Z",
+                         histories=[history(1, f"2026-06-01T10:{i:02d}:00Z", ("resolution", None, "Won't Fix"), who=None)])
+                   for i in range(20)]
+        tickets, events, links, self.counts = T.jira(issues, SNAP, RULES, RUN, "SPARK")
         self.t, self.events, self.links = {r["key"]: r for r in tickets}, events, links
 
     def test_created_after_snapshot_left_out(self):
@@ -69,6 +79,11 @@ class Jira(unittest.TestCase):
         self.assertEqual((self.t["SPARK-1"]["status"], self.t["SPARK-1"]["resolution"], self.t["SPARK-1"]["resolved_at"]),
                          ("Open", None, None))
         self.assertEqual((self.t["SPARK-2"]["resolution"], self.t["SPARK-2"]["resolved_at"]), ("Fixed", "2026-02-01T00:00:00Z"))
+        self.assertEqual((self.t["SPARK-7"]["status"], self.t["SPARK-7"]["resolution"], self.t["SPARK-7"]["resolved_at"]),
+                         ("Resolved", "Fixed", "2026-02-01T00:00:00Z"))
+
+    def test_cut_changelog_counted(self):
+        self.assertEqual(self.counts["changelog_cut"], 1)
 
     def test_subtask_takes_parent_type_and_components_sorted(self):
         self.assertEqual((self.t["SPARK-3"]["type"], self.t["SPARK-3"]["effective_type"]), ("Sub-task", "Bug"))
@@ -77,6 +92,7 @@ class Jira(unittest.TestCase):
     def test_bulk_closed_by_label_or_20_in_an_hour(self):
         self.assertEqual(self.t["SPARK-6"]["bulk_closed"], 1)
         self.assertTrue(all(self.t[f"SPARK-{100 + i}"]["bulk_closed"] for i in range(20)))
+        self.assertFalse(any(self.t[f"SPARK-{200 + i}"]["bulk_closed"] for i in range(20)))
         self.assertEqual(self.t["SPARK-1"]["bulk_closed"], 0)
 
     def test_events_stop_at_snapshot(self):
@@ -92,14 +108,16 @@ class Jira(unittest.TestCase):
         self.assertEqual(got[("SPARK-3", "parent", "SPARK-2")], (None, None))
         self.assertNotIn(("SPARK-5", "blocked_by", "SPARK-3"), got)  # added after the snapshot
         self.assertFalse([k for k in got if "SPARK-4" in k])  # created after the snapshot
+        self.assertEqual(self.counts["links_to_missing"], 1)  # left out, but counted
 
 
-def gl_issue(iid, title="t", state="opened", closed=None, labels=(), notes=None, blocked_by=(), parent=None):
+def gl_issue(iid, title="t", state="opened", closed=None, labels=(), notes=None, blocked_by=(), parent=None, ptype="Issue",
+             desc="x"):
     return {"iid": str(iid), "title": title, "state": state, "closedAt": closed, "createdAt": "2025-02-01T00:00:00Z",
-            "type": "TASK" if parent else "ISSUE", "description": "x", "author": {"username": "rep"},
+            "type": "TASK" if parent else "ISSUE", "description": desc, "author": {"username": "rep"},
             "assignees": {"nodes": [{"username": "zed"}, {"username": "amy"}]}, "labels": {"nodes": [{"title": l} for l in labels]},
             "blockedByIssues": {"nodes": [{"iid": str(b), "webUrl": f"https://gitlab.com/gitlab-org/gitlab/-/issues/{b}"} for b in blocked_by]},
-            "parent": {"iid": str(parent), "workItemType": {"name": "Issue"}} if parent else None, "epic": None,
+            "parent": {"iid": str(parent), "workItemType": {"name": ptype}} if parent else None, "epic": None,
             "notes": [{"body": b, "createdAt": at, "system": True, "author": {"username": "amy"}} for at, b in notes or []]}
 
 
@@ -116,6 +134,7 @@ class GitLab(unittest.TestCase):
             gl_issue(2, state="closed", closed="2025-07-01T00:00:00Z", blocked_by=[9]),
             gl_issue(3, parent=2),
             gl_issue(6, title="[Test] flaky spec"),
+            gl_issue(7, parent=40, ptype="Epic", desc=None),  # a group epic, not issue #40
         ]
         tickets, events, links, self.counts = T.gitlab(issues, SNAP, ds, RULES, "group::", RUN)
         self.t, self.events = {r["key"]: r for r in tickets}, events
@@ -130,6 +149,11 @@ class GitLab(unittest.TestCase):
         one, three = self.t["gitlab-org/gitlab#1"], self.t["gitlab-org/gitlab#3"]
         self.assertEqual((one["components"], one["assignee"], one["tracker"]), ('["group::a"]', "amy", "gitlab"))
         self.assertEqual((three["parent_key"], three["effective_type"]), ("gitlab-org/gitlab#2", "ISSUE"))
+        self.assertEqual((one["description"], self.t["gitlab-org/gitlab#7"]["description"]), ("x", ""))
+
+    def test_epic_parent_is_not_an_issue(self):
+        self.assertIsNone(self.t["gitlab-org/gitlab#7"]["parent_key"])
+        self.assertFalse([k for k in self.links if k[0] == "gitlab-org/gitlab#7"])
 
     def test_test_bot_left_out_and_counted(self):
         self.assertNotIn("gitlab-org/gitlab#6", self.t)
@@ -150,6 +174,8 @@ class GitLab(unittest.TestCase):
                                ("link", None, "blocks gitlab-org/gitlab#3"), ("link", None, "blocks gitlab-org/other#4"),
                                ("status", None, "In dev")])
         self.assertEqual(T.gl_ref("&5", "gitlab-org/gitlab"), "gitlab-org&5")
+        self.assertEqual(T.gl_ref("gitlab-org&5", "gitlab-org/gitlab"), "gitlab-org&5")
+        self.assertEqual(T.gl_ref("gitaly#5", "gitlab-org/gitlab"), "gitlab-org/gitaly#5")  # as blockedByIssues writes it
 
 
 class CommitTicket(unittest.TestCase):
@@ -160,6 +186,39 @@ class CommitTicket(unittest.TestCase):
         self.assertEqual([(r["sha"], r["key"], r["source"]) for r in rows],
                          [("a", "SPARK-1", "subject"), ("b", "SPARK-2", "body"), ("c", "SPARK-1", "subject")])
         self.assertEqual(dead, 1)  # SPARK-99 isn't a ticket
+
+
+
+class Build(unittest.TestCase):
+    """build() from raw Jira pages, as collect writes them."""
+    def test_rows_from_raw_pages(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        d = tmp / "jira" / "SPARK"
+        d.mkdir(parents=True)
+        fixed = issue("SPARK-1", status="Resolved", resolution="Fixed", resolved="2026-03-01T00:00:00Z",
+                      histories=[history(1, "2026-03-01T00:00:00Z", ("resolution", None, "Fixed"))],
+                      links=[{"type": BLOCKER, "inwardIssue": {"key": "SPARK-2"}}])
+        fixed["fields"]["description"] = "boom"
+        batch = [issue(f"SPARK-{10 + i}", status="Closed", resolution="Won't Fix", resolved="2026-05-01T11:00:00Z",
+                       histories=[history(1, f"2026-05-01T10:{i:02d}:00Z", ("resolution", None, "Won't Fix"), who="bot")])
+                 for i in range(20)]
+        batch[0]["fields"]["description"] = None
+        for i, page in enumerate([[fixed, issue("SPARK-2")], [issue("SPARK-2"), *batch]]):  # SPARK-2 twice: paging shifted
+            (d / f"page-{i:04d}.json.gz").write_bytes(gzip.compress(json.dumps({"issues": page}).encode()))
+        cfg = {"tickets": RULES, "datasets": {"spark": {"tracker": "jira", "jira": {"jql": "project=SPARK ORDER BY key ASC"},
+                                                         "key_regex": r"\bSPARK-\d+\b", "repos": [{"repo": "apache/spark"}]}}}
+        manifest = {"snapshot_at": SNAP, "sources": {"jira/SPARK": "x"}, "repos": {"apache/spark": "f00"}}
+        out = T.build(tmp, manifest, cfg, RUN, lambda repo: [("a1", "[SPARK-1] fix", ""), ("b2", "no key", "SPARK-77")])
+        t = {r["key"]: r for r in out["ticket"]}
+        self.assertEqual(len(out["ticket"]), 22)
+        one = t["SPARK-1"]
+        self.assertEqual((one["effective_type"], one["status"], one["resolution"], one["resolved_at"], one["bulk_closed"], one["description"]),
+                         ("Bug", "Resolved", "Fixed", "2026-03-01T00:00:00Z", 0, "boom"))
+        self.assertTrue(all(t[f"SPARK-{10 + i}"]["bulk_closed"] for i in range(20)))
+        self.assertEqual(t["SPARK-10"]["description"], "")
+        self.assertEqual([(l["key"], l["link_type"], l["other_key"]) for l in out["ticket_link"]], [("SPARK-1", "blocked_by", "SPARK-2")])
+        self.assertEqual([(r["sha"], r["key"], r["source"]) for r in out["commit_ticket"]], [("a1", "SPARK-1", "subject")])
 
 
 if __name__ == "__main__":

@@ -14,19 +14,15 @@ D6: bug_inducing and file_bug_fixes, in meridian/szz.py.
 - Times are UTC. Emails are lowercased. Author and committer both kept: ownership uses the author.
 Same as week1/pair2/merged/build.py read_commits(), plus renames, merges, and every repo.
 """
-import json, subprocess
+import json
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 from meridian import szz, tickets
-from meridian.common import CONFIG, data_root, handoff, load_config, log, parser
+from meridian.common import CONFIG, data_root, git, handoff, load_config, load_infra, log, parser, write_jsonl
 
 FMT = "%x1e%H%x1f%P%x1f%at%x1f%ae%x1f%ce%x1f%s"
-
-
-def git(co, *args):
-    return subprocess.run(["git", "-C", str(co), *args], check=True, capture_output=True).stdout.decode("utf-8", "replace")
 
 
 def utc(epoch):
@@ -89,23 +85,14 @@ def messages(co, sha):
     return [tuple(rec.split("\x1f", 2)) for rec in out.split("\x1e")[1:]]
 
 
-def keyed(commits, commit_ticket, last=1000):
-    """Week 1's check: share of the last 1,000 first-parent commits with a key, from the subject, and counting the body."""
+def keyed(commits, commit_ticket, last):
+    """Week 1's check: share of the last [checks] keyed_last_commits first-parent commits with a key, from the subject, and counting the body."""
     chain = sorted((c for c in commits if c["first_parent"]), key=lambda c: c["seq"])[-last:]
     src = defaultdict(set)
     for r in commit_ticket:
         src[r["sha"]].add(r["source"])
     return (sum("subject" in src[c["sha"]] for c in chain) / len(chain),
             sum(bool(src[c["sha"]]) for c in chain) / len(chain), len(chain))
-
-
-def write_jsonl(path, rows, key):
-    rows.sort(key=lambda r: tuple(r[k] for k in key))
-    tmp = path.with_name(path.name + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    tmp.replace(path)
 
 
 def main(run_id, config=CONFIG, root=None):
@@ -128,14 +115,15 @@ def main(run_id, config=CONFIG, root=None):
 
     d4 = tickets.build(snap, manifest, cfg, run_id, lambda repo: messages(co(repo), manifest["repos"][repo]))
     for repo in sorted({r["repo"] for r in d4["commit_ticket"]}):
-        subj, any_, n = keyed([c for c in commits if c["repo"] == repo], [r for r in d4["commit_ticket"] if r["repo"] == repo])
+        subj, any_, n = keyed([c for c in commits if c["repo"] == repo], [r for r in d4["commit_ticket"] if r["repo"] == repo],
+                              cfg["checks"]["keyed_last_commits"])
         log(f"{repo:45} last {n:,} first-parent commits keyed: {subj:.1%} from the subject, {any_:.1%} counting the body")
     write_jsonl(out / "ticket.jsonl", d4["ticket"], ("key",))
     write_jsonl(out / "ticket_event.jsonl", d4["ticket_event"], ("key", "at", "seq"))
     write_jsonl(out / "ticket_link.jsonl", d4["ticket_link"], ("key", "link_type", "other_key"))
     write_jsonl(out / "commit_ticket.jsonl", d4["commit_ticket"], ("repo", "sha", "key"))
 
-    d6 = szz.build(commits, files, d4, manifest, cfg, run_id, co)
+    d6 = szz.build(commits, files, d4, manifest, cfg, run_id, co, load_infra("history").get("szz_workers") or None)  # 0: one per CPU
     write_jsonl(out / "bug_inducing.jsonl", d6["bug_inducing"], ("repo", "fix_sha", "path", "inducing_sha"))
     write_jsonl(out / "file_bug_fixes.jsonl", d6["file_bug_fixes"], ("repo", "path"))
     return commits, files, d4, d6

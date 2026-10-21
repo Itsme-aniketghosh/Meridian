@@ -4,6 +4,8 @@ What Vishwa, Rachna, Rochan and Chaitali still owe before the join (Utkarsh) and
 
 ![Pending tasks per person](pending-tasks.svg)
 
+dynamic-config ([FIXES.md](FIXES.md)) changes `meridian.toml` again, so the new `run_id` is made after it merges.
+
 **Order:** ✅ Utkarsh's decisions made and pushed with this doc → **Vishwa posts the new `run_id` (start now)** → Rachna, Rochan, Chaitali rerun their parts → join → graph.
 
 🔴 = blocks someone else, do first. D1, D2 = day of the 3-day plan it's due.
@@ -16,7 +18,7 @@ What Vishwa, Rachna, Rochan and Chaitali still owe before the join (Utkarsh) and
 
 ### ✅ Made · by Utkarsh, Oct 20
 
-Already in `meridian.toml` and `infra.toml`, pushed with this doc. It's the last change to `meridian.toml` before the freeze.
+Already in `meridian.toml` and `infra.toml`, pushed with this doc. dynamic-config ([FIXES.md](FIXES.md)) changes `meridian.toml` once more; that is the last change before the freeze.
 
 | What | Decision | Change made |
 |---|---|---|
@@ -33,7 +35,7 @@ Already in `meridian.toml` and `infra.toml`, pushed with this doc. It's the last
 | GCP names: `image`, `snapshot_bucket` in [infra.toml](infra.toml) | Utkarsh | When GCP is set up. Placeholders today, no rerun when they change |
 | The 315 keyword-argument names: keep or drop | Rachna + Rochan | D1, before Rachna's rerun |
 | The 21,787 Spark files with no owner (180-day rule): accept, and count them in the coverage report | Utkarsh | Before the join |
-| GitLab usernames in `week1/cross-team/gitlab/xt_cross_team_blocks.csv`: remove | Aniket | Any time |
+| ~~GitLab usernames in `week1/cross-team/gitlab/xt_cross_team_blocks.csv`: remove~~ Done in dynamic-config (still in git history at `ebe68b8`) | Aniket | ✅ |
 
 ## What happened, in order
 
@@ -105,14 +107,14 @@ Delivered first: collect, writer, tickets (94.0% keyed, 3 dead keys) and SZZ (be
 | | Task | Due | Done when |
 |---|---|---|---|
 | 🔴 | Rerun scan on the new `run_id` | D1 | Includes the 4 newly pinned packages (about 179 sites) |
-| | Keep or drop the 315 keyword-argument and parameter names, with Rochan. It's `KEEP_NAME_ONLY` in `scan.py`, not `meridian.toml`, so the `run_id` doesn't change. **Can start now** | D1 | Decided before the rerun, and written in [SCANNER.md](SCANNER.md) |
+| | Keep or drop the 315 keyword-argument and parameter names, with Rochan. It's `[scanner] keep_name_only` in `meridian.toml`, so changing it changes the `run_id`. **Can start now** | D1 | Decided before Vishwa makes the new run_id (it's in `meridian.toml`), and written in [SCANNER.md](SCANNER.md) |
 
 ## Rochan · Resolver · 2 pending
 
 | | Task | Due | Done when |
 |---|---|---|---|
 | 🔴 | Rerun resolve on Rachna's new candidates | D1 | `score_packages` rerun on the new `run_id` |
-| | Keep or drop the 315 keyword-argument names, with Rachna. **Can start now** | D1 | Decided before Rachna's rerun |
+| | Keep or drop the 315 keyword-argument names, with Rachna. **Can start now** | D1 | Decided before Vishwa makes the new run_id |
 
 ## Chaitali · Owners + gold set · 3 pending
 

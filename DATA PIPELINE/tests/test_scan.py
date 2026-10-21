@@ -6,19 +6,26 @@ The Django test needs a snapshot: $MERIDIAN_RUN_ID (default: dev). It is skipped
 
     MERIDIAN_RUN_ID=973531f7fd4cfd5e python -m unittest tests.test_scan -v
 """
-import csv, json, os, subprocess, sys, tempfile, unittest
+import csv, json, os, sqlite3, subprocess, sys, tempfile, unittest
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HERE))
 import meridian.scan as S
-from meridian.common import data_root, load_config
+import meridian.writer as W
+import tests.hand_check_edit_sites as H
+from meridian.common import data_root, load_config, read_jsonl
 
 RUN = "abcdef0123456789"
 SYMBOLS = {"ugettext": "lib.translation", "ugettext_lazy": "lib.translation", "is_anonymous": "lib.auth"}
+MARKERS = ["DeprecationWarning", "PendingDeprecationWarning", r"RemovedIn\w*Warning", "deprecated"]
 SCANNER = {
     "skip_paths": ["docs/"],
     "embedded_python": ["*.sample"],
+    "keep_name_only": True,
+    "edit_roles": ["import", "call", "alias"],
+    "deprecation_markers": MARKERS,
     "junk": {"test": ["tests/", "test_*.py", "*_tests.py"], "example": ["examples/"],
              "migration_marker": "class Migration(migrations.Migration)"},
 }
@@ -86,6 +93,59 @@ FILES = {
     ),
     "app/broken.py": "from lib.translation import ugettext\ndef (:\n",          # parse failure: excluded
     "docs/conf.py": "from lib.translation import ugettext\n",                    # skipped
+    "app/Test_Case.py": "from lib.translation import ugettext\n",               # not test_*.py: case counts on every OS
+    "app/scopes.py": (
+        "def get_text_list(list_, last_word=ugettext_lazy('or')):\n"   # 1 call, <module>: a default runs outside
+        "    return ugettext('x')\n"                                    # 2 call, get_text_list
+        "class C:\n"
+        "    def ugettext(self):\n"                                     # 4 definition, C: a def's name is outside it
+        "        pass\n"
+    ),
+    "app/excepts.py": (
+        "try:\n"
+        "    A = ugettext('a')\n"                      # 2 in_except 0
+        "except ImportError:\n"
+        "    A = ugettext_lazy('a')\n"                 # 4 in_except 1
+        "finally:\n"
+        "    if A:\n"
+        "        B = ugettext('b')\n"                  # 7 in_except 1: any depth
+        "try:\n"
+        "    pass\n"
+        "except Exception:\n"
+        "    def g():\n"
+        "        return ugettext('g')\n"               # 12 in_except 0: g's own body isn't in an except
+    ),
+    "app/rel/__init__.py": "",
+    "app/rel/mod.py": (                                # module_import only
+        "import os.path, json as j\n"
+        "from . import sibling\n"
+        "from ..direct import A, B as b\n"
+        "from .x import (y,\n"
+        "    w)\n"
+        "from lib import *\n"
+        "from __future__ import annotations\n"
+        "def f():\n"
+        "    import lib.translation\n"
+    ),
+    "lib/old.py": (                                    # deprecation only
+        "import warnings\n"
+        "from warnings import warn\n"
+        "\n"
+        "def old():\n"
+        "    warnings.warn('old() is going', RemovedInLib2Warning, stacklevel=2)\n"   # 5 old: the category
+        "\n"
+        "class Legacy:\n"
+        "    def m(self):\n"
+        "        warn('m is deprecated')\n"                                       # 9 Legacy.m: the message
+        "\n"
+        "@deprecated('use new')\n"                                               # 11 gone: the decorator
+        "def gone():\n"
+        "    pass\n"
+        "\n"
+        "def fine():\n"
+        "    warnings.warn('careful', UserWarning)\n"                             # no row
+        "    warnings.warn('x', category=PendingDeprecationWarning)\n"            # 17 fine: whole name, not DeprecationWarning
+    ),
 }
 
 EXPECTED = {   # (path, line): (symbol, role)
@@ -112,6 +172,25 @@ EXPECTED = {   # (path, line): (symbol, role)
     ("app/migrations/0002_x.py", 1): ("ugettext", "import"),
     ("tests/i18n/code.sample", 1): ("ugettext", "import"),
     ("tests/i18n/code.sample", 2): ("ugettext", "call"),
+    ("app/Test_Case.py", 1): ("ugettext", "import"),
+    ("app/scopes.py", 1): ("ugettext_lazy", "call"),
+    ("app/scopes.py", 2): ("ugettext", "call"),
+    ("app/scopes.py", 4): ("ugettext", "definition"),
+    ("app/excepts.py", 2): ("ugettext", "call"),
+    ("app/excepts.py", 4): ("ugettext_lazy", "call"),
+    ("app/excepts.py", 7): ("ugettext", "call"),
+    ("app/excepts.py", 12): ("ugettext", "call"),
+}
+
+IMPORTS = {   # app/rel/mod.py: (line, module, name)
+    (1, "json", ""), (1, "os.path", ""), (2, "app.rel", "sibling"), (3, "app.direct", "A"), (3, "app.direct", "B"),
+    (4, "app.rel.x", "w"), (4, "app.rel.x", "y"), (6, "lib", "*"), (7, "__future__", "annotations"),
+    (9, "lib.translation", ""),
+}
+
+DEPRECATIONS = {   # lib/old.py: line -> (scope, marker)
+    5: ("old", "RemovedInLib2Warning"), 9: ("Legacy.m", "deprecated"), 11: ("gone", "deprecated"),
+    17: ("fine", "PendingDeprecationWarning"),
 }
 
 
@@ -136,11 +215,14 @@ def snapshot(root, sha_override=None):
     manifest = {"run_id": RUN, "repos": {"fix/app": sha_override or sha}}
     (root / "snapshots" / RUN / "manifest.json").write_text(json.dumps(manifest))
     symbols = ", ".join(f'{{ name = "{n}", module = "{m}" }}' for n, m in SYMBOLS.items())
+    markers = "[" + ", ".join(f"'{m}'" for m in MARKERS) + "]"   # TOML literal strings: \w stays \w
     config = root / "meridian.toml"
     config.write_text(
         '[run]\nhandoff_dir = "out/{run_id}"\n\n'
         f'[datasets.fixture]\nrepos = [{{ repo = "fix/app", ref = "{sha}" }}]\nsymbols = [{symbols}]\n\n'
-        '[scanner]\nskip_paths = ["docs/"]\nembedded_python = ["*.sample"]\n'
+        '[scanner]\nskip_paths = ["docs/"]\nembedded_python = ["*.sample"]\nkeep_name_only = true\n'
+        'edit_roles = ["import", "call", "alias"]\n'
+        f'deprecation_markers = {markers}\n'
         'junk = { test = ["tests/", "test_*.py", "*_tests.py"], example = ["examples/"], '
         'migration_marker = "class Migration(migrations.Migration)" }\n'
     )
@@ -158,7 +240,8 @@ class Goldens(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.repo_dir, _ = snapshot(Path(cls.tmp.name))
-        cls.rows, cls.failures, cls.counts = S.scan_repo(RUN, "fix/app", cls.repo_dir, SYMBOLS, SCANNER)
+        cls.got = S.scan_repo(RUN, "fix/app", cls.repo_dir, SYMBOLS, SCANNER)
+        cls.rows, cls.failures, cls.counts, cls.imports, cls.deprecations = cls.got
         cls.by_line = {(r["path"], r["line"]): r for r in cls.rows}
 
     @classmethod
@@ -180,13 +263,50 @@ class Goldens(unittest.TestCase):
         self.assertEqual(self.by_line[("app/multiline.py", 2)]["col"], 4)
 
     def test_scope(self):
-        self.assertEqual(self.by_line[("app/names.py", 4)]["scope"], "view")
-        self.assertEqual(self.by_line[("app/direct.py", 4)]["scope"], "<module>")
+        want = {("app/names.py", 4): "view", ("app/direct.py", 4): "<module>", ("app/scopes.py", 1): "<module>",
+                ("app/scopes.py", 2): "get_text_list", ("app/scopes.py", 4): "C"}
+        for key, scope in want.items():
+            with self.subTest(key=key):
+                self.assertEqual(self.by_line[key]["scope"], scope)
+
+    def test_in_except(self):
+        got = {line: r["in_except"] for (path, line), r in self.by_line.items() if path == "app/excepts.py"}
+        self.assertEqual(got, {2: 0, 4: 1, 7: 1, 12: 0})
+        self.assertEqual(self.by_line[("app/direct.py", 4)]["in_except"], 0)
+
+    def test_module_import(self):
+        self.assertEqual({(r["line"], r["module"], r["name"]) for r in self.imports if r["path"] == "app/rel/mod.py"}, IMPORTS)
+        is_test = {r["path"]: r["is_test"] for r in self.imports}
+        self.assertEqual((is_test["app/tests/helpers.py"], is_test["tests/i18n/code.sample"], is_test["app/direct.py"],
+                          is_test["app/Test_Case.py"]), (1, 1, 0, 0))
+        self.assertNotIn("app/broken.py", is_test)   # parse failure: no rows
+        self.assertNotIn("docs/conf.py", is_test)
+        keys = [(r["path"], r["line"], r["module"], r["name"]) for r in self.imports]
+        self.assertEqual(keys, sorted(set(keys)))
+        self.assertTrue(all(list(r) == S.IMPORT_COLUMNS for r in self.imports))
+
+    def test_deprecation(self):
+        self.assertEqual({r["line"]: (r["scope"], r["marker"]) for r in self.deprecations if r["path"] == "lib/old.py"},
+                         DEPRECATIONS)
+        self.assertEqual({r["path"] for r in self.deprecations}, {"lib/old.py"})
+        self.assertTrue(all(list(r) == S.DEPRECATION_COLUMNS for r in self.deprecations))
+
+    def test_keep_name_only_off(self):
+        rows = S.scan_repo(RUN, "fix/app", self.repo_dir, SYMBOLS, {**SCANNER, "keep_name_only": False})[0]
+        self.assertEqual(len(rows), len(EXPECTED) - 2)
+        self.assertNotIn(("app/names.py", 3), {(r["path"], r["line"]) for r in rows})
+
+    def test_edit_roles_from_config(self):
+        self.assertEqual(S.edit_lines(self.rows, "embedded", ["call"]), {("tests/i18n/code.sample", 2)})
+
+    def test_unreadable_folder_halts(self):
+        with self.assertRaises(OSError):
+            S.files(self.repo_dir / "no such folder", SCANNER)
 
     def test_junk(self):
         want = {("app/tests/helpers.py", 1): "test", ("examples/demo.py", 1): "example",
                 ("app/migrations/0002_x.py", 1): "migration", ("tests/i18n/code.sample", 1): "test",
-                ("app/direct.py", 1): "none"}
+                ("app/direct.py", 1): "none", ("app/Test_Case.py", 1): "none"}
         for key, label in want.items():
             with self.subTest(key=key):
                 self.assertEqual(self.by_line[key]["junk"], label)
@@ -212,27 +332,38 @@ class Goldens(unittest.TestCase):
         self.assertTrue(all(r["run_id"] == RUN for r in self.rows))
 
     def test_same_input_same_rows(self):
-        again = S.scan_repo(RUN, "fix/app", self.repo_dir, SYMBOLS, SCANNER)
-        self.assertEqual(again, (self.rows, self.failures, self.counts))
+        self.assertEqual(S.scan_repo(RUN, "fix/app", self.repo_dir, SYMBOLS, SCANNER), self.got)
+
+    def test_hand_check_saves_utf8(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(H, "OUT", Path(tmp) / "key.csv"):
+            H.save({("a.py", 1): {"path": "a.py", "line": 1, "note": "é"}})
+            self.assertIn("é", H.OUT.read_bytes().decode("utf-8"))   # not cp1252 on Windows
 
 
 class OneCommand(unittest.TestCase):
-    def test_writes_both_tables_sorted(self):
+    def test_writes_every_table_sorted(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             repo_dir, config = snapshot(root)
             r = run_command(root, config)
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             out = root / "out" / RUN
-            rows = [json.loads(x) for x in (out / "candidate.jsonl").read_text().splitlines()]
-            fails = [json.loads(x) for x in (out / "parse_failure.jsonl").read_text().splitlines()]
+            rows = read_jsonl(out / "candidate.jsonl")
+            fails = read_jsonl(out / "parse_failure.jsonl")
             self.assertEqual(len(rows), len(EXPECTED))
             self.assertEqual([f["path"] for f in fails], ["app/broken.py"])
-            keys = [(x["repo"], x["path"], x["line"], x["col"]) for x in rows]
-            self.assertEqual(keys, sorted(keys))
-            first = (out / "candidate.jsonl").read_bytes()
+            schema = (HERE / "schema.sql").read_text(encoding="utf-8")
+            db = sqlite3.connect(":memory:")
+            db.executescript(schema)
+            for t, key in S.KEYS.items():   # sorted by primary key, and every row fits schema.sql (CHECKs included)
+                checked = W.read_rows(out / f"{t}.jsonl", W.tables(schema)[t], RUN)
+                self.assertEqual([r for _, r in checked], read_jsonl(out / f"{t}.jsonl"), t)
+                for _, r in checked:
+                    db.execute(f"INSERT INTO {t} ({', '.join(r)}) VALUES ({', '.join('?' * len(r))})", list(r.values()))
+            db.close()
+            first = {t: (out / f"{t}.jsonl").read_bytes() for t in S.KEYS}
             self.assertEqual(run_command(root, config).returncode, 0)
-            self.assertEqual((out / "candidate.jsonl").read_bytes(), first)   # same run, same bytes
+            self.assertEqual({t: (out / f"{t}.jsonl").read_bytes() for t in S.KEYS}, first)   # same run, same bytes
 
     def test_wrong_checkout_halts(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -264,18 +395,19 @@ class DjangoAnswerKey(unittest.TestCase):
         cfg = load_config(HERE / "meridian.toml")
         symbols = S.tracked(cfg)["django/django"]
         cls.key = cfg["datasets"]["django"]["answer_key"]
-        cls.rows, cls.failures, _ = S.scan_repo(RUN_ID, "django/django", DJANGO, symbols, cfg["scanner"])
+        cls.roles = cfg["scanner"]["edit_roles"]
+        cls.rows, cls.failures, *_ = S.scan_repo(RUN_ID, "django/django", DJANGO, symbols, cfg["scanner"])
 
     def test_265_of_265_and_0_false(self):
-        with open(KEY, newline="") as f:
+        with open(KEY, newline="", encoding="utf-8") as f:
             key = {(r["file"], int(r["line"])) for r in csv.DictReader(f)}
-        got = S.edit_lines(self.rows, "py")
+        got = S.edit_lines(self.rows, "py", self.roles)
         self.assertEqual(len(key), self.key["edit_lines"])
         self.assertEqual(sorted(key - got), [], "missed")
         self.assertEqual(sorted(got - key), [], "false finds")
 
     def test_2_lines_outside_py(self):
-        self.assertEqual(len(S.edit_lines(self.rows, "embedded")), self.key["outside_py"])
+        self.assertEqual(len(S.edit_lines(self.rows, "embedded", self.roles)), self.key["outside_py"])
 
     def test_no_tracked_name_lost_to_parse_failures(self):
         self.assertEqual([f["path"] for f in self.failures], ["tests/i18n/commands/not_utf8.sample"])

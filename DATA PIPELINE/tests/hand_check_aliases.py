@@ -23,7 +23,7 @@ COLUMNS = ["order", "path", "line", "col", "checker_answer", "key_symbol", "agre
 
 def pick(key_path=KEY):
     """The 30 calls, in the order they are checked. Same seed, same list."""
-    with open(key_path, newline="") as f:
+    with open(key_path, newline="", encoding="utf-8") as f:
         rows = sorted(csv.DictReader(f), key=lambda r: (r["file"], int(r["line"]), int(r["col"])))
     random.seed(SEED)
     return [(i, r["file"], int(r["line"]), int(r["col"]), r["expected_symbol"]) for i, r in enumerate(random.sample(rows, N), 1)]
@@ -54,14 +54,14 @@ def show(order, path, line, col, lines):
 def load(out):
     if not out.exists():
         return {}
-    with open(out, newline="") as f:
+    with open(out, newline="", encoding="utf-8") as f:
         return {int(r["order"]): r for r in csv.DictReader(f)}
 
 
 def save(out, done):
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_name(out.name + ".tmp")
-    with open(tmp, "w", newline="") as f:
+    with open(tmp, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=COLUMNS, lineterminator="\n")
         w.writeheader()
         for order in sorted(done):

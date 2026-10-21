@@ -10,8 +10,13 @@ out/<run_id>/candidate.jsonl. Writes, sorted by primary key, for the writer:
 
 Call edges (D6). Only calls Jedi confirms count, never imports. Depth 1 is a confirmed call of the old symbol
 (caller's function -> the symbol); depth 2 is a resolved call of a function holding one; depth 3 one more level up.
-Module and class bodies get their edges but nobody calls them, so the walk stops there. On the team run:
-2,054 edges, about 76 s and 1.2 GB.
+Module and class bodies get their edges but nobody calls them, so the walk stops there. A call to a class counts as
+a call of its __init__. Scope follows meridian.scan: a default value or decorator runs in the outer scope. A Jedi
+failure while finding callers is counted in the log. On the team run (before dynamic-config): 2,054 edges, about
+76 s and 1.2 GB.
+
+receiver_from. For a call candidate recv.name(...) where recv's only binding in its scope is recv = F(...), and Jedi
+lands F on exactly one def: that def as 'repo:path:scope'. Otherwise NULL, never a guess.
 
 Candidates (D5). Jedi (pinned) is asked where each old name leads (goto, following imports). Scored on the old
 name ([resolver] score_on_old_name): the row is ast_resolved only if it lands on the candidate's own symbol,
@@ -33,28 +38,29 @@ is a second name for.
     ast_unresolved  Jedi has no answer. Kept, never dropped silently ([resolver] keep_unresolved)
     dropped         lands on something else, e.g. a `_` that a function redefines
 
-Environment. One jedi.Project per repo. Jedi runs inside this process (InterpreterEnvironment), not in a helper
-subprocess, so the result doesn't depend on which virtualenv happens to be active. When a repo uses a tracked
-module it doesn't contain (the packages use django.conf.urls), the snapshot repo that does contain it goes on that
-project's path: the dependency comes from the same pinned snapshot, with nothing installed.
+Environment. One jedi.Project per repo, with an explicit sys_path: the repo, then the snapshot repos it depends on,
+then the standard library only. No site-packages and no working directory, so the result doesn't depend on which
+virtualenv is active or what is installed. Jedi runs inside this process (InterpreterEnvironment). When a repo uses
+a tracked module it doesn't contain (the packages use django.conf.urls), the snapshot repo that does contain it goes
+on that path: the dependency comes from the same pinned snapshot, with nothing installed. Files are the scanner's
+list (meridian.scan.files), .py only.
 
 Same run, same bytes. Every question gets a fresh jedi.Script: with one Script per file, what Jedi had inferred for
 earlier names changed a later answer from run to run (1 row in 3,451 on the packages). And parso never evicts during
 a run (below): otherwise Jedi failed on names whose file had just been evicted, 30 on the packages, depending on what
-was parsed before. Now repeated runs and any PYTHONHASHSEED give the same bytes. Parsing stays cached, so the
-packages still take about 19 s, with a peak of about 780 MB.
+was parsed before. Now repeated runs and any PYTHONHASHSEED give the same bytes. Parsing stays cached within a repo
+and is emptied between repos, and tree-sitter trees are kept only for files a question comes back to.
 """
-import json, subprocess
+import json, sysconfig
 from collections import Counter
-from fnmatch import fnmatch
 from pathlib import Path
 
 import jedi
 import parso.cache
-import tree_sitter_python as tspython
-from tree_sitter import Language, Parser
 
-from meridian.common import data_root, handoff, load_config, log, parser
+from meridian import scan as S
+from meridian.common import data_root, handoff, load_config, log, parser, read_jsonl, write_jsonl
+from meridian.scan import PY, char_col, tracked, walk
 
 # parso (pinned in requirements.txt) evicts parsed files from memory once it holds 600, judging age by the file's
 # mtime. Every file in a fresh checkout looks old, so a file Jedi has just parsed can be evicted mid-question, and
@@ -63,46 +69,35 @@ from meridian.common import data_root, handoff, load_config, log, parser
 parso.cache._CACHED_SIZE_TRIGGER = float("inf")
 
 RESOLVER = f"jedi=={jedi.__version__}"
-COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "detection", "via", "resolved_to", "resolver"]
-PY = Parser(Language(tspython.language()))
+COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "detection", "via", "resolved_to", "resolver", "receiver_from"]
+STDLIB = sorted({sysconfig.get_paths()[k] for k in ("stdlib", "platstdlib")})
 
 
-def tracked(cfg):
-    """{repo: {old name: module}} for every dataset in meridian.toml that lists symbols."""
-    out = {}
-    for ds in cfg.get("datasets", {}).values():
-        symbols = {s["name"]: s["module"] for s in ds.get("symbols", [])}
-        for r in ds.get("repos", []) if symbols else []:
-            out[r["repo"]] = symbols
-    return out
+def py_files(repo_dir, skip):
+    """The scanner's file list ([scanner] skip_paths), .py only: one walk, one rule for case and folders."""
+    return [p for p, kind in S.files(repo_dir, {"skip_paths": skip}) if kind == "py"]
 
 
-def skipped(path, patterns):
-    """Same paths the scanner skips ([scanner] skip_paths): 'docs/' is a prefix, '*.po' a pattern."""
-    return any(path.startswith(p) if p.endswith("/") else fnmatch(path, p) for p in patterns)
+def node_at(src, root, line, col):
+    """The smallest tree-sitter node at line:col, col in characters (Jedi's)."""
+    text = src.split(b"\n")[line - 1].decode("utf-8", errors="replace")
+    point = (line - 1, len(text[:col].encode()))
+    return root.descendant_for_point_range(point, point)
 
 
-def py_files(repo_dir, patterns):
-    files = []
-    for p in repo_dir.rglob("*.py"):
-        rel = p.relative_to(repo_dir).as_posix()
-        if ".git/" not in rel + "/" and not skipped(rel, patterns):
-            files.append(rel)
-    return sorted(files)
-
-
-def walk(node):
-    stack = [node]
-    while stack:
-        node = stack.pop()
-        yield node
-        stack.extend(reversed(node.children))
-
-
-def char_col(source, node):
-    """Column in characters, which is what Jedi counts. Tree-sitter counts bytes."""
-    start = node.start_byte - node.start_point[1]
-    return len(source[start:node.start_byte].decode("utf-8", errors="replace"))
+def is_binding(node):
+    """Does this identifier (re)bind its name: a target, an import, a def, a parameter? Reads don't."""
+    parent = node.parent
+    if parent.type == "keyword_argument":
+        return False
+    if S.role(node) in ("import", "definition") or S.name_only(node):
+        return True
+    if parent.type in ("pattern_list", "tuple_pattern", "list_pattern", "as_pattern_target", "global_statement",
+                       "nonlocal_statement"):
+        return True
+    field = {"augmented_assignment": "left", "for_statement": "left", "for_in_clause": "left",
+             "named_expression": "name"}.get(parent.type)
+    return field is not None and S.same(parent.child_by_field_name(field), node)
 
 
 def bindings(root, olds):
@@ -144,25 +139,37 @@ class Repo:
         self.score_on_old_name = score_on_old_name                    # [resolver] score_on_old_name
         self.symbols = symbols                                        # {old name: module}
         self.targets = {f"{m}.{n}": n for n, m in symbols.items()}   # full name -> old name
+        self.deps = [Path(p) for p in extra_paths]
         self.env = jedi.InterpreterEnvironment()                      # no helper subprocess: see "Environment"
-        self.project = jedi.Project(repo_dir, added_sys_path=[str(p) for p in extra_paths])
-        self.code, self.trees = {}, {}
+        self.project = jedi.Project(repo_dir, sys_path=[str(p) for p in [repo_dir, *self.deps, *STDLIB]])
+        self.code, self.trees, self.failures = {}, {}, 0
+        parso.cache.parser_cache.clear()  # a new repo: nothing parsed for the last one is asked about again
 
     def source(self, path):
         return (self.dir / path).read_bytes()
 
+    def parse(self, path):
+        src = self.source(path)
+        return src, PY.parse(src).root_node
+
     def tree(self, path):
+        """parse(), kept: only for files a question comes back to. Whole-repo walks use parse()."""
         if path not in self.trees:
-            src = self.source(path)
-            self.trees[path] = (src, PY.parse(src).root_node)
+            self.trees[path] = self.parse(path)
         return self.trees[path]
 
     def goto(self, path, line, col, follow_imports=True):
-        """A fresh jedi.Script per question: what Jedi inferred for one name can't change its answer for the next."""
+        """A fresh jedi.Script per question: what Jedi inferred for one name can't change its answer for the next.
+        A crash in Jedi is a missing answer, not a missing row: logged, counted in self.failures, []."""
         if path not in self.code:
             self.code[path] = self.source(path).decode("utf-8", errors="replace")
-        script = jedi.Script(code=self.code[path], path=str(self.dir / path), project=self.project, environment=self.env)
-        return script.goto(line, col, follow_imports=follow_imports)
+        try:
+            script = jedi.Script(code=self.code[path], path=str(self.dir / path), project=self.project, environment=self.env)
+            return script.goto(line, col, follow_imports=follow_imports)
+        except Exception as e:
+            self.failures += 1
+            log(f"  jedi failed at {path}:{line}:{col}: {type(e).__name__}: {e}")
+            return []
 
     def locate(self, path, line, col, symbol):
         """The character column where symbol starts, accepting a column in characters or bytes. None if neither."""
@@ -179,10 +186,7 @@ class Repo:
 
     def import_module_at(self, path, line, col):
         """If line:col sits in a `from X import ...` statement, X. Otherwise None."""
-        src, root = self.tree(path)
-        text = src.split(b"\n")[line - 1].decode("utf-8", errors="replace")
-        point = (line - 1, len(text[:col].encode()))
-        node = root.descendant_for_point_range(point, point)
+        node = node_at(*self.tree(path), line, col)
         while node is not None and node.type != "import_from_statement":
             node = node.parent
         return node.child_by_field_name("module_name").text.decode() if node is not None else None
@@ -204,11 +208,7 @@ class Repo:
         if col is None:
             log(f"  {c['path']}:{c['line']}:{c['col']} doesn't hold {c['symbol']}: kept as ast_unresolved")
             return "ast_unresolved", "none", None
-        try:
-            names = self.goto(c["path"], c["line"], col)
-        except Exception as e:  # a crash in Jedi is a missing answer, not a missing row
-            log(f"  jedi failed at {c['path']}:{c['line']}:{col}: {type(e).__name__}: {e}")
-            names = []
+        names = self.goto(c["path"], c["line"], col)
         if not names:
             return "ast_unresolved", "none", None
         expected = f"{self.symbols[c['symbol']]}.{c['symbol']}"
@@ -217,6 +217,50 @@ class Repo:
             module = self.imported_from(c["path"], c["line"], col)
             return "ast_resolved", ("reexport" if module and module != self.symbols[c["symbol"]] else "direct"), hits[0]
         return "dropped", "none", self.first(names)
+
+    def receiver_from(self, c, repo):
+        """For a call candidate recv.name(...) where recv's only binding in its scope is recv = F(...): F's def as
+        'repo:path:scope', when Jedi lands F on exactly one def. Otherwise None: never a guess."""
+        col = self.locate(c["path"], c["line"], c["col"], c["symbol"])
+        if c["role"] != "call" or col is None:
+            return None
+        src, root = self.tree(c["path"])
+        name = node_at(src, root, c["line"], col)
+        attr = name.parent
+        if attr.type != "attribute" or not S.same(attr.child_by_field_name("attribute"), name):
+            return None
+        recv = attr.child_by_field_name("object")
+        if recv.type != "identifier":
+            return None
+        home = S.scopes(recv)[:1]  # recv's own def/class, or [] for the module
+        params = home[0].child_by_field_name("parameters") if home and home[0].type == "function_definition" else None
+        if params is not None and any(n.type == "identifier" and n.text == recv.text and S.name_only(n) for n in walk(params)):
+            return None  # also a parameter: its value depends on the caller
+        found = [n for n in walk(home[0] if home else root) if n.type == "identifier" and n.text == recv.text
+                 and is_binding(n) and [d.id for d in S.scopes(n)[:1]] == [d.id for d in home]]
+        if len(found) != 1 or found[0].parent.type != "assignment":
+            return None
+        right = found[0].parent.child_by_field_name("right")
+        fn = right.child_by_field_name("function") if right is not None and right.type == "call" else None
+        fn = fn.child_by_field_name("attribute") if fn is not None and fn.type == "attribute" else fn
+        if fn is None or fn.type != "identifier":
+            return None
+        landed = {self.def_id(n, repo) for n in self.goto(c["path"], fn.start_point[0] + 1, char_col(src, fn))
+                  if n.type == "function"}
+        return landed.pop() if len(landed) == 1 and None not in landed else None
+
+    def def_id(self, name, repo):
+        """'repo:path:scope' of the def a Jedi answer lands on, in this repo or a snapshot dependency, else None."""
+        for base, owner in [(self.dir, repo), *((d, d.name.replace("__", "/", 1)) for d in self.deps)]:
+            try:
+                path = Path(name.module_path).resolve().relative_to(base.resolve()).as_posix()
+            except (TypeError, ValueError):
+                continue
+            src = (base / path).read_bytes()
+            node = node_at(src, PY.parse(src).root_node, name.line, name.column)
+            if node.parent.type == "function_definition" and S.same(node.parent.child_by_field_name("name"), node):
+                return f"{owner}:{path}:{S.scope(node.parent.child_by_field_name('body'))}"
+        return None
 
     def where(self, name):
         """A Jedi answer as (repo-relative path, line, col), or None when it's outside the repo."""
@@ -245,9 +289,7 @@ class Repo:
             return None
         path, line, col = spot
         src, root = self.tree(path)
-        text = src.split(b"\n")[line - 1].decode("utf-8", errors="replace")
-        point = (line - 1, len(text[:col].encode()))
-        node = root.descendant_for_point_range(point, point)
+        node = node_at(src, root, line, col)
         assign = node.parent if node is not None else None
         if node is None or node.type != "identifier" or assign is None or assign.type != "assignment":
             return None
@@ -260,11 +302,7 @@ class Repo:
 
     def resolve(self, path, line, col):
         """(detection, how, resolved_to) for the name at path:line:col. how: 'direct', 'one_hop', or None."""
-        try:
-            names = self.goto(path, line, col)
-        except Exception as e:  # a crash in Jedi is a missing answer, not a missing row
-            log(f"  jedi failed at {path}:{line}:{col}: {type(e).__name__}: {e}")
-            names = []
+        names = self.goto(path, line, col)
         if not names:
             return "ast_unresolved", None, None
         hits = sorted({n.full_name for n in names if n.full_name in self.targets})
@@ -286,7 +324,7 @@ def resolve_candidates(run_id, repo, repo_dir, symbols, candidates, r=None):
             raise SystemExit(f"{repo} {c['path']}:{c['line']}: candidate symbol {c['symbol']!r} isn't tracked in meridian.toml")
         detection, via, resolved_to = r.resolve_candidate(c)
         rows.append(dict(zip(COLUMNS, [run_id, repo, c["path"], c["line"], c["col"], c["symbol"], detection, via,
-                                       resolved_to, RESOLVER])))
+                                       resolved_to, RESOLVER, r.receiver_from(c, repo)])))
     return rows
 
 
@@ -295,7 +333,7 @@ def resolve_aliases(run_id, repo, repo_dir, symbols, skip=(), r=None):
     r = r or Repo(repo_dir, symbols)
     rows = []
     for path in py_files(repo_dir, skip):
-        src, root = r.tree(path)
+        src, root = r.parse(path)
         binds = bindings(root, set(symbols))
         if not binds:
             continue
@@ -306,28 +344,15 @@ def resolve_aliases(run_id, repo, repo_dir, symbols, skip=(), r=None):
                 symbol = r.targets[resolved_to]
             else:  # say which binding the file made, so the row still explains itself
                 symbol, via = next((b for b in binds[alias] if b[1] == "import_alias"), binds[alias][0])
-            rows.append(dict(zip(COLUMNS, [run_id, repo, path, line, col, symbol, detection, via, resolved_to, RESOLVER])))
+            rows.append(dict(zip(COLUMNS, [run_id, repo, path, line, col, symbol, detection, via, resolved_to, RESOLVER, None])))
     return rows
-
-
-def head(repo_dir):
-    return subprocess.run(["git", "-C", str(repo_dir), "rev-parse", "HEAD"], check=True,
-                          capture_output=True, text=True).stdout.strip()
-
-
-def write_jsonl(path, rows):
-    tmp = path.with_name(path.name + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        for row in rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
-    tmp.replace(path)
 
 
 def load_candidates(out, run_id):
     path = out / "candidate.jsonl"
     if not path.exists():
         raise SystemExit(f"no candidate table: {path} is missing. Run meridian.scan first")
-    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = read_jsonl(path)
     if wrong := sorted({c["run_id"] for c in rows} - {run_id}):
         raise SystemExit(f"{path} has rows for run_id {wrong}, not {run_id!r}")
     return rows
@@ -348,26 +373,23 @@ EDGE_COLUMNS = ["run_id", "repo", "caller_path", "caller_scope", "line", "col", 
 
 
 def scope_of(root, src, line, col):
-    """(dotted scope, is it a function, line of that def) for the code at line:col. '<module>' at top level."""
-    text = src.split(b"\n")[line - 1].decode("utf-8", errors="replace")
-    point = (line - 1, len(text[:col].encode()))
-    up = root.descendant_for_point_range(point, point)
-    names, kind, def_line = [], None, None
-    while up is not None:
-        if up.type in ("function_definition", "class_definition"):
-            name = up.child_by_field_name("name")
-            names.append(name.text.decode())
-            if kind is None:
-                kind, def_line = up.type, name.start_point[0] + 1
-        up = up.parent
-    return ".".join(reversed(names)) or "<module>", kind == "function_definition", def_line
+    """(dotted scope, callers) for the code at line:col, scope as in meridian.scan. callers: [(called name, line Jedi
+    lands on)] that run it, empty for a module or class body. An __init__ also runs when its class is called."""
+    node = node_at(src, root, line, col)
+    chain = S.scopes(node)
+    if not chain or chain[0].type != "function_definition":
+        return S.scope(node), []
+    names = [chain[0].child_by_field_name("name")]
+    if names[0].text == b"__init__" and len(chain) > 1 and chain[1].type == "class_definition":
+        names.append(chain[1].child_by_field_name("name"))
+    return S.scope(node), [(n.text.decode(), n.start_point[0] + 1) for n in names]
 
 
 def call_sites(r, files):
     """{called name: [(path, line, col)]} for every call in the repo: f(...) and x.f(...)."""
     index = {}
     for path in files:
-        src, root = r.tree(path)
+        src, root = r.parse(path)
         for node in walk(root):
             if node.type == "call":
                 fn = node.child_by_field_name("function")
@@ -393,19 +415,19 @@ def call_edges(run_id, repo, r, uses, files, depth):
 
     uses: [(path, line, col, callee_repo, callee_path, callee_scope)], the confirmed calls of tracked symbols (depth 1).
     Then the callers of every function holding one (depth 2), and their callers (depth 3, [resolver] call_edge_depth).
-    A call counts only when Jedi lands on that very function's def. Module and class bodies get edges but have no
-    callers, so they stop the walk. Imports never make edges.
+    A call counts only when Jedi lands on that very function's def (or, for an __init__, its class). Module and class
+    bodies get edges but have no callers, so they stop the walk. Imports never make edges.
     """
     edges, frontier, seen, answers = {}, {}, set(), {}
 
     def add(path, line, col, callee_repo, callee_path, callee_scope):
         src, root = r.tree(path)
-        scope, is_function, def_line = scope_of(root, src, line, col)
+        scope, callers = scope_of(root, src, line, col)
         row = dict(zip(EDGE_COLUMNS, [run_id, repo, path, scope, line, col, callee_path, callee_repo, callee_scope]))
         edges[(path, line, col, callee_repo, callee_path, callee_scope)] = row
-        if is_function and (path, def_line) not in seen:
-            seen.add((path, def_line))
-            frontier[(path, def_line)] = scope
+        if callers and (path, callers[0][1]) not in seen:
+            seen.add((path, callers[0][1]))
+            frontier[(path, callers[0][1])] = (scope, callers)
 
     for use in uses:
         add(*use)
@@ -415,16 +437,13 @@ def call_edges(run_id, repo, r, uses, files, depth):
         if not targets:
             break
         index = index if index is not None else call_sites(r, files)
-        for (t_path, t_line), t_scope in targets:
-            for site in index.get(t_scope.split(".")[-1], []):
-                if site not in answers:  # one Jedi question per call site, however many functions share its name
-                    try:
+        for (t_path, _), (t_scope, callers) in targets:
+            for called, lands in callers:
+                for site in index.get(called, []):
+                    if site not in answers:  # one Jedi question per call site, however many functions share its name
                         answers[site] = {r.where(n)[:2] for n in r.goto(*site) if r.where(n)}
-                    except Exception as e:
-                        log(f"  jedi failed at {site[0]}:{site[1]}:{site[2]}: {type(e).__name__}: {e}")
-                        answers[site] = set()
-                if (t_path, t_line) in answers[site]:
-                    add(*site, repo, t_path, t_scope)
+                    if (t_path, lands) in answers[site]:
+                        add(*site, repo, t_path, t_scope)
     return [edges[k] for k in sorted(edges)]
 
 
@@ -439,7 +458,7 @@ def run(run_id, cfg, root=None):
     manifest_path = snap / "manifest.json"
     if not manifest_path.exists():
         raise SystemExit(f"no snapshot: {manifest_path} is missing. Run meridian.collect first")
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     out = handoff(cfg, run_id, root)
     by_repo = {}
     for c in load_candidates(out, run_id):
@@ -459,8 +478,8 @@ def run(run_id, cfg, root=None):
         if repo not in wanted:
             continue
         repo_dir = snap / "repos" / repo.replace("/", "__")
-        if head(repo_dir) != sha:
-            raise SystemExit(f"{repo}: checkout is at {head(repo_dir)}, the manifest says {sha}")
+        if S.head(repo_dir) != sha:
+            raise SystemExit(f"{repo}: checkout is at {S.head(repo_dir)}, the manifest says {sha}")
         deps = dependency_paths(snap, manifest, repo, wanted[repo])
         r = Repo(repo_dir, wanted[repo], deps, **rules)
         cands = resolve_candidates(run_id, repo, repo_dir, wanted[repo], sorted(
@@ -481,14 +500,15 @@ def run(run_id, cfg, root=None):
                 home_repo, home_path = symbol_home(snap, repo_dir, deps, module)
                 if home_path:
                     uses.append((x["path"], x["line"], x["col"], home_repo, home_path, name))
+        failed = r.failures
         found = call_edges(run_id, repo, r, uses, py_files(repo_dir, skip), depth)
-        log(f"  {len(found)} call edges ({len(uses)} from confirmed calls, {len(found) - len(uses)} from their callers)")
+        log(f"  {len(found)} call edges ({len(uses)} from confirmed calls, {len(found) - len(uses)} from their callers) · "
+            f"{r.failures - failed} Jedi failures while finding callers · "
+            f"{sum(x['receiver_from'] is not None for x in cands)} receiver_from")
         edges += found
-    rows.sort(key=lambda x: (x["repo"], x["path"], x["line"], x["col"]))
-    edges.sort(key=lambda e: (e["repo"], e["caller_path"], e["line"], e["col"], e["callee_repo"], e["callee_path"], e["callee_scope"]))
     out.mkdir(parents=True, exist_ok=True)
-    write_jsonl(out / "resolution.jsonl", rows)
-    write_jsonl(out / "call_edge.jsonl", edges)
+    write_jsonl(out / "resolution.jsonl", rows, ("repo", "path", "line", "col"))
+    write_jsonl(out / "call_edge.jsonl", edges, ("repo", "caller_path", "line", "col", "callee_repo", "callee_path", "callee_scope"))
     log(f"{len(rows)} resolution rows, {len(edges)} call edges -> {out} ({RESOLVER})")
     return rows
 

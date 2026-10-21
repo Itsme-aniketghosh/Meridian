@@ -2,11 +2,13 @@
 
     python -m unittest tests.test_history -v      # from DATA PIPELINE/
 """
-import filecmp, json, os, shutil, sqlite3, subprocess, sys, tempfile, unittest
+import filecmp, json, os, re, shutil, sqlite3, subprocess, sys, tempfile, unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import meridian.common as common
 import meridian.history as C
+import meridian.tickets as T
 import meridian.writer as W
 
 RUN = "abcdef0123456789"
@@ -82,6 +84,35 @@ class Commits(unittest.TestCase):
         self.assertEqual((counts["git_commit"], counts["commit_file"]), (6, len(self.files)))
 
 
+class Keyed(unittest.TestCase):
+    """messages() and keyed(): week 1's share of keyed commits, from the subject and counting the body."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.co = self.tmp / "repo"
+        self.co.mkdir()
+        run = lambda *a: subprocess.run(["git", "-C", str(self.co), "-c", "user.name=A", "-c", "user.email=a@example.com", *a],
+                                        check=True, capture_output=True, text=True).stdout.strip()
+        run("init", "--quiet", "--initial-branch=main")
+        for i, msg in enumerate([["[SPARK-3] old"], ["no key"], ["[MINOR] typo", "-m", "branch SPARK-2-fix\nmore"], ["[SPARK-1] fix"]]):
+            (self.co / "f.py").write_text(f"x = {i}\n")
+            run("add", ".")
+            run("commit", "--quiet", "-m", *msg)
+        self.sha = run("rev-parse", "HEAD")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_messages_and_keyed(self):
+        msgs = C.messages(self.co, self.sha)
+        self.assertEqual([(s, b.strip()) for _, s, b in msgs],
+                         [("[SPARK-1] fix", ""), ("[MINOR] typo", "branch SPARK-2-fix\nmore"), ("no key", ""), ("[SPARK-3] old", "")])
+        ct, dead = T.commit_tickets(msgs, "r", re.compile(r"\bSPARK-\d+\b"), {"SPARK-1", "SPARK-2", "SPARK-3"}, RUN)
+        commits, _ = C.read_repo(self.co, "r", self.sha, RUN)
+        self.assertEqual(C.keyed(commits, ct, 3), (1 / 3, 2 / 3, 3))  # the last 3: subject, body, none
+        self.assertEqual(C.keyed(commits, ct, 1000), (2 / 4, 3 / 4, 4))
+        self.assertIs(C.git, common.git)
+
+
 class Commands(unittest.TestCase):
     """CONTRACTS.md, "Every part runs as one command"."""
     def setUp(self):
@@ -108,7 +139,9 @@ class Commands(unittest.TestCase):
             self.assertIn("fix/repo", r.stdout)
             self.assertIn("jira/SPARK", r.stdout)  # no ticket source in this snapshot: said, not skipped silently
         self.assertEqual((self.tmp / "out" / RUN / "ticket.jsonl").read_text(), "")
-        r = self.cmd("writer")
+        mine = self.tmp / "m.toml"  # the real config pins one SQLite; this machine may have another
+        mine.write_text(f'[run]\nhandoff_dir = "out/{{run_id}}"\nsqlite_version = "{sqlite3.sqlite_version}"\n')
+        r = self.cmd("writer", "--config", str(mine))
         self.assertEqual(r.returncode, 0, r.stderr)
         db = sqlite3.connect(self.tmp / "out" / RUN / "meridian.sqlite")
         self.assertEqual(db.execute("SELECT count(*) FROM git_commit").fetchone(), (6,))
@@ -161,7 +194,9 @@ class Writer(unittest.TestCase):
         cfg = self.tmp / "m.toml"
         cfg.write_text('[run]\nsqlite_version = "0.0.1"\n')
         with self.assertRaisesRegex(SystemExit, "pins 0.0.1"):
-            W.write(self.out, config=cfg)
+            W.check_sqlite(cfg)
+        cfg.write_text(f'[run]\nsqlite_version = "{sqlite3.sqlite_version}"\n')
+        W.check_sqlite(cfg)  # the machine's own version passes
 
 
 if __name__ == "__main__":

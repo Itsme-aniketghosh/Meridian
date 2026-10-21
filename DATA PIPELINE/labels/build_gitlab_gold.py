@@ -8,6 +8,7 @@ usernames the model quoted that aren't in the GitLab pull, one per line, so they
   cross_hand_check_116.csv    Vishwa's targeted read; 25 confirmed
   hand_check_17.csv, hand_check_40.csv   Vishwa's 57 stall reads; the 5 cross_team = y make Vishwa's 30
 <out/<run_id> dir> is a team run's handoff folder: GitLab ticket and ticket_link fill the teams and dates the sheets lack.
+Its snapshots/<run_id>/gitlab/issues.jsonl.gz must exist: the raw dump is the list of usernames to scrub.
 
 Writes, next to this script:
   gitlab_cross_team_blocks.csv  one row per (blocked_ref, blocker_ref). A pair in both lists -> source 'both', the
@@ -15,13 +16,16 @@ Writes, next to this script:
   gitlab_stall_reasons.csv      one row per stall read
 Over the week-1 verdicts: same team on both sides -> no; a blocked-by link removed while the blocker was open -> no;
 then gitlab_spot_check_model.csv, a second model read of sampled pairs, wins where it disagrees.
-Scrubbed: no people columns, emails -> [email], @handles -> @user, any GitLab username in the run -> user, quotes <= 200.
+Scrubbed: no people columns, emails -> [email], @handles -> @user, any GitLab username in the run -> user (any case,
+even when it is an English word), quotes <= 200.
 """
 import csv, gzip, hashlib, json, re, sys
 from pathlib import Path
 
 GL = "gitlab-org/gitlab"
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent))
+from meridian.common import read_jsonl
 REF = re.compile(r"(?:[\w.-]+/)*[\w.-]+#\d+|(?<![\w/#])#\d+")
 RANK = ["wait", "planned", "partial", "unclear", "no", "no_evidence"]  # strongest first
 XT_VERDICT = {"no evidence": "no_evidence"}
@@ -31,11 +35,6 @@ VP_VERDICT = {"confirmed": "wait", "possible": "unclear", "no": "no", "not-a-blo
 def read_csv(path):
     with open(path, newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
-
-
-def read_jsonl(path):
-    with open(path, encoding="utf-8") as f:
-        return [json.loads(l) for l in f if l.strip()]
 
 
 def full_ref(r, known=None):
@@ -48,14 +47,10 @@ def full_ref(r, known=None):
 
 
 def scrubber(usernames, always=()):
-    """usernames that are English words (design, grant) are left alone: they'd mangle quotes. always: scrubbed anyway."""
-    words = set()
-    dict_file = Path("/usr/share/dict/words")
-    if dict_file.exists():
-        words = {w.strip().lower() for w in dict_file.read_text().splitlines()}
-    names = {u for u in usernames if len(u) >= 4 and u.lower() not in words} | set(always)
-    names = sorted(names, key=len, reverse=True)
-    rx = re.compile(r"(?<![\w@./-])(" + "|".join(map(re.escape, names)) + r")(?![\w/-])") if names else None
+    """Every username of 4+ characters, any case, English words too: a dictionary differs by OS and let real usernames
+    through. always: scrubbed whatever the length."""
+    names = sorted({u for u in usernames if len(u) >= 4} | set(always), key=len, reverse=True)
+    rx = re.compile(r"(?<![\w@./-])(" + "|".join(map(re.escape, names)) + r")(?![\w/-])", re.I) if names else None
 
     def scrub(text, limit=None):
         text = re.sub(r"[\w.+-]+@[\w-]+\.[\w.-]+", "[email]", text or "")
@@ -72,16 +67,30 @@ def group(components):
     return gs[0] if gs else ""
 
 
+def put(rows, r):
+    """One row per (blocked_ref, blocker_ref): the stronger verdict wins, the other fills its blanks."""
+    key = (r["blocked_ref"], r["blocker_ref"])
+    if key not in rows:
+        rows[key] = r
+        return
+    old = rows[key]
+    win = r if RANK.index(r["verdict"]) < RANK.index(old["verdict"]) else old
+    lose = old if win is r else r
+    rows[key] = {k: win[k] or lose[k] for k in win} | {"source": old["source"] if old["source"] == r["source"] else "both"}
+
+
 def main(src, run):
     src, run = Path(src), Path(run)
+    raw = run.parent.parent / "snapshots" / run.name / "gitlab" / "issues.jsonl.gz"
+    if not raw.exists():  # without it the scrub misses every username not on a ticket
+        sys.exit(f"no {raw}: the raw GitLab dump is the username list the scrub needs")
     tickets = {t["key"]: t for t in read_jsonl(run / "ticket.jsonl") if t["tracker"] == "gitlab"}
     links = [l for l in read_jsonl(run / "ticket_link.jsonl") if l["link_type"] == "blocked_by"]
     xt = read_csv(src / "xt_cross_team_blocks.csv")
     vp = read_csv(src / "cross_hand_check_116.csv")
     stalls = [dict(r, group=r.get("group", "")) for f in ("hand_check_17.csv", "hand_check_40.csv") for r in read_csv(src / f)]
-    raw = run.parent.parent / "snapshots" / run.name / "gitlab" / "issues.jsonl.gz"
-    users = set(re.findall(r'"username":\s*"([^"]+)"', gzip.decompress(raw.read_bytes()).decode())) if raw.exists() else set()
-    users |= {t[k] for t in tickets.values() for k in ("assignee", "reporter") if t.get(k)} | {r["added_by"] for r in xt if r["added_by"]}
+    users = set(re.findall(r'"username":\s*"([^"]+)"', gzip.decompress(raw.read_bytes()).decode()))
+    users |= {t[k] for t in tickets.values() for k in ("assignee", "reporter") if t.get(k)}
     extra = src / "extra_names.txt"  # names the model read live, not in the pull: kept local, one per line
     scrub = scrubber(users, {l.strip() for l in extra.read_text().splitlines() if l.strip()} if extra.exists() else ())
     team = lambda ref: group(tickets[ref]["components"]) if ref in tickets else ""
@@ -101,27 +110,16 @@ def main(src, run):
         return linked[0] if len(linked) == 1 else full_ref(x, known)
 
     rows = {}
-
-    def put(r):
-        key = (r["blocked_ref"], r["blocker_ref"])
-        if key not in rows:
-            rows[key] = r
-            return
-        old = rows[key]
-        win = r if RANK.index(r["verdict"]) < RANK.index(old["verdict"]) else old
-        lose = old if win is r else r
-        rows[key] = {k: win[k] or lose[k] for k in win} | {"source": "both"}
-
     for r in xt:
         a, b = f"{GL}#{r['x']}", full_ref(r["blocker"], known)
-        put({"blocked_ref": a, "blocker_ref": b, "waiting_team": r["x_group"] or team(a), "blocking_team": r["blocker_group"] or team(b),
+        put(rows, {"blocked_ref": a, "blocker_ref": b, "waiting_team": r["x_group"] or team(a), "blocking_team": r["blocker_group"] or team(b),
              "link_added_at": r["link_added"][:10] or added(a, b), "blocker_closed_at": r["blocker_closed"][:10] or closed(b),
              "verdict": XT_VERDICT.get(r["verdict"], r["verdict"]), "source": "link_pass", "evidence_url": url(r["x"]),
              "evidence_quote": scrub(r["evidence"], 200), "checked_by": "model", "human_verdict": ""})
 
     def vishwa(a, refs, own, other, verdict, link, evidence):
         for b in refs or [""]:
-            put({"blocked_ref": a, "blocker_ref": b, "waiting_team": team(a) or own, "blocking_team": team(b) or other,
+            put(rows, {"blocked_ref": a, "blocker_ref": b, "waiting_team": team(a) or own, "blocking_team": team(b) or other,
                  "link_added_at": added(a, b), "blocker_closed_at": closed(b), "verdict": verdict, "source": "targeted_read",
                  "evidence_url": link, "evidence_quote": scrub(evidence, 200), "checked_by": "model", "human_verdict": ""})
 

@@ -6,11 +6,15 @@ Reads the code in snapshots/<run_id>/ (every repo in the manifest whose dataset 
 primary key, for the writer:
     out/<run_id>/candidate.jsonl       one row per identifier that is a tracked old name (schema.sql, candidate)
     out/<run_id>/parse_failure.jsonl   one row per file tree-sitter can't parse cleanly (schema.sql, parse_failure)
+    out/<run_id>/module_import.jsonl   one row per imported module or name, tracked or not (schema.sql, module_import)
+    out/<run_id>/deprecation.jsonl     one row per warn() or decorator that marks a def/class deprecated
 
-Grew out of week 1's scan_sites.py and Rochan's tests/standin_candidates.py (same roles, scope and columns).
+Grew out of week 1's scan_sites.py and Rochan's stand-in scanner (same roles and columns).
 
 Files. Every .py file, plus Python outside .py ([scanner] embedded_python, e.g. code.sample) as file_kind
-'embedded'. [scanner] skip_paths are never read. .git is never read.
+'embedded'. [scanner] skip_paths are never read. .git is never read. Names match case as in git on every OS
+(Views.PY is not .py, Test_Case.py is not test_*.py). An unreadable folder stops the run. meridian.resolve walks
+the same list.
 
 Candidates. Tree-sitter (pinned) finds every identifier whose text is a tracked old name. Comments and strings are
 never identifiers, so they never become rows. Role, by where the identifier sits:
@@ -20,7 +24,18 @@ never identifiers, so they never become rows. Role, by where the identifier sits
     definition   name of a def or class, or a left side of = (ugettext = gettext)
     attribute    obj.ugettext, not called
     reference    anything else: passed as a value, a keyword-argument or parameter name, ...
-col counts characters, like Jedi (tree-sitter counts bytes). scope is the dotted enclosing def/class names.
+Keyword-argument and parameter names are kept only if [scanner] keep_name_only.
+col counts characters, like Jedi (tree-sitter counts bytes). scope is the dotted names of the def/class bodies the
+name sits in: parameters, defaults, decorators, bases and a def's own name run in the outer scope.
+in_except is 1 inside an except or finally block of the name's own function.
+
+Imports (module_import). Every import statement in every cleanly parsed file: `import a.b` -> (a.b, ''),
+`from a import c, d` -> (a, c), (a, d). Relative imports resolve against the file's folders as packages. is_test:
+the file matches [scanner] junk test.
+
+Deprecations. warnings.warn() / warn() whose category (its last dotted part, whole) or message (anywhere) matches a
+[scanner] deprecation_markers regex: scope is the def/class around it. A decorator whose name matches: scope is the
+def/class it decorates. marker is the matched text, the first regex that matches.
 
 Junk ([scanner] junk). test: a path segment from `test` (tests/ anywhere in the path) or a file-name pattern.
 migration: the file holds migration_marker. example: a path segment from `example`. Else 'none'.
@@ -31,28 +46,28 @@ Parse failures. A file whose tree has an ERROR or MISSING node is excluded and b
 
 Same run, same bytes: files and rows in a fixed order, no clock, nothing random.
 """
-import json, os, subprocess
+import json, os, re
 from collections import Counter
-from fnmatch import fnmatch
+from fnmatch import fnmatchcase
 from pathlib import Path
 
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser
 
-from meridian.common import data_root, handoff, load_config, log, parser
+from meridian.common import data_root, git, handoff, load_config, log, parser, write_jsonl
 
 PY = Parser(Language(tspython.language()))
-COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "role", "scope", "text", "junk", "file_kind"]
+COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "role", "scope", "text", "junk", "file_kind", "in_except"]
 FAIL_COLUMNS = ["run_id", "repo", "path", "error"]
-EDIT_ROLES = ("import", "call", "alias")   # the roles that make a line someone must edit (the Django 265)
-
-# Keyword-argument and parameter names (url='/x/', def view(request, url)) can never be a use of the tracked
-# function. Kept as 'reference' for now, to match the stand-in the resolver was built on. Counted in the log.
-KEEP_NAME_ONLY = True
+IMPORT_COLUMNS = ["run_id", "repo", "path", "line", "module", "name", "is_test"]
+DEPRECATION_COLUMNS = ["run_id", "repo", "path", "line", "scope", "marker"]
+KEYS = {"candidate": ("repo", "path", "line", "col"), "parse_failure": ("repo", "path"),
+        "module_import": ("repo", "path", "line", "module", "name"), "deprecation": ("repo", "path", "line")}
+DEFS = ("function_definition", "class_definition")
 
 
 def tracked(cfg):
-    """{repo: {old name: module}} for every dataset in meridian.toml that lists symbols (same as meridian.resolve)."""
+    """{repo: {old name: module}} for every dataset in meridian.toml that lists symbols."""
     out = {}
     for ds in cfg.get("datasets", {}).values():
         symbols = {s["name"]: s["module"] for s in ds.get("symbols", [])}
@@ -68,19 +83,23 @@ def answer_keys(cfg):
 
 
 def skipped(path, patterns):
-    """Same rule as meridian.resolve: 'docs/' is a prefix, '*.po' a pattern."""
-    return any(path.startswith(p) if p.endswith("/") else fnmatch(path, p) for p in patterns)
+    """'docs/' is a prefix, '*.po' a pattern. Case-sensitive on every OS (fnmatch ignores case on Windows)."""
+    return any(path.startswith(p) if p.endswith("/") else fnmatchcase(path, p) for p in patterns)
 
 
 def under(path, pattern):
     """'tests/' matches a path segment anywhere (tests/x.py, wagtail/admin/tests/x.py). 'test_*.py' a file name."""
     if pattern.endswith("/"):
         return ("/" + pattern) in ("/" + path)
-    return fnmatch(path.rsplit("/", 1)[-1], pattern)
+    return fnmatchcase(path.rsplit("/", 1)[-1], pattern)
+
+
+def is_test(path, rules):
+    return any(under(path, p) for p in rules.get("test", []))
 
 
 def junk(path, source, rules):
-    if any(under(path, p) for p in rules.get("test", [])):
+    if is_test(path, rules):
         return "test"
     marker = rules.get("migration_marker")
     if marker and marker.encode() in source:
@@ -90,12 +109,16 @@ def junk(path, source, rules):
     return "none"
 
 
+def fail(error):
+    raise error  # an unreadable folder would otherwise drop its files silently (CONTRACTS.md rule 9)
+
+
 def files(repo_dir, scanner):
-    """[(path, file_kind)] in a fixed order. .git and skip_paths are never read."""
+    """[(path, file_kind)] in a fixed order. .git and skip_paths are never read. Files only, never a folder x.py."""
     skip = scanner.get("skip_paths", [])
     embedded = scanner.get("embedded_python", [])
     found = []
-    for top, dirs, names in os.walk(repo_dir):
+    for top, dirs, names in os.walk(repo_dir, onerror=fail):
         dirs[:] = [d for d in dirs if d != ".git"]
         for name in names:
             rel = (Path(top) / name).relative_to(repo_dir).as_posix()
@@ -103,7 +126,7 @@ def files(repo_dir, scanner):
                 continue
             if name.endswith(".py"):
                 found.append((rel, "py"))
-            elif any(fnmatch(name, e) for e in embedded):
+            elif any(fnmatchcase(name, e) for e in embedded):
                 found.append((rel, "embedded"))
     return sorted(found)
 
@@ -152,7 +175,6 @@ def name_only(node):
 
 
 def role(node):
-    """Same rules as tests/standin_candidates.py."""
     up = node
     while up is not None:
         if up.type in ("import_statement", "import_from_statement"):
@@ -177,30 +199,119 @@ def role(node):
     return "reference"
 
 
-def scope(node):
-    names = []
-    up = node.parent
+def opens(up, child):
+    """Is up a def/class whose body is child? Only its body runs in its scope."""
+    return up.type in DEFS and same(up.child_by_field_name("body"), child)
+
+
+def scopes(node):
+    """The defs/classes whose body holds node, innermost first. Shared with meridian.resolve."""
+    chain, child, up = [], node, node.parent
     while up is not None:
-        if up.type in ("function_definition", "class_definition"):
-            names.append(up.child_by_field_name("name").text.decode("utf-8", errors="replace"))
-        up = up.parent
+        if opens(up, child):
+            chain.append(up)
+        child, up = up, up.parent
+    return chain
+
+
+def scope(node):
+    names = [d.child_by_field_name("name").text.decode("utf-8", errors="replace") for d in scopes(node)]
     return ".".join(reversed(names)) or "<module>"
 
 
+def in_except(node):
+    """1 inside an except or finally block, at any depth, of node's own function (or module)."""
+    child, up = node, node.parent
+    while up is not None and not opens(up, child):
+        if up.type in ("except_clause", "finally_clause"):
+            return 1
+        child, up = up, up.parent
+    return 0
+
+
+def text(node):
+    return node.text.decode("utf-8", errors="replace")
+
+
+def dotted(node):
+    return ".".join(text(c) for c in node.children if c.type == "identifier")
+
+
+def imports(path, nodes):
+    """{(line, module, name)} for every import statement. Relative imports resolve against path's folders."""
+    package, found = path.split("/")[:-1], set()
+    for node in nodes:
+        line = node.start_point[0] + 1
+        if node.type == "import_statement":
+            for item in node.children_by_field_name("name"):
+                found.add((line, dotted(item.child_by_field_name("name") if item.type == "aliased_import" else item), ""))
+        elif node.type in ("import_from_statement", "future_import_statement"):
+            module = node.child_by_field_name("module_name")
+            if module is None:
+                module = "__future__"
+            elif module.type == "relative_import":
+                dots = module.children[0].text.count(b".")
+                module = ".".join(package[:max(len(package) - dots + 1, 0)]
+                                  + [dotted(c) for c in module.children if c.type == "dotted_name"])
+            else:
+                module = dotted(module)
+            for item in node.children_by_field_name("name"):
+                found.add((line, module, dotted(item.child_by_field_name("name") if item.type == "aliased_import" else item)))
+            if any(c.type == "wildcard_import" for c in node.children):
+                found.add((line, module, "*"))
+    return found
+
+
+def matched(s, patterns, whole):
+    """The text of the first [scanner] deprecation_markers regex that matches: all of a name, anywhere in a message."""
+    for p in patterns:
+        if m := (re.fullmatch if whole else re.search)(p, s):
+            return m.group(0)
+    return None
+
+
+def deprecations(nodes, patterns):
+    """{line: (scope, marker)}: warn() calls and decorators that mark a def/class deprecated. First one per line."""
+    found = {}
+    for node in nodes:
+        marker = target = None
+        if node.type == "call" and node.child_by_field_name("function").text in (b"warn", b"warnings.warn"):
+            args = node.child_by_field_name("arguments").named_children
+            pos = [a for a in args if a.type not in ("keyword_argument", "comment")]
+            kw = {a.child_by_field_name("name").text: a.child_by_field_name("value") for a in args if a.type == "keyword_argument"}
+            category = kw.get(b"category", pos[1] if len(pos) > 1 else None)
+            message = kw.get(b"message", pos[0] if pos else None)
+            marker = (category is not None and matched(text(category).rsplit(".", 1)[-1], patterns, True)) or \
+                     (message is not None and matched(text(message), patterns, False))
+            target = node
+        elif node.type == "decorator" and node.parent.type == "decorated_definition":
+            expr = node.named_children[0]
+            name = text(expr.child_by_field_name("function") if expr.type == "call" else expr)
+            marker = matched(name.rsplit(".", 1)[-1], patterns, True)
+            target = node.parent.child_by_field_name("definition").child_by_field_name("body")
+        if marker:
+            found.setdefault(node.start_point[0] + 1, (scope(target), marker))
+    return found
+
+
 def scan_repo(run_id, repo, repo_dir, symbols, scanner):
-    """(candidate rows, parse_failure rows, counts) for one repo."""
-    rows, failures, counts = [], [], Counter()
+    """(candidate rows, parse_failure rows, counts, module_import rows, deprecation rows) for one repo."""
+    rows, failures, imported, deprecated, counts = [], [], [], [], Counter()
     rules = scanner.get("junk", {})
     for rel, kind in files(repo_dir, scanner):
         source = (repo_dir / rel).read_bytes()
         tree = PY.parse(source)
-        names = [n for n in walk(tree.root_node)
-                 if n.type == "identifier" and n.text.decode("utf-8", errors="replace") in symbols]
+        nodes = list(walk(tree.root_node))
+        names = [n for n in nodes if n.type == "identifier" and n.text.decode("utf-8", errors="replace") in symbols]
         counts["files"] += 1
         if tree.root_node.has_error:
             failures.append(dict(zip(FAIL_COLUMNS, [run_id, repo, rel, first_error(tree.root_node)])))
             counts["names_in_failed_files"] += len(names)
             continue
+        test = int(is_test(rel, rules))
+        imported += [dict(zip(IMPORT_COLUMNS, [run_id, repo, rel, *i, test])) for i in sorted(imports(rel, nodes))]
+        deprecated += [dict(zip(DEPRECATION_COLUMNS, [run_id, repo, rel, line, *d]))
+                       for line, d in sorted(deprecations(nodes, scanner["deprecation_markers"]).items())]
         if not names:
             continue
         lines = source.decode("utf-8", errors="replace").split("\n")
@@ -208,31 +319,23 @@ def scan_repo(run_id, repo, repo_dir, symbols, scanner):
         for node in names:
             if name_only(node):
                 counts["name_only"] += 1
-                if not KEEP_NAME_ONLY:
+                if not scanner["keep_name_only"]:
                     continue
             line = node.start_point[0] + 1
             rows.append(dict(zip(COLUMNS, [run_id, repo, rel, line, char_col(source, node),
                                            node.text.decode("utf-8", errors="replace"), role(node), scope(node),
-                                           lines[line - 1].strip(), label, kind])))
+                                           lines[line - 1].strip(), label, kind, in_except(node)])))
     rows.sort(key=lambda r: (r["path"], r["line"], r["col"]))
-    return rows, failures, counts
+    return rows, failures, counts, imported, deprecated
 
 
 def head(repo_dir):
-    return subprocess.run(["git", "-C", str(repo_dir), "rev-parse", "HEAD"],
-                          capture_output=True, text=True).stdout.strip()
+    return git(repo_dir, "rev-parse", "HEAD").strip()
 
 
-def write_jsonl(path, rows):
-    tmp = path.with_name(path.name + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        for row in rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
-    tmp.replace(path)
-
-
-def edit_lines(rows, file_kind):
-    return {(r["path"], r["line"]) for r in rows if r["role"] in EDIT_ROLES and r["file_kind"] == file_kind}
+def edit_lines(rows, file_kind, roles):
+    """Lines someone must edit: rows whose role is in [scanner] edit_roles (the Django 265)."""
+    return {(r["path"], r["line"]) for r in rows if r["role"] in roles and r["file_kind"] == file_kind}
 
 
 def run(run_id, cfg, root=None):
@@ -240,38 +343,37 @@ def run(run_id, cfg, root=None):
     manifest_path = snap / "manifest.json"
     if not manifest_path.exists():
         raise SystemExit(f"no snapshot: {manifest_path} is missing. Run meridian.collect first")
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     wanted, keys = tracked(cfg), answer_keys(cfg)
     scanner = cfg.get("scanner", {})
-    rows, failures = [], []
+    tables = {t: [] for t in KEYS}
     for repo, sha in sorted(manifest["repos"].items()):
         if repo not in wanted:
             continue
         repo_dir = snap / "repos" / repo.replace("/", "__")
         if head(repo_dir) != sha:
             raise SystemExit(f"{repo}: checkout is at {head(repo_dir)!r}, the manifest says {sha}")
-        got, failed, counts = scan_repo(run_id, repo, repo_dir, wanted[repo], scanner)
+        got, failed, counts, imported, deprecated = scan_repo(run_id, repo, repo_dir, wanted[repo], scanner)
         log(f"{repo}: {len(got)} candidates in {counts['files']} files · "
             f"roles {dict(sorted(Counter(r['role'] for r in got).items()))} · "
-            f"junk {dict(sorted(Counter(r['junk'] for r in got).items()))}")
+            f"junk {dict(sorted(Counter(r['junk'] for r in got).items()))} · {sum(r['in_except'] for r in got)} in except")
         log(f"  {len(failed)} parse failures (holding {counts['names_in_failed_files']} tracked names, excluded) · "
             f"{counts['name_only']} keyword-argument/parameter names "
-            f"({'kept as reference' if KEEP_NAME_ONLY else 'not emitted'})")
+            f"({'kept as reference' if scanner['keep_name_only'] else 'not emitted'})")
+        log(f"  {len(imported)} module imports · {len(deprecated)} deprecation marks")
         if repo in keys:
             key = keys[repo]
-            py, emb = len(edit_lines(got, "py")), len(edit_lines(got, "embedded"))
+            py, emb = (len(edit_lines(got, kind, scanner["edit_roles"])) for kind in ("py", "embedded"))
             log(f"  answer key: {py} edit lines in .py (key {key.get('edit_lines')}) · "
                 f"{emb} outside .py (key {key.get('outside_py')})")
-        rows += got
-        failures += failed
-    rows.sort(key=lambda r: (r["repo"], r["path"], r["line"], r["col"]))
-    failures.sort(key=lambda r: (r["repo"], r["path"]))
+        for t, part in zip(KEYS, (got, failed, imported, deprecated)):
+            tables[t] += part
     out = handoff(cfg, run_id, root)
     out.mkdir(parents=True, exist_ok=True)
-    write_jsonl(out / "candidate.jsonl", rows)
-    write_jsonl(out / "parse_failure.jsonl", failures)
-    log(f"{len(rows)} candidate rows, {len(failures)} parse failures -> {out}")
-    return rows, failures
+    for t, key in KEYS.items():
+        write_jsonl(out / f"{t}.jsonl", tables[t], key)
+    log(" · ".join(f"{len(tables[t])} {t}" for t in KEYS) + f" -> {out}")
+    return tables["candidate"], tables["parse_failure"]
 
 
 def main(argv=None):

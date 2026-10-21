@@ -14,11 +14,8 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from meridian.common import CONFIG, HERE, handoff, load_config, log, parser
-from meridian.szz import FIX_SINCE, code_file, git, szz
-
-SRC = re.compile(r"\.(scala|java|py)$")  # week 1's fragility filter, kept so the numbers compare
-TEST = re.compile(r"(^|/)(tests?|test-data|benchmarks?)/|Suite\.scala$|(^|/)test_[^/]*\.py$|Test\.java$")
+from meridian.common import CONFIG, HERE, git, handoff, load_config, log, parser
+from meridian.szz import code_file, code_rules, szz
 
 
 def history(co, parent, paths):
@@ -35,23 +32,24 @@ def history(co, parent, paths):
     return [tuple(c) for c in out]
 
 
-def defects4j(d4j, labels):
-    repos = {r[0]: r[1].rsplit("/", 1)[1] + ".git" for r in csv.reader(open(d4j / "project_repos" / "repos.csv"))}
+def defects4j(d4j, labels, code):
+    repos = {r[0]: r[1].rsplit("/", 1)[1] + ".git"
+             for r in csv.reader(open(d4j / "project_repos" / "repos.csv", encoding="utf-8", newline=""))}
     fixed = {}
     for p in {r["pid"] for r in labels}:
         for name in ("active-bugs.csv", "deprecated-bugs.csv"):  # some labelled bugs are deprecated in v3, the fix still is one
             f = d4j / "framework" / "projects" / p / name
-            for b in csv.DictReader(open(f)) if f.exists() else []:
+            for b in csv.DictReader(open(f, encoding="utf-8", newline="")) if f.exists() else []:
                 fixed[(p, b["bug.id"])] = b["revision.id.fixed"]
     hits, sizes, recall = Counter(), [], 0
     for r in labels:
         co, fix = d4j / "project_repos" / repos[r["pid"]], fixed[(r["pid"], r["bid"])]
         parent = git(co, "rev-parse", fix + "^").strip()
-        paths = [p for p in git(co, "diff", "--name-only", "--no-renames", parent, fix).split("\n") if p and code_file(p)]
+        paths = [p for p in git(co, "diff", "--name-only", "--no-renames", parent, fix).split("\n") if p and code_file(p, code)]
         past = history(co, parent, paths) if paths else []
         when = {s: at for s, at, _ in past}
         blamed = Counter()
-        for c in szz(co, fix, parent).values():
+        for c in szz(co, fix, parent, code).values():
             blamed.update(c)
         truth = r["bic_d4j_v3"]
         picks = {
@@ -71,11 +69,12 @@ def defects4j(d4j, labels):
     return hits, recall
 
 
-def fragility(db, snapshot_at, rule, risky_at):
-    end = datetime.strptime(snapshot_at, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-    iso = lambda d: d.strftime("%Y-%m-%dT%H:%M:%SZ")
-    cut, start = iso(end - timedelta(days=365)), iso(end - timedelta(days=730))
-    src = lambda p: SRC.search(p) and not TEST.search(p)
+def fragility(db, snapshot_at, cfg):
+    fmt, ck, rule, risky_at = cfg["run"]["time_format"], cfg["checks"], cfg["szz"]["fix"], cfg["graph"]["risky_bug_fixes"]
+    end, days = datetime.strptime(snapshot_at, fmt).replace(tzinfo=timezone.utc), ck["fragility_window_days"]
+    cut, start = (end - timedelta(days=days)).strftime(fmt), (end - timedelta(days=2 * days)).strftime(fmt)
+    src_rx, test_rx = re.compile(ck["source_files"]), re.compile(ck["test_files"])
+    src = lambda p: src_rx.search(p) and not test_rx.search(p)
     fix_sql = f"""SELECT DISTINCT c.repo, c.sha, f.path FROM commit_ticket ct JOIN ticket t ON t.key = ct.key
                  JOIN git_commit c ON c.repo = ct.repo AND c.sha = ct.sha JOIN commit_file f ON f.repo = c.repo AND f.sha = c.sha
                  WHERE {" AND ".join(f"t.{k} = ?" for k in rule)} AND t.bulk_closed = 0 AND c.first_parent = 1
@@ -83,7 +82,7 @@ def fragility(db, snapshot_at, rule, risky_at):
 
     def fixes(a, b):
         out = defaultdict(Counter)
-        for repo, _, path in db.execute(fix_sql, (*rule.values(), FIX_SINCE, a, b)):
+        for repo, _, path in db.execute(fix_sql, (*rule.values(), cfg["szz"]["fix_since"], a, b)):
             if src(path):
                 out[repo][path] += 1
         return out
@@ -101,23 +100,23 @@ def fragility(db, snapshot_at, rule, risky_at):
         risky = {p for p, n in prev[repo].items() if n >= risky_at and p in live}
         by_churn = set(sorted(live, key=lambda p: (-churn[p], p))[:len(risky)])
 
-        def lift(files):
+        def lift(files):  # as text: n/a when there's nothing to divide by (no files picked, or no fixes next year)
             got = sum(n_next.get(p, 0) for p in files)
-            return got / total / (len(files) / len(live)), got / total
+            return (f"{got / total / (len(files) / len(live)):.1f}x" if files and total else "n/a"), (f"{got / total:.0%}" if total else "n/a")
 
         (l, s), (lc, sc) = lift(risky), lift(by_churn)
         log(f"[fragility] {repo}  cutoff {cut}  source files {len(live):,}, risky {len(risky)} ({len(risky) / len(live):.1%}) "
-            f"-> {s:.0%} of next year's {total:,} file-fixes, lift {l:.1f}x")
-        log(f"            churn baseline, top {len(risky)} files by churn -> {sc:.0%}, lift {lc:.1f}x")
+            f"-> {s} of next year's {total:,} file-fixes, lift {l}")
+        log(f"            churn baseline, top {len(risky)} files by churn -> {sc}, lift {lc}")
 
 
 def main(run_id, d4j, config=CONFIG, root=None):
     cfg = load_config(config)
-    labels = list(csv.DictReader(open(HERE.parent / cfg["szz"]["answer_key"])))
-    defects4j(Path(d4j), labels)
+    labels = list(csv.DictReader(open(HERE.parent / cfg["szz"]["answer_key"], encoding="utf-8", newline="")))
+    defects4j(Path(d4j), labels, code_rules(cfg))
     db = sqlite3.connect(handoff(cfg, run_id, root) / "meridian.sqlite")
     (snapshot_at,) = db.execute("SELECT snapshot_at FROM run WHERE run_id = ?", (run_id,)).fetchone()
-    fragility(db, snapshot_at, cfg["szz"]["fix"], cfg["graph"]["risky_bug_fixes"])
+    fragility(db, snapshot_at, cfg)
 
 
 if __name__ == "__main__":
