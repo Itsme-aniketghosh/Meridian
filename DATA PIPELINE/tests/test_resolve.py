@@ -116,6 +116,7 @@ FILES = {
     ),
     "app/Views.PY": "from lib.translation import ugettext as _\n_('upper')\n",   # not .py, on Windows too
     "app/pkg.py/__init__.py": "",                      # a folder named pkg.py is not a file to read
+    "lib/other.py": "from .translation import ugettext\n",   # a relative import of the module itself: direct
 }
 
 CANDIDATES = {   # (path, line): (role, detection, via, resolved_to)
@@ -133,6 +134,7 @@ CANDIDATES = {   # (path, line): (role, detection, via, resolved_to)
     ("app/unknown.py", 2): ("call", "ast_unresolved", "none", None),
     ("app/unicode.py", 2): ("call", "ast_resolved", "direct", "lib.translation.ugettext"),
     ("app/sep.py", 2): ("call", "ast_resolved", "direct", "lib.translation.ugettext"),
+    ("lib/other.py", 1): ("import", "ast_resolved", "direct", "lib.translation.ugettext"),
 }
 
 EXPECTED = {   # (path, line, col): (detection, via, resolved_to, symbol)

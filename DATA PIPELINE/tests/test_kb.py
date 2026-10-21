@@ -143,9 +143,12 @@ def build():
     ins("call_edge", [dict(run_id="R2", repo=REPO, caller_path=cp, caller_scope=cs, line=ln, col=4, callee_path=ep,
                            callee_repo=REPO, callee_scope=es) for cp, cs, ln, ep, es in EDGES])
     ins("module_import", [dict(run_id="R2", repo=REPO, path="tests/test_totals.py", line=1, module="cart.totals", name="total", is_test=1),
-                          dict(run_id="R2", repo=REPO, path="checkout/api.py", line=1, module="cart.pricing", name="price", is_test=0)])
+                          dict(run_id="R2", repo=REPO, path="checkout/api.py", line=1, module="cart.pricing", name="price", is_test=0),
+                          # `from shared import client` / `from ship import label`: the module is parent + name
+                          dict(run_id="R2", repo=REPO, path="ship/label.py", line=2, module="shared", name="client", is_test=0),
+                          dict(run_id="R2", repo=REPO, path="tests/test_ship.py", line=1, module="ship", name="label", is_test=1)])
     ins("deprecation", [dict(run_id="R2", repo=REPO, path="auth/client.py", line=88, scope="AuthClient.verify_token",
-                             marker="DeprecationWarning")])
+                             qualname="auth.client.AuthClient.verify_token", marker="DeprecationWarning")])
     ins("blocked_by", [dict(run_id="R2", call_site_id="S_f1", blocker_id="S_shared", via_function=f"{REPO}:shared/client.py:get_client",
                             depth=1, status="resolved")])
     ins("chain", [dict(run_id="R2", from_key=a, to_key=b, type=t, evidence=json.dumps(ev), in_cycle=0) for a, b, t, ev in [
@@ -199,6 +202,18 @@ class KnowledgeBase(unittest.TestCase):
                     continue
                 got = [list(r) for r in db.execute(sql, params).fetchall()]
                 self.assertEqual(got, expect, f"{name}: the doc's expect line is wrong, or the KB can't answer it")
+
+
+    def test_file_module_view_names_modules_like_the_scanner(self):
+        """The doc's path -> module rule and scan.module_of must agree, or imports and deprecations stop joining."""
+        from meridian.scan import module_of
+        db = build()
+        paths = ["django/utils/translation/__init__.py", "django/utils/translation/trans_real.py", "setup.py"]
+        db.executemany("INSERT INTO call_site VALUES (?, 'R2', 'acme/shop', ?, 1, 0, '<module>', 's', 'call', 'ast_resolved', "
+                       "'none', 0, 't', 0, 'present', ?, ?)", [(f"X{i}", p, R2[1], R2[1]) for i, p in enumerate(paths)])
+        db.executescript(next(sql for name, sql, _, _ in blocks() if name == "setup"))
+        got = dict(db.execute(f"SELECT path, module FROM file_module WHERE path IN ({', '.join('?' * len(paths))})", paths))
+        self.assertEqual(got, {p: module_of(p) for p in paths})
 
 
 if __name__ == "__main__":

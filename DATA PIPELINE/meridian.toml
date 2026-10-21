@@ -161,7 +161,7 @@ embedded_python = ["*.sample"]         # tests/i18n/commands/code.sample
 skip_paths = ["django/utils/six.py", "docs/", "*.po", "*.mo"]
 keep_name_only = true                 # keyword-argument and parameter names (url=...): kept as role reference
 edit_roles = ["import", "call", "alias"]   # roles that make a line someone must edit (the Django 265)
-deprecation_markers = ['DeprecationWarning', 'PendingDeprecationWarning', 'RemovedIn\w*Warning', 'deprecated']   # regexes: warn(...) categories and decorator names
+deprecation_markers = ['DeprecationWarning', 'PendingDeprecationWarning', 'RemovedIn\w*Warning', '(?i)deprecated']   # regexes: whole warn() categories and decorator names; anywhere in a message's string text
 junk = { test = ["tests/", "test_*.py", "*_tests.py"], example = ["examples/"], migration_marker = "class Migration(migrations.Migration)" }
 
 # ───────────── resolver · Rochan ─────────────

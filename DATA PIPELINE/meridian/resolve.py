@@ -185,11 +185,12 @@ class Repo:
         return None
 
     def import_module_at(self, path, line, col):
-        """If line:col sits in a `from X import ...` statement, X. Otherwise None."""
+        """If line:col sits in a `from X import ...` statement, X as an absolute module (`.translation` resolved like
+        meridian.scan's module_import does). Otherwise None."""
         node = node_at(*self.tree(path), line, col)
         while node is not None and node.type != "import_from_statement":
             node = node.parent
-        return node.child_by_field_name("module_name").text.decode() if node is not None else None
+        return next(iter(S.imports(path, [node])))[1] if node is not None else None
 
     def imported_from(self, path, line, col):
         """The module this file imports the name at line:col from, or None if the file doesn't import it."""

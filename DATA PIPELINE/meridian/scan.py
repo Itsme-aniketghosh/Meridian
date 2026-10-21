@@ -60,7 +60,7 @@ PY = Parser(Language(tspython.language()))
 COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "role", "scope", "text", "junk", "file_kind", "in_except"]
 FAIL_COLUMNS = ["run_id", "repo", "path", "error"]
 IMPORT_COLUMNS = ["run_id", "repo", "path", "line", "module", "name", "is_test"]
-DEPRECATION_COLUMNS = ["run_id", "repo", "path", "line", "scope", "marker"]
+DEPRECATION_COLUMNS = ["run_id", "repo", "path", "line", "scope", "qualname", "marker"]
 KEYS = {"candidate": ("repo", "path", "line", "col"), "parse_failure": ("repo", "path"),
         "module_import": ("repo", "path", "line", "module", "name"), "deprecation": ("repo", "path", "line")}
 DEFS = ("function_definition", "class_definition")
@@ -223,7 +223,7 @@ def in_except(node):
     """1 inside an except or finally block, at any depth, of node's own function (or module)."""
     child, up = node, node.parent
     while up is not None and not opens(up, child):
-        if up.type in ("except_clause", "finally_clause"):
+        if up.type in ("except_clause", "except_group_clause", "finally_clause"):  # except* too
             return 1
         child, up = up, up.parent
     return 0
@@ -251,8 +251,11 @@ def imports(path, nodes):
                 module = "__future__"
             elif module.type == "relative_import":
                 dots = module.children[0].text.count(b".")
-                module = ".".join(package[:max(len(package) - dots + 1, 0)]
-                                  + [dotted(c) for c in module.children if c.type == "dotted_name"])
+                if dots > len(package):  # climbs above the repo root: kept as written ("..a"), never a made-up top-level name
+                    module = text(module)
+                else:
+                    module = ".".join(package[:len(package) - dots + 1]
+                                      + [dotted(c) for c in module.children if c.type == "dotted_name"])
             else:
                 module = dotted(module)
             for item in node.children_by_field_name("name"):
@@ -270,19 +273,44 @@ def matched(s, patterns, whole):
     return None
 
 
+def module_of(path):
+    """'django/utils/translation/__init__.py' -> 'django.utils.translation', 'a/b.py' -> 'a.b': the name Jedi reports."""
+    parts = path[:-3].split("/") if path.endswith(".py") else path.split("/")
+    return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
+
+
+def qualname(path, scope_):
+    """The dotted name a call to the deprecated thing resolves to: K.__init__ is reached by calling K."""
+    s = scope_.removesuffix(".__init__")
+    return ".".join(p for p in (module_of(path), "" if s == "<module>" else s) if p)
+
+
+def direct(node):
+    """A statement straight in its def's (or the module's) body: runs on every call, not only under a condition."""
+    stmt = node.parent
+    return stmt.type == "expression_statement" and (
+        stmt.parent.type == "module" or (stmt.parent.type == "block" and opens(stmt.parent.parent, stmt.parent)))
+
+
+def strings(node):
+    """The literal text inside a message argument, never its code: self.deprecated_msg is a name, not a message."""
+    return " ".join(text(n) for n in walk(node) if n.type == "string_content")
+
+
 def deprecations(nodes, patterns):
-    """{line: (scope, marker)}: warn() calls and decorators that mark a def/class deprecated. First one per line."""
+    """{line: (scope, marker)}: warn() calls and decorators that mark a def/class deprecated. First one per line.
+    A warn() counts only as a direct statement of its body: `if x is not None: warn(...)` deprecates an argument."""
     found = {}
     for node in nodes:
         marker = target = None
-        if node.type == "call" and node.child_by_field_name("function").text in (b"warn", b"warnings.warn"):
+        if node.type == "call" and node.child_by_field_name("function").text in (b"warn", b"warnings.warn") and direct(node):
             args = node.child_by_field_name("arguments").named_children
             pos = [a for a in args if a.type not in ("keyword_argument", "comment")]
             kw = {a.child_by_field_name("name").text: a.child_by_field_name("value") for a in args if a.type == "keyword_argument"}
             category = kw.get(b"category", pos[1] if len(pos) > 1 else None)
             message = kw.get(b"message", pos[0] if pos else None)
             marker = (category is not None and matched(text(category).rsplit(".", 1)[-1], patterns, True)) or \
-                     (message is not None and matched(text(message), patterns, False))
+                     (message is not None and matched(strings(message), patterns, False))
             target = node
         elif node.type == "decorator" and node.parent.type == "decorated_definition":
             expr = node.named_children[0]
@@ -310,8 +338,8 @@ def scan_repo(run_id, repo, repo_dir, symbols, scanner):
             continue
         test = int(is_test(rel, rules))
         imported += [dict(zip(IMPORT_COLUMNS, [run_id, repo, rel, *i, test])) for i in sorted(imports(rel, nodes))]
-        deprecated += [dict(zip(DEPRECATION_COLUMNS, [run_id, repo, rel, line, *d]))
-                       for line, d in sorted(deprecations(nodes, scanner["deprecation_markers"]).items())]
+        deprecated += [dict(zip(DEPRECATION_COLUMNS, [run_id, repo, rel, line, sc, qualname(rel, sc), marker]))
+                       for line, (sc, marker) in sorted(deprecations(nodes, scanner["deprecation_markers"]).items())]
         if not names:
             continue
         lines = source.decode("utf-8", errors="replace").split("\n")

@@ -161,6 +161,7 @@ CREATE TABLE deprecation (                  -- functions and classes that announ
   path            TEXT NOT NULL,
   line            INTEGER NOT NULL,          -- the warn() call or the decorator
   scope           TEXT NOT NULL,             -- the deprecated def/class, dotted
+  qualname        TEXT NOT NULL,             -- what a call to it resolves to: module (no __init__) + scope (no .__init__), as resolution.resolved_to
   marker          TEXT NOT NULL,             -- the matching [scanner] deprecation_markers text, e.g. RemovedInDjango40Warning
   PRIMARY KEY (run_id, repo, path, line)
 ) WITHOUT ROWID;

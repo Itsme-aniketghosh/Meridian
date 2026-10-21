@@ -1,6 +1,6 @@
 # Fixes · dynamic-config
 
-This branch fixes the problems the audit found (20 numbered, plus 16 smaller ones), moves every hard-coded setting into config, adds 5 columns and tables to the knowledge base (schema v1.1), and adds the KB proof test ([tests/test_kb.py](tests/test_kb.py)). Tests: 142, 0 failures, 6 skipped because no snapshot is local (the Django and package answer keys read `snapshots/$MERIDIAN_RUN_ID/`). Before: 60 tests, 2 failures and 12 errors on Windows. `meridian.toml` changed, so collect gives a new `run_id` and every part must rerun on it. The numbers in [SCANNER.md](SCANNER.md) and [RESOLVER.md](RESOLVER.md) (2,908 candidates, 2,054 call edges, on `973531f7fd4cfd5e`) hold until that rerun.
+This branch fixes the problems the audit found (20 numbered, plus 16 smaller ones), moves every hard-coded setting into config, adds 5 columns and tables to the knowledge base (schema v1.1), and adds the KB proof test ([tests/test_kb.py](tests/test_kb.py)). Tests: 145, 0 failures, 6 skipped because no snapshot is local (the Django and package answer keys read `snapshots/$MERIDIAN_RUN_ID/`). Before: 60 tests, 2 failures and 12 errors on Windows. `meridian.toml` changed, so collect gives a new `run_id` and every part must rerun on it. The numbers in [SCANNER.md](SCANNER.md) and [RESOLVER.md](RESOLVER.md) (2,908 candidates, 2,054 call edges, on `973531f7fd4cfd5e`) hold until that rerun.
 
 ```
 python -m unittest discover -s tests -t .       # from DATA PIPELINE/
@@ -30,7 +30,7 @@ Numbered as in the audit.
 | 16 | The owners window (180 days up to `snapshot_at`) was empty for Django and the packages, pinned years before `snapshot_at`: no `top_person_id`, `n_commits` 0 | `meridian/owners.py` | for `path` and `repo` modes the window ends at the pinned commit's `authored_at` | `test_owners` `test_repo_window_ends_at_the_pinned_commit` | ✅ |
 | 17 | "Adding an email never renames the person" was false: an added email that sorts first, or two groups merging, gives a new `person_id` | `CONTRACTS.md`, `schema.sql` comment, `owners.py` docstring | wording fixed. The rule is unchanged | `test_owners` `test_person_id_is_hash_of_smallest_email` | ✅ |
 | 18 | Three copies of the file walk and its rules drifted: resolve's `rglob("*.py")` matched `Views.PY` on Windows and tried to read a folder `pkg.py`; scan used `os.walk`; `tests/standin_candidates.py` had its own roles | `meridian/scan.py`, `meridian/resolve.py`, `tests/` | one walk (`scan.files`), used by resolve. `standin_candidates.py` deleted; `test_resolve` builds candidates with `scan.scan_repo` | `test_resolve` `test_files_are_the_scanners`; `test_scan` `test_unreadable_folder_halts` | ✅ |
-| 19 | Risky logic had no tests: bulk close, the scrubber, `check_csv`, the keyed share, owner modes, fragility, root commits, epic parents | `tests/` | new files `test_check_csv.py`, `test_gold.py`, `test_kb.py`. New classes `test_history.Keyed`, `test_owners.Modes`, `test_resolve.ReceiverFrom` and `Helpers`, `test_szz.Fragility`, `test_tickets.Build`, plus new cases in every part's file | 142 tests | ✅ |
+| 19 | Risky logic had no tests: bulk close, the scrubber, `check_csv`, the keyed share, owner modes, fragility, root commits, epic parents | `tests/` | new files `test_check_csv.py`, `test_gold.py`, `test_kb.py`. New classes `test_history.Keyed`, `test_owners.Modes`, `test_resolve.ReceiverFrom` and `Helpers`, `test_szz.Fragility`, `test_tickets.Build`, plus new cases in every part's file | 145 tests | ✅ |
 | 20 | `[datasets.spark] history_start` was read by nothing; `FIX_SINCE` was hard-coded in `szz.py` | `meridian.toml`, `meridian/szz.py`, `meridian/szz_check.py` | `[szz] fix_since`. `history_start` removed | `test_szz` `test_which_commits_are_fixes` | ✅ |
 
 ### Smaller ones, fixed
@@ -54,10 +54,24 @@ Numbered as in the audit.
 | A symlink in a checkout depended on the OS | `meridian/collect.py` | `core.symlinks=false`: a symlink is its target text on every OS | none |
 | owners' own check of settings it can't switch (`IMPLEMENTED`) covered only owners | `meridian/owners.py` → `meridian/common.py` | `common.FIXED`, checked by `load_config` for every part (below) | `test_config_the_code_doesnt_implement_stops` |
 
+### Found by the review of this branch, fixed
+
+| Problem | Where | Fix | Test |
+|---|---|---|---|
+| The KB joined paths to modules by dropping `.py`, so `pkg/__init__.py` became `pkg.__init__`, and `from pkg import mod` (stored as `pkg`, `mod`) never matched | `KNOWLEDGE-BASE.md` | views `file_module` and `imports_of`; `deprecation.qualname` (new column, the name a call resolves to) | `test_kb` both forms, `test_file_module_view_names_modules_like_the_scanner` |
+| A `warn()` under an `if` marked the whole function deprecated: 21 of 45 rows on Django 5.0.6 (`Settings.__init__`, `Signer.__init__`, …) | `meridian/scan.py` `deprecations` | only a warn that is a direct statement of its body | `test_deprecation` (`lib/more.py:4`) |
+| The message check read code: `warn(self.deprecated_msg, …)` matched; `'Deprecated: use g'` didn't | `meridian/scan.py`, `meridian.toml` | string text only; `(?i)deprecated` | `test_deprecation` (`lib/more.py:7`, `:9`) |
+| `from .translation import ugettext` inside the tracked package came out `reexport` | `meridian/resolve.py` `import_module_at` | the module resolved with scan's own import rule | `lib/other.py` in `test_resolve` |
+| `except*` didn't count for `in_except` | `meridian/scan.py` | `except_group_clause` | `test_except_group_counts` |
+| A relative import above the repo root became a made-up top-level module | `meridian/scan.py` `imports` | kept as written (`...`) | `test_relative_import_above_root_kept_as_written` |
+| `common.git` ignores global config, and with it the `safe.directory` that usually trusts checkouts owned by another user (containers, mounted volumes): every git call would fail there | `meridian/common.py` | `-c safe.directory=*` on the command line | none |
+
 ### Still open
 
 | Problem | Why open | Status |
 |---|---|---|
+| `receiver_from` doesn't see `match` captures or `del` as rebinding, so `c = get_client(); match t: case c: c.verify_token()` gives a wrong F | rare; fix: treat names under `case_pattern` / `delete_statement` as bindings | ⬜ |
+| Jedi still resolves modules the resolver process itself has loaded (jedi, parso, tree_sitter) though they're not on `sys_path` | no Django or package file imports them | ⬜ |
 | People merged on a shared email local part may be strangers | `owners --top` now lists every such group with different names, for a hand check. The rule is unchanged | ⬜ |
 | Memory and run time on real data | not measured since these changes. Measure on the rerun | ⬜ |
 | Django commits keep the patch's original author date | some fall outside the window that ends at the pinned commit's `authored_at` | ⬜ |

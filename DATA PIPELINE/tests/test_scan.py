@@ -19,7 +19,7 @@ from meridian.common import data_root, load_config, read_jsonl
 
 RUN = "abcdef0123456789"
 SYMBOLS = {"ugettext": "lib.translation", "ugettext_lazy": "lib.translation", "is_anonymous": "lib.auth"}
-MARKERS = ["DeprecationWarning", "PendingDeprecationWarning", r"RemovedIn\w*Warning", "deprecated"]
+MARKERS = ["DeprecationWarning", "PendingDeprecationWarning", r"RemovedIn\w*Warning", "(?i)deprecated"]
 SCANNER = {
     "skip_paths": ["docs/"],
     "embedded_python": ["*.sample"],
@@ -127,6 +127,31 @@ FILES = {
         "def f():\n"
         "    import lib.translation\n"
     ),
+    "lib/more.py": (                                   # deprecation: what must not count, and the qualname
+        "import warnings\n"
+        "def arg(x=None):\n"
+        "    if x is not None:\n"
+        "        warnings.warn('x is going', DeprecationWarning)\n"           # 4 no row: an argument, not arg()
+        "class Msg:\n"
+        "    def m(self):\n"
+        "        warnings.warn(self.deprecated_msg, RuntimeWarning)\n"        # 7 no row: a name, not a message
+        "def g():\n"
+        "    warnings.warn('Deprecated: use h')\n"                         # 9 g: any case
+    ),
+    "lib/pkg/__init__.py": (
+        "import warnings\n"
+        "class K:\n"
+        "    def __init__(self):\n"
+        "        warnings.warn('K is going', DeprecationWarning)\n"         # 4 K.__init__, reached by calling lib.pkg.K
+    ),
+    "pkg2/m.py": "from ... import x\n",                  # above the repo root: kept as written
+    "app/group.py": (
+        "from lib.translation import ugettext\n"
+        "try:\n"
+        "    pass\n"
+        "except* ValueError:\n"
+        "    ugettext('a')\n"                                              # 5 in_except 1: except* too
+    ),
     "lib/old.py": (                                    # deprecation only
         "import warnings\n"
         "from warnings import warn\n"
@@ -180,6 +205,8 @@ EXPECTED = {   # (path, line): (symbol, role)
     ("app/excepts.py", 4): ("ugettext_lazy", "call"),
     ("app/excepts.py", 7): ("ugettext", "call"),
     ("app/excepts.py", 12): ("ugettext", "call"),
+    ("app/group.py", 1): ("ugettext", "import"),
+    ("app/group.py", 5): ("ugettext", "call"),
 }
 
 IMPORTS = {   # app/rel/mod.py: (line, module, name)
@@ -288,7 +315,17 @@ class Goldens(unittest.TestCase):
     def test_deprecation(self):
         self.assertEqual({r["line"]: (r["scope"], r["marker"]) for r in self.deprecations if r["path"] == "lib/old.py"},
                          DEPRECATIONS)
-        self.assertEqual({r["path"] for r in self.deprecations}, {"lib/old.py"})
+        self.assertEqual({r["path"] for r in self.deprecations}, {"lib/old.py", "lib/more.py", "lib/pkg/__init__.py"})
+        more = {(r["path"], r["line"]): (r["scope"], r["qualname"], r["marker"]) for r in self.deprecations if r["path"] != "lib/old.py"}
+        self.assertEqual(more, {("lib/more.py", 9): ("g", "lib.more.g", "Deprecated"),
+                                ("lib/pkg/__init__.py", 4): ("K.__init__", "lib.pkg.K", "DeprecationWarning")})
+        self.assertEqual({r["qualname"] for r in self.deprecations if (r["path"], r["line"]) == ("lib/old.py", 5)}, {"lib.old.old"})
+
+    def test_relative_import_above_root_kept_as_written(self):
+        self.assertEqual({(r["module"], r["name"]) for r in self.imports if r["path"] == "pkg2/m.py"}, {("...", "x")})
+
+    def test_except_group_counts(self):
+        self.assertEqual(self.by_line[("app/group.py", 5)]["in_except"], 1)
         self.assertTrue(all(list(r) == S.DEPRECATION_COLUMNS for r in self.deprecations))
 
     def test_keep_name_only_off(self):

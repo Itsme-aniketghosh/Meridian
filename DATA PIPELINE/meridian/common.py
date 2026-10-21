@@ -53,7 +53,8 @@ def load_infra(section):
 def git(co, *args, text=True):
     """git in repo co, deaf to the user's global and system git config, so every machine gives the same output."""
     env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
-    out = subprocess.run(["git", "-C", str(co), "-c", "core.quotePath=false", *args],
+    # safe.directory: the global config that usually trusts snapshot checkouts owned by another user is ignored here
+    out = subprocess.run(["git", "-C", str(co), "-c", "core.quotePath=false", "-c", "safe.directory=*", *args],
                          check=True, capture_output=True, env=env).stdout
     return out.decode("utf-8", "replace") if text else out
 

@@ -144,6 +144,14 @@ SELECT c.* FROM call_site c, asof
 WHERE c.known_at = (SELECT max(x.known_at) FROM call_site x WHERE x.call_site_id = c.call_site_id AND x.known_at <= asof.at);
 CREATE TEMP VIEW ticket_open AS
 SELECT * FROM ticket WHERE status NOT IN ('Done', 'Closed', 'Resolved');
+-- the dotted module of every call-site file, as imports name it: pkg/__init__.py is pkg
+CREATE TEMP VIEW file_module AS
+SELECT DISTINCT path, replace(CASE WHEN path LIKE '%/__init__.py' THEN substr(path, 1, length(path) - 12)
+                                   ELSE substr(path, 1, length(path) - 3) END, '/', '.') AS module FROM site_now;
+-- module m is imported by a row that names it, or by `from parent import leaf`
+CREATE TEMP VIEW imports_of AS
+SELECT f.path AS imported, f.module, i.path AS importer, i.is_test
+FROM file_module f JOIN module_import i ON i.module = f.module OR i.module || '.' || i.name = f.module;
 ```
 
 ### Staff engineer
@@ -305,7 +313,7 @@ SELECT call_site_id, path, line FROM site_now WHERE status = 'present' AND call_
 -- expect: [["S_new", "AuthClient.verify_token", "DeprecationWarning"]]
 SELECT s.call_site_id, d.scope, d.marker
 FROM site_now s JOIN resolution r ON r.repo = s.repo AND r.path = s.path AND r.line = s.line AND r.col = s.col
-JOIN deprecation d ON r.resolved_to = replace(substr(d.path, 1, length(d.path) - 3), '/', '.') || '.' || d.scope
+JOIN deprecation d ON r.resolved_to = d.qualname        -- scan writes the name a call resolves to, so this is a plain join
 WHERE s.status = 'present' AND s.known_at > :base;
 ```
 
@@ -344,10 +352,8 @@ The push check runs on the changed files plus every file that imports them.
 
 ```sql
 -- name: push_scope_importers
--- params: {"changed": "cart/pricing.py"}
--- expect: [["cart/pricing.py"], ["checkout/api.py"]]
-SELECT :changed UNION
-SELECT path FROM module_import WHERE module = replace(substr(:changed, 1, length(:changed) - 3), '/', '.') ORDER BY 1;
+-- expect: [["cart/pricing.py", "checkout/api.py"], ["shared/client.py", "ship/label.py"]]
+SELECT DISTINCT imported, importer FROM imports_of WHERE is_test = 0 ORDER BY 1, 2;
 ```
 
 ### Stall reasons
@@ -398,11 +404,10 @@ SELECT owner_team FROM site_now WHERE status = 'present' GROUP BY owner_team HAV
 
 ```sql
 -- name: stall_test_gap
--- expect: [["billing", "billing.invoice"], ["checkout", "cart.pricing"], ["fulfillment", "ship.label"], ["payments", "pay.charge"], ["platform", "shared.client"]]
-SELECT DISTINCT owner_team, replace(substr(path, 1, length(path) - 3), '/', '.') AS module FROM site_now
-WHERE status = 'present' AND replace(substr(path, 1, length(path) - 3), '/', '.')
-      NOT IN (SELECT module FROM module_import WHERE is_test = 1)
-ORDER BY owner_team;
+-- expect: [["billing", "billing.invoice"], ["checkout", "cart.pricing"], ["payments", "pay.charge"], ["platform", "shared.client"]]
+SELECT DISTINCT s.owner_team, f.module FROM site_now s JOIN file_module f ON f.path = s.path
+WHERE s.status = 'present' AND s.path NOT IN (SELECT imported FROM imports_of WHERE is_test = 1)
+ORDER BY s.owner_team;
 ```
 
 Usual load = the team's commits in the 56 days before the last 14, per 14 days.
