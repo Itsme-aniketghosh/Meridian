@@ -186,6 +186,21 @@ class Writer(unittest.TestCase):
         self.refused([ok, ok], "same primary key")
         self.refused([{"run_id": RUN, "repo": "r", "path": "p", "error": "e"}], "no table", table="nope")
 
+    def test_call_site_carries_earlier_runs_versions(self):   # append-only: other tables stay one run_id
+        site = {"call_site_id": "a1", "repo": "r", "path": "p.py", "line": 1, "col": 0, "scope": "<module>", "symbol": "s",
+                "role": "call", "detection": "ast_resolved", "junk": "none", "owner_team": "t", "bug_fixes": 0,
+                "status": "present", "effective_date": "2026-01-01T00:00:00Z"}
+        old = {**site, "run_id": "R0", "known_at": "2026-01-15T00:00:00Z"}
+        self.refused([old], "snapshot_at None", table="call_site")  # no run row: can't tell when "now" is
+        (self.out / "run.jsonl").write_text(json.dumps({"run_id": RUN, "snapshot_at": "2026-02-01T00:00:00Z", "repo_shas": "{}",
+                                                        "source_hashes": "{}", "config_hash": "x", "image_digest": "x",
+                                                        "status": "complete"}) + "\n")
+        self.coverage([old, {**site, "run_id": RUN, "known_at": "2026-02-01T00:00:00Z", "status": "removed"}], "call_site")
+        W.write(self.out, self.tmp / "ok.sqlite")
+        got = sqlite3.connect(self.tmp / "ok.sqlite").execute("SELECT run_id, status FROM call_site ORDER BY known_at").fetchall()
+        self.assertEqual(got, [("R0", "present"), (RUN, "removed")])
+        self.refused([{**old, "known_at": "2026-03-01T00:00:00Z"}], "must be known by", table="call_site")  # from the future
+
     def test_check_constraints(self):
         self.refused([{"run_id": RUN, "key": "K-1", "target_kind": "fuzzy", "target": "", "method": "none"}],
                      "CHECK constraint", table="ticket_map")
