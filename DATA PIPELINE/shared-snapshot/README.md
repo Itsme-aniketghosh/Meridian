@@ -8,16 +8,16 @@ Everyone has to work on the same run, or our tables won't join. The `run_id` pro
 
 | Part of the snapshot | How you get it |
 |---|---|
-| Code: 18 repos at pinned SHAs | Collect clones them from GitHub. A SHA is the same code everywhere |
+| Code: 22 repos at pinned SHAs | Collect clones them from GitHub. A SHA is the same code everywhere |
 | Tickets: raw Jira (Spark) and GitLab pulls | **Only from the zip.** A fresh pull today gets different tickets, so a different `run_id` |
 
 ## The current team run
 
 | | |
 |---|---|
-| run_id | `973531f7fd4cfd5e` |
+| run_id | `70dd1dabfed544b8` |
 | snapshot_at | `2026-10-01T01:23:03Z` |
-| status | `partial`: 4 django_packages refs are still `TBD-day4` (expected) |
+| status | `complete`: all 22 repos pinned. Built 2026-10-23 after dynamic-config ([FIXES.md](../FIXES.md)). Replaces `973531f7fd4cfd5e` |
 | zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB · [Google Drive](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link) (team only) |
 | sha256 | `d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523` |
 
@@ -57,28 +57,28 @@ You should now have `snapshots/_cache/jira/SPARK/` and `snapshots/_cache/gitlab/
 
 ```
 cd "DATA PIPELINE"
-python3 -m meridian.collect --run-id 973531f7fd4cfd5e --config meridian.toml
+python3 -m meridian.collect --run-id 70dd1dabfed544b8 --config meridian.toml
 ```
 
-The first time, it clones the 18 repos (about 1.6 GB). It does not contact Jira or GitLab.
+The first time, it clones the 22 repos (about 2.5 GB). It does not contact Jira or GitLab.
 
-**6. Check the last line.** It must say `run_id=973531f7fd4cfd5e`. If it says anything else, or fails, stop and tell Vishwa. Don't use that run.
+**6. Check the last line.** It must say `run_id=70dd1dabfed544b8`. If it says anything else, or fails, stop and tell Vishwa. Don't use that run.
 
 **7. Build the history tables**
 
 ```
-python3 -m meridian.history --run-id 973531f7fd4cfd5e --config meridian.toml
+python3 -m meridian.history --run-id 70dd1dabfed544b8 --config meridian.toml
 ```
 
 This writes the commit tables (D3) and the ticket tables (D4) in one go. Expect:
 
 | Table | Rows |
 |---|---:|
-| `git_commit` | 134,107 |
-| `commit_file` | 833,331 |
+| `git_commit` | 139,228 |
+| `commit_file` | 849,643 |
 | `ticket` | 74,015 (59,491 Spark, 14,524 GitLab) |
 | `ticket_event` | 235,252 |
-| `ticket_link` | 61,616 |
+| `ticket_link` | 61,615 |
 | `commit_ticket` | 42,191 |
 
 The log should also say `94.0% from the subject` for the last 1,000 Spark commits, and `3 dead keys`.
@@ -86,8 +86,8 @@ The log should also say `94.0% from the subject` for the last 1,000 Spark commit
 ## Rules
 
 - **Never use `--run-id new`.** That makes your own run, not the team one.
-- **Pass `--run-id 973531f7fd4cfd5e` to your own part too,** so every table carries the same run.
-- Your data lands in `snapshots/973531f7fd4cfd5e/` and `out/973531f7fd4cfd5e/`. Both are git-ignored.
+- **Pass `--run-id 70dd1dabfed544b8` to your own part too,** so every table carries the same run.
+- Your data lands in `snapshots/70dd1dabfed544b8/` and `out/70dd1dabfed544b8/`. Both are git-ignored.
 
 ## When the run changes
 

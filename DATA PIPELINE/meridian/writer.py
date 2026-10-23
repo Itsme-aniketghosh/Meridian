@@ -7,6 +7,9 @@ Same rows + same SQLite version -> the same bytes. To get there, every row is ch
 (column names, types, NOT NULL, run_id, duplicate keys) before anything is written. Then rows go in sorted by
 primary key, tables in name order, in one transaction, into a fresh file, which is VACUUMed and moved into place.
 Any bad row stops the load with its file and line: a half-right database is worse than none.
+
+Every row carries the folder's run_id, except in an append-only table (call_site): it holds every version so far,
+each with the run that wrote it, so earlier run_ids are allowed there, never one known after this run's snapshot_at.
 """
 import json, sqlite3, sys
 from pathlib import Path
@@ -14,6 +17,7 @@ from pathlib import Path
 from meridian.common import CONFIG, SCHEMA, handoff, load_config, log, parser
 
 PY_TYPES = {"TEXT": (str,), "INTEGER": (int,), "REAL": (int, float)}
+APPEND_ONLY = {"call_site"}  # versions from earlier runs ride along; known_at says when each was written
 
 
 class BadRow(Exception):
@@ -30,7 +34,7 @@ def tables(schema_sql):
     return spec
 
 
-def read_rows(path, cols, run_id):
+def read_rows(path, cols, run_id, snapshot_at=None):
     """Checked rows of one table, as (where, row), sorted by primary key."""
     by_name = {c[0]: c for c in cols}
     required = {c[0] for c in cols if c[2] and not c[3]}
@@ -59,7 +63,11 @@ def read_rows(path, cols, run_id):
                 elif isinstance(v, bool) or not isinstance(v, PY_TYPES.get(typ, (object,))):
                     raise BadRow(f"{where}: {k} should be {typ}, got {type(v).__name__} {str(v)[:40]!r}")
             if r["run_id"] != run_id:
-                raise BadRow(f"{where}: run_id {r['run_id']!r}, but the folder is {run_id!r}")
+                if path.stem not in APPEND_ONLY:
+                    raise BadRow(f"{where}: run_id {r['run_id']!r}, but the folder is {run_id!r}")
+                if snapshot_at is None or r["known_at"] > snapshot_at:
+                    raise BadRow(f"{where}: an earlier run's version (run_id {r['run_id']!r}) must be known by this "
+                                 f"run's snapshot_at {snapshot_at!r}, it says {r['known_at']!r}")
             rows.append((tuple(r[k] for k in pk), where, r))
     rows.sort(key=lambda x: x[0])
     for a, b in zip(rows, rows[1:]):
@@ -85,7 +93,9 @@ def write(src, db=None, schema=SCHEMA):
     files = sorted(src.glob("*.jsonl"))
     if unknown := [p.name for p in files if p.stem not in spec]:
         raise BadRow(f"no table in schema.sql for {unknown}")
-    loaded = {p.stem: read_rows(p, spec[p.stem], run_id) for p in files}
+    run = src / "run.jsonl"
+    snapshot_at = json.loads(run.read_text(encoding="utf-8").split("\n")[0])["snapshot_at"] if run.exists() and run.stat().st_size else None
+    loaded = {p.stem: read_rows(p, spec[p.stem], run_id, snapshot_at) for p in files}
 
     tmp = db.with_name(db.name + ".tmp")
     tmp.unlink(missing_ok=True)

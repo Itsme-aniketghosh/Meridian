@@ -1,6 +1,6 @@
 # Scanner · step 1
 
-Rachna's part of the [pipeline plan](PIPELINE-PLAN.md): every place a tracked old name appears in the code. Run 973531f7fd4cfd5e, 2026-10-20.
+Rachna's part of the [pipeline plan](PIPELINE-PLAN.md): every place a tracked old name appears in the code. Team run **70dd1dabfed544b8**, 2026-10-23 (after dynamic-config). Earlier numbers on 973531f7fd4cfd5e are kept below where marked.
 
 ```
 python -m meridian.scan --run-id <run_id> --config meridian.toml      # from DATA PIPELINE/
@@ -16,11 +16,13 @@ python -m meridian.scan --run-id <run_id> --config meridian.toml      # from DAT
 |---|---|---|---|
 | D3 · Scanner: rules per symbol from config, roles, junk labels, Python outside `.py`, parse failures counted | goldens pass | **17 of 17** tests | ✅ |
 | D4 · Candidates on Django | 265 of 265, 0 false | **265 of 265, 0 false** (vs `week1/pair1/results/edit_sites.csv`), plus 2 of 2 in `code.sample` | ✅ |
-| D4 · Candidates on packages → Rochan | ≥ 97% | resolver on these rows: **1,059 of 1,059**, precision 1.000 | ✅ |
+| D4 · Candidates on packages → Rochan | ≥ 97% | resolver on these rows: **1,236 of 1,236**, precision 1.000, recall 1.000 (20 packages) | ✅ |
 | D4 · The 4 replacement refs | pinned | autocomplete-light, dj-rest-auth, silk, tastypie pinned (below) | ✅ |
 | D4 · Freeze the Django 265 key | hand-checked, committed | **265 of 265** confirmed in 41.6 min (30 in week 1, 235 in 32.3 min). One first-pass slip, `widgets.py:361`, fixed on review | ✅ |
 | D6 · Goldens, every case | all pass | 11 golden tests (cases below) | ✅ |
 | Same run, same bytes | 0 diffs | `cmp` identical on a second run | ✅ |
+
+On **70dd1dabfed544b8**: **3,196 candidate rows** (294 Django, 2,902 packages: the 4 newly pinned packages add 288), 9 parse failures holding 0 tracked names (the 8 below, plus django-silk's `project/project/wsgi.py`), 35,727 `module_import` and 52 `deprecation` rows. Django 265 of 265, 2 of 2 outside `.py`. A rerun gives identical bytes.
 
 On 973531f7fd4cfd5e (before dynamic-config, below): **2,908 candidate rows** (294 Django, 2,614 packages), the same keys as the resolver's old stand-in scanner (now deleted). 8 parse failures, holding 0 tracked names. Rochan's resolver on these rows reproduces [RESOLVER.md](RESOLVER.md) exactly: 294 of 294, 542 of 542, 1,059 of 1,059, 2,054 call edges.
 

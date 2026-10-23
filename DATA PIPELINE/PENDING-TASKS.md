@@ -4,15 +4,14 @@ What Vishwa, Rachna, Rochan and Chaitali still owe before the join (Utkarsh) and
 
 ![Pending tasks per person](pending-tasks.svg)
 
-dynamic-config ([FIXES.md](FIXES.md)) changes `meridian.toml` again, so the new `run_id` is made after it merges.
+> **✅ Oct 23: the new team run is `70dd1dabfed544b8`.** Built by Utkarsh and Aniket after dynamic-config, every part rerun on it (collect, history, scan, resolve, owners), all bars met, 145 of 145 tests pass on it. **Use it; don't build your own.** Details: [shared-snapshot/README.md](shared-snapshot/README.md).
+> What's left for the four is only the human checks marked below.
 
-**Order:** ✅ Utkarsh's decisions made and pushed with this doc → **Vishwa posts the new `run_id` (start now)** → Rachna, Rochan, Chaitali rerun their parts → join → graph.
+**Order:** ✅ decisions → ✅ new `run_id` → ✅ all parts rerun → join (Utkarsh) → graph (Aniket).
 
 🔴 = blocks someone else, do first. D1, D2 = day of the 3-day plan it's due.
 
-> **⛔ Rachna, Rochan, Chaitali: don't run your part and don't push until Vishwa has pushed the new `run_id`.**
-> Anything you run before that is on the old run and has to be redone. Wait for Vishwa's message, `git pull`, then start.
-> Tasks marked **can start now** don't run the pipeline, so they don't wait.
+> **⛔ Don't rebuild the run or change `meridian.toml`.** Pull `main` and pass `--run-id 70dd1dabfed544b8` to anything you run.
 
 ## Decisions
 
@@ -26,6 +25,8 @@ Already in `meridian.toml` and `infra.toml`, pushed with this doc. dynamic-confi
 | Rochan's resolver environment | **Accepted.** The packages resolve against the snapshot's `django/django` checkout. Per-repo lockfiles can't work: none of the 16 packages has one | `[resolver] env`: `"per_repo_lockfile"` → `"snapshot"` |
 | `[orchestration]` (Airflow, GCP, schedule) | **Moved out** to [infra.toml](infra.toml). It's where the pipeline runs, not what it computes, so it no longer counts toward the `run_id` | Section removed from `meridian.toml` |
 | Call depth | **Left open on purpose**, for model training. Stays at 3 for v1 | Comment on `call_edge_depth` |
+| Aniket's dynamic-config logic changes ([FIXES.md](FIXES.md)) | **Approved** (Utkarsh + Aniket, Oct 23). The rerun on `70dd1dabfed544b8` meets every bar | None |
+| The 315 keyword-argument names (`[scanner] keep_name_only`) | **Kept** (`true`), Oct 23. Nothing silently dropped; the join leaves `role = reference` rows out of `call_site` | None |
 
 ### ⏳ Still open · none of these block the new `run_id`
 
@@ -33,7 +34,6 @@ Already in `meridian.toml` and `infra.toml`, pushed with this doc. dynamic-confi
 |---|---|---|
 | Call depth: `call_edge_depth`, `blocked_by_max_depth`, `blast_radius_max_depth` | Utkarsh + Aniket | During model training. A change then means a new `run_id` and a rerun. To look deeper than 3, raise `call_edge_depth` too: the graph can't use edges the resolver never collected |
 | GCP names: `image`, `snapshot_bucket` in [infra.toml](infra.toml) | Utkarsh | When GCP is set up. Placeholders today, no rerun when they change |
-| The 315 keyword-argument names: keep or drop | Rachna + Rochan | D1, before Rachna's rerun |
 | The 21,787 Spark files with no owner (180-day rule): accept, and count them in the coverage report | Utkarsh | Before the join |
 | ~~GitLab usernames in `week1/cross-team/gitlab/xt_cross_team_blocks.csv`: remove~~ Done in dynamic-config (still in git history at `ebe68b8`) | Aniket | ✅ |
 
@@ -93,33 +93,33 @@ Already in `meridian.toml` and `infra.toml`, pushed with this doc. dynamic-confi
 
 Your data (`snapshots/`, `out/`) is git-ignored. Don't push it. The D5 label check goes in its own push.
 
-## Vishwa · Collect + bug history · 2 pending
+## Vishwa · Collect + bug history · 1 pending
 
 Delivered first: collect, writer, tickets (94.0% keyed, 3 dead keys) and SZZ (beats churn, 9.7x lift reproduced).
 
 | | Task | Due | Done when |
 |---|---|---|---|
-| 🔴 | **Next step:** post the new `run_id`, with collect + history rerun on it | D1 | Steps above done, [shared-snapshot/README.md](shared-snapshot/README.md) pushed |
+| ✅ | ~~Post the new `run_id`, with collect + history rerun on it~~ Done Oct 23 by Utkarsh + Aniket: `70dd1dabfed544b8` | D1 | Steps above done, [shared-snapshot/README.md](shared-snapshot/README.md) pushed |
 | | D5: run `week1/pair3/defects4j/make_labels.py` and `ticket_key_check.sh` once. If you already did, just write down the result. **Can start now** | D1 | Same 130 labels and 812 of 854 keyed |
 
-## Rachna · Call sites · 2 pending
+## Rachna · Call sites · done
 
 | | Task | Due | Done when |
 |---|---|---|---|
-| 🔴 | Rerun scan on the new `run_id` | D1 | Includes the 4 newly pinned packages (about 179 sites) |
-| | Keep or drop the 315 keyword-argument and parameter names, with Rochan. It's `[scanner] keep_name_only` in `meridian.toml`, so changing it changes the `run_id`. **Can start now** | D1 | Decided before Vishwa makes the new run_id (it's in `meridian.toml`), and written in [SCANNER.md](SCANNER.md) |
+| ✅ | ~~Rerun scan on the new `run_id`~~ Done Oct 23: 3,196 candidates, Django 265 of 265 | D1 | Includes the 4 newly pinned packages (about 179 sites) |
+| ✅ | ~~Keep or drop the 315 keyword-argument and parameter names, with Rochan.~~ Decided Oct 23: kept. It's `[scanner] keep_name_only` in `meridian.toml`, so changing it changes the `run_id`. **Can start now** | D1 | Decided before Vishwa makes the new run_id (it's in `meridian.toml`), and written in [SCANNER.md](SCANNER.md) |
 
-## Rochan · Resolver · 2 pending
+## Rochan · Resolver · done
 
 | | Task | Due | Done when |
 |---|---|---|---|
-| 🔴 | Rerun resolve on Rachna's new candidates | D1 | `score_packages` rerun on the new `run_id` |
-| | Keep or drop the 315 keyword-argument names, with Rachna. **Can start now** | D1 | Decided before Vishwa makes the new run_id |
+| ✅ | ~~Rerun resolve on Rachna's new candidates~~ Done Oct 23: packages 1,236 of 1,236, 542 of 542, 2,288 call edges | D1 | `score_packages` rerun on the new `run_id` |
+| ✅ | ~~Keep or drop the 315 keyword-argument names, with Rachna.~~ Decided Oct 23: kept | D1 | Decided before Vishwa makes the new run_id |
 
-## Chaitali · Owners + gold set · 3 pending
+## Chaitali · Owners + gold set · 2 pending
 
 | | Task | Due | Done when |
 |---|---|---|---|
 | 🔴 | Human spot-check of 10 waits in the GitLab gold set. **Can start now** | D2 | `human_verdict` filled (0 of 262 today), ≥ 9 of 10 hold |
 | | Hand-check the 20 biggest identity groups (`owners.py --top 20`) | D1 | Reviewed on the new `run_id`, result written down |
-| | Rerun owners on the new `run_id` | D1 | `person` and `file_owner` counts checked again |
+| ✅ | ~~Rerun owners on the new `run_id`~~ Done Oct 23: Spark 3,048 people, owner 37.3% vs last toucher 35.3% | D1 | `person` and `file_owner` counts checked again |

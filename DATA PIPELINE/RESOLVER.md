@@ -1,6 +1,6 @@
 # Resolver · step 1
 
-Rochan's part of the [pipeline plan](PIPELINE-PLAN.md): what each candidate really is, and who calls it. Run 973531f7fd4cfd5e, 2026-10-17.
+Rochan's part of the [pipeline plan](PIPELINE-PLAN.md): what each candidate really is, and who calls it. Team run **70dd1dabfed544b8**, 2026-10-23 (after dynamic-config). The earlier run 973531f7fd4cfd5e is noted where its numbers differ.
 
 ```
 python -m meridian.resolve --run-id <run_id> --config meridian.toml      # from DATA PIPELINE/
@@ -15,12 +15,12 @@ python -m meridian.resolve --run-id <run_id> --config meridian.toml      # from 
 | Task | Bar | Got | |
 |---|---|---|---|
 | D4 · Jedi + one-hop rule (`_ = old_name`) | 542 of 542 | **542 of 542** (533 import alias, 9 assign alias) | ✅ |
-| D5 · Resolve every candidate, scored on the old name | precision ≥ 0.98 | Django 294 of 294 · packages **1,059 of 1,059**, recall 1,059 of 1,059 | ✅ |
+| D5 · Resolve every candidate, scored on the old name | precision ≥ 0.98 | Django 294 of 294 · packages **1,236 of 1,236**, recall 1,236 of 1,236 (was 1,059 on 16 packages) | ✅ |
 | D5 · Hand-check 30 alias calls | 30 of 30, or misses written down | **30 of 30** agree (24.4 min, RH) | ✅ |
-| D6 · `call_edge`, resolved only, depth ≤ 3 | edge fixtures pass | **2,054** edges, all 9 fixture edges exact | ✅ |
+| D6 · `call_edge`, resolved only, depth ≤ 3 | edge fixtures pass | **2,288** edges (1,186 Django, 1,102 packages), fixtures exact. Was 2,054: dynamic-config's scope and `__init__` rules, plus 4 packages | ✅ |
 | Same run, same bytes | 0 diffs | 0 diffs over repeated runs and any `PYTHONHASHSEED` | ✅ |
 
-Run time on 973531f7fd4cfd5e: about 76 s, peak 1.2 GB (Django + 16 packages).
+Run time on 70dd1dabfed544b8: about 74 s, peak 0.8 GB (Django + 20 packages). On 973531f7fd4cfd5e: about 76 s, peak 1.2 GB (16 packages).
 
 ## How it decides
 
