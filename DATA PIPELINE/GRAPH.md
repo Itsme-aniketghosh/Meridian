@@ -42,6 +42,21 @@ python -m meridian.graph --run-id <run_id> --config meridian.toml      # from DA
 - **Depth.** `blocked_by` can need more than 3 levels (RESOLVER.md). Raising `blocked_by_max_depth` past `[resolver] call_edge_depth` finds nothing more: the edges aren't collected.
 - `file_owner` isn't read: `call_site.owner_team` already comes from it.
 
+## Planned features that read graph's tables
+
+Graph's rows on the KB fixture are exactly the ones the KB proof filled by hand, so every query there that reads `blocked_by`, `blast_radius` or `chain` gives the doc's answer on graph's own output: `staff_chains`, `owner_teams` (blocked), `consumer_blocked`, `consumer_blocking`, `stall_upstream`, `order_of_work`, and P4 (base vs push `blocked_by`).
+
+- **Tracking (suggestion, outcome, push_alert) is not built.** The DDL is proposed and tested in [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md), not in `schema.sql`, and no part writes it (gap G1: stage 6). It doesn't need anything from graph beyond `call_site` history and `blocked_by`.
+- **`order_of_work` never ends on a `blocked_by` cycle.** Its recursive `UNION ALL` has no cycle guard: A waits on B and B on A loops forever. Graph doesn't flag site-level cycles (04 flags them on chains). A fix for the rules stage, which owns the order.
+
+## Dashboard
+
+```
+python -m tests.dashboard --run-id <run_id> --config meridian.toml      # -> out/<run_id>/dashboard.html
+```
+
+One local HTML page per run: rows per table, coverage, call sites by repo, team and role, `blocked_by` by depth and team pair, blast radius by depth, chains, ticket mapping, and every named KNOWLEDGE-BASE.md query run on the block (has rows, no rows, or error), with parameters taken from the run's biggest team and file. It loads the block with `meridian.writer` first, so it also proves the block loads. It stays under `out/`, which git ignores: it shows ticket keys and, in the stall queries, people's names.
+
 ## Rerun
 
 ```
