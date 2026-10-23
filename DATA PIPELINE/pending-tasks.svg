@@ -85,7 +85,7 @@
 <text x="1572" y="567" font-size="14" font-weight="700" text-anchor="middle" fill="#15803d">D1</text>
 <circle cx="860" cy="642" r="5" fill="#374151"/>
 <text x="878" y="648" font-size="18" font-weight="600" fill="#111827">Keep or drop the 315 keyword-arg names</text>
-<text x="878" y="674" font-size="15" fill="#4b5563">With Rochan, before the rerun. KEEP_NAME_ONLY in scan.py</text>
+<text x="878" y="674" font-size="15" fill="#4b5563">With Rochan, before the rerun. [scanner] keep_name_only in meridian.toml</text>
 <rect x="1446" y="627" width="90" height="26" rx="13" fill="#fff" stroke="#374151" stroke-width="1.5"/>
 <text x="1491" y="645" font-size="13" font-weight="700" text-anchor="middle" fill="#374151">Decision</text>
 <rect x="1546" y="627" width="52" height="26" rx="13" fill="#fff" stroke="#15803d" stroke-width="1.5"/>

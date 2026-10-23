@@ -9,17 +9,28 @@ aren't in that snapshot. To run them on the team data (the package test takes ab
 """
 import contextlib, csv, io, json, os, sqlite3, subprocess, sys, tempfile, unittest
 from pathlib import Path
+from unittest import mock
+
+import jedi
+import parso.cache
 
 HERE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HERE))
 import meridian.resolve as R
+import meridian.scan as S
 import meridian.writer as W
-from meridian.common import data_root, load_config
-from tests.score_packages import score
-from tests.standin_candidates import candidates as standin
+import tests.hand_check_aliases as HA
+from meridian.common import data_root, load_config, read_jsonl, write_jsonl
+from tests.score_packages import changed_lines, score
 
 RUN = "abcdef0123456789"
 SYMBOLS = {"ugettext": "lib.translation", "ugettext_lazy": "lib.translation"}
+SCANNER = {"skip_paths": ["docs/"], "keep_name_only": True, "deprecation_markers": []}
+
+
+def scanned(run_id, repo, repo_dir, symbols, scanner):
+    """Rachna's candidate rows for one repo, from meridian.scan itself."""
+    return S.scan_repo(run_id, repo, repo_dir, symbols, scanner)[0]
 
 FILES = {
     "lib/__init__.py": "",
@@ -99,6 +110,13 @@ FILES = {
         "from lib.translation import ugettext\n"
         "x = 'é' + ugettext('k')\n"
     ),
+    "app/sep.py": (                                    # U+2028 in the text column: not a line end in jsonl
+        "from lib.translation import ugettext\n"
+        "v = ugettext('a b')\n"
+    ),
+    "app/Views.PY": "from lib.translation import ugettext as _\n_('upper')\n",   # not .py, on Windows too
+    "app/pkg.py/__init__.py": "",                      # a folder named pkg.py is not a file to read
+    "lib/other.py": "from .translation import ugettext\n",   # a relative import of the module itself: direct
 }
 
 CANDIDATES = {   # (path, line): (role, detection, via, resolved_to)
@@ -115,6 +133,8 @@ CANDIDATES = {   # (path, line): (role, detection, via, resolved_to)
     ("app/helpers.py", 1): ("definition", "dropped", "none", "app.helpers.ugettext"),
     ("app/unknown.py", 2): ("call", "ast_unresolved", "none", None),
     ("app/unicode.py", 2): ("call", "ast_resolved", "direct", "lib.translation.ugettext"),
+    ("app/sep.py", 2): ("call", "ast_resolved", "direct", "lib.translation.ugettext"),
+    ("lib/other.py", 1): ("import", "ast_resolved", "direct", "lib.translation.ugettext"),
 }
 
 EXPECTED = {   # (path, line, col): (detection, via, resolved_to, symbol)
@@ -131,7 +151,7 @@ EXPECTED = {   # (path, line, col): (detection, via, resolved_to, symbol)
 def fixture_repo(path, files=None):
     for rel, text in (files or FILES).items():
         (path / rel).parent.mkdir(parents=True, exist_ok=True)
-        (path / rel).write_text(text)
+        (path / rel).write_text(text, encoding="utf-8")
     env = {**os.environ, "GIT_AUTHOR_DATE": "2026-01-01T00:00:00Z", "GIT_COMMITTER_DATE": "2026-01-01T00:00:00Z"}
 
     def git(*a):
@@ -141,9 +161,6 @@ def fixture_repo(path, files=None):
     git("add", ".")
     git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.com", "commit", "--quiet", "-m", "fixture")
     return git("rev-parse", "HEAD")
-
-
-SCANNER = {"skip_paths": ["docs/"]}
 
 
 def snapshot(root, run_id=RUN):
@@ -160,7 +177,7 @@ def snapshot(root, run_id=RUN):
         '[scanner]\nskip_paths = ["docs/"]\n'
     )
     (root / "out" / run_id).mkdir(parents=True)
-    R.write_jsonl(root / "out" / run_id / "candidate.jsonl", standin(run_id, "fix/app", repo_dir, SYMBOLS, SCANNER))
+    write_jsonl(root / "out" / run_id / "candidate.jsonl", scanned(run_id, "fix/app", repo_dir, SYMBOLS, SCANNER))
     return repo_dir, sha, config
 
 
@@ -204,6 +221,34 @@ class Aliases(unittest.TestCase):
         binds = R.bindings(R.PY.parse(src).root_node, {"ugettext", "ugettext_lazy"})
         self.assertEqual(binds, {"_": [("ugettext", "import_alias")], "T": [("ugettext_lazy", "assign_alias")]})
 
+    def test_files_are_the_scanners(self):   # not Views.PY, not the folder pkg.py
+        self.assertEqual(R.py_files(self.repo_dir, ["docs/"]), [p for p, _ in S.files(self.repo_dir, SCANNER)])
+        self.assertNotIn("app/Views.PY", R.py_files(self.repo_dir, ["docs/"]))
+
+    def test_parso_emptied_per_repo_and_walks_keep_no_trees(self):
+        parso.cache.parser_cache["stale"] = {}
+        r = R.Repo(self.repo_dir, SYMBOLS)
+        self.assertNotIn("stale", parso.cache.parser_cache)
+        files = R.py_files(self.repo_dir, ["docs/"])
+        R.resolve_aliases(RUN, "fix/app", self.repo_dir, SYMBOLS, ["docs/"], r)
+        R.call_sites(r, files)
+        self.assertLess(set(r.trees), set(files))   # only files a one-hop question came back to
+        self.assertNotIn("app/direct.py", r.trees)
+
+    def test_sys_path_is_repo_deps_stdlib(self):   # nothing from the active virtualenv or the working directory
+        dep = self.repo_dir.parent
+        r = R.Repo(self.repo_dir, SYMBOLS, [dep])
+        self.assertEqual(r.project.sys_path, [str(self.repo_dir), str(dep), *R.STDLIB])
+        self.assertFalse([p for p in r.project.sys_path if "site-packages" in p])
+
+    def test_jedi_failure_is_no_answer_and_counted(self):
+        r = R.Repo(self.repo_dir, SYMBOLS)
+        with mock.patch.object(jedi.Script, "goto", side_effect=RuntimeError("boom")), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertIsNone(r.imported_from("app/via_compat.py", 3, 4))
+            self.assertEqual(r.resolve("app/imports.py", 3, 8), ("ast_unresolved", None, None))
+        self.assertEqual(r.failures, 2)
+
 
 class Candidates(unittest.TestCase):
     """D5: one row per candidate, scored on its own old name."""
@@ -212,7 +257,7 @@ class Candidates(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.repo_dir, _, _ = snapshot(Path(cls.tmp.name))
-        cls.cands = standin(RUN, "fix/app", cls.repo_dir, SYMBOLS, SCANNER)
+        cls.cands = scanned(RUN, "fix/app", cls.repo_dir, SYMBOLS, SCANNER)
         cls.repo = R.Repo(cls.repo_dir, SYMBOLS)
         cls.rows = R.resolve_candidates(RUN, "fix/app", cls.repo_dir, SYMBOLS, cls.cands, cls.repo)
         cls.by_line = {}
@@ -292,9 +337,9 @@ class Command(unittest.TestCase):
 
     def test_rows_fit_the_schema(self):
         self.assertEqual(self.resolve().returncode, 0)
-        schema = (HERE / "schema.sql").read_text()
+        schema = (HERE / "schema.sql").read_text(encoding="utf-8")
         rows = W.read_rows(self.root / "out" / RUN / "resolution.jsonl", W.tables(schema)["resolution"], RUN)
-        candidates = (self.root / "out" / RUN / "candidate.jsonl").read_text().splitlines()
+        candidates = read_jsonl(self.root / "out" / RUN / "candidate.jsonl")
         self.assertEqual(len(rows), len(candidates) + len(EXPECTED))  # every candidate, plus the alias calls
         db = sqlite3.connect(":memory:")
         db.executescript(schema)
@@ -362,6 +407,25 @@ EDGE_FILES = {
         "def pong(n):\n"
         "    return ping(n - 1)\n"            # a cycle: the walk must stop
     ),
+    "app/ctor.py": (
+        "from lib.translation import ugettext\n"
+        "\n"
+        "class F:\n"
+        "    def __init__(self):\n"
+        "        self.m = ugettext('x')\n"    # depth 1, in F.__init__
+        "\n"
+        "def make():\n"
+        "    return F()\n"                    # depth 2: calling the class runs __init__
+    ),
+    "app/defaults.py": (
+        "from lib.translation import ugettext\n"
+        "\n"
+        "def get_text_list(list_, last_word=ugettext('or')):\n"   # a default runs in the module, not the function
+        "    return list_\n"
+        "\n"
+        "def caller():\n"
+        "    return get_text_list([])\n"                          # so no edge here
+    ),
 }
 
 EDGES = {   # (caller_path, caller_scope, line, callee_path, callee_scope)
@@ -374,6 +438,9 @@ EDGES = {   # (caller_path, caller_scope, line, callee_path, callee_scope)
     ("app/cycle.py", "ping", 4, "lib/translation.py", "ugettext"),
     ("app/cycle.py", "pong", 7, "app/cycle.py", "ping"),
     ("app/cycle.py", "ping", 4, "app/cycle.py", "pong"),
+    ("app/ctor.py", "F.__init__", 5, "lib/translation.py", "ugettext"),
+    ("app/ctor.py", "make", 8, "app/ctor.py", "F.__init__"),
+    ("app/defaults.py", "<module>", 3, "lib/translation.py", "ugettext"),
 }
 
 
@@ -392,11 +459,13 @@ class Edges(unittest.TestCase):
                "datasets": {"edges": {"repos": [{"repo": "fix/edges", "ref": sha}],
                                       "symbols": [{"name": "ugettext", "module": "lib.translation"}]}}}
         (root / "out" / RUN).mkdir(parents=True)
-        R.write_jsonl(root / "out" / RUN / "candidate.jsonl", standin(RUN, "fix/edges", repo_dir, {"ugettext": "lib.translation"}, {}))
-        with contextlib.redirect_stdout(io.StringIO()):
+        write_jsonl(root / "out" / RUN / "candidate.jsonl", scanned(RUN, "fix/edges", repo_dir, {"ugettext": "lib.translation"}, SCANNER))
+        cls.log = io.StringIO()
+        with contextlib.redirect_stdout(cls.log):
             R.run(RUN, cfg, root)
+        cls.repo_dir = repo_dir
         cls.path = root / "out" / RUN / "call_edge.jsonl"
-        cls.rows = [json.loads(l) for l in cls.path.read_text().splitlines()]
+        cls.rows = read_jsonl(cls.path)
 
     @classmethod
     def tearDownClass(cls):
@@ -406,14 +475,99 @@ class Edges(unittest.TestCase):
         got = {(e["caller_path"], e["caller_scope"], e["line"], e["callee_path"], e["callee_scope"]) for e in self.rows}
         self.assertEqual(got, EDGES)
 
+    def test_jedi_failures_while_finding_callers_are_counted(self):
+        self.assertIn("0 Jedi failures while finding callers", self.log.getvalue())
+        r = R.Repo(self.repo_dir, {"ugettext": "lib.translation"})
+        use = ("app/chain.py", 4, 11, "fix/edges", "lib/translation.py", "ugettext")
+        with mock.patch.object(jedi.Script, "goto", side_effect=RuntimeError("boom")), \
+                contextlib.redirect_stdout(io.StringIO()):
+            edges = R.call_edges(RUN, "fix/edges", r, [use], R.py_files(self.repo_dir, []), 3)
+        self.assertEqual(len(edges), 1)       # the confirmed call; no caller could be confirmed
+        self.assertEqual(r.failures, 3)       # the 3 calls named level1
+
     def test_no_edge_from_imports_or_past_depth_3(self):
         self.assertFalse([e for e in self.rows if e["caller_path"] == "app/importer.py" and e["line"] == 1])
         self.assertFalse([e for e in self.rows if e["caller_scope"] == "level4"])
 
     def test_rows_fit_the_schema(self):
-        schema = (HERE / "schema.sql").read_text()
+        schema = (HERE / "schema.sql").read_text(encoding="utf-8")
         rows = W.read_rows(self.path, W.tables(schema)["call_edge"], RUN)
         self.assertEqual(len(rows), len(EDGES))
+
+
+RECEIVER_FILES = {
+    "shared/__init__.py": "",
+    "shared/client.py": (
+        "class Client:\n"
+        "    def verify_token(self, t):\n"
+        "        return t\n"
+        "\n"
+        "def get_client():\n"
+        "    return Client()\n"
+    ),
+    "app/__init__.py": "",
+    "app/use.py": (
+        "from shared.client import Client, get_client\n"
+        "\n"
+        "def check(t):\n"
+        "    c = get_client()\n"
+        "    return c.verify_token(t)\n"      # 5: c = get_client() is c's only binding here
+        "\n"
+        "def twice(t):\n"
+        "    c = get_client()\n"
+        "    c = Client()\n"
+        "    return c.verify_token(t)\n"      # 10: bound twice
+        "\n"
+        "def given(c=None):\n"
+        "    c = get_client()\n"
+        "    return c.verify_token(1)\n"      # 14: also a parameter
+        "\n"
+        "c = get_client()\n"
+        "def other(t):\n"
+        "    return c.verify_token(t)\n"      # 18: bound in another scope
+        "\n"
+        "k = Client()\n"
+        "k.verify_token(2)\n"                 # 21: lands on a class, not a def
+    ),
+}
+
+RECEIVERS = {("shared/client.py", 2): None, ("app/use.py", 5): "fix/repo:shared/client.py:get_client",
+             ("app/use.py", 10): None, ("app/use.py", 14): None, ("app/use.py", 18): None, ("app/use.py", 21): None}
+
+
+class ReceiverFrom(unittest.TestCase):
+    """resolution.receiver_from: F of recv = F(...) for recv.name(...), only when it is certain."""
+
+    def test_each_case(self):
+        symbols = {"verify_token": "shared.client"}
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            fixture_repo(repo, RECEIVER_FILES)
+            rows = R.resolve_candidates(RUN, "fix/repo", repo, symbols, scanned(RUN, "fix/repo", repo, symbols, SCANNER))
+        self.assertEqual({(r["path"], r["line"]): r["receiver_from"] for r in rows}, RECEIVERS)
+
+
+class Helpers(unittest.TestCase):
+    """score_packages and the alias hand check: the same output on every machine."""
+
+    def test_changed_lines_ignore_user_git_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, user = Path(tmp) / "r", Path(tmp) / "gitconfig"
+            repo.mkdir()
+            parent = fixture_repo(repo, {"a.py": "x = 1\ny = 2\n"})
+            (repo / "a.py").write_text("x = 1\ny = 3\n", encoding="utf-8")
+            git = lambda *a: subprocess.run(["git", "-C", str(repo), *a], check=True, capture_output=True, text=True).stdout
+            git("-c", "user.name=F", "-c", "user.email=f@example.com", "commit", "--quiet", "-am", "two")
+            user.write_text("[diff]\n\tnoprefix = true\n")
+            with mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(user)}):
+                self.assertEqual(dict(changed_lines(repo, parent, git("rev-parse", "HEAD").strip())), {"a.py": {2}})
+
+    def test_alias_hand_check_saves_utf8(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "check.csv"
+            HA.save(out, {1: {c: ("é" if c == "note" else "1") for c in HA.COLUMNS}})
+            self.assertIn("é", out.read_bytes().decode("utf-8"))   # not cp1252 on Windows
+            self.assertEqual(HA.load(out)[1]["note"], "é")
 
 
 RUN_ID = os.environ.get("MERIDIAN_RUN_ID", "dev")
@@ -436,7 +590,7 @@ class DjangoAnswerKey(unittest.TestCase):
 
     def test_542_of_542(self):
         rows = R.resolve_aliases(RUN_ID, "django/django", DJANGO, self.symbols, self.cfg["scanner"]["skip_paths"], self.repo)
-        with open(KEY, newline="") as f:
+        with open(KEY, newline="", encoding="utf-8") as f:
             key = {(r["file"], int(r["line"]), int(r["col"])): r["expected_symbol"] for r in csv.DictReader(f)}
         got = {(r["path"], r["line"], r["col"]): r for r in rows}
         self.assertEqual(set(got), set(key))
@@ -445,10 +599,10 @@ class DjangoAnswerKey(unittest.TestCase):
         self.assertEqual(len(right), self.cfg["datasets"]["django"]["answer_key"]["alias_calls"])  # 542
 
     def test_every_edit_line_resolves(self):
-        cands = standin(RUN_ID, "django/django", DJANGO, self.symbols, self.cfg["scanner"])
+        cands = scanned(RUN_ID, "django/django", DJANGO, self.symbols, self.cfg["scanner"])
         rows = R.resolve_candidates(RUN_ID, "django/django", DJANGO, self.symbols, cands, self.repo)
         resolved = [r for r in rows if r["detection"] == "ast_resolved"]
-        with open(EDIT, newline="") as f:
+        with open(EDIT, newline="", encoding="utf-8") as f:
             edit = {(r["file"], int(r["line"])) for r in csv.DictReader(f)}
         lines = {(r["path"], r["line"]) for r in resolved}
         key = self.cfg["datasets"]["django"]["answer_key"]
@@ -474,7 +628,7 @@ class PackagesScore(unittest.TestCase):
         cands, rows = [], []
         for repo in PACKAGES:
             repo_dir = SNAP / "repos" / repo.replace("/", "__")
-            c = standin(RUN_ID, repo, repo_dir, wanted[repo], CFG["scanner"])
+            c = scanned(RUN_ID, repo, repo_dir, wanted[repo], CFG["scanner"])
             r = R.Repo(repo_dir, wanted[repo], R.dependency_paths(SNAP, manifest, repo, wanted[repo]))
             rows += R.resolve_candidates(RUN_ID, repo, repo_dir, wanted[repo], c, r)
             cands += c

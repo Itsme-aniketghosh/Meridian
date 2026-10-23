@@ -24,9 +24,7 @@ import gzip, hashlib, json, os, re, shutil, sqlite3, subprocess, sys, time, urll
 from datetime import datetime, timezone
 from pathlib import Path
 
-from meridian.common import CONFIG, data_root, handoff, load_config, log, parser
-
-GITLAB_GRAPHQL = "https://gitlab.com/api/graphql"
+from meridian.common import CONFIG, data_root, git, handoff, load_config, load_infra, log, parser, write_jsonl
 
 
 def canon(obj):
@@ -44,8 +42,11 @@ def now():
 
 def write_atomic(path, data):
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_bytes(data)
-    tmp.replace(path)
+    try:
+        tmp.write_bytes(data)
+        tmp.replace(path)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def gz(data):
@@ -54,7 +55,12 @@ def gz(data):
 
 def load_meta(d):
     p = d / ".pull.json"
-    return json.loads(p.read_text()) if p.exists() else {}
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def read_lines(p):
+    """Lines of a .work/ file a resumable pull appends to; none if it doesn't exist yet."""
+    return p.read_text(encoding="utf-8").split("\n")[:-1] if p.exists() else []
 
 
 def save_meta(d, meta):
@@ -73,9 +79,11 @@ def dir_hash(d):
 
 # ───────────── http ─────────────
 
-def curl(url, data=None, tries=6):
+def curl(url, data=None):
     """curl, not urllib: python.org builds on macOS ship without CA certs (same as week1/pair2/jira/pull.py)."""
-    cmd = ["curl", "-s", "--max-time", "120", "-w", "\n%{http_code}"]
+    net = load_infra("collect")
+    tries = net.get("http_tries", 6)
+    cmd = ["curl", "-s", "--max-time", str(net.get("http_timeout_s", 120)), "-w", "\n%{http_code}"]
     if data is not None:
         cmd += ["-H", "Content-Type: application/json", "--data-binary", "@-"]
     for attempt in range(tries):
@@ -85,25 +93,22 @@ def curl(url, data=None, tries=6):
         if r.returncode == 0 and code == 200:
             return body
         log(f"  retry {attempt}: http {code}, curl {r.returncode}, {url[:80]}")
-        time.sleep(2 ** attempt * (10 if code == 429 else 1))
+        time.sleep(2 ** attempt * net.get("http_backoff_s", 1) * (net.get("http_429_factor", 10) if code == 429 else 1))
     raise RuntimeError(f"gave up after {tries} tries: {url[:120]}")
 
 
 def gql(url, query, variables):
-    for attempt in range(6):
+    net = load_infra("collect")
+    for attempt in range(net.get("graphql_tries", 6)):
         d = json.loads(curl(url, json.dumps({"query": query, "variables": variables}).encode()))
         if "errors" not in d:
             return d["data"]
         log(f"  graphql retry {attempt}: {str(d['errors'])[:200]}")
-        time.sleep(5 * (attempt + 1))
+        time.sleep(net.get("graphql_backoff_s", 5) * (attempt + 1))
     raise RuntimeError("graphql gave up")
 
 
 # ───────────── repos ─────────────
-
-def git(*args):
-    return subprocess.run(["git", "-c", "core.longpaths=true", *args], check=True, capture_output=True, text=True).stdout
-
 
 def repo_cache(cache, repo, url):
     """One bare clone per repo, full history, branches and tags. Shared by every run."""
@@ -113,7 +118,7 @@ def repo_cache(cache, repo, url):
         shutil.rmtree(tmp, ignore_errors=True)
         tmp.parent.mkdir(parents=True, exist_ok=True)
         log(f"  cloning {repo}")
-        git("clone", "--bare", "--quiet", url, str(tmp))
+        git(".", "-c", "core.longpaths=true", "clone", "--bare", "--quiet", url, str(tmp))
         tmp.rename(d)
     return d
 
@@ -121,13 +126,14 @@ def repo_cache(cache, repo, url):
 def resolve(d, ref):
     """Full SHA of ref, fetching once if the cache doesn't have it yet. None if it can't be resolved."""
     for attempt in (0, 1):
-        r = subprocess.run(["git", "-C", str(d), "rev-parse", "--verify", "--quiet", ref + "^{commit}"],
-                           capture_output=True, text=True)
-        if r.returncode == 0:
-            return r.stdout.strip()
-        if attempt == 0:
-            subprocess.run(["git", "-C", str(d), "fetch", "--quiet", "origin",
-                            "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"], capture_output=True)
+        try:
+            return git(d, "rev-parse", "--verify", "--quiet", ref + "^{commit}").strip()
+        except subprocess.CalledProcessError:
+            if attempt == 0:
+                try:
+                    git(d, "fetch", "--quiet", "origin", "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*")
+                except subprocess.CalledProcessError:
+                    pass  # offline or gone: the ref stays unresolved and the run is partial
     return None
 
 
@@ -200,20 +206,20 @@ def pull_gitlab(dest, ds):
         return meta
     meta.setdefault("started_at", now())
     save_meta(dest, meta)
-    url, proj = ds.get("graphql", GITLAB_GRAPHQL), ds["project"]
+    url, proj, batch_n = ds["graphql"], ds["project"], load_infra("collect").get("gitlab_batch", 20)
     frm, to = ds["issues_created"]
 
     if not meta.get("issues_done"):
         cur = work / "cursor.txt"
-        after = (cur.read_text().strip() or None) if cur.exists() else None
-        with open(work / "issues.jsonl", "a") as f:
+        after = (cur.read_text(encoding="utf-8").strip() or None) if cur.exists() else None
+        with open(work / "issues.jsonl", "a", encoding="utf-8", newline="\n") as f:
             while True:
                 page = gql(url, ISSUES_Q % (proj, frm, to), {"after": after})["project"]["issues"]
                 for n in page["nodes"]:
                     f.write(json.dumps(n, ensure_ascii=False) + "\n")
                 f.flush()
                 after = page["pageInfo"]["endCursor"]
-                cur.write_text(after or "")
+                cur.write_text(after or "", encoding="utf-8")
                 if page["nodes"]:
                     log(f"  gitlab issues up to {page['nodes'][-1]['createdAt']}")
                 if not page["pageInfo"]["hasNextPage"]:
@@ -222,15 +228,15 @@ def pull_gitlab(dest, ds):
         save_meta(dest, meta)
 
     issues = {}
-    for line in open(work / "issues.jsonl"):
+    for line in read_lines(work / "issues.jsonl"):
         n = json.loads(line)
         issues[n["iid"]] = n  # a page written twice after a kill: last copy wins
     parents_p = work / "parents.jsonl"
-    done = {json.loads(l)["iid"] for l in open(parents_p)} if parents_p.exists() else set()
+    done = {json.loads(l)["iid"] for l in read_lines(parents_p)}
     todo = sorted((i for i, n in issues.items() if n.get("hasParent") and i not in done), key=int)
-    with open(parents_p, "a") as f:
-        for k in range(0, len(todo), 20):
-            batch, got = todo[k:k + 20], {}
+    with open(parents_p, "a", encoding="utf-8", newline="\n") as f:
+        for k in range(0, len(todo), batch_n):
+            batch, got = todo[k:k + batch_n], {}
             for n in gql(url, PARENTS_Q % proj, {"iids": batch})["project"]["workItems"]["nodes"]:
                 got[n["iid"]] = next((w["parent"] for w in n["widgets"] if w.get("parent")), None)
             for iid in batch:
@@ -239,18 +245,18 @@ def pull_gitlab(dest, ds):
         if todo:
             log(f"  gitlab parents {len(todo)}")
     parents = {}
-    for line in open(parents_p):
+    for line in read_lines(parents_p):
         n = json.loads(line)
         parents[n["iid"]] = n["parent"]
 
     skip = tuple(ds.get("drop_titles_starting", []))
     want = sorted((i for i, n in issues.items() if not n["title"].startswith(skip)), key=int)
     notes_p = work / "notes.jsonl"
-    done = {json.loads(l)["iid"] for l in open(notes_p)} if notes_p.exists() else set()
+    done = {json.loads(l)["iid"] for l in read_lines(notes_p)}
     todo = [i for i in want if i not in done]
-    with open(notes_p, "a") as f:
-        for k in range(0, len(todo), 20):
-            batch = todo[k:k + 20]
+    with open(notes_p, "a", encoding="utf-8", newline="\n") as f:
+        for k in range(0, len(todo), batch_n):
+            batch = todo[k:k + batch_n]
             got = {}
             for n in gql(url, NOTES_Q % proj, {"iids": batch})["project"]["issues"]["nodes"]:
                 notes, info = n["notes"]["nodes"], n["notes"]["pageInfo"]
@@ -261,11 +267,11 @@ def pull_gitlab(dest, ds):
             for iid in batch:  # an issue the API no longer returns keeps notes: null, and is counted
                 f.write(json.dumps({"iid": iid, "notes": got.get(iid)}, ensure_ascii=False) + "\n")
             f.flush()
-            if (k // 20) % 25 == 0:
+            if (k // batch_n) % 25 == 0:
                 log(f"  gitlab notes {k + len(batch)}/{len(todo)}")
 
     notes = {}
-    for line in open(notes_p):
+    for line in read_lines(notes_p):
         n = json.loads(line)
         notes[n["iid"]] = n["notes"]
     lines = []
@@ -283,7 +289,7 @@ def pull_gitlab(dest, ds):
 def image_digest():
     """No container or lockfile yet (step 1), so: the tool versions plus this script."""
     return sha256(canon({"python": sys.version.split()[0], "sqlite": sqlite3.sqlite_version,
-                         "git": git("--version").strip(), "collect": sha256(Path(__file__).read_bytes())}).encode())
+                         "git": git(".", "--version").strip(), "collect": sha256(Path(__file__).read_bytes())}).encode())
 
 
 def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=None):
@@ -356,9 +362,11 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
         for repo, sha in sorted(repos.items()):
             co = stage / "repos" / repo.replace("/", "__")
             log(f"  checkout {repo} @ {sha[:10]}")
-            git("clone", "--shared", "--no-checkout", "--quiet", str(cache / "repos" / (repo.replace("/", "__") + ".git")), str(co))
-            git("-C", str(co), "config", "core.longpaths", "true")
-            git("-C", str(co), "checkout", "--quiet", "--detach", sha)
+            git(".", "-c", "core.longpaths=true", "-c", "core.symlinks=false", "clone", "--shared", "--no-checkout", "--quiet",
+                str(cache / "repos" / (repo.replace("/", "__") + ".git")), str(co))
+            git(co, "config", "core.longpaths", "true")
+            git(co, "config", "core.symlinks", "false")  # a symlink is its target text on every OS, never followed
+            git(co, "checkout", "--quiet", "--detach", sha)
         for key, d in sorted(src_dirs.items()):
             for p in sorted(d.rglob("*")):
                 rel = p.relative_to(d)
@@ -369,7 +377,7 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
                     except OSError:
                         shutil.copy2(p, stage / key / rel)
         stage.mkdir(parents=True, exist_ok=True)
-        (stage / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+        (stage / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
         stage.rename(dest)
 
     notes = sorted(gaps) + sorted(pulls)
@@ -380,7 +388,7 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
            "status": "partial" if gaps else "complete", "notes": " | ".join(notes)}
     out = handoff(cfg, run_id, root)
     out.mkdir(parents=True, exist_ok=True)
-    write_atomic(out / "run.jsonl", (json.dumps(row, ensure_ascii=False) + "\n").encode())
+    write_jsonl(out / "run.jsonl", [row])
     return row
 
 

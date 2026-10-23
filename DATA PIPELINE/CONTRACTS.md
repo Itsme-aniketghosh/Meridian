@@ -6,7 +6,7 @@
 |---|---|
 | [schema.sql](schema.sql) | Every table: columns, types, keys, allowed values |
 | [meridian.toml](meridian.toml) | Datasets, pinned refs, team rules, every threshold. Hashed into the `run_id` |
-| [infra.toml](infra.toml) | Where and when it runs: Airflow, GCP, schedule. Utkarsh's. Not in the `run_id`, so it can change any time |
+| [infra.toml](infra.toml) | Where, when and how fast it runs: Airflow, GCP, schedule, retries, timeouts, workers. Utkarsh's. Parts read their run-neutral sections through `common.load_infra`. It never changes a row, so it's not in the `run_id` and can change any time |
 | This page | The rules behind both, and what Vishwa and Chaitali get and deliver |
 
 To change `schema.sql`, `meridian.toml` or this page, ask Utkarsh and Aniket. If you're blocked, ship the version that works and log the change you need. Don't change the contract yourself.
@@ -58,7 +58,7 @@ python -m meridian.<part> --run-id <run_id> --config meridian.toml
 |---|---|---|---|
 | Vishwa | `meridian.collect` | the sources | `snapshots/<run_id>/`, `run` |
 | Vishwa | `meridian.history` | snapshot | `git_commit` … `file_bug_fixes` |
-| Rachna | `meridian.scan` | snapshot | `candidate`, `parse_failure` |
+| Rachna | `meridian.scan` | snapshot | `candidate`, `parse_failure`, `module_import`, `deprecation` |
 | Rochan | `meridian.resolve` | snapshot, `candidate` | `resolution`, `call_edge` |
 | Chaitali | `meridian.owners` | `git_commit`, `ticket`, `commit_ticket` | `person` … `file_owner` |
 | Utkarsh | `meridian.join` | all of the above | `call_site`, `ticket_map`, `coverage` |
@@ -66,7 +66,8 @@ python -m meridian.<part> --run-id <run_id> --config meridian.toml
 
 **Rules, so a part can become an Airflow task without changes:**
 - **Same run, same output.** Running a part twice for one `run_id` replaces its own tables with the same rows. Airflow retries depend on this.
-- **No clock, no hidden inputs.** Time comes from `run.snapshot_at`, never from Airflow's run date. Paths come from `meridian.toml` or the `MERIDIAN_DATA` variable, never hard-coded.
+- **No clock, no hidden inputs.** Time comes from `run.snapshot_at`, never from Airflow's run date. Paths come from `meridian.toml` or the `MERIDIAN_DATA` variable (and `infra.toml` from `MERIDIAN_INFRA`), never hard-coded.
+- **git only through `common.git`, jsonl only through `common.write_jsonl`.** `common.git` ignores the user's global and system git config, so every machine gives the same output. `write_jsonl` writes `\n` on every OS, sorted, atomically.
 - **Exit code 0 means done, anything else means failed.** Log to stdout. Never prompt for input.
 - **Write only your own tables.**
 - **One container image** holds every part, with dependencies from one lockfile, Python 3.11.
@@ -80,7 +81,7 @@ python -m meridian.<part> --run-id <run_id> --config meridian.toml
 | `ticket`, `ticket_event`, `ticket_link` | Vishwa | Chaitali (Spark components), Utkarsh, Aniket |
 | `commit_ticket` | Vishwa | Chaitali, Utkarsh |
 | `bug_inducing`, `file_bug_fixes` | Vishwa | Utkarsh |
-| `candidate`, `parse_failure` | Rachna | Rochan, Utkarsh |
+| `candidate`, `parse_failure`, `module_import`, `deprecation` | Rachna | Rochan, Utkarsh |
 | `resolution`, `call_edge` | Rochan | Utkarsh, Aniket |
 | `person`, `person_alias`, `team_map`, `file_owner` | Chaitali | Utkarsh, Aniket |
 | `call_site`, `ticket_map`, `coverage` | Utkarsh | Aniket |
@@ -132,8 +133,8 @@ python -m meridian.<part> --run-id <run_id> --config meridian.toml
 | Dataset | A team is | Owner of a file is |
 |---|---|---|
 | Spark | A person's most common Jira component across their keyed commits in the last 180 days. A ticket with *n* components gives each 1/*n*. Tie → their most recent commit's component. None → `unassigned` | The team with the largest share of the file's commits (180 days, no merges, no bots). Below 0.30 → `unowned`. Tie → most recent commit |
-| Django | The path: `django/contrib/<app>/` → `contrib.<app>`, `django/<pkg>/` → `<pkg>`, `tests/` → `tests`. **Synthetic**, and the screen says so | The path rule. `basis = 'path'` |
-| Packages | The repo. Each repo is one team, so cross-repo means cross-team | The repo. `basis = 'repo'` |
+| Django | The path: `django/contrib/<app>/` → `contrib.<app>`, `django/<pkg>/` → `<pkg>`, `tests/` → `tests`. **Synthetic**, and the screen says so | The path rule. `basis = 'path'`. The window ends at the pinned commit's `authored_at`, not `snapshot_at`. |
+| Packages | The repo. Each repo is one team, so cross-repo means cross-team | The repo. `basis = 'repo'`. The window ends at the pinned commit's `authored_at`, not `snapshot_at`. |
 | GitLab | The issue's `group::` label | No code rows (Ruby). Teams label tickets for the gold set |
 
 **Why these:**
@@ -157,7 +158,7 @@ python -m meridian.<part> --run-id <run_id> --config meridian.toml
 
 **Rules that matter most:**
 - Use the author, never the committer: Spark's merge script makes the merger the committer.
-- `person_id` = hash of the group's smallest email, so adding an email to a group never renames the person.
+- `person_id` = hash of the group's smallest email. It stays the same while that email stays the smallest: an added email that sorts first, or two groups merging, gives a new `person_id`.
 - Co-authors stay in the data but don't count toward ownership.
 
 ---
@@ -174,7 +175,8 @@ python -m meridian.<part> --run-id <run_id> --config meridian.toml
 | `call_site.file` | `path` | One name for paths everywhere |
 | `call_site.blocked_by` column | `blocked_by` table | A site can be blocked by several sites. Keeps `call_site` append-only |
 | `ticket_map.ticket_id`, `target`, `method` | `key`, `target_kind`, `target`, `method` | Unmapped tickets become rows |
-| 4 tables | 23 tables | Every part's output is a table, so every number has a row |
+| 4 tables | 25 tables | Every part's output is a table, so every number has a row |
 | — | `coverage` | "Always report what we missed" |
+| — | v1.1: `ticket.description`, `candidate.in_except` / `call_site.in_except`, `module_import`, `deprecation`, `resolution.receiver_from`; `blocked_by.depth` is `>= 1` | Planned features had nothing to read ([KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md), [FIXES.md](FIXES.md)). Depth is `[graph] blocked_by_max_depth`, a setting |
 
 03-data gets updated to match once v1 is frozen (Day 10).

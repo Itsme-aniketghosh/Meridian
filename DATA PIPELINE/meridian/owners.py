@@ -12,16 +12,21 @@ D5, file_owner: one row per file at the pinned SHA, by the dataset's owner_mode.
   no bots, no .git-blame-ignore-revs. Below min_share, or no team, -> unowned. No commits in the window -> basis 'none'.
 - path (Django), repo (packages): the [teams] rule decides, share = 1. Each prefix or repo used also goes in team_map.
 - top_person_id is the person with most commits in the window. last_commit_at is the file's last counted commit, any time.
+- The window ends at snapshot_at for author, and at the pinned commit's authored_at for path and repo: Django and the
+  packages are pinned years before snapshot_at, where a snapshot_at window holds no commits.
 The log ends with week 1's test, one window back: does the owner predict the next author better than the last toucher?
 
 Identities, as [identity] in meridian.toml says:
 - Every author email in git_commit, plus Co-authored-by emails (kept in the data, never counted for ownership).
 - Union-find over emails. Two emails join when .mailmap maps one to the other, they share a normalised name,
-  or they share an email local part of 4+ characters. Same as week1/pair2/merged/build.py merge_people(), plus .mailmap.
+  or they share an email local part of local_part_min_length+ characters. Same as week1/pair2/merged/build.py
+  merge_people(), plus .mailmap.
 - A local part seen under more than local_part_max_names names (chris@, contact@) never joins: across 18 repos it
   chained 112 strangers into one person.
 - Generic names and bots never join on name or local part. Only .mailmap, which a human wrote, can join them.
-- person_id = h(smallest email in the group), so adding an email to a group never renames the person.
+- person_id = h(smallest email in the group). It stays while that email stays the smallest: an added email that sorts
+  first, or two groups merging, gives a new person_id.
+- --top also lists every group joined on a shared local part whose names differ: the risky merges, 2-4 emails each.
 
 git_commit has no author names, so names, Co-authored-by and .mailmap are read from the snapshot checkout at the
 pinned SHA (git's %aN / %aE apply that commit's .mailmap). The author emails must match git_commit exactly.
@@ -32,8 +37,7 @@ from datetime import datetime, timedelta, timezone
 from fractions import Fraction
 from pathlib import Path
 
-from meridian.common import CONFIG, data_root, handoff, load_config, log, parser
-from meridian.history import git, write_jsonl
+from meridian.common import CONFIG, data_root, git, handoff, load_config, log, parser, read_jsonl, write_jsonl
 
 COAUTH = re.compile(r"^Co-authored-by:\s*(.*?)\s*<([^>]+)>", re.M | re.I)
 FMT = "%x1e%H%x1f%an%x1f%ae%x1f%aN%x1f%aE%x1f%b"
@@ -57,7 +61,7 @@ def read_people(co, sha):
     rows = []
     for rec in out.split("\x1e")[1:]:
         _, _, ae, mapped_name, mapped_email, body = rec.split("\x1f", 5)
-        rows.append((ae.lower(), mapped_email.lower(), mapped_name, [(n, e.lower()) for n, e in COAUTH.findall(body)]))
+        rows.append((ae.lower(), mapped_email.lower(), mapped_name, [(n, e.strip().lower()) for n, e in COAUTH.findall(body)]))
     return rows
 
 
@@ -95,7 +99,7 @@ def merge(records, ident):
         by_local[local_part(e)].add(norm_name(ns.most_common(1)[0][0]))
     shared = {l for l, ns in by_local.items() if len(ns) > ident["local_part_max_names"]}
 
-    generic, bots = set(), set()
+    generic, bots, via_local = set(), set(), Counter()
     for e, ns in names.items():
         node = "E:" + e
         find(node)
@@ -108,15 +112,17 @@ def merge(records, ident):
             continue
         if n:
             union(node, "N:" + n)
-        if len(local_part(e)) >= 4 and local_part(e) not in shared:
+        if len(local_part(e)) >= ident["local_part_min_length"] and local_part(e) not in shared:
             union(node, "L:" + local_part(e))
+            via_local[local_part(e)] += 1
+    joined = {find("L:" + l) for l, k in via_local.items() if k > 1}
 
     groups = defaultdict(list)
     for e in names:
         groups[find("E:" + e)].append(e)
     targets = set(mapped.values())
-    person, alias = [], []
-    for emails in groups.values():
+    person, alias, risky = [], [], set()
+    for root, emails in groups.items():
         emails.sort()
         pid = h(emails[0])
         total = sum((names[e] for e in emails), Counter())
@@ -126,7 +132,9 @@ def merge(records, ident):
             source = "mailmap" if e in mapped or e in targets else "name_email" if len(emails) > 1 else "single"
             alias.append({"email": e, "person_id": pid, "name": min(names[e], key=lambda n: (-names[e][n], n)),
                           "generic": int(e in generic), "source": source})
-    return person, alias, {"generic": generic, "bots": bots, "shared": shared}
+        if root in joined and len({norm_name(a["name"]) for a in alias[-len(emails):]}) > 1:
+            risky.add(pid)
+    return person, alias, {"generic": generic, "bots": bots, "shared": shared, "risky": risky}
 
 
 def person_teams(commits, keys, components, pid, since, until, unassigned):
@@ -226,22 +234,18 @@ def ignore_revs(co, sha, name):
     return {l.split()[0] for l in text.splitlines() if l.strip() and not l.startswith("#")}
 
 
-SRC = re.compile(r"\.(scala|java|py)$")  # same files as week1/pair2/merged/preview.py scored
-TEST = re.compile(r"(^|/)(tests?|test-data|benchmarks?)/|Suite\.scala$|(^|/)test_[^/]*\.py$|Test\.java$")
-
-
-def last_toucher_test(hist, team_of, unassigned, min_share, since, cut, until):
+def last_toucher_test(hist, team_of, unassigned, min_share, since, cut, until, src, test):
     """Week 1's test, at the cut: does the owner predict who touches the file next, better than whoever touched it last?
 
     hist: {path: [(authored_at, person_id)] oldest first}. Owners come from (since, cut], the next author from (cut, until].
-    Scored on source files that have a commit before and after the cut. Team level: owner team vs the last toucher's
-    team, against the next author's team (a next author with no team counts as a miss for both). Person level: the
-    top person, if their share passes min_share, vs the last toucher.
+    Scored on source files (src and not test, the [checks] regexes) with a commit before and after the cut. Team level:
+    owner team vs the last toucher's team, against the next author's team (a next author with no team counts as a miss
+    for both). Person level: the top person, if their share passes min_share, vs the last toucher.
     """
     team = {"n": 0, "owner": 0, "last": 0}
     person = {"n": 0, "owner": 0, "last": 0}
     for path, ts in hist.items():
-        if not SRC.search(path) or TEST.search(path):
+        if not src.search(path) or test.search(path):
             continue
         before = [x for x in ts if x[0] <= cut]
         after = [x for x in ts if cut < x[0] <= until]
@@ -262,29 +266,8 @@ def last_toucher_test(hist, team_of, unassigned, min_share, since, cut, until):
     return team, person
 
 
-def read_jsonl(path):
-    with open(path, encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
-
-
-IMPLEMENTED = {  # [identity] and [ownership] settings this code follows but has no switch for
-    ("identity", "use_mailmap"): True, ("identity", "merge_on"): ["name", "email_local"],
-    ("identity", "lowercase_emails"): True, ("identity", "use_author_not_committer"): True,
-    ("identity", "coauthors_count"): False, ("ownership", "skip_merges"): True,
-    ("ownership", "owner"): "team_share", ("ownership", "tie_break"): "most_recent_commit",
-}
-
-
-def check_config(cfg):
-    """A changed setting the code doesn't implement stops the run, rather than being silently ignored."""
-    bad = [f"[{s}] {k} = {cfg[s].get(k)!r}, owners.py does {v!r}" for (s, k), v in IMPLEMENTED.items() if cfg[s].get(k) != v]
-    if bad:
-        raise SystemExit("meridian.toml asks for what owners.py doesn't do: " + "; ".join(bad))
-
-
 def main(run_id, config=CONFIG, root=None, top=0):
     cfg, root = load_config(config), Path(root or data_root())
-    check_config(cfg)
     snap = root / "snapshots" / run_id
     if not (snap / "manifest.json").exists():
         raise SystemExit(f"no snapshot {snap}: run meridian.collect first")
@@ -342,7 +325,9 @@ def main(run_id, config=CONFIG, root=None, top=0):
 
     # D5: file_owner for every file at the pinned SHA, plus team_map rows for the path and repo rules
     own = cfg["ownership"]
+    src, test = (re.compile(cfg["checks"][k]) for k in ("source_files", "test_files"))
     bots = {p["person_id"] for p in person if p["is_bot"]}
+    pinned_at = {(c["repo"], c["sha"]): c["authored_at"] for c in commits}
     files = defaultdict(list)
     for f in read_jsonl(out / "commit_file.jsonl"):
         files[f["repo"]].append(f)
@@ -353,6 +338,8 @@ def main(run_id, config=CONFIG, root=None, top=0):
         mode, rule = cfg["datasets"][ds].get("owner_mode"), cfg["teams"].get(ds, {})
         if mode not in ("author", "path", "repo"):
             raise SystemExit(f"{repo}: owner_mode {mode!r} in [datasets.{ds}] has no file owner rule")
+        until = snapshot_at if mode == "author" else pinned_at[repo, sha]
+        start = back(until)
         co = snap / "repos" / repo.replace("/", "__")
         hist = {path: [(c["authored_at"], pid[c["author_email"]]) for c in cs if pid[c["author_email"]] not in bots]
                 for path, cs in touches(by_repo_commits[repo], files[repo], ignore_revs(co, sha, own["ignore_revs_file"])).items()}
@@ -361,8 +348,8 @@ def main(run_id, config=CONFIG, root=None, top=0):
         n = Counter()
         for path in head_files(co, sha):
             ts = hist.get(path, [])
-            window = [x for x in ts if since < x[0] <= snapshot_at]
-            top, _ = top_share(window, lambda p: p)
+            window = [x for x in ts if start < x[0] <= until]
+            top_person, _ = top_share(window, lambda p: p)
             if mode == "author":
                 owner, share = team_owner(window, team_of, unassigned, own["min_share"])
                 basis = "author" if window else "none"
@@ -375,14 +362,15 @@ def main(run_id, config=CONFIG, root=None, top=0):
                 rule_teams[(ds, "repo", repo)] = (owner, rule["rule"])
             n["unowned" if owner == "unowned" else "owned"] += 1
             n["active"] += bool(window)
-            file_owner.append({"repo": repo, "path": path, "owner_team": owner, "share": share, "top_person_id": top,
+            file_owner.append({"repo": repo, "path": path, "owner_team": owner, "share": share, "top_person_id": top_person,
                                "n_commits": len(window), "last_commit_at": max((x[0] for x in ts), default=None), "basis": basis})
-        log(f"{repo:45} {n['owned'] + n['unowned']:>6,} files · {n['active']:>6,} touched since {since[:10]} · "
+        log(f"{repo:45} {n['owned'] + n['unowned']:>6,} files · {n['active']:>6,} touched {start[:10]}..{until[:10]} · "
             f"{n['unowned']:,} unowned · basis {basis}")
         if mode == "author":  # week 1's test: owner vs last toucher, one window back
             cut = since
             team_cut = person_teams(ds_commits(ds), keys, components, pid, back(cut), cut, unassigned)
-            t, p = last_toucher_test(hist, lambda q: team_cut.get(q, unassigned), unassigned, own["min_share"], back(cut), cut, snapshot_at)
+            t, p = last_toucher_test(hist, lambda q: team_cut.get(q, unassigned), unassigned, own["min_share"], back(cut), cut,
+                                     snapshot_at, src, test)
             pct = lambda d, k: f"{d[k] / d['n']:.1%}" if d["n"] else "n/a"
             log(f"{'':45} next author after {cut[:10]}, on owned source files: team owner {pct(t, 'owner')} vs "
                 f"last toucher's team {pct(t, 'last')} (N={t['n']:,}) · person owner {pct(p, 'owner')} vs last toucher {pct(p, 'last')} (N={p['n']:,})")
@@ -399,10 +387,14 @@ def main(run_id, config=CONFIG, root=None, top=0):
         for a in alias:
             members[a["person_id"]].append(a)
         name = {p["person_id"]: p["name"] for p in person}
-        for p, ms in sorted(members.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:top]:
-            log(f"\n{name[p]} · {p} · {len(ms)} emails")
-            for a in ms:
-                log(f"    {a['email']:50} {a['name']:30} {a['source']}")
+        biggest = [p for p, _ in sorted(members.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:top]]
+        for title, ps in ((f"the {top} biggest groups", biggest),
+                          ("groups joined on a shared local part, with different names", sorted(stats["risky"]))):
+            log(f"\n=== {title}: {len(ps)}")
+            for p in ps:
+                log(f"\n{name[p]} · {p} · {len(members[p])} emails")
+                for a in members[p]:
+                    log(f"    {a['email']:50} {a['name']:30} {a['source']}")
     return person, alias, team_map, file_owner
 
 

@@ -55,11 +55,9 @@ class Links:
     def add(self, row, at, action):
         self.events[row].add((at, action))
 
-    def rows(self, run_id, snapshot_at, keep=lambda key, other: True):
+    def rows(self, run_id, snapshot_at):
         out = []
         for row in sorted(set(self.events) | self.now):
-            if not keep(row[0], row[2]):
-                continue
             ev = sorted(self.events.get(row, ()))
             before = [e for e in ev if e[0] <= snapshot_at]
             after = [e for e in ev if e[0] > snapshot_at]
@@ -115,7 +113,7 @@ def jira(issues, snapshot_at, rules, run_id, project):
             phrase.setdefault(t["inward"], (t["name"], None if same else "in"))
             phrase.setdefault(t["outward"], (t["name"], None if same else "out"))
     bulk = rules["bulk_close"]
-    links, events = Links(), []
+    links, events, cut = Links(), [], 0
     at_snapshot, last_res, last_resolved = {}, {}, {}
 
     def link_item(key, s):
@@ -125,8 +123,9 @@ def jira(issues, snapshot_at, rules, run_id, project):
         return jira_link(key, kind, side, other)
 
     for it in issues:
-        key, seq = it["key"], Counter()
-        for h in sorted((it.get("changelog") or {}).get("histories", []), key=lambda h: (h["created"], int(h["id"]))):
+        key, cl = it["key"], it.get("changelog") or {}
+        cut += cl.get("total", 0) > len(cl.get("histories", []))  # Jira cut the changelog short: rollback may be wrong
+        for h in sorted(cl.get("histories", []), key=lambda h: (h["created"], int(h["id"]))):
             at, who = ts(h["created"]), (h.get("author") or {}).get("name")
             for i in h["items"]:
                 f = i["field"]
@@ -152,7 +151,7 @@ def jira(issues, snapshot_at, rules, run_id, project):
                     continue
                 events.append((key, at, f, i.get("fromString"), i.get("toString"), who))
                 if f == "resolution" and i.get("toString"):
-                    last_res[key] = (who, epoch(at) // (bulk["within_minutes"] * 60))
+                    last_res[key] = (who, epoch(at))
                     last_resolved[key] = at
         f = it["fields"]
         for l in f.get("issuelinks", []):
@@ -163,7 +162,7 @@ def jira(issues, snapshot_at, rules, run_id, project):
         if (f.get("parent") or {}).get("key"):
             links.now.add((key, "parent", f["parent"]["key"]))
 
-    batch = Counter(last_res.values())
+    batch = bulk_closed(last_res, bulk["per_person"], bulk["within_minutes"] * 60)
     tickets = []
     for it in issues:
         key, f = it["key"], it["fields"]
@@ -174,7 +173,7 @@ def jira(issues, snapshot_at, rules, run_id, project):
         resolved = f.get("resolutiondate") and ts(f["resolutiondate"])
         if res is None:
             resolved = None
-        elif resolved and resolved > snapshot_at:  # re-resolved after the snapshot
+        elif not resolved or resolved > snapshot_at:  # re-resolved, or reopened (date cleared), after the snapshot
             resolved = last_resolved.get(key)
         typ = f["issuetype"]["name"]
         tickets.append({
@@ -184,12 +183,35 @@ def jira(issues, snapshot_at, rules, run_id, project):
             "created_at": ts(f["created"]), "resolved_at": resolved,
             "components": jlist(c["name"] for c in f.get("components") or []),
             "assignee": (f.get("assignee") or {}).get("name"), "reporter": (f.get("reporter") or {}).get("name"),
-            "bulk_closed": int(bulk["label"] in labels or batch.get(last_res.get(key), 0) >= bulk["per_person"]),
-            "desc_empty": int(not (f.get("description") or "").strip()), "summary": f.get("summary") or ""})
+            "bulk_closed": int(bulk["label"] in labels or key in batch),
+            "desc_empty": int(not (f.get("description") or "").strip()), "summary": f.get("summary") or "",
+            "description": f.get("description") or ""})
 
-    # A link to a ticket of this project that isn't in the snapshot (created later) is left out. Other projects stay.
-    keep = lambda a, b: all(k in by_key or not k.startswith(project + "-") for k in (a, b))
-    return tickets, numbered(events, run_id), links.rows(run_id, snapshot_at, keep)
+    # A link to a ticket of this project that isn't in the snapshot (created later) is left out, and counted. Other projects stay.
+    keep = lambda r: all(k in by_key or not k.startswith(project + "-") for k in (r["key"], r["other_key"]))
+    rows = links.rows(run_id, snapshot_at)
+    kept = [r for r in rows if keep(r)]
+    return tickets, numbered(events, run_id), kept, {"links_to_missing": len(rows) - len(kept), "changelog_cut": cut}
+
+
+def bulk_closed(last_res, per_person, window):
+    """Keys whose last resolution is one of per_person+ by one person within window seconds (sliding, not clock hours).
+    last_res: {key: (who, epoch)}. who None (anonymous) is no one: never pooled."""
+    by = defaultdict(list)
+    for key, (who, t) in last_res.items():
+        if who is not None:
+            by[who].append((t, key))
+    out = set()
+    for xs in by.values():
+        xs.sort()
+        lo = done = 0
+        for hi in range(len(xs)):
+            while xs[hi][0] - xs[lo][0] >= window:
+                lo += 1
+            if hi - lo + 1 >= per_person:
+                out.update(k for _, k in xs[max(lo, done):hi + 1])
+                done = hi + 1
+    return out
 
 
 def numbered(events, run_id):
@@ -225,9 +247,18 @@ STATUS = re.compile(r"set status to \*\*(.+)\*\*")
 
 
 def gl_ref(ref, project):
-    """'#12' -> 'gitlab-org/gitlab#12', '&5' -> 'gitlab-org&5' (an epic, in the project's group), others as written."""
+    """'#12' -> 'gitlab-org/gitlab#12', '&5' -> 'gitlab-org&5' (an epic, in the project's group),
+    'gitaly#5' -> 'gitlab-org/gitaly#5' (same namespace, as blockedByIssues writes it), others as written."""
     path, sigil, n = re.fullmatch(r"([\w./-]*)([#&])(\d+)", ref).groups()
+    if sigil == "#" and path and "/" not in path:
+        path = project.rsplit("/", 1)[0] + "/" + path
     return f"{path or (project if sigil == '#' else project.split('/')[0])}{sigil}{n}"
+
+
+def gl_parent(n):
+    """The work-item parent, unless it's an Epic: a group epic, not an issue of the project (the epic field links it)."""
+    p = n.get("parent")
+    return p if p and p["workItemType"]["name"] != "Epic" else None
 
 
 def read_gitlab(d):
@@ -250,7 +281,7 @@ def gitlab(issues, snapshot_at, ds, rules, prefix, run_id):
         for b in n["blockedByIssues"]["nodes"]:
             path = b["webUrl"].split("gitlab.com/", 1)[1].split("/-/", 1)[0]
             links.now.add((a, "blocked_by", f"{path}#{b['iid']}"))
-        if n.get("parent"):
+        if gl_parent(n):
             links.now.add((a, "parent", key(n["parent"]["iid"])))
         if n.get("epic"):
             links.now.add((a, "parent", f"{n['epic']['group']['fullPath']}&{n['epic']['iid']}"))
@@ -296,7 +327,7 @@ def gitlab(issues, snapshot_at, ds, rules, prefix, run_id):
     tickets = []
     for n in kept:
         closed = n["state"] == "closed" and n.get("closedAt") and ts(n["closedAt"]) <= snapshot_at
-        par = n.get("parent")
+        par = gl_parent(n)
         ptype = (by_iid[par["iid"]]["type"] if par["iid"] in by_iid else par["workItemType"]["name"].upper().replace(" ", "_")) if par else None
         labels = {l["title"] for l in n["labels"]["nodes"]}
         assignees = sorted(x["username"] for x in n["assignees"]["nodes"])
@@ -308,7 +339,8 @@ def gitlab(issues, snapshot_at, ds, rules, prefix, run_id):
             "components": jlist(l for l in labels if l.startswith(prefix)),
             "assignee": assignees[0] if assignees else None, "reporter": (n.get("author") or {}).get("username"),
             "bulk_closed": int(rules["bulk_close"]["label"] in labels),
-            "desc_empty": int(not (n.get("description") or "").strip()), "summary": n["title"]})
+            "desc_empty": int(not (n.get("description") or "").strip()), "summary": n["title"],
+            "description": n.get("description") or ""})
     events.sort(key=lambda e: (e[0], e[1]))  # stable: keeps note order within the same second
     return tickets, numbered(events, run_id), links.rows(run_id, snapshot_at), {"dropped_titles": dropped, "relation_removed_unmatched": unmatched}
 
@@ -353,14 +385,15 @@ def build(snap, manifest, cfg, run_id, messages_of):
             continue
         if src.startswith("jira/"):
             project = src.split("/", 1)[1]
-            t, e, l = jira(read_jira(snap / src), snapshot_at, rules, run_id, project)
+            t, e, l, counts = jira(read_jira(snap / src), snapshot_at, rules, run_id, project)
             known = {r["key"] for r in t}
             key_rx = re.compile(ds.get("key_regex") or rules["key_regex_generic"])
             for repo in sorted(r["repo"] for r in ds.get("repos", []) if r["repo"] in manifest["repos"]):
                 rows, dead = commit_tickets(messages_of(repo), repo, key_rx, known, run_id)
                 out["commit_ticket"] += rows
                 log(f"{repo:45} {len({r['sha'] for r in rows}):>7,} commits keyed  {len(rows):>7,} keys  {dead:>3} dead keys")
-            extra = ""
+            extra = f"  ({counts['links_to_missing']} links to {project} tickets not in the snapshot left out, " \
+                    f"{counts['changelog_cut']} changelogs cut short by Jira)"
         else:
             t, e, l, counts = gitlab(read_gitlab(snap / src), snapshot_at, ds, rules, prefix, run_id)
             extra = f"  ({counts['dropped_titles']:,} {', '.join(ds.get('drop_titles_starting', []))} left out, " \

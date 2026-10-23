@@ -1,4 +1,4 @@
--- Meridian graph data block · schema v1
+-- Meridian graph data block · schema v1.1 (v1 + description, in_except, receiver_from, module_import, deprecation; see FIXES.md)
 -- The contract every part writes to. Change it only with Utkarsh and Aniket's OK.
 --
 -- Conventions (full list in CONTRACTS.md):
@@ -68,6 +68,7 @@ CREATE TABLE ticket (
   bulk_closed     INTEGER NOT NULL CHECK (bulk_closed IN (0,1)),
   desc_empty      INTEGER NOT NULL CHECK (desc_empty IN (0,1)),
   summary         TEXT NOT NULL,
+  description     TEXT NOT NULL DEFAULT '', -- as of the pull. Ticket checks (done condition, repro) and stack-trace mapping read it
   PRIMARY KEY (run_id, key)
 ) WITHOUT ROWID;
 -- Tickets created after snapshot_at are not written.
@@ -138,8 +139,33 @@ CREATE TABLE candidate (
   text            TEXT NOT NULL,             -- the source line, stripped
   junk            TEXT NOT NULL CHECK (junk IN ('none','test','vendored','migration','example','docstring','generated')),
   file_kind       TEXT NOT NULL CHECK (file_kind IN ('py','embedded')), -- embedded = Python outside .py
+  in_except       INTEGER NOT NULL DEFAULT 0 CHECK (in_except IN (0,1)), -- inside an except/finally block: stall reason #5, no LLM diff
   PRIMARY KEY (run_id, repo, path, line, col)
 ) WITHOUT ROWID;
+
+CREATE TABLE module_import (                -- every import statement in every scanned file, tracked or not
+  run_id          TEXT NOT NULL,
+  repo            TEXT NOT NULL,
+  path            TEXT NOT NULL,             -- the importing file
+  line            INTEGER NOT NULL,
+  module          TEXT NOT NULL,             -- absolute dotted module, relative imports resolved against path
+  name            TEXT NOT NULL DEFAULT '',  -- the imported name for 'from m import n', '' for 'import m'
+  is_test         INTEGER NOT NULL CHECK (is_test IN (0,1)), -- importer is a test file ([scanner] junk test)
+  PRIMARY KEY (run_id, repo, path, line, module, name)
+) WITHOUT ROWID;
+-- Stall reason #7 (no test imports the module) and the push check's scope (changed files + their importers).
+
+CREATE TABLE deprecation (                  -- functions and classes that announce they are going away
+  run_id          TEXT NOT NULL,
+  repo            TEXT NOT NULL,
+  path            TEXT NOT NULL,
+  line            INTEGER NOT NULL,          -- the warn() call or the decorator
+  scope           TEXT NOT NULL,             -- the deprecated def/class, dotted
+  qualname        TEXT NOT NULL,             -- what a call to it resolves to: module (no __init__) + scope (no .__init__), as resolution.resolved_to
+  marker          TEXT NOT NULL,             -- the matching [scanner] deprecation_markers text, e.g. RemovedInDjango40Warning
+  PRIMARY KEY (run_id, repo, path, line)
+) WITHOUT ROWID;
+-- Push check P2 (new call to a deprecation-marked symbol) and the legacy radar.
 
 CREATE TABLE parse_failure (
   run_id          TEXT NOT NULL,
@@ -162,6 +188,7 @@ CREATE TABLE resolution (                    -- one row per candidate, same key
   via             TEXT NOT NULL CHECK (via IN ('direct','import_alias','assign_alias','reexport','none')),
   resolved_to     TEXT,                      -- fully qualified target, NULL when unresolved
   resolver        TEXT NOT NULL,             -- 'jedi==<pinned version>'
+  receiver_from   TEXT,                      -- for recv.name(...): F as 'repo:path:scope' when recv = F(...) in the same scope. blocked_by reads it
   PRIMARY KEY (run_id, repo, path, line, col)
 ) WITHOUT ROWID;
 -- Alias calls (the 542 _() calls) arrive here as extra rows the scanner never saw: role comes from Rochan.
@@ -184,7 +211,7 @@ CREATE TABLE call_edge (
 
 CREATE TABLE person (
   run_id          TEXT NOT NULL,
-  person_id       TEXT NOT NULL,             -- h(smallest email in the group)
+  person_id       TEXT NOT NULL,             -- h(smallest email in the group): new id if an added email sorts first or groups merge
   name            TEXT NOT NULL,             -- most common name in the group
   is_bot          INTEGER NOT NULL CHECK (is_bot IN (0,1)),
   PRIMARY KEY (run_id, person_id)
@@ -237,6 +264,7 @@ CREATE TABLE call_site (                     -- append-only: a row is written on
   role            TEXT NOT NULL,
   detection       TEXT NOT NULL,
   junk            TEXT NOT NULL,
+  in_except       INTEGER NOT NULL DEFAULT 0 CHECK (in_except IN (0,1)),
   owner_team      TEXT NOT NULL,
   bug_fixes       INTEGER NOT NULL,
   status          TEXT NOT NULL CHECK (status IN ('present','removed')),
@@ -270,7 +298,7 @@ CREATE TABLE blocked_by (
   call_site_id    TEXT NOT NULL,             -- A: the waiting site
   blocker_id      TEXT NOT NULL,             -- B: call_site_id inside the shared function
   via_function    TEXT NOT NULL,             -- F, 'repo:path:scope'
-  depth           INTEGER NOT NULL CHECK (depth BETWEEN 1 AND 3),
+  depth           INTEGER NOT NULL CHECK (depth >= 1),  -- <= [graph] blocked_by_max_depth: a setting, not a schema rule
   status          TEXT NOT NULL CHECK (status IN ('resolved','unknown')),
   PRIMARY KEY (run_id, call_site_id, blocker_id)
 ) WITHOUT ROWID;

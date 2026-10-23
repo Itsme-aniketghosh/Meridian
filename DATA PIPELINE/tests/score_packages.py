@@ -12,19 +12,18 @@ url(...) call, in a file that imports url from django.conf.urls. That rule is pl
     precision  resolved rows that are real uses / resolved rows                  (bar: >= 0.98, PIPELINE-PLAN.md)
     recall     real uses that are resolved / real uses (import and call rows only)
 """
-import json, re, subprocess
+import json, re
 from collections import defaultdict
 from pathlib import Path
 
-from meridian.common import data_root, handoff, load_config, log, parser
+from meridian.common import data_root, git, handoff, load_config, log, parser, read_jsonl
 
 DJANGO_URL = re.compile(r"^\s*from\s+django\.conf\.urls\s+import\s+[^#\n]*\burl\b", re.M)
 
 
 def changed_lines(repo_dir, parent, child):
     """{path: {line}}: lines on the parent's side that the child commit changed."""
-    out = subprocess.run(["git", "-C", str(repo_dir), "diff", "-U0", "--no-color", parent, child, "--", "*.py"],
-                         capture_output=True, text=True, check=True).stdout
+    out = git(repo_dir, "diff", "-U0", "--no-color", parent, child, "--", "*.py")  # deaf to diff.noprefix and friends
     changed, path = defaultdict(set), None
     for line in out.split("\n"):
         if line.startswith("--- "):
@@ -39,7 +38,7 @@ def changed_lines(repo_dir, parent, child):
 def score(run_id, cfg, candidates, rows, root=None):
     """Per package and in total: candidates, resolved, real among resolved, real uses, real uses resolved."""
     snap = Path(root or data_root()) / "snapshots" / run_id
-    manifest = json.loads((snap / "manifest.json").read_text())
+    manifest = json.loads((snap / "manifest.json").read_text(encoding="utf-8"))
     refs = {r["repo"]: r["ref"] for r in cfg["datasets"]["django_packages"]["repos"]}
     cands = {(c["repo"], c["path"], c["line"], c["col"]): c for c in candidates}
     table = {}
@@ -54,7 +53,7 @@ def score(run_id, cfg, candidates, rows, root=None):
                 continue                                    # alias rows and other repos
             c = cands[key]
             if r["path"] not in imports_url:
-                imports_url[r["path"]] = bool(DJANGO_URL.search((repo_dir / r["path"]).read_text(errors="replace")))
+                imports_url[r["path"]] = bool(DJANGO_URL.search((repo_dir / r["path"]).read_text(encoding="utf-8", errors="replace")))
             on_commit = r["line"] in changed.get(r["path"], ())
             by_text = imports_url[r["path"]] and c["role"] in ("import", "call")
             real_use = c["role"] in ("import", "call") and (on_commit or by_text)
@@ -84,8 +83,7 @@ def main(argv=None):
     a = parser(__doc__).parse_args(argv)
     cfg = load_config(a.config)
     out = handoff(cfg, a.run_id)
-    load = lambda name: [json.loads(l) for l in (out / name).read_text(encoding="utf-8").splitlines() if l.strip()]
-    show(*score(a.run_id, cfg, load("candidate.jsonl"), load("resolution.jsonl")))
+    show(*score(a.run_id, cfg, read_jsonl(out / "candidate.jsonl"), read_jsonl(out / "resolution.jsonl")))
 
 
 if __name__ == "__main__":

@@ -23,27 +23,27 @@ COLUMNS = ["path", "line", "kind", "symbol", "is_edit_line", "note", "seconds", 
 
 
 def load_key():
-    with open(WEEK1 / "edit_sites.csv", newline="") as f:
+    with open(WEEK1 / "edit_sites.csv", newline="", encoding="utf-8") as f:
         return [{"path": r["file"], "line": int(r["line"]), "kind": r["kind"], "symbol": r["symbol"]}
                 for r in csv.DictReader(f)]
 
 
 def load_week1():
-    with open(WEEK1 / "hand_check_30.csv", newline="") as f:
+    with open(WEEK1 / "hand_check_30.csv", newline="", encoding="utf-8") as f:
         return {(r["file"], int(r["line"])): r for r in csv.DictReader(f)}
 
 
 def load_progress():
     if not OUT.exists():
         return {}
-    with open(OUT, newline="") as f:
+    with open(OUT, newline="", encoding="utf-8") as f:
         return {(r["path"], int(r["line"])): r for r in csv.DictReader(f) if r["is_edit_line"]}
 
 
 def save(rows):
     OUT.parent.mkdir(parents=True, exist_ok=True)
     tmp = OUT.with_name(OUT.name + ".tmp")
-    with open(tmp, "w", newline="") as f:
+    with open(tmp, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=COLUMNS, lineterminator="\n")
         w.writeheader()
         for r in sorted(rows.values(), key=lambda r: (r["path"], int(r["line"]))):

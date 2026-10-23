@@ -71,7 +71,7 @@ class Collect(unittest.TestCase):
 [run]
 handoff_dir = "out/{{run_id}}"
 [datasets.fix]
-repos = [{{ repo = "fixture/repo", ref = "HEAD~1", url = "{self.tmp / 'upstream'}" }}{extra_repos}]
+repos = [{{ repo = "fixture/repo", ref = "HEAD~1", url = "{(self.tmp / 'upstream').as_posix()}" }}{extra_repos}]
 snapshot_at = "{snapshot_at}"
 tracker = "jira"
 jira = {{ base = "{self.base}", jql = "project=FIX ORDER BY key ASC", page = 100, expand = "changelog" }}
@@ -120,8 +120,8 @@ min_share = {threshold}
             S.pull_jira(self.tmp / "capped", {"base": self.base, "jql": "project=FIX", "page": 100})
 
     def test_unresolvable_refs_make_a_partial_run(self):
-        extra = (f', {{ repo = "fixture/later", ref = "TBD-day4", url = "{self.tmp / "upstream"}" }}'
-                 f', {{ repo = "fixture/gone", ref = "deadbeef1234", url = "{self.tmp / "upstream"}" }}')
+        extra = (f', {{ repo = "fixture/later", ref = "TBD-day4", url = "{(self.tmp / "upstream").as_posix()}" }}'
+                 f', {{ repo = "fixture/gone", ref = "deadbeef1234", url = "{(self.tmp / "upstream").as_posix()}" }}')
         row = self.run_once(self.config(extra_repos=extra))
         self.assertEqual(row["status"], "partial")
         self.assertIn("fixture/later: ref not set yet (TBD-day4)", row["notes"])

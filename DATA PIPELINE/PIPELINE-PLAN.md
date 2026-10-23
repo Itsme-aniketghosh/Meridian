@@ -2,6 +2,8 @@
 
 Build stages 1–4 of [04-architecture](../docs/04-architecture.md): Collect, Extract, Join, Graph. At the end we hand over one thing: **graph data block v1**.
 
+Also: [FIXES.md](FIXES.md) (the audit's problems and what changed) · [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md) (can the KB answer everything we planned, with proof).
+
 ![Pipeline plan: stages, owners, tasks, deadlines](pipeline-plan.svg)
 
 **How it flows:** four people build the parts in parallel. Each hands their part to Utkarsh. Utkarsh joins them into one block and hands it to Aniket. Aniket builds the graph. Both run it end to end and freeze it on Day 10.

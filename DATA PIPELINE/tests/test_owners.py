@@ -2,14 +2,14 @@
 
     python -m unittest tests.test_owners -v      # from DATA PIPELINE/
 """
-import json, os, shutil, subprocess, sys, tempfile, unittest
+import contextlib, io, json, os, re, shutil, subprocess, sys, tempfile, unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import meridian.history as C
 import meridian.owners as O
 import meridian.writer as W
-from meridian.common import CONFIG, load_config
+from meridian.common import CONFIG, check_fixed, load_config, write_jsonl
 
 RUN = "abcdef0123456789"
 AUTHORS = [
@@ -18,14 +18,15 @@ AUTHORS = [
     ("J Smith <jsmith@a.example>", ""),
     ("John Smith <jsmith@b.example>", ""),                      # same local part -> one person
     ("C. Old <carol-old@x.example>", ""),                       # .mailmap -> carol@new.example
-    ("Carol Ng <carol@new.example>", "\n\nCo-authored-by: Dee Wu <Dee@Example.com>"),
+    ("Carol Ng <carol@new.example>", "\n\nCo-authored-by: Dee Wu < Dee@Example.com >"),  # spaces are stripped
     ("root <root@host1.example>", ""),                          # generic: never merged
     ("root <root@host2.example>", ""),
     ("dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>", ""),
 ]
 
 
-def fixture_repo(path):
+def make_repo(path, commits, mailmap=""):
+    """commits: [(author, authored_at, file, message)], oldest first. -> HEAD sha."""
     path.mkdir(parents=True)
 
     def run(*a, date="2026-01-01T00:00:00Z"):
@@ -33,13 +34,19 @@ def fixture_repo(path):
                               env={**os.environ, "GIT_AUTHOR_DATE": date, "GIT_COMMITTER_DATE": date}).stdout.strip()
 
     run("init", "--quiet", "--initial-branch=main")
-    (path / ".mailmap").write_text("Carol Ng <carol@new.example> <carol-old@x.example>\n")
-    for i, (who, extra) in enumerate(AUTHORS):
-        (path / f"f{i}.py").write_text(f"x = {i}\n")
+    if mailmap:
+        (path / ".mailmap").write_text(mailmap)
+    for i, (who, date, name, msg) in enumerate(commits):
+        (path / name).write_text(f"x = {i}\n")
         run("add", ".")
         run("-c", "user.name=Merger", "-c", "user.email=merger@example.com", "commit", "--quiet",
-            "--author", who, "-m", f"c{i}{extra}", date=f"2026-01-{i + 1:02d}T00:00:00Z")
+            "--author", who, "-m", msg, date=date)
     return run("rev-parse", "HEAD")
+
+
+def fixture_repo(path):
+    return make_repo(path, [(who, f"2026-01-{i + 1:02d}T00:00:00Z", f"f{i}.py", f"c{i}{extra}") for i, (who, extra) in enumerate(AUTHORS)],
+                     "Carol Ng <carol@new.example> <carol-old@x.example>\n")
 
 
 class People(unittest.TestCase):
@@ -52,8 +59,8 @@ class People(unittest.TestCase):
         commits, files = C.read_repo(snap / "repos" / "fix__repo", "fix/repo", cls.sha, RUN)
         cls.out = cls.tmp / "out" / RUN
         cls.out.mkdir(parents=True)
-        C.write_jsonl(cls.out / "git_commit.jsonl", commits, ("repo", "sha"))
-        C.write_jsonl(cls.out / "commit_file.jsonl", files, ("repo", "sha", "path"))
+        write_jsonl(cls.out / "git_commit.jsonl", commits, ("repo", "sha"))
+        write_jsonl(cls.out / "commit_file.jsonl", files, ("repo", "sha", "path"))
         (cls.out / "run.jsonl").write_text(json.dumps({
             "run_id": RUN, "snapshot_at": "2026-02-01T00:00:00Z", "repo_shas": json.dumps({"fix/repo": cls.sha}),
             "source_hashes": "{}", "config_hash": "x", "image_digest": "x", "status": "complete"}) + "\n")
@@ -112,6 +119,13 @@ class People(unittest.TestCase):
         self.assertEqual({(r["owner_team"], r["basis"]) for r in self.file_owner}, {("fix/repo", "repo")})
         self.assertEqual(self.team_map, [{"dataset": "fixture", "subject_kind": "repo", "subject": "fix/repo", "team": "fix/repo", "rule": "repo"}])
 
+    def test_top_lists_groups_joined_on_a_local_part_with_other_names(self):
+        with contextlib.redirect_stdout(io.StringIO()) as got:
+            O.main(RUN, self.config, root=self.tmp, top=1)
+        risky = got.getvalue().split("shared local part")[1]
+        self.assertIn("jsmith@b.example", risky)     # J Smith ~ John Smith on jsmith@
+        self.assertNotIn("ann@example.com", risky)   # joined on the same name
+
     def test_emails_must_match_git_commit(self):
         gc = self.out / "git_commit.jsonl"
         keep = gc.read_text()
@@ -121,6 +135,74 @@ class People(unittest.TestCase):
                 O.main(RUN, self.config, root=self.tmp)
         finally:
             gc.write_text(keep)
+
+
+class Modes(unittest.TestCase):
+    """D5 through main(): two author-mode datasets (Spark-like) and a repo-mode package pinned years before snapshot_at."""
+    ANN, CY, BO = "Ann Lee <ann@a.example>", "Cy Ray <cy@c.example>", "Bo Tan <bo@b.example>"
+    BOT = "dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>"
+    REPOS = {
+        "fx/spark": [(ANN, "2020-01-01T00:00:00Z", "old.py", "FX-1 old"), (ANN, "2026-08-01T00:00:00Z", "a.py", "FX-1 one"),
+                     (ANN, "2026-08-02T00:00:00Z", "a.py", "FX-1 two"), (BOT, "2026-08-03T00:00:00Z", "a.py", "bump"),
+                     (BOT, "2026-08-04T00:00:00Z", "a.py", "bump"), (BOT, "2026-08-05T00:00:00Z", "a.py", "bump"),
+                     (CY, "2026-08-06T00:00:00Z", "c.py", "no key")],
+        "fx/other": [(ANN, "2026-08-07T00:00:00Z", "b.py", "no key")],   # ann has no component here
+        "fx/pkg": [(BO, "2017-03-01T00:00:00Z", "p.py", "one"), (BO, "2017-03-02T00:00:00Z", "p.py", "two")],
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = Path(tempfile.mkdtemp())
+        snap, out = cls.tmp / "snapshots" / RUN, cls.tmp / "out" / RUN
+        out.mkdir(parents=True)
+        shas, commits, files = {}, [], []
+        for repo, cs in cls.REPOS.items():
+            co = snap / "repos" / repo.replace("/", "__")
+            shas[repo] = make_repo(co, cs)
+            c, f = C.read_repo(co, repo, shas[repo], RUN)
+            commits, files = commits + c, files + f
+        (snap / "manifest.json").write_text(json.dumps({"run_id": RUN, "repos": shas}))
+        write_jsonl(out / "git_commit.jsonl", commits, ("repo", "sha"))
+        write_jsonl(out / "commit_file.jsonl", files, ("repo", "sha", "path"))
+        write_jsonl(out / "run.jsonl", [{"run_id": RUN, "snapshot_at": "2026-10-01T00:00:00Z"}])
+        write_jsonl(out / "ticket.jsonl", [{"key": "FX-1", "components": '["SQL"]'}])
+        write_jsonl(out / "commit_ticket.jsonl", [{"sha": c["sha"], "key": "FX-1"} for c in commits if c["subject"].startswith("FX-1")])
+        config = cls.tmp / "meridian.toml"
+        config.write_text(CONFIG.read_text() + "".join(
+            f'\n[datasets.{ds}]\nrepos = [{{ repo = "{repo}", ref = "x" }}]\nowner_mode = "{mode}"\n[teams.{ds}]\nrule = "{rule}"\n'
+            + ('unassigned = "unassigned"\n' if mode == "author" else "")
+            for ds, repo, mode, rule in [("fx_a", "fx/spark", "author", "person_component"), ("fx_b", "fx/other", "author", "person_component"),
+                                         ("fx_p", "fx/pkg", "repo", "repo")]))
+        person, alias, cls.team_map, file_owner = O.main(RUN, config, root=cls.tmp)
+        cls.pid = {a["email"]: a["person_id"] for a in alias}
+        cls.own = {r["path"]: r for r in file_owner}
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_bots_dont_count(self):
+        a = self.own["a.py"]
+        self.assertEqual((a["owner_team"], a["share"], a["n_commits"], a["top_person_id"]), ("SQL", 1.0, 2, self.pid["ann@a.example"]))
+
+    def test_no_commits_in_window_is_basis_none(self):
+        o = self.own["old.py"]
+        self.assertEqual((o["owner_team"], o["basis"], o["n_commits"], o["top_person_id"], o["last_commit_at"]),
+                         ("unowned", "none", 0, None, "2020-01-01T00:00:00Z"))
+
+    def test_unassigned_person_never_owns(self):
+        self.assertEqual((self.own["c.py"]["owner_team"], self.own["c.py"]["basis"]), ("unowned", "author"))
+
+    def test_team_is_per_dataset(self):
+        # ann is SQL in fx_a but unassigned in fx_b: b.py takes fx_b's teams, not the last dataset's
+        self.assertEqual(self.own["b.py"]["owner_team"], "unowned")
+        teams = {(r["dataset"], r["subject"]): r["team"] for r in self.team_map if r["subject_kind"] == "person"}
+        self.assertEqual((teams["fx_a", self.pid["ann@a.example"]], teams["fx_b", self.pid["ann@a.example"]]), ("SQL", "unassigned"))
+
+    def test_repo_window_ends_at_the_pinned_commit(self):
+        p = self.own["p.py"]
+        self.assertEqual((p["owner_team"], p["basis"], p["n_commits"], p["top_person_id"], p["last_commit_at"]),
+                         ("fx/pkg", "repo", 2, self.pid["bo@b.example"], "2017-03-02T00:00:00Z"))
 
 
 class Merge(unittest.TestCase):
@@ -138,11 +220,24 @@ class Merge(unittest.TestCase):
         self.assertEqual(stats["shared"], {"chris"})
 
     def test_config_the_code_doesnt_implement_stops(self):
-        O.check_config(load_config(CONFIG))  # the real config is what the code does
+        check_fixed(load_config(CONFIG))  # the real config is what the code does
         cfg = load_config(CONFIG)
         cfg["ownership"]["skip_merges"] = False
         with self.assertRaises(SystemExit):
-            O.check_config(cfg)
+            check_fixed(cfg)
+
+    def test_local_part_min_length_comes_from_config(self):
+        recs = [("jojo@a.example", "jojo@a.example", "Al", []), ("jojo@b.example", "jojo@b.example", "Bo", [])]
+        self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 1)
+        self.assertEqual(len({a["person_id"] for a in O.merge(recs, {**self.ident, "local_part_min_length": 5})[1]}), 2)
+
+    def test_transitive_chain_is_one_risky_person(self):
+        # A ~ B by name, B ~ C by local part: one person, listed by --top because C's name differs
+        _, alias, stats = O.merge([("ann.lee@a.example", "ann.lee@a.example", "Ann Lee", []),
+                                   ("alee@b.example", "alee@b.example", "Ann Lee", []),
+                                   ("alee@c.example", "alee@c.example", "Lee Ann", [])], self.ident)
+        self.assertEqual({a["person_id"] for a in alias}, {O.h("alee@b.example")})
+        self.assertEqual(stats["risky"], {O.h("alee@b.example")})
 
     def test_generic_name_with_real_email_not_merged_on_name(self):
         _, alias, _ = O.merge([("alice@a.example", "alice@a.example", "jenkins", []),
@@ -172,6 +267,12 @@ class Teams(unittest.TestCase):
     def test_n_components_give_one_nth_each(self):
         # T-3 gives SQL, Core, ML 1/3 each: one T-5 (ML 1) beats it
         self.assertEqual(self.teams(("a", "02-01", ["T-3"], 0), ("a", "01-15", ["T-5"], 0))["a"], "ML")
+
+    def test_three_thirds_tie_with_one(self):
+        # T-3 three times: SQL, Core, ML 1/3 + 1/3 + 1/3 each. T-2 (Core 1) and T-1 (SQL 1) make SQL = Core = 2: newest wins
+        got = self.teams(("a", "02-01", ["T-3"], 0), ("a", "02-02", ["T-3"], 0), ("a", "02-03", ["T-3"], 0),
+                         ("a", "03-01", ["T-2"], 0), ("a", "03-02", ["T-1"], 0))
+        self.assertEqual(got["a"], "SQL")
 
     def test_tie_goes_to_most_recent_commit(self):
         self.assertEqual(self.teams(("a", "02-01", ["T-1"], 0), ("a", "03-01", ["T-2"], 0))["a"], "Core")
@@ -205,6 +306,9 @@ class FileOwner(unittest.TestCase):
         self.assertEqual(self.own("ann", "cy")[0], "Core")
         self.assertEqual(self.own("ann", "cy", "di", "di", "di", "di", "di", "di", "di", "di"), ("unowned", 0.1))
 
+    def test_share_of_exactly_min_share_owns(self):
+        self.assertEqual(self.own("ann", "bo", "ed", *["di"] * 7), ("SQL", 0.3))
+
     def test_unassigned_never_owns(self):
         self.assertEqual(self.own("di", "di", "di", "ann"), ("unowned", 0.25))
         self.assertEqual(self.own(), ("unowned", 0.0))
@@ -231,7 +335,8 @@ class FileOwner(unittest.TestCase):
         hist = {"a.py": [(d(2), "ann"), (d(3), "ann"), (d(4), "cy"), (d(8), "bo")],   # owner SQL, last toucher Core, next SQL
                 "b.py": [(d(2), "cy"), (d(8), "cy")],                                 # owner Core = last = next
                 "tests/c.py": [(d(2), "ann"), (d(8), "cy")]}                          # tests are not scored
-        team, person = O.last_toucher_test(hist, self.TEAM, "unassigned", 0.30, d(1), d(6), d(12))
+        src, test = (re.compile(self.cfg["checks"][k]) for k in ("source_files", "test_files"))
+        team, person = O.last_toucher_test(hist, self.TEAM, "unassigned", 0.30, d(1), d(6), d(12), src, test)
         self.assertEqual(team, {"n": 2, "owner": 2, "last": 1})
         self.assertEqual(person, {"n": 2, "owner": 1, "last": 1})
 

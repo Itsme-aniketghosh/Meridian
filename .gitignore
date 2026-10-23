@@ -5,6 +5,7 @@ data/
 repos/
 results/
 snapshots/
+out/
 
 # Data files, anywhere
 *.sqlite
@@ -27,6 +28,8 @@ snapshots/
 *.h5
 *.arrow
 *.feather
+# a killed write: may hold every email and name
+*.tmp
 
 # Exceptions: small hand-made evidence files, not data (DATA PIPELINE/CSV-POLICY.md)
 !week1/pair2/merged/links_hand_check_50.csv

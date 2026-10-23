@@ -1,7 +1,8 @@
 # Meridian infra · step 1 · v1
-# Where and when the pipeline runs: Airflow on GCP. Read by the Airflow DAG, never by a part.
+# Where, when and how fast the pipeline runs: Airflow on GCP, retries, timeouts, workers.
 # Not part of the run_id: collect hashes only meridian.toml, so this file can change any time without a rerun.
-# Everything that changes what a part computes belongs in meridian.toml instead.
+# The rule: nothing here may change a row. Everything that changes what a part computes belongs in meridian.toml.
+# Parts read their own section through common.load_infra; $MERIDIAN_INFRA points at another copy.
 
 [orchestration]
 tool = "airflow"                   # on GCP
@@ -14,3 +15,15 @@ image = "us-east1-docker.pkg.dev/meridian-pipeline/meridian/pipeline"   # Artifa
 snapshot_bucket = "gs://meridian-pipeline-snapshots"                   # raw pulls and snapshots, replaces shared-snapshot/. Placeholder until GCP is set up
 publish_only_if_check_passes = true
 alert_on = ["failed", "halted", "partial"]
+
+[collect]                          # network: how hard collect tries, never what it keeps
+http_tries = 6                     # curl attempts per request
+http_timeout_s = 120               # per attempt
+http_backoff_s = 1                 # wait 2^attempt x this between attempts
+http_429_factor = 10               # x this again when the server says 429 (rate limit)
+graphql_tries = 6                  # GitLab GraphQL: attempts when the answer carries "errors"
+graphql_backoff_s = 5              # wait (attempt + 1) x this
+gitlab_batch = 20                  # issues per notes / parents query (GitLab caps iids lists)
+
+[history]
+szz_workers = 0                    # SZZ processes. 0 = one per CPU

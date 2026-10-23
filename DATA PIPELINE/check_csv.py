@@ -7,7 +7,7 @@ import csv, os, re, subprocess, sys
 
 MAX_BYTES = 5 * 1024 * 1024
 MAX_QUOTE = 200
-PEOPLE = re.compile(r"(^|_)(author|email|e_mail|username|user_name|login|name|by|assignee|reporter|committer|person|people)(_|$)", re.I)
+PEOPLE = re.compile(r"(^|_)(author|email|e_mail|username|user_name|login|name|by|assignee|reporter|committer|person|people)s?(_|$)")
 OK_COLUMNS = {"checked_by", "ended_by", "changed_by_commit", "symbol_name", "method_name"}   # not people
 EMAIL = re.compile(r"[\w.+-]+@([\w-]+\.[\w.-]+)")
 RESERVED = re.compile(r"(^|\.)(example\.(com|org|net)|[\w-]+\.(test|example|invalid|localhost))$", re.I)  # RFC 2606: not real people
@@ -20,20 +20,25 @@ csv.field_size_limit(MAX_BYTES)
 def git_csvs():
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
     out = subprocess.run(["git", "-C", root, "ls-files", "--cached", "--", "*.csv"], capture_output=True, text=True).stdout
-    return [os.path.join(root, p) for p in sorted(set(out.split()))]
+    return [os.path.join(root, p) for p in sorted(set(out.splitlines()))]  # lines, not words: "DATA PIPELINE/" has a space
+
+
+def words(col):
+    """'commit authorEmail' -> 'commit_author_email': camelCase, spaces and dashes split words like '_' does."""
+    return re.sub(r"[\s-]+", "_", re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", "_", col.strip())).lower()
 
 
 def check(path):
     problems = []
     if os.path.getsize(path) > MAX_BYTES:
         problems.append(f"over 5 MB ({os.path.getsize(path):,} bytes): this is data, put it in GCS")
-    with open(path, newline="", encoding="utf-8", errors="replace") as f:
+    with open(path, newline="", encoding="utf-8-sig", errors="replace") as f:  # -sig: Excel's BOM would hide the first column
         rows = list(csv.reader(f))
     if not rows:
         return problems
     header = rows[0]
     for col in header:
-        if col.strip().lower() not in OK_COLUMNS and PEOPLE.search(col.strip()):
+        if words(col) not in OK_COLUMNS and PEOPLE.search(words(col)):
             problems.append(f"people column '{col}'")
     quote_idx = [i for i, c in enumerate(header) if QUOTE_COLS.search(c)]
     for n, row in enumerate(rows[1:], 2):
