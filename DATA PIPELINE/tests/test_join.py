@@ -6,6 +6,7 @@ commit, run R2 the last.
 """
 import contextlib, io, json, os, shutil, subprocess, sys, tempfile, textwrap, unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import meridian.history as H
@@ -158,7 +159,7 @@ class TwoRuns(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        shutil.rmtree(cls.tmp)
+        shutil.rmtree(cls.tmp, ignore_errors=True)  # git's read-only objects can't be deleted on Windows
 
     def same(self, before, after):
         self.assertEqual(self.first[before]["call_site_id"], self.now[after]["call_site_id"])
@@ -246,7 +247,8 @@ class TwoRuns(unittest.TestCase):
                                                      "status": "complete"}) + "\n")
         W.write(block, self.tmp / "block.sqlite")
         import sqlite3
-        got = dict(sqlite3.connect(self.tmp / "block.sqlite").execute("SELECT run_id, count(*) FROM call_site GROUP BY run_id"))
+        with contextlib.closing(sqlite3.connect(self.tmp / "block.sqlite")) as db:  # an open file can't be deleted on Windows
+            got = dict(db.execute("SELECT run_id, count(*) FROM call_site GROUP BY run_id"))
         self.assertEqual(got["R1"], len(self.r1))
         self.assertEqual(got["R2"], sum(r["run_id"] == "R2" for r in self.r2))
 
@@ -301,6 +303,43 @@ class Units(unittest.TestCase):
                                    ["import", "call", "alias"])
         self.assertEqual([(s["line"], s["detection"]) for s in sites], [(1, "ast_resolved"), (4, "ast_unresolved")])
         self.assertEqual(n, {"dropped": 1, "not_edit_role": 1})
+
+    # build_sites with git stubbed: (line, call_site_id) of the versions this run writes
+    def sites_run(self, hist, now, diff, failed=frozenset(), text=None):
+        run = {"snapshot_at": "2026-03-01T00:00:00Z", "repo_shas": json.dumps({REPO: "new"})}
+        prev = {"history": hist, "run": {"repo_shas": json.dumps({REPO: "old"})}, "text": text or {}}
+        commits = [dict(repo=REPO, sha=sha, authored_at="2026-03-01T00:00:00Z", seq=i, first_parent=1)
+                   for i, sha in enumerate(["s", "new"])]
+        with mock.patch.object(J, "line_map", lambda *a: diff), \
+             mock.patch.object(J, "blame", lambda co, rev, path, lines, reverse=False: {l: "s" for l in lines}), \
+             mock.patch.object(J, "line_at", lambda co, sha, path, line: "return ugettext('b')"):
+            rows, _ = J.build_sites("R2", run, prev, now, {}, {}, commits, lambda r: None, failed)
+        return [(r["line"], r["status"], r["call_site_id"]) for r in rows if r["run_id"] == "R2"]
+
+    def site(self, line, path="a.py"):
+        return dict(repo=REPO, path=path, line=line, col=4, scope="f", symbol="ugettext", role="call", junk="none",
+                    in_except=0, detection="ast_resolved", normalized_line="returnugettext('b')")
+
+    def version(self, s, sid, status, at):
+        return {k: s[k] for k in J.VERSIONED if k in s} | dict(call_site_id=sid, run_id="R", status=status, known_at=at,
+                                                               owner_team="unowned", bug_fixes=0, effective_date=at)
+
+    def test_a_removed_id_comes_back_to_one_site_only(self):
+        p, q = J.with_occurrence([self.site(3), self.site(4)])  # R0: two identical lines; R1 removed the second
+        i0, i1 = J.site_id(p), J.site_id(q)
+        hist = [self.version(p, i0, "present", "2026-01-01T00:00:00Z"), self.version(q, i1, "present", "2026-01-01T00:00:00Z"),
+                self.version(q, i1, "removed", "2026-02-01T00:00:00Z")]
+        now = J.with_occurrence([self.site(3), self.site(4), self.site(5)])  # R2: two more inserted above the first
+        got = self.sites_run(hist, now, {"a.py": ("a.py", [(2, 0, 3, 2)])})
+        self.assertEqual(len({sid for *_, sid in got}), 3)
+        self.assertIn((5, "present", i0), got)
+
+    def test_a_file_that_stops_parsing_keeps_its_sites(self):
+        p = J.with_occurrence([self.site(3, "b.py")])[0]
+        hist = [self.version(p, "S1", "present", "2026-01-01T00:00:00Z")]
+        diff = {"b.py": ("b.py", [(0, 0, 1, 1)])}  # R2 adds a broken line at the top: no candidates in b.py
+        self.assertEqual(self.sites_run(hist, [], diff, {(REPO, "b.py")}), [(4, "present", "S1")])  # carried, not removed
+        self.assertEqual(self.sites_run(hist, [], diff), [(3, "removed", "S1")])  # without the parse failure: removed
 
     def test_settings_the_code_doesnt_do_stop(self):
         cfg = {"join": {"call_site_id": J.ID_FIELDS, "normalize_line": "strip_whitespace", "match_order": J.MATCH_ORDER,

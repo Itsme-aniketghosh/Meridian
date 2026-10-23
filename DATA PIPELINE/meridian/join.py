@@ -18,7 +18,8 @@ call_site: a line someone must edit (04-architecture, Definitions). One row per 
 - Matching to the last run, in [join] match_order: (1) git's line map from the last run's SHA to this one, renames
   followed: an unchanged line lands at its new path and line; (2) else the same (repo, symbol, scope, normalized
   line), in occurrence order, anywhere in the repo (a moved line, a split file). Unmatched last-run sites are written
-  as removed, unmatched new ones get a new ID.
+  as removed, unless their file is a parse_failure this run: those stay present, carried to their new line. Unmatched
+  new ones get a new ID; a removed site's ID can come back, but only to one site.
 - effective_date: the first first-parent commit where the version became true. Present: blame of the line at this
   run's SHA (--first-parent -w). Removed: the first-parent commit after the last one that still had the line
   (reverse blame). Dates are that commit's authored_at from git_commit.
@@ -168,6 +169,11 @@ def line_map(co, old_sha, new_sha):
     return parse_diff(text)
 
 
+def line_at(co, sha, path, line):
+    lines = git(co, "show", f"{sha}:{path}").split("\n")
+    return lines[line - 1] if line <= len(lines) else ""
+
+
 def porcelain_shas(text):
     """git blame --porcelain -> {final line: sha}."""
     got = {}
@@ -222,8 +228,8 @@ def newest(history):
     return last
 
 
-def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout):
-    """-> (every call_site version so far, plus this run's), stats."""
+def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout, failed=frozenset()):
+    """-> (every call_site version so far, plus this run's), stats. failed: {(repo, path)} that didn't parse this run."""
     snapshot_at, shas = run["snapshot_at"], json.loads(run["repo_shas"])
     history = prev["history"] if prev else []
     last = newest(history)
@@ -236,22 +242,32 @@ def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout):
     written, n = [], Counter()
     for repo in sorted(set(by_repo) | {r["repo"] for r in last.values()}):
         co, now = checkout(repo), by_repo.get(repo, [])
-        was = [r | {"normalized_line": normalized(prev["text"][(repo, r["path"], r["line"], r["col"])])}
+        old_sha = json.loads(prev["run"]["repo_shas"])[repo] if prev else None
+        # a site carried through a file that didn't parse last run has no candidate there: read its line from git
+        text = lambda r: prev["text"].get((repo, r["path"], r["line"], r["col"])) or line_at(co, old_sha, r["path"], r["line"])
+        was = [r | {"normalized_line": normalized(text(r))}
                for r in last.values() if r["repo"] == repo and r["status"] == "present"]
-        ids, gone = {}, []
+        ids, gone, stuck = {}, [], []
         if was:
-            old_sha = json.loads(prev["run"]["repo_shas"])[repo]
-            ids, gone = match(was, now, line_map(co, old_sha, shas[repo]))
+            diff = line_map(co, old_sha, shas[repo])
+            ids, gone = match(was, now, diff)
+            for p in gone:  # a file that didn't parse has no candidates, not no sites: they stay present
+                to = map_line(diff, p["path"], p["line"])
+                if (repo, to[0] if to else p["path"]) in failed:
+                    stuck.append((p, to))
+            gone = [p for p in gone if all(p is not q for q, _ in stuck)]
         used = set(last) | set(ids.values())
+        free = {i for i, r in last.items() if r["status"] == "removed"}  # a removed site's ID can come back, once
         for i, s in enumerate(now):  # new sites: their own ID, bumped past any ID another site already holds
             if i in ids:
                 continue
             sid = site_id(s)
-            while sid in used and not (sid in last and last[sid]["status"] == "removed"):
+            while sid in used and sid not in free:
                 s["occurrence"] += 1
                 sid = site_id(s)
             ids[i] = sid
             used.add(sid)
+            free.discard(sid)
         by_path = defaultdict(list)
         for i, s in enumerate(now):
             by_path[s["path"]].append(s["line"])
@@ -270,8 +286,15 @@ def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout):
                 continue
             n["new" if old is None else "reappeared" if old["status"] == "removed" else "changed"] += 1
             written.append(row)
+        for p, to in stuck:  # carried to this SHA's line, so the next run's line map starts from the right place
+            n["kept_unparsed"] += 1
+            if not to or to == (p["path"], p["line"]):
+                continue  # shortcut: a line edited inside the broken file keeps its old line until the file parses again
+            sha = blame(co, shas[repo], to[0], [to[1]])[to[1]]
+            written.append({**{k: p[k] for k in VERSIONED}, "path": to[0], "line": to[1], "call_site_id": p["call_site_id"],
+                            "run_id": run_id, "known_at": snapshot_at, "owner_team": owner.get((repo, to[0]), "unowned"),
+                            "bug_fixes": fixes.get((repo, to[0]), 0), "effective_date": date[(repo, sha)]})
         if gone:
-            old_sha = json.loads(prev["run"]["repo_shas"])[repo]
             for path in sorted({p["path"] for p in gone}):
                 ps = [p for p in gone if p["path"] == path]
                 still = blame(co, f"{old_sha}..{shas[repo]}", path, [p["line"] for p in ps], reverse=True)
@@ -436,7 +459,8 @@ def main(run_id, config=CONFIG, root=None, prev_run=None):
     sites = with_occurrence(sites)
     owner = {(o["repo"], o["path"]): o["owner_team"] for o in t["file_owner"]}
     fixes = {(f["repo"], f["path"]): f["bug_fixes"] for f in t["file_bug_fixes"]}
-    call_site, match_stats = build_sites(run_id, run, prev, sites, owner, fixes, t["git_commit"], checkout)
+    call_site, match_stats = build_sites(run_id, run, prev, sites, owner, fixes, t["git_commit"], checkout,
+                                         {(f["repo"], f["path"]) for f in t["parse_failure"]})
     now = [r for r in newest(call_site).values() if r["status"] == "present"]
 
     shas = json.loads(run["repo_shas"])

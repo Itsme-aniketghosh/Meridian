@@ -15,7 +15,7 @@ python -m meridian.join --run-id <run_id> --config meridian.toml --prev-run <run
 
 | Task | Bar | Got | |
 |---|---|---|---|
-| Call-site IDs + matching to the last run | fixtures 100% | insert, move, rename, duplicate, split, removal, new: **17 of 17** tests in `tests/test_join.py` | ✅ |
+| Call-site IDs + matching to the last run | fixtures 100% | insert, move, rename, duplicate, split, removal, new, a file that stops parsing, a removed ID coming back: **19 of 19** tests in `tests/test_join.py` | ✅ |
 | Django call sites | the 265 | **265 of 265** lines of `labels/django_edit_sites_265.csv`, plus the 2 in `code.sample`, nothing else | ✅ |
 | One joined block | every row has an owner or `unowned`, and a status | **1,526** call sites, all `present`, all owned (Django by path, packages by repo) | ✅ |
 | Ticket → code, no fuzzy matching | path and trace precision ≥ 0.90 | spot check of 6 tickets with frames and 5 path hits: all right. **Hand check still to do** | ⏳ |
@@ -39,7 +39,7 @@ Run time about 20 s, peak 2.4 GB (reading the ticket and commit tables).
 
 - **A call site** is a candidate with a role in `[scanner] edit_roles` (import, call, alias) that the resolver didn't drop. `ast_unresolved` stays. Alias calls like `_("...")` are blast radius, not call sites. `reference` rows (the 315 keyword-argument names) stay in `candidate` only.
 - **call_site_id** = h(repo, symbol, path, scope, normalized line, occurrence). Normalized = all whitespace removed. occurrence = 0, 1, … among sites with the same other five, in line order.
-- **Matching to the last run**, in `[join] match_order`: git's line map from the last SHA to this one, renames followed; else the same symbol, scope and normalized line anywhere in the repo (a moved line, a split file). Unmatched last-run sites get a `removed` version; unmatched new ones a new ID.
+- **Matching to the last run**, in `[join] match_order`: git's line map from the last SHA to this one, renames followed; else the same symbol, scope and normalized line anywhere in the repo (a moved line, a split file). Unmatched last-run sites get a `removed` version, unless their file is a parse failure this run (they stay present); unmatched new ones a new ID. A removed site's ID can come back, to one site only.
 - **Append-only.** A version is written only when a field changes. `call_site.jsonl` holds every version so far, so "now" is each site's newest.
 - **effective_date:** present = blame of the line at this SHA (`--first-parent -w`). Removed = the first-parent commit after the last one that still had the line (reverse blame). The date is that commit's `authored_at`.
 - **owner_team** from `file_owner`, `unowned` if the file has no row. **bug_fixes** from `file_bug_fixes`, 0 if none (Django and the packages have none: SZZ is Spark only).
