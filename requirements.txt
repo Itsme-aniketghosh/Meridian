@@ -1,0 +1,4 @@
+# Everything the pipeline needs, for a fresh environment from the repo root. Python 3.11 (tree-sitter won't build on 3.14).
+#   conda create -y -n meridian python=3.11 && conda activate meridian && pip install -r requirements.txt
+# The pins live in one lockfile (CONTRACTS.md): add packages there, not here.
+-r "DATA PIPELINE/requirements.txt"
