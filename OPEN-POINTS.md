@@ -6,8 +6,9 @@ Everything still open before graph data block v1 freezes, by owner. Team run `70
 
 ## Aniket · graph
 
-- [ ] Rerun resolve and graph after the Windows `array.py` fix; `call_edge` should be 2,288 as in RESOLVER.md (2,293 before, on Python 3.12)
-- [ ] The full test run with `MERIDIAN_RUN_ID=70dd1dabfed544b8`
+- [x] Rerun resolve after the Windows `array.py` fix, on Python 3.11: 2,293 edges, byte-identical to the 3.12 run before the fix (sha256 `8c6b9450d25c2fdb`)
+- [ ] Find the 5 Django edges between this 2,293 and RESOLVER.md's 2,288, with whoever wrote 2,288 (Python version and the fix are ruled out)
+- [x] The full test run with `MERIDIAN_RUN_ID=70dd1dabfed544b8`: 178 of 178 OK, 0 skipped, Python 3.11, Windows (6 min)
 - [ ] Open the `aniket-graph` PR to `main`
 - [ ] OK the writer change: `call_site` carries earlier runs' versions (JOIN.md, Flags)
 - [ ] Decide with Utkarsh what graph precision (≥ 0.90) is measured against: the GitLab gold set is ticket-level, and GitLab has no Python, so graph can't produce those rows
