@@ -17,6 +17,14 @@ Everything still open before graph data block v1 freezes, by owner. Team run `70
 - [ ] First end-to-end run from Airflow, with Utkarsh (D8)
 - [x] One-page handoff note for stall rules, Jev and views (D10): [HANDOFF.md](Data-Pipeline/HANDOFF.md)
 
+## MLOps course submission (branch `mlops-pipeline`, [Data-Pipeline/README.md](Data-Pipeline/README.md))
+
+- [ ] Aniket: run the DAG in Airflow (`docker compose up -d --build` in Data-Pipeline/, about 4 GB free memory), run the Airflow half of `tests/test_dag.py` in the image, and save the Gantt chart of one run for the report
+- [ ] Utkarsh: a real DVC remote (the GCS bucket `.dvc/config` already names), then `dvc push` the raw pulls and run 70dd's outputs
+- [ ] Team: the owner-rule mitigation in [BIAS.md](Data-Pipeline/BIAS.md), a person's team from 730 days instead of 180 (accuracy 0.373 → 0.458). A new run_id
+- [ ] Team: add `apache/spark-docker` and `apache/spark-kubernetes-operator` to the snapshot, so Kubernetes and Docker tickets can map to code (BIAS.md). A new run_id
+- [ ] Vishwa: 289 Spark tickets dated 0010–0012 come that way from Apache Jira; decide whether tickets.py should flag them (validate warns today)
+
 ## Utkarsh · join, orchestration
 
 - [ ] 🔴 Gold-set precision bar: the decision above, with Aniket
