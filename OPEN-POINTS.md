@@ -10,11 +10,12 @@ Everything still open before graph data block v1 freezes, by owner. Team run `70
 - [ ] Find the 5 Django edges between this 2,293 and RESOLVER.md's 2,288, with whoever wrote 2,288 (Python version and the fix are ruled out)
 - [x] The full test run with `MERIDIAN_RUN_ID=70dd1dabfed544b8`: 178 of 178 OK, 0 skipped, Python 3.11, Windows (6 min)
 - [ ] Open the `aniket-graph` PR to `main`
-- [ ] OK the writer change: `call_site` carries earlier runs' versions (JOIN.md, Flags)
-- [ ] Decide with Utkarsh what graph precision (≥ 0.90) is measured against: the GitLab gold set is ticket-level, and GitLab has no Python, so graph can't produce those rows
-- [ ] Hand-check 50 Spark collision pairs, generic names dropped first: on this run no ticket maps to a call site, so graph has none to check
+- [x] OK the writer change: `call_site` carries earlier runs' versions (JOIN.md, Flags). Reviewed: it allows earlier run_ids in `call_site` only, never one known after `snapshot_at`, and both cases have tests
+- [ ] Decide with Utkarsh what graph precision (≥ 0.90) is measured against. Proposal in GRAPH.md: fixtures plus the Spark collisions; the GitLab gold set scores ticket-level chains later
+- [x] 50 Spark collision pairs, generic names dropped first, model read: hunk headers 0.64, the new inside rule 1.00 (32 of 32), 62 pairs left, 12 both open (GRAPH.md, `labels/spark_collision_pairs_50.csv`)
+- [ ] Human check of those 50: fill `human_verdict` (the rule was written after reading this sample)
 - [ ] First end-to-end run from Airflow, with Utkarsh (D8)
-- [ ] One-page handoff note for stall rules, Jev and views (D10)
+- [x] One-page handoff note for stall rules, Jev and views (D10): [HANDOFF.md](DATA%20PIPELINE/HANDOFF.md)
 
 ## Utkarsh · join, orchestration
 

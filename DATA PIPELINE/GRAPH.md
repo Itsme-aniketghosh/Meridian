@@ -14,12 +14,12 @@ python -m meridian.graph --run-id <run_id> --config meridian.toml      # from DA
 
 | Task | Bar | Got | |
 |---|---|---|---|
-| One fixture per rule | fixtures 100% | `blocked_by` (depth 1–3, max depth, owners, `unknown`, no receiver), blast radius (each edge once, at its shortest depth), cycles: **12 of 12** tests in `tests/test_graph.py` | ✅ |
+| One fixture per rule | fixtures 100% | `blocked_by` (depth 1–3, max depth, owners, `unknown`, no receiver), blast radius (each edge once, at its shortest depth), cycles: **13 of 13** tests, the collision rule included in `tests/test_graph.py` | ✅ |
 | The KB's hand-filled rows | exact | graph computes the KB fixture's `blocked_by`, `blast_radius` and `chain` rows exactly, from that fixture's inputs | ✅ |
 | Loads with the writer, same run same bytes | 0 diffs | both, on the KB fixture | ✅ |
 | Run on the team block `70dd1dabfed544b8` | runs without errors | **0** `blocked_by`, **25** `blast_radius`, **43** `chain` (all `untracked`, one per team), 2 s. `call_site.jsonl` sha256 `faff6dfd75931183`, as the team's | ✅ |
 | Precision ≥ 0.90 vs the GitLab gold set | | blocked: 0 of 262 human verdicts, and see Flags | ⏳ |
-| Hand-check 50 Spark collision pairs | precision reported | not done | ⬜ |
+| Hand-check 50 Spark collision pairs, generic names dropped first | precision reported | model read of 50 (`tests/collisions.py`, `labels/spark_collision_pairs_50.csv`): hunk headers **0.64**; with the inside rule **1.00** (32 of 32), missing no real pair. Human check of the same 50 still to do | 🟡 |
 
 ## How it decides
 
@@ -47,6 +47,20 @@ python -m meridian.graph --run-id <run_id> --config meridian.toml      # from DA
 - **`collides` is by function only.** 04-architecture says "shared function or file"; the KB query uses the function. This follows the KB. Generic names (`apply`, `__hash__`) aren't filtered: scopes are qualified by path, so they don't merge across files.
 - **Depth.** `blocked_by` can need more than 3 levels (RESOLVER.md). Raising `blocked_by_max_depth` past `[resolver] call_edge_depth` finds nothing more: the edges aren't collected.
 - `file_owner` isn't read: `call_site.owner_team` already comes from it.
+
+## Spark collisions
+
+Week 1's collision check, on the team run: two first-parent Spark commits keyed to different Bug+Fixed tickets, within 30 days, editing the same function. 1,241 fix commits since 2024 → 682 ticket pairs share a file, 144 a function (by git's hunk header), 83 after dropping generic names (`apply`, `__hash__`, …) and names defined more than once in their file.
+
+**Hunk headers name the wrong function a third of the time.** A header is the nearest `def` above a change, so a new method, a class field or a sibling function added after `f` counts as an edit of `f`. In the 50-pair sample, 18 were like that (model read, notes in the CSV). The **inside rule** keeps an edit only if a changed line is in the function's body: below its def, deeper than it, with nothing in between back at the def's depth. On the same 50 it agrees with the read every time: 32 kept, all real. It leaves **62 pairs, 12 with both tickets open at once** (what P3 fires on).
+
+Caveats: the rule was written after reading this sample, so a fresh sample (or the human check) has to confirm it; and the read is a model's (`checked_by = model`), not yet a person's.
+
+**Proposal for the precision bar** (Utkarsh and Aniket to decide): graph's code-level rules are scored on fixtures (100%) and on these Spark collisions (≥ 0.90 after the human check), because the GitLab gold set is ticket-level and graph has no GitLab code to produce its rows. The gold set then scores ticket-level chains (`ticket_link` based) when the stall stage builds them.
+
+```
+python -m tests.collisions --run-id 70dd1dabfed544b8 --config meridian.toml    # keeps verdicts already filled in
+```
 
 ## Planned features that read graph's tables
 

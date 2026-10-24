@@ -19,7 +19,7 @@ cd "DATA PIPELINE"
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 178 tests ... OK (skipped=6)`. The 6 skipped ones need the team run.
+Expect `Ran 179 tests ... OK (skipped=6)`. The 6 skipped ones need the team run.
 
 ## Every test, the team run included
 
@@ -33,7 +33,7 @@ export MERIDIAN_RUN_ID=70dd1dabfed544b8                   # Mac, Linux
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 178 tests ... OK`, none skipped (Windows, Python 3.11, Oct 24). The extra 6 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`) and the packages' precision and recall.
+Expect `Ran 179 tests ... OK`, none skipped (178 on Windows, Python 3.11, Oct 24, before the collision test). The extra 6 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`) and the packages' precision and recall.
 
 ## One part
 

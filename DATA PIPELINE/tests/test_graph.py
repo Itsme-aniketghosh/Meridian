@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import meridian.graph as G
 import meridian.writer as W
+import tests.collisions as C
 import tests.test_kb as K
 from meridian.common import write_jsonl
 
@@ -144,6 +145,22 @@ class Chain(unittest.TestCase):
         got = {(r["from_key"], r["to_key"]): r["in_cycle"] for r in rows if r["type"] == "depends_on"}
         self.assertEqual(got, {("X", "Y"): 1, ("Y", "X"): 1, ("Z", "X"): 0})
         self.assertFalse([r for r in rows if r["type"] == "collides"])  # all Done: no collisions
+
+
+class CollisionInside(unittest.TestCase):
+    """tests/collisions.py: a hunk header names the nearest def above a change, even when the change is past its end."""
+
+    SCALA = ["class A {", "  def f(x: Int): Int = {", "    x + 1", "  }", "", "  val g = 2", "  def h(", "      y: Int", "  ): Int = y", "}"]
+    PY = ["def outer(func):", "    def wrapper(", "        a,", "    ):", "        return func(a)", "", "    return wrapper"]
+
+    def test_inside_and_past_the_end(self):
+        within = C.within
+        self.assertTrue(within(self.SCALA, 3, "f"))       # the body
+        self.assertFalse(within(self.SCALA, 6, "f"))      # a class field after f's closing brace
+        self.assertTrue(within(self.SCALA, 8, "h"))       # a parameter of a long signature
+        self.assertTrue(within(self.PY, 5, "wrapper"))    # past the signature's closing ')'
+        self.assertFalse(within(self.PY, 7, "wrapper"))   # the outer function's return, after wrapper
+        self.assertFalse(within(self.PY, 5, "missing"))   # no such def above
 
 
 if __name__ == "__main__":
