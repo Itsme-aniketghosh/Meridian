@@ -17,7 +17,7 @@ python -m meridian.graph --run-id <run_id> --config meridian.toml      # from DA
 | One fixture per rule | fixtures 100% | `blocked_by` (depth 1–3, max depth, owners, `unknown`, no receiver), blast radius (each edge once, at its shortest depth), cycles: **12 of 12** tests in `tests/test_graph.py` | ✅ |
 | The KB's hand-filled rows | exact | graph computes the KB fixture's `blocked_by`, `blast_radius` and `chain` rows exactly, from that fixture's inputs | ✅ |
 | Loads with the writer, same run same bytes | 0 diffs | both, on the KB fixture | ✅ |
-| Run on the team block `70dd1dabfed544b8` | runs without errors | not yet: needs the snapshot zip on this machine | ⏳ |
+| Run on the team block `70dd1dabfed544b8` | runs without errors | **0** `blocked_by`, **25** `blast_radius`, **43** `chain` (all `untracked`, one per team), 2 s. `call_site.jsonl` sha256 `faff6dfd75931183`, as the team's | ✅ |
 | Precision ≥ 0.90 vs the GitLab gold set | | blocked: 0 of 262 human verdicts, and see Flags | ⏳ |
 | Hand-check 50 Spark collision pairs | precision reported | not done | ⬜ |
 
@@ -33,6 +33,12 @@ python -m meridian.graph --run-id <run_id> --config meridian.toml      # from DA
   - `collides`: two open keys (`[rules] done_statuses`) on sites in the same function (`repo:path:scope`) that share no site. As in the KB, a mapped site counts even if now removed.
   - `untracked`: one row per owner team, holding its present sites that no key maps to.
   - `in_cycle = 1` on a `depends_on` chain whose `to_key` leads back to its `from_key`.
+
+## On 70dd1dabfed544b8
+
+- **No `blocked_by`, by the data.** The resolver logs 0 `receiver_from` in every repo: `url()` and `ugettext()` are always called directly, never as `x = make(); x.method()`. Code-level blocks stay on fixtures (KB gap G7).
+- **Blast radius is where the resolver pays.** Django `ugettext`: 93 call sites, 585 invocations in 78 files (209 / 241 / 135 at depth 1 / 2 / 3). `django-allauth` `url`: 50 sites, 124 invocations, 86 at depth 2. Grep sees only the direct sites.
+- **Call edges: 2,293 here vs 2,288 in RESOLVER.md**, on Python 3.12. Jedi reads the running Python's standard library; the team image is 3.11. Not settled yet: `call_site` doesn't read edges, `blast_radius` does.
 
 ## Flags
 
