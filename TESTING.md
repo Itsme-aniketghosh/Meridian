@@ -12,10 +12,10 @@ pip install -r requirements.txt          # from the repo root
 
 ## Every test that needs no team data
 
-From `DATA PIPELINE/`, about a minute:
+From `Data-Pipeline/`, about a minute:
 
 ```
-cd "DATA PIPELINE"
+cd "Data-Pipeline"
 python -m unittest discover -s tests -t .
 ```
 
@@ -23,7 +23,7 @@ Expect `Ran 179 tests ... OK (skipped=6)`. The 6 skipped ones need the team run.
 
 ## Every test, the team run included
 
-Needs the team run rebuilt first (`snapshots/70dd1dabfed544b8/` and `out/70dd1dabfed544b8/`, see [shared-snapshot/README.md](DATA%20PIPELINE/shared-snapshot/README.md)). About 6 minutes, and close other apps: it resolves Django and the 20 packages again.
+Needs the team run rebuilt first (`snapshots/70dd1dabfed544b8/` and `out/70dd1dabfed544b8/`, see [shared-snapshot/README.md](Data-Pipeline/shared-snapshot/README.md)). About 6 minutes, and close other apps: it resolves Django and the 20 packages again.
 
 ```
 set MERIDIAN_RUN_ID=70dd1dabfed544b8                      # cmd

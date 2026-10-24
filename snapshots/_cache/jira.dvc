@@ -1,0 +1,6 @@
+outs:
+- md5: 8aef55658e83c2d40aabbdc045e7c769.dir
+  size: 123177003
+  nfiles: 599
+  hash: md5
+  path: jira

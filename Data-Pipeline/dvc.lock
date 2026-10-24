@@ -1,0 +1,533 @@
+schema: '2.0'
+stages:
+  collect:
+    cmd: python -m meridian.collect --run-id 70dd1dabfed544b8 --config 
+      meridian.toml
+    deps:
+    - path: ../snapshots/_cache/gitlab
+      hash: md5
+      md5: 4f1d73d3e943bba88ce1496da1a6df8c.dir
+      size: 118712628
+      nfiles: 6
+    - path: ../snapshots/_cache/jira
+      hash: md5
+      md5: 8aef55658e83c2d40aabbdc045e7c769.dir
+      size: 123177003
+      nfiles: 599
+    - path: meridian.toml
+      hash: md5
+      md5: 5a7f8a2cda868292685a0de5229334e1
+      size: 13108
+    - path: meridian/collect.py
+      hash: md5
+      md5: c381e3f6a18c1550dee250569f3c6b81
+      size: 21068
+    - path: meridian/common.py
+      hash: md5
+      md5: 0409e07d72a524e1b0dd2e098abd8a21
+      size: 4840
+    outs:
+    - path: ../out/70dd1dabfed544b8/run.jsonl
+      hash: md5
+      md5: 7b22fa7c5707829e687d12041cd192df
+      size: 2398
+    - path: ../snapshots/70dd1dabfed544b8/manifest.json
+      hash: md5
+      md5: bb018188ec6f6fab43ec8dc6cef94b49
+      size: 2082
+  history:
+    cmd: python -m meridian.history --run-id 70dd1dabfed544b8 --config 
+      meridian.toml
+    deps:
+    - path: ../out/70dd1dabfed544b8/run.jsonl
+      hash: md5
+      md5: 7b22fa7c5707829e687d12041cd192df
+      size: 2398
+    - path: meridian.toml
+      hash: md5
+      md5: 5a7f8a2cda868292685a0de5229334e1
+      size: 13108
+    - path: meridian/common.py
+      hash: md5
+      md5: 0409e07d72a524e1b0dd2e098abd8a21
+      size: 4840
+    - path: meridian/history.py
+      hash: md5
+      md5: 92984289cc585894b70cd630a5868685
+      size: 6792
+    - path: meridian/szz.py
+      hash: md5
+      md5: 25f6427b2122b271ab591bf8e247fc6e
+      size: 7366
+    - path: meridian/tickets.py
+      hash: md5
+      md5: d0c796a6a262be6fe7345b2a1d4eb13e
+      size: 22104
+    outs:
+    - path: ../out/70dd1dabfed544b8/bug_inducing.jsonl
+      hash: md5
+      md5: ad4430da2129390326af5af3d7253df8
+      size: 7377921
+    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+      hash: md5
+      md5: c11fc11b93e6c0ce792f7f645e093ba5
+      size: 188505318
+    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+      hash: md5
+      md5: a6968bd564b1a29f1c95592debbef8d8
+      size: 6279065
+    - path: ../out/70dd1dabfed544b8/file_bug_fixes.jsonl
+      hash: md5
+      md5: 1150e2c97ce8f41b0ff24d34b1681148
+      size: 423269
+    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+      hash: md5
+      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      size: 57991639
+    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+      hash: md5
+      md5: 70454ae4331143def20fd112c3b6d185
+      size: 129255751
+    - path: ../out/70dd1dabfed544b8/ticket_event.jsonl
+      hash: md5
+      md5: 1753845e74620421f29ca1078408d4fc
+      size: 44054710
+    - path: ../out/70dd1dabfed544b8/ticket_link.jsonl
+      hash: md5
+      md5: f92fbd8bb0a4a29e355251ed4a5a723d
+      size: 10214686
+  scan:
+    cmd: python -m meridian.scan --run-id 70dd1dabfed544b8 --config 
+      meridian.toml
+    deps:
+    - path: ../out/70dd1dabfed544b8/run.jsonl
+      hash: md5
+      md5: 7b22fa7c5707829e687d12041cd192df
+      size: 2398
+    - path: meridian.toml
+      hash: md5
+      md5: 5a7f8a2cda868292685a0de5229334e1
+      size: 13108
+    - path: meridian/common.py
+      hash: md5
+      md5: 0409e07d72a524e1b0dd2e098abd8a21
+      size: 4840
+    - path: meridian/scan.py
+      hash: md5
+      md5: 1108b6ca83bfd413588d075ae1d67a23
+      size: 20264
+    outs:
+    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+      hash: md5
+      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      size: 1012206
+    - path: ../out/70dd1dabfed544b8/deprecation.jsonl
+      hash: md5
+      md5: 57ecda275785d0bb3c473484e5346e2a
+      size: 13697
+    - path: ../out/70dd1dabfed544b8/module_import.jsonl
+      hash: md5
+      md5: d4f4edfc51ffa019700fcf5aa1ccdb73
+      size: 6789317
+    - path: ../out/70dd1dabfed544b8/parse_failure.jsonl
+      hash: md5
+      md5: 9b12b15c93dde40ffd2dac2c9c313ca4
+      size: 1533
+  resolve:
+    cmd: python -m meridian.resolve --run-id 70dd1dabfed544b8 --config 
+      meridian.toml
+    deps:
+    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+      hash: md5
+      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      size: 1012206
+    - path: meridian.toml
+      hash: md5
+      md5: 5a7f8a2cda868292685a0de5229334e1
+      size: 13108
+    - path: meridian/common.py
+      hash: md5
+      md5: 0409e07d72a524e1b0dd2e098abd8a21
+      size: 4840
+    - path: meridian/resolve.py
+      hash: md5
+      md5: 4187cbebc2d91ae572570533acf25d61
+      size: 30604
+    - path: meridian/scan.py
+      hash: md5
+      md5: 1108b6ca83bfd413588d075ae1d67a23
+      size: 20264
+    outs:
+    - path: ../out/70dd1dabfed544b8/call_edge.jsonl
+      hash: md5
+      md5: 5692222027624dccc7d2dfd77a06a1a7
+      size: 663822
+    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+      hash: md5
+      md5: a7cc6de17000e227978dcf8d1be5a332
+      size: 1124844
+  owners:
+    cmd: python -m meridian.owners --run-id 70dd1dabfed544b8 --config 
+      meridian.toml
+    deps:
+    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+      hash: md5
+      md5: c11fc11b93e6c0ce792f7f645e093ba5
+      size: 188505318
+    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+      hash: md5
+      md5: a6968bd564b1a29f1c95592debbef8d8
+      size: 6279065
+    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+      hash: md5
+      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      size: 57991639
+    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+      hash: md5
+      md5: 70454ae4331143def20fd112c3b6d185
+      size: 129255751
+    - path: meridian.toml
+      hash: md5
+      md5: 5a7f8a2cda868292685a0de5229334e1
+      size: 13108
+    - path: meridian/common.py
+      hash: md5
+      md5: 0409e07d72a524e1b0dd2e098abd8a21
+      size: 4840
+    - path: meridian/owners.py
+      hash: md5
+      md5: 41d8aa3085b60d2529808d5ddd4867a6
+      size: 21817
+    outs:
+    - path: ../out/70dd1dabfed544b8/file_owner.jsonl
+      hash: md5
+      md5: 53335a8b177719c71f334d8dfc8e6c68
+      size: 12451385
+    - path: ../out/70dd1dabfed544b8/person.jsonl
+      hash: md5
+      md5: dae0d5fe60102d7850a3a578102269bb
+      size: 846567
+    - path: ../out/70dd1dabfed544b8/person_alias.jsonl
+      hash: md5
+      md5: bdf6f8b6240879e881e14514c770f12c
+      size: 1558937
+    - path: ../out/70dd1dabfed544b8/team_map.jsonl
+      hash: md5
+      md5: 86139809118a640341d8653dac61b934
+      size: 489602
+  join:
+    cmd: python -m meridian.join --run-id 70dd1dabfed544b8 --config 
+      meridian.toml
+    deps:
+    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+      hash: md5
+      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      size: 1012206
+    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+      hash: md5
+      md5: c11fc11b93e6c0ce792f7f645e093ba5
+      size: 188505318
+    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+      hash: md5
+      md5: a6968bd564b1a29f1c95592debbef8d8
+      size: 6279065
+    - path: ../out/70dd1dabfed544b8/file_bug_fixes.jsonl
+      hash: md5
+      md5: 1150e2c97ce8f41b0ff24d34b1681148
+      size: 423269
+    - path: ../out/70dd1dabfed544b8/file_owner.jsonl
+      hash: md5
+      md5: 53335a8b177719c71f334d8dfc8e6c68
+      size: 12451385
+    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+      hash: md5
+      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      size: 57991639
+    - path: ../out/70dd1dabfed544b8/parse_failure.jsonl
+      hash: md5
+      md5: 9b12b15c93dde40ffd2dac2c9c313ca4
+      size: 1533
+    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+      hash: md5
+      md5: a7cc6de17000e227978dcf8d1be5a332
+      size: 1124844
+    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+      hash: md5
+      md5: 70454ae4331143def20fd112c3b6d185
+      size: 129255751
+    - path: meridian.toml
+      hash: md5
+      md5: 5a7f8a2cda868292685a0de5229334e1
+      size: 13108
+    - path: meridian/common.py
+      hash: md5
+      md5: 0409e07d72a524e1b0dd2e098abd8a21
+      size: 4840
+    - path: meridian/join.py
+      hash: md5
+      md5: b9b7c9c9fe9ed27c214396e19c249dd4
+      size: 27883
+    - path: meridian/scan.py
+      hash: md5
+      md5: 1108b6ca83bfd413588d075ae1d67a23
+      size: 20264
+    outs:
+    - path: ../out/70dd1dabfed544b8/call_site.jsonl
+      hash: md5
+      md5: da211803eacbf1087c84c4c69b4a69b0
+      size: 677507
+    - path: ../out/70dd1dabfed544b8/coverage.jsonl
+      hash: md5
+      md5: 7e260024e292acd0ce4cabc08ab26264
+      size: 2321
+    - path: ../out/70dd1dabfed544b8/ticket_map.jsonl
+      hash: md5
+      md5: 17731006c888286cf4f737842d5cb909
+      size: 45808002
+  graph:
+    cmd: python -m meridian.graph --run-id 70dd1dabfed544b8 --config 
+      meridian.toml
+    deps:
+    - path: ../out/70dd1dabfed544b8/call_edge.jsonl
+      hash: md5
+      md5: 5692222027624dccc7d2dfd77a06a1a7
+      size: 663822
+    - path: ../out/70dd1dabfed544b8/call_site.jsonl
+      hash: md5
+      md5: da211803eacbf1087c84c4c69b4a69b0
+      size: 677507
+    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+      hash: md5
+      md5: a7cc6de17000e227978dcf8d1be5a332
+      size: 1124844
+    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+      hash: md5
+      md5: 70454ae4331143def20fd112c3b6d185
+      size: 129255751
+    - path: ../out/70dd1dabfed544b8/ticket_map.jsonl
+      hash: md5
+      md5: 17731006c888286cf4f737842d5cb909
+      size: 45808002
+    - path: meridian.toml
+      hash: md5
+      md5: 5a7f8a2cda868292685a0de5229334e1
+      size: 13108
+    - path: meridian/common.py
+      hash: md5
+      md5: 0409e07d72a524e1b0dd2e098abd8a21
+      size: 4840
+    - path: meridian/graph.py
+      hash: md5
+      md5: 7ae3d63f9bcb3ebbcf6a085b0b81c59e
+      size: 10413
+    - path: meridian/join.py
+      hash: md5
+      md5: b9b7c9c9fe9ed27c214396e19c249dd4
+      size: 27883
+    outs:
+    - path: ../out/70dd1dabfed544b8/blast_radius.jsonl
+      hash: md5
+      md5: 64eb72b76d5318f6a6cc881caaab1d15
+      size: 4626
+    - path: ../out/70dd1dabfed544b8/blocked_by.jsonl
+      hash: md5
+      md5: d41d8cd98f00b204e9800998ecf8427e
+      size: 0
+    - path: ../out/70dd1dabfed544b8/chain.jsonl
+      hash: md5
+      md5: c6f932e07bde79aab07689003d4fea1c
+      size: 39263
+  validate:
+    cmd: python -m meridian.validate --run-id 70dd1dabfed544b8 --config 
+      meridian.toml
+    deps:
+    - path: ../out/70dd1dabfed544b8/blast_radius.jsonl
+      hash: md5
+      md5: 64eb72b76d5318f6a6cc881caaab1d15
+      size: 4626
+    - path: ../out/70dd1dabfed544b8/blocked_by.jsonl
+      hash: md5
+      md5: d41d8cd98f00b204e9800998ecf8427e
+      size: 0
+    - path: ../out/70dd1dabfed544b8/bug_inducing.jsonl
+      hash: md5
+      md5: ad4430da2129390326af5af3d7253df8
+      size: 7377921
+    - path: ../out/70dd1dabfed544b8/call_edge.jsonl
+      hash: md5
+      md5: 5692222027624dccc7d2dfd77a06a1a7
+      size: 663822
+    - path: ../out/70dd1dabfed544b8/call_site.jsonl
+      hash: md5
+      md5: da211803eacbf1087c84c4c69b4a69b0
+      size: 677507
+    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+      hash: md5
+      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      size: 1012206
+    - path: ../out/70dd1dabfed544b8/chain.jsonl
+      hash: md5
+      md5: c6f932e07bde79aab07689003d4fea1c
+      size: 39263
+    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+      hash: md5
+      md5: c11fc11b93e6c0ce792f7f645e093ba5
+      size: 188505318
+    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+      hash: md5
+      md5: a6968bd564b1a29f1c95592debbef8d8
+      size: 6279065
+    - path: ../out/70dd1dabfed544b8/coverage.jsonl
+      hash: md5
+      md5: 7e260024e292acd0ce4cabc08ab26264
+      size: 2321
+    - path: ../out/70dd1dabfed544b8/deprecation.jsonl
+      hash: md5
+      md5: 57ecda275785d0bb3c473484e5346e2a
+      size: 13697
+    - path: ../out/70dd1dabfed544b8/file_bug_fixes.jsonl
+      hash: md5
+      md5: 1150e2c97ce8f41b0ff24d34b1681148
+      size: 423269
+    - path: ../out/70dd1dabfed544b8/file_owner.jsonl
+      hash: md5
+      md5: 53335a8b177719c71f334d8dfc8e6c68
+      size: 12451385
+    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+      hash: md5
+      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      size: 57991639
+    - path: ../out/70dd1dabfed544b8/module_import.jsonl
+      hash: md5
+      md5: d4f4edfc51ffa019700fcf5aa1ccdb73
+      size: 6789317
+    - path: ../out/70dd1dabfed544b8/parse_failure.jsonl
+      hash: md5
+      md5: 9b12b15c93dde40ffd2dac2c9c313ca4
+      size: 1533
+    - path: ../out/70dd1dabfed544b8/person.jsonl
+      hash: md5
+      md5: dae0d5fe60102d7850a3a578102269bb
+      size: 846567
+    - path: ../out/70dd1dabfed544b8/person_alias.jsonl
+      hash: md5
+      md5: bdf6f8b6240879e881e14514c770f12c
+      size: 1558937
+    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+      hash: md5
+      md5: a7cc6de17000e227978dcf8d1be5a332
+      size: 1124844
+    - path: ../out/70dd1dabfed544b8/run.jsonl
+      hash: md5
+      md5: 7b22fa7c5707829e687d12041cd192df
+      size: 2398
+    - path: ../out/70dd1dabfed544b8/team_map.jsonl
+      hash: md5
+      md5: 86139809118a640341d8653dac61b934
+      size: 489602
+    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+      hash: md5
+      md5: 70454ae4331143def20fd112c3b6d185
+      size: 129255751
+    - path: ../out/70dd1dabfed544b8/ticket_event.jsonl
+      hash: md5
+      md5: 1753845e74620421f29ca1078408d4fc
+      size: 44054710
+    - path: ../out/70dd1dabfed544b8/ticket_link.jsonl
+      hash: md5
+      md5: f92fbd8bb0a4a29e355251ed4a5a723d
+      size: 10214686
+    - path: ../out/70dd1dabfed544b8/ticket_map.jsonl
+      hash: md5
+      md5: 17731006c888286cf4f737842d5cb909
+      size: 45808002
+    - path: meridian/alert.py
+      hash: md5
+      md5: e382d08f809b6cb2b0ecfa655c2aa711
+      size: 2424
+    - path: meridian/validate.py
+      hash: md5
+      md5: c7101a11ef94b9caa894b0a0886c6e3a
+      size: 11482
+    - path: meridian/writer.py
+      hash: md5
+      md5: 365eb3b925f711d10b9baa5a9172f483
+      size: 6678
+    - path: schema.sql
+      hash: md5
+      md5: 741eb23f5af203a06bbd6b5a4cbc7c2a
+      size: 16810
+    - path: settings.toml
+      hash: md5
+      md5: 6cd3d15fbc75ca3ba9b3eb6f6bdae4c3
+      size: 10542
+    outs:
+    - path: ../out/70dd1dabfed544b8/anomalies.json
+      hash: md5
+      md5: 171c2066bc5d3cf740f94d4cd142575f
+      size: 158
+    - path: ../out/70dd1dabfed544b8/stats.json
+      hash: md5
+      md5: 32383a5580d7ad9c44adcdbda27656a2
+      size: 30629
+  bias:
+    cmd: python -m meridian.bias --run-id 70dd1dabfed544b8 --config 
+      meridian.toml
+    deps:
+    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+      hash: md5
+      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      size: 1012206
+    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+      hash: md5
+      md5: c11fc11b93e6c0ce792f7f645e093ba5
+      size: 188505318
+    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+      hash: md5
+      md5: a6968bd564b1a29f1c95592debbef8d8
+      size: 6279065
+    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+      hash: md5
+      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      size: 57991639
+    - path: ../out/70dd1dabfed544b8/person.jsonl
+      hash: md5
+      md5: dae0d5fe60102d7850a3a578102269bb
+      size: 846567
+    - path: ../out/70dd1dabfed544b8/person_alias.jsonl
+      hash: md5
+      md5: bdf6f8b6240879e881e14514c770f12c
+      size: 1558937
+    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+      hash: md5
+      md5: a7cc6de17000e227978dcf8d1be5a332
+      size: 1124844
+    - path: ../out/70dd1dabfed544b8/run.jsonl
+      hash: md5
+      md5: 7b22fa7c5707829e687d12041cd192df
+      size: 2398
+    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+      hash: md5
+      md5: 70454ae4331143def20fd112c3b6d185
+      size: 129255751
+    - path: ../out/70dd1dabfed544b8/ticket_map.jsonl
+      hash: md5
+      md5: 17731006c888286cf4f737842d5cb909
+      size: 45808002
+    - path: meridian/bias.py
+      hash: md5
+      md5: d756d58501af9745ed6ded43f81b8cf7
+      size: 12998
+    - path: meridian/owners.py
+      hash: md5
+      md5: 41d8aa3085b60d2529808d5ddd4867a6
+      size: 21817
+    - path: settings.toml
+      hash: md5
+      md5: 6cd3d15fbc75ca3ba9b3eb6f6bdae4c3
+      size: 10542
+    outs:
+    - path: ../out/70dd1dabfed544b8/bias.json
+      hash: md5
+      md5: 7725115046ea01d537f65acb4f3b4d3e
+      size: 19086

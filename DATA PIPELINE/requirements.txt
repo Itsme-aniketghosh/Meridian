@@ -1,8 +1,0 @@
-# One lockfile for every part (CONTRACTS.md: one container image, dependencies from one lockfile).
-# Exact versions only, so every machine and the image resolve the same way. Add your part's packages here.
-# Collect, history, tickets and the writer use only the standard library (Python 3.11+).
-
-jedi==0.19.2                # resolver: every resolution row records it ('jedi==0.19.2')
-parso==0.8.7                # jedi's parser, pinned with it
-tree-sitter==0.23.2         # scanner and resolver, same versions as week 1
-tree-sitter-python==0.23.6
