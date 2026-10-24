@@ -426,6 +426,18 @@ EDGE_FILES = {
         "def caller():\n"
         "    return get_text_list([])\n"                          # so no edge here
     ),
+    "app/itertools.py": (                     # named like a builtin module, as django/contrib/postgres/fields/array.py
+        "from lib.translation import ugettext\n"
+        "\n"
+        "def tool():\n"
+        "    return ugettext('i')\n"
+    ),
+    "app/shadow.py": (
+        "from app.itertools import tool\n"
+        "\n"
+        "def run():\n"
+        "    return tool()\n"                 # depth 2: app.itertools is the package's file, not the builtin
+    ),
 }
 
 EDGES = {   # (caller_path, caller_scope, line, callee_path, callee_scope)
@@ -441,6 +453,8 @@ EDGES = {   # (caller_path, caller_scope, line, callee_path, callee_scope)
     ("app/ctor.py", "F.__init__", 5, "lib/translation.py", "ugettext"),
     ("app/ctor.py", "make", 8, "app/ctor.py", "F.__init__"),
     ("app/defaults.py", "<module>", 3, "lib/translation.py", "ugettext"),
+    ("app/itertools.py", "tool", 4, "lib/translation.py", "ugettext"),
+    ("app/shadow.py", "run", 4, "app/itertools.py", "tool"),
 }
 
 

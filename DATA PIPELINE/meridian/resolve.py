@@ -51,12 +51,13 @@ a run (below): otherwise Jedi failed on names whose file had just been evicted, 
 was parsed before. Now repeated runs and any PYTHONHASHSEED give the same bytes. Parsing stays cached within a repo
 and is emptied between repos, and tree-sitter trees are kept only for files a question comes back to.
 """
-import json, sysconfig
+import importlib.machinery, json, sys, sysconfig
 from collections import Counter
 from pathlib import Path
 
 import jedi
 import parso.cache
+from jedi.inference.compiled.subprocess import functions as jedi_functions
 
 from meridian import scan as S
 from meridian.common import data_root, handoff, load_config, log, parser, read_jsonl, write_jsonl
@@ -67,6 +68,25 @@ from meridian.scan import PY, char_col, tracked, walk
 # Jedi then fails with KeyError on that path. How often depends on what was parsed before, so it broke "same run,
 # same bytes". Never evict during a run.
 parso.cache._CACHED_SIZE_TRIGGER = float("inf")
+
+# Jedi (pinned) looks up a submodule by its last name only, and asks the builtin importer too, which ignores the
+# package path: django/contrib/postgres/fields/array.py came back as the builtin `array` ("not importable"), so
+# nothing in it could be reached. Which names are builtin differs by OS (array is on Windows, not on Linux), so the
+# edges did too. A submodule is a file in its package, never a builtin: search only the package's folders for it.
+_jedi_find_module = jedi_functions._find_module
+
+
+def _find_module(string, path=None, full_name=None, is_global_search=True):
+    if is_global_search:
+        return _jedi_find_module(string, path, full_name, is_global_search)
+    meta_path, sys.meta_path = sys.meta_path, [importlib.machinery.PathFinder]
+    try:
+        return _jedi_find_module(string, path, full_name, is_global_search)
+    finally:
+        sys.meta_path = meta_path
+
+
+jedi_functions._find_module = _find_module
 
 RESOLVER = f"jedi=={jedi.__version__}"
 COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "detection", "via", "resolved_to", "resolver", "receiver_from"]
