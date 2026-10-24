@@ -174,10 +174,11 @@ def main(run_id, config=CONFIG, root=None):
     for name, rows in (("blocked_by", blocked), ("blast_radius", blast), ("chain", chain)):
         write_jsonl(out / f"{name}.jsonl", rows, KEYS[name])
     log(f"{'blocked_by':45} {len(blocked):,} rows · {n['receivers']:,} present sites with a receiver_from · "
-        f"{n['same_or_unowned_owner']:,} same or unowned owner, left out · "
-        + ", ".join(f"{v:,} {k}" for k, v in sorted(Counter(r["status"] for r in blocked).items())))
+        f"{n['same_or_unowned_owner']:,} same or unowned owner, left out"
+        + "".join(f" · {v:,} {k}" for k, v in sorted(Counter(r["status"] for r in blocked).items())))
+    width = max([len(r["repo"] + r["symbol"]) + 1 for r in blast] + [43])
     for r in blast:
-        log(f"  {r['repo'] + ' ' + r['symbol']:43} {r['direct_sites']:>6,} sites {r['invocations']:>6,} invocations "
+        log(f"  {r['repo'] + ' ' + r['symbol']:{width}} {r['direct_sites']:>6,} sites {r['invocations']:>6,} invocations "
             f"{r['files']:>5,} files  by depth {r['by_depth']}")
     log(f"{'chain':45} {len(chain):,} rows · " + ", ".join(f"{v:,} {k}" for k, v in sorted(Counter(r["type"] for r in chain).items()))
         + f" · {sum(r['in_cycle'] for r in chain):,} in a cycle")

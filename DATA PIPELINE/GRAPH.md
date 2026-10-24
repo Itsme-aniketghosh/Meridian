@@ -38,7 +38,7 @@ python -m meridian.graph --run-id <run_id> --config meridian.toml      # from DA
 
 - **No `blocked_by`, by the data.** The resolver logs 0 `receiver_from` in every repo: `url()` and `ugettext()` are always called directly, never as `x = make(); x.method()`. Code-level blocks stay on fixtures (KB gap G7).
 - **Blast radius is where the resolver pays.** Django `ugettext`: 93 call sites, 585 invocations in 78 files (209 / 241 / 135 at depth 1 / 2 / 3). `django-allauth` `url`: 50 sites, 124 invocations, 86 at depth 2. Grep sees only the direct sites.
-- **Call edges: 2,293 here vs 2,288 in RESOLVER.md**, on Python 3.12. Jedi reads the running Python's standard library; the team image is 3.11. Not settled yet: `call_site` doesn't read edges, `blast_radius` does.
+- **Call edges: 2,293 here vs 2,288 in RESOLVER.md**, Windows and Python 3.12. The whole difference is Django's (1,191 vs 1,186; the packages give 1,102 both times). Two causes on this machine: Jedi couldn't read Django's two `array.py` files on Windows (fixed in resolve, see RESOLVER.md), and Jedi reads the running Python's standard library (the team image is 3.11). Not settled until resolve reruns: `call_site` doesn't read edges, `blast_radius` does.
 
 ## Flags
 
