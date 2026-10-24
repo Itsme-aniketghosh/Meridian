@@ -1,6 +1,6 @@
 # Open points · step 1 · Oct 24
 
-Everything still open before graph data block v1 freezes, by owner. Team run `70dd1dabfed544b8`. Pulled from [PENDING-TASKS](DATA%20PIPELINE/PENDING-TASKS.md), [PIPELINE-PLAN](DATA%20PIPELINE/PIPELINE-PLAN.md), the KB [testing plan](DATA%20PIPELINE/KNOWLEDGE-BASE.md#testing-plan), [JOIN](DATA%20PIPELINE/JOIN.md), [RESOLVER](DATA%20PIPELINE/RESOLVER.md) and [GRAPH](DATA%20PIPELINE/GRAPH.md). Tick a box when it's done, with the number it gave.
+Everything still open before graph data block v1 freezes, by owner. Team run `70dd1dabfed544b8`. Pulled from [PENDING-TASKS](Data-Pipeline/PENDING-TASKS.md), [PIPELINE-PLAN](Data-Pipeline/PIPELINE-PLAN.md), the KB [testing plan](Data-Pipeline/KNOWLEDGE-BASE.md#testing-plan), [JOIN](Data-Pipeline/JOIN.md), [RESOLVER](Data-Pipeline/RESOLVER.md) and [GRAPH](Data-Pipeline/GRAPH.md). Tick a box when it's done, with the number it gave.
 
 🔴 = blocks someone else.
 
@@ -15,7 +15,7 @@ Everything still open before graph data block v1 freezes, by owner. Team run `70
 - [x] 50 Spark collision pairs, generic names dropped first, model read: hunk headers 0.64, the new inside rule 1.00 (32 of 32), 62 pairs left, 12 both open (GRAPH.md, `labels/spark_collision_pairs_50.csv`)
 - [ ] Human check of those 50: fill `human_verdict` (the rule was written after reading this sample)
 - [ ] First end-to-end run from Airflow, with Utkarsh (D8)
-- [x] One-page handoff note for stall rules, Jev and views (D10): [HANDOFF.md](DATA%20PIPELINE/HANDOFF.md)
+- [x] One-page handoff note for stall rules, Jev and views (D10): [HANDOFF.md](Data-Pipeline/HANDOFF.md)
 
 ## Utkarsh · join, orchestration
 
@@ -28,7 +28,7 @@ Everything still open before graph data block v1 freezes, by owner. Team run `70
 - [ ] Real parts in the Airflow DAG (D8), schedule and rebuild check (D9), freeze v1 with the golden test in CI (D10)
 - [ ] CI: GitHub Actions on Ubuntu and Windows, Python 3.11, `python -m unittest discover -s tests -t .`
 - [ ] Cross-machine check: the same run on Windows and Mac, every `out/<run_id>/*.jsonl` sha256 equal. Never done; the `array.py` bug was Windows-only
-- [ ] GCP names `image` and `snapshot_bucket` in infra.toml
+- [ ] GCP names `image` and `snapshot_bucket` in settings.toml
 - [ ] 03-data updated to match the contracts once v1 is frozen
 - [ ] Outside the pipeline: missing surnames in the scoping doc, license checks, timeline against course deadlines
 

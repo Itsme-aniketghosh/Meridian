@@ -1,0 +1,6 @@
+outs:
+- md5: 4f1d73d3e943bba88ce1496da1a6df8c.dir
+  size: 118712628
+  nfiles: 6
+  hash: md5
+  path: gitlab

@@ -1,0 +1,197 @@
+# Meridian settings · every setting that never changes a row, in one place.
+# How and where the pipeline runs (Airflow, retries, timeouts, workers), where alerts go, what the data checks and the
+# bias slicing allow. Not part of the run_id: collect hashes only meridian.toml, so this file can change any time
+# without a new team run. The rule: nothing here may change a row. Whatever changes what a part computes belongs in
+# meridian.toml. Parts read a section with common.load_settings(section); $MERIDIAN_SETTINGS points at another copy.
+# Secrets never go here, or anywhere in git: a setting names the environment variable that holds one (.env.example).
+
+# ───────────── the run the pipeline works on ─────────────
+
+[pipeline]
+run_id = "70dd1dabfed544b8"           # the team run (shared-snapshot/README.md). The DAG never makes a new one
+prev_run = ""                         # the last run, for join's matching and validate's drift. "" = first run
+config = "meridian.toml"              # what the parts compute
+
+# ───────────── orchestration (Airflow) ─────────────
+
+[orchestration]
+tool = "airflow"
+dag_id = "meridian_nightly"
+schedule = "0 2 * * *"                # 02:00 UTC nightly, incremental. "" = only when triggered
+full_rebuild_day = "sun"              # check: rebuild must equal incremental, else halt
+retries = 2
+retry_delay_minutes = 5
+max_active_tasks = 4                  # parts that may run at once: history next to scan and resolve
+task_runner = "bash"                  # "bash": each part is a command in the Airflow container (docker-compose.yaml).
+                                      # "cloud_run_job" on GCP, once it's set up
+python = "/opt/meridian-venv/bin/python"   # the pipeline's own environment in the image, built from requirements.txt
+image = "us-east1-docker.pkg.dev/meridian-pipeline/meridian/pipeline"   # Artifact Registry path. Placeholder until GCP is set up
+snapshot_bucket = "gs://meridian-pipeline-snapshots"                   # raw pulls and snapshots, replaces shared-snapshot/. Placeholder until GCP is set up
+publish_only_if_check_passes = true
+alert_on = ["failed", "halted", "partial"]
+
+[orchestration.timeout_minutes]       # a part running longer than this is killed and retried
+collect = 30
+history = 60
+scan = 20
+resolve = 60
+owners = 20
+join = 30
+graph = 10
+validate = 30
+bias = 20
+version = 30
+
+# ───────────── alerts ─────────────
+
+[alerts]
+on = ["failure", "error", "warn"]     # what sends one: a failed task, a data error, a data warning
+email_to = []                         # addresses, e.g. ["team@example.com"]. Empty: no email
+email_from = "meridian@localhost"
+smtp_host = "localhost"
+smtp_port = 25                        # 587 with smtp_starttls = true for most providers
+smtp_starttls = false
+smtp_user_env = "MERIDIAN_SMTP_USER"          # the environment variable holding the SMTP user, if it needs one
+smtp_password_env = "MERIDIAN_SMTP_PASSWORD"  # ... and its password
+slack_webhook_env = "MERIDIAN_SLACK_WEBHOOK"  # the environment variable holding a Slack incoming-webhook URL
+timeout_s = 10
+max_lines = 20                        # an alert lists at most this many findings; the rest are in anomalies.json
+
+# ───────────── network and workers, per part ─────────────
+
+[collect]                             # network: how hard collect tries, never what it keeps
+http_tries = 6                        # curl attempts per request
+http_timeout_s = 120                  # per attempt
+http_backoff_s = 1                    # wait 2^attempt x this between attempts
+http_429_factor = 10                  # x this again when the server says 429 (rate limit)
+graphql_tries = 6                     # GitLab GraphQL: attempts when the answer carries "errors"
+graphql_backoff_s = 5                 # wait (attempt + 1) x this
+gitlab_batch = 20                     # issues per notes / parents query (GitLab caps iids lists)
+
+[history]
+szz_workers = 0                       # SZZ processes. 0 = one per CPU
+
+# ───────────── data checks (meridian.validate) ─────────────
+# Allowances were measured on run 70dd1dabfed544b8 (Oct 24) and carry the reason a column may be empty. Change one
+# only with a commit that says why.
+
+[validate]
+top_values = 10                       # stats.json lists the most common values of a column with at most this many
+
+[validate.rows]                       # fewer rows than this is an error: a part ran but wrote (almost) nothing
+run = 1
+git_commit = 1
+commit_file = 1
+candidate = 1
+resolution = 1
+file_owner = 1
+call_site = 1
+coverage = 1
+
+[validate.coverage]                   # numerator / denominator below the floor is an error
+call_sites_resolved = 0.95            # 05-test: resolver recall >= 0.95. Run 70dd: 1,525 of 1,526
+call_sites_owned = 0.95               # every call site has an owner team or is counted unowned. 70dd: 1.0
+tickets_mapped_jira = 0.50            # 70dd: 0.61. A drop means links or commit keys broke
+
+[validate.missing]                    # share of NULL or '' allowed per column, else a warning. Unlisted columns: none
+default = 0.0
+"commit_file.old_path" = 1.0          # set on renames only (5% of rows)
+"commit_file.added" = 0.2             # NULL for binary files (10%)
+"commit_file.deleted" = 0.2
+"file_owner.top_person_id" = 1.0      # path- and repo-owned files have no person (75%)
+"file_owner.last_commit_at" = 0.001   # no commit in the window: 1 Django file
+"git_commit.parent_sha" = 0.001       # root commits: 23 of 139,228
+"git_commit.author_email" = 0.0001    # git allows an empty email: 1 commit
+"person_alias.email" = 0.0002         # the same commit's empty email
+"team_map.subject" = 0.001            # Django's '' path prefix is the root team
+"module_import.name" = 0.2            # '' for 'import m' (10%)
+"resolution.resolved_to" = 0.2        # NULL when unresolved or dropped (10%)
+"resolution.receiver_from" = 1.0      # set only for recv.f() where recv = F(...): none on 70dd
+"chain.to_key" = 1.0                  # '' on untracked rows
+"ticket.parent_key" = 1.0             # sub-tasks only
+"ticket.resolution" = 0.5             # open tickets (28%)
+"ticket.resolved_at" = 0.3            # open tickets (13%)
+"ticket.assignee" = 0.6               # unassigned tickets (36%)
+"ticket.reporter" = 0.0005            # deleted accounts: 5 tickets
+"ticket.description" = 0.4            # empty descriptions (19%): the ticket check "no description" reads them
+"ticket_event.from_value" = 0.7       # a field set for the first time (52%)
+"ticket_event.to_value" = 0.1         # a field cleared (3%)
+"ticket_event.author" = 0.0005        # deleted accounts: 18 events
+"ticket_link.added_at" = 0.6          # links older than the changelog (39%)
+"ticket_link.removed_at" = 1.0        # set only on removed links
+"ticket_map.target" = 0.3             # '' on unmapped tickets (15%)
+
+[validate.outliers]                   # share of values beyond Q1 - k*IQR or Q3 + k*IQR above max_share is a warning
+iqr_k = 3.0
+max_share = 0.05
+columns = ["commit_file.added", "commit_file.deleted", "file_bug_fixes.bug_fixes", "file_owner.n_commits",
+           "call_site.bug_fixes", "blast_radius.invocations", "blast_radius.direct_sites"]
+# counts with a long tail: fences on log(1 + x). On a raw scale 10% of commits are "outliers" (70dd), which says
+# nothing; on a log scale only the truly huge ones are
+log_scale = ["added", "deleted", "invocations", "direct_sites", "n_commits", "bug_fixes"]
+
+[validate.dates]                      # a time before earliest, or after the run's snapshot_at, is a warning. On 70dd:
+columns = '.*_at|at'                  # 289 Spark tickets filed in the years 0010-0012, as Apache Jira itself has them
+earliest = "2000-01-01T00:00:00Z"     # (the 2013 import from Spark's old tracker): the source is wrong, not us
+
+[validate.drift]                      # with prev_run: a table's row count moving more than this is a warning
+max_row_change = 0.2
+
+[validate.ranges]                     # "table.column" or "*.column": [min, max]. A value outside is an error
+"*.line" = [1, 100000000]
+"*.col" = [0, 1000000]
+"*.depth" = [1, 100]
+"*.bug_fixes" = [0, 1000000]
+"*.seq" = [0, 100000000]
+"file_owner.share" = [0.0, 1.0]
+"file_owner.n_commits" = [0, 100000000]
+"commit_file.added" = [0, 100000000]
+"commit_file.deleted" = [0, 100000000]
+"coverage.numerator" = [0, 100000000000]
+"coverage.denominator" = [0, 100000000000]
+
+# A value of a matching column that doesn't fit is an error (CONTRACTS.md, "Rules for every table").
+[[validate.formats]]
+name = "UTC times YYYY-MM-DDTHH:MM:SSZ"
+columns = '.*_at|at|effective_date|window_start|window_end'
+pattern = '\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ'
+
+[[validate.formats]]
+name = "16-hex content IDs"
+columns = 'call_site_id|blocker_id|person_id|top_person_id'
+pattern = '[0-9a-f]{16}'
+
+[[validate.formats]]
+name = "40-hex git SHAs"
+columns = 'sha|parent_sha|fix_sha|inducing_sha'
+pattern = '[0-9a-f]{40}'
+
+[[validate.formats]]
+name = "'owner/name' repos"
+columns = 'repo|callee_repo'
+pattern = '[^/\s]+/[^/\s]+'
+
+[[validate.formats]]
+name = "repo-relative POSIX paths"
+columns = 'path|old_path|caller_path|callee_path'
+pattern = '(?!/)[^\\]+'
+
+[[validate.formats]]
+name = "sorted JSON lists"
+columns = 'components|fix_keys|evidence'
+pattern = "sorted_json_list"
+
+# ───────────── bias slicing (meridian.bias) ─────────────
+
+[bias]
+min_n = 30                            # a slice needs this many rows to be judged (05-test: no claim below N = 30)
+max_gap = 0.10                        # flagged when its metric is more than this below the overall value
+min_shares = [0.30, 0.20, 0.10]       # owner-rule thresholds scored as mitigations; the first is meridian.toml's
+team_lookback_days = [180, 365, 730]  # how far back a person's commits give them a team, scored as a mitigation
+recent_since = "2020"                 # ticket mapping is sliced again on tickets filed since this year: old tickets'
+                                      # files are often gone, so this separates a component's age from its gap
+
+# ───────────── data versioning ─────────────
+
+[dvc]
+push = false                          # the DAG's last task pushes to the DVC remote when true (.dvc/config names it)

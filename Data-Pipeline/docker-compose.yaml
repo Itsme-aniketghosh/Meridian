@@ -1,0 +1,82 @@
+# Airflow for Meridian on one machine: Postgres, a scheduler (LocalExecutor, so independent parts run at once), the
+# web UI on http://localhost:${AIRFLOW_PORT:-8080}. Run from Data-Pipeline/:
+#
+#   cp .env.example .env            # then fill in what you need (alert secrets, UI login)
+#   docker compose up -d --build    # first time builds the image: Airflow + the pipeline's environment
+#   docker compose down             # stop; the database volume keeps run history
+#
+# The whole repo is mounted at /opt/meridian: the parts read snapshots/ and write out/ there (MERIDIAN_DATA), exactly
+# as on a laptop, so DVC sees the same files. Airflow's task logs land in Data-Pipeline/logs/.
+
+x-airflow: &airflow
+  build:
+    context: ..
+    dockerfile: Data-Pipeline/Dockerfile
+    args:
+      AIRFLOW_IMAGE: ${AIRFLOW_IMAGE:-apache/airflow:2.10.5-python3.11}
+  image: meridian-airflow:local
+  env_file: .env
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${POSTGRES_PASSWORD:-airflow}@postgres/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/meridian/Data-Pipeline/dags
+    AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/meridian/Data-Pipeline/logs
+    MERIDIAN_DATA: /opt/meridian
+    # the repo is owned by the host user: let git (collect, DVC) work in it anyway
+    GIT_CONFIG_COUNT: "1"
+    GIT_CONFIG_KEY_0: safe.directory
+    GIT_CONFIG_VALUE_0: "*"
+  volumes:
+    - ..:/opt/meridian
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 10
+
+  airflow-init:
+    <<: *airflow
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - >
+        airflow db migrate &&
+        airflow users create --role Admin --username "$${AIRFLOW_ADMIN_USER:-admin}" --password "$${AIRFLOW_ADMIN_PASSWORD:-admin}"
+        --firstname Meridian --lastname Admin --email admin@example.com || true
+    restart: "no"
+
+  airflow-scheduler:
+    <<: *airflow
+    command: scheduler
+    restart: unless-stopped
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-webserver:
+    <<: *airflow
+    command: webserver
+    ports:
+      - "${AIRFLOW_PORT:-8080}:8080"
+    restart: unless-stopped
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  airflow-db:

@@ -1,0 +1,185 @@
+# Data versioning: every part as a DVC stage, with the code and settings it depends on and the tables it writes.
+# Airflow runs the parts (dags/meridian_dag.py); its last task, `version`, runs `dvc commit`, which records the hash of
+# every output below in dvc.lock. Git tracks dvc.lock, so each commit pins the exact data the code produced.
+#
+#   dvc repro                 # rerun only the stages whose code, config or inputs changed
+#   dvc commit --force        # record outputs a run already made, without rerunning (what the DAG does)
+#   dvc dag                   # the stages, as Airflow runs them
+#   dvc push / dvc pull       # to and from the remote in .dvc/config (README, "Data versioning")
+#
+# The run comes from settings.toml [pipeline] run_id. The repo checkouts (snapshots/<run_id>/repos, 2.5 GB) aren't
+# tracked: collect rebuilds them byte for byte from the pinned SHAs. The raw ticket pulls are (snapshots/_cache/*.dvc).
+
+vars:
+  - settings.toml:pipeline
+
+stages:
+  collect:
+    cmd: python -m meridian.collect --run-id ${pipeline.run_id} --config ${pipeline.config}
+    deps:
+      - meridian/collect.py
+      - meridian/common.py
+      - ${pipeline.config}
+      - ../snapshots/_cache/jira
+      - ../snapshots/_cache/gitlab
+    outs:
+      - ../out/${pipeline.run_id}/run.jsonl
+      - ../snapshots/${pipeline.run_id}/manifest.json:
+          cache: false
+
+  history:
+    cmd: python -m meridian.history --run-id ${pipeline.run_id} --config ${pipeline.config}
+    deps:
+      - meridian/history.py
+      - meridian/tickets.py
+      - meridian/szz.py
+      - meridian/common.py
+      - ${pipeline.config}
+      - ../out/${pipeline.run_id}/run.jsonl
+    outs:
+      - ../out/${pipeline.run_id}/git_commit.jsonl
+      - ../out/${pipeline.run_id}/commit_file.jsonl
+      - ../out/${pipeline.run_id}/ticket.jsonl
+      - ../out/${pipeline.run_id}/ticket_event.jsonl
+      - ../out/${pipeline.run_id}/ticket_link.jsonl
+      - ../out/${pipeline.run_id}/commit_ticket.jsonl
+      - ../out/${pipeline.run_id}/bug_inducing.jsonl
+      - ../out/${pipeline.run_id}/file_bug_fixes.jsonl
+
+  scan:
+    cmd: python -m meridian.scan --run-id ${pipeline.run_id} --config ${pipeline.config}
+    deps:
+      - meridian/scan.py
+      - meridian/common.py
+      - ${pipeline.config}
+      - ../out/${pipeline.run_id}/run.jsonl
+    outs:
+      - ../out/${pipeline.run_id}/candidate.jsonl
+      - ../out/${pipeline.run_id}/parse_failure.jsonl
+      - ../out/${pipeline.run_id}/module_import.jsonl
+      - ../out/${pipeline.run_id}/deprecation.jsonl
+
+  resolve:
+    cmd: python -m meridian.resolve --run-id ${pipeline.run_id} --config ${pipeline.config}
+    deps:
+      - meridian/resolve.py
+      - meridian/scan.py
+      - meridian/common.py
+      - ${pipeline.config}
+      - ../out/${pipeline.run_id}/candidate.jsonl
+    outs:
+      - ../out/${pipeline.run_id}/resolution.jsonl
+      - ../out/${pipeline.run_id}/call_edge.jsonl
+
+  owners:
+    cmd: python -m meridian.owners --run-id ${pipeline.run_id} --config ${pipeline.config}
+    deps:
+      - meridian/owners.py
+      - meridian/common.py
+      - ${pipeline.config}
+      - ../out/${pipeline.run_id}/git_commit.jsonl
+      - ../out/${pipeline.run_id}/commit_file.jsonl
+      - ../out/${pipeline.run_id}/ticket.jsonl
+      - ../out/${pipeline.run_id}/commit_ticket.jsonl
+    outs:
+      - ../out/${pipeline.run_id}/person.jsonl
+      - ../out/${pipeline.run_id}/person_alias.jsonl
+      - ../out/${pipeline.run_id}/team_map.jsonl
+      - ../out/${pipeline.run_id}/file_owner.jsonl
+
+  join:
+    cmd: python -m meridian.join --run-id ${pipeline.run_id} --config ${pipeline.config}
+    deps:
+      - meridian/join.py
+      - meridian/scan.py
+      - meridian/common.py
+      - ${pipeline.config}
+      - ../out/${pipeline.run_id}/candidate.jsonl
+      - ../out/${pipeline.run_id}/resolution.jsonl
+      - ../out/${pipeline.run_id}/parse_failure.jsonl
+      - ../out/${pipeline.run_id}/file_owner.jsonl
+      - ../out/${pipeline.run_id}/file_bug_fixes.jsonl
+      - ../out/${pipeline.run_id}/ticket.jsonl
+      - ../out/${pipeline.run_id}/commit_ticket.jsonl
+      - ../out/${pipeline.run_id}/commit_file.jsonl
+      - ../out/${pipeline.run_id}/git_commit.jsonl
+    outs:
+      - ../out/${pipeline.run_id}/call_site.jsonl
+      - ../out/${pipeline.run_id}/ticket_map.jsonl
+      - ../out/${pipeline.run_id}/coverage.jsonl
+
+  graph:
+    cmd: python -m meridian.graph --run-id ${pipeline.run_id} --config ${pipeline.config}
+    deps:
+      - meridian/graph.py
+      - meridian/join.py
+      - meridian/common.py
+      - ${pipeline.config}
+      - ../out/${pipeline.run_id}/call_site.jsonl
+      - ../out/${pipeline.run_id}/call_edge.jsonl
+      - ../out/${pipeline.run_id}/resolution.jsonl
+      - ../out/${pipeline.run_id}/ticket_map.jsonl
+      - ../out/${pipeline.run_id}/ticket.jsonl
+    outs:
+      - ../out/${pipeline.run_id}/blocked_by.jsonl
+      - ../out/${pipeline.run_id}/blast_radius.jsonl
+      - ../out/${pipeline.run_id}/chain.jsonl
+
+  validate:
+    cmd: python -m meridian.validate --run-id ${pipeline.run_id} --config ${pipeline.config}
+    deps:
+      - meridian/validate.py
+      - meridian/writer.py
+      - meridian/alert.py
+      - schema.sql
+      - settings.toml
+      - ../out/${pipeline.run_id}/run.jsonl
+      - ../out/${pipeline.run_id}/git_commit.jsonl
+      - ../out/${pipeline.run_id}/commit_file.jsonl
+      - ../out/${pipeline.run_id}/ticket.jsonl
+      - ../out/${pipeline.run_id}/ticket_event.jsonl
+      - ../out/${pipeline.run_id}/ticket_link.jsonl
+      - ../out/${pipeline.run_id}/commit_ticket.jsonl
+      - ../out/${pipeline.run_id}/bug_inducing.jsonl
+      - ../out/${pipeline.run_id}/file_bug_fixes.jsonl
+      - ../out/${pipeline.run_id}/candidate.jsonl
+      - ../out/${pipeline.run_id}/parse_failure.jsonl
+      - ../out/${pipeline.run_id}/module_import.jsonl
+      - ../out/${pipeline.run_id}/deprecation.jsonl
+      - ../out/${pipeline.run_id}/resolution.jsonl
+      - ../out/${pipeline.run_id}/call_edge.jsonl
+      - ../out/${pipeline.run_id}/person.jsonl
+      - ../out/${pipeline.run_id}/person_alias.jsonl
+      - ../out/${pipeline.run_id}/team_map.jsonl
+      - ../out/${pipeline.run_id}/file_owner.jsonl
+      - ../out/${pipeline.run_id}/call_site.jsonl
+      - ../out/${pipeline.run_id}/ticket_map.jsonl
+      - ../out/${pipeline.run_id}/coverage.jsonl
+      - ../out/${pipeline.run_id}/blocked_by.jsonl
+      - ../out/${pipeline.run_id}/blast_radius.jsonl
+      - ../out/${pipeline.run_id}/chain.jsonl
+    outs:
+      - ../out/${pipeline.run_id}/stats.json:
+          cache: false
+      - ../out/${pipeline.run_id}/anomalies.json:
+          cache: false
+
+  bias:
+    cmd: python -m meridian.bias --run-id ${pipeline.run_id} --config ${pipeline.config}
+    deps:
+      - meridian/bias.py
+      - meridian/owners.py
+      - settings.toml
+      - ../out/${pipeline.run_id}/run.jsonl
+      - ../out/${pipeline.run_id}/git_commit.jsonl
+      - ../out/${pipeline.run_id}/commit_file.jsonl
+      - ../out/${pipeline.run_id}/commit_ticket.jsonl
+      - ../out/${pipeline.run_id}/ticket.jsonl
+      - ../out/${pipeline.run_id}/person.jsonl
+      - ../out/${pipeline.run_id}/person_alias.jsonl
+      - ../out/${pipeline.run_id}/ticket_map.jsonl
+      - ../out/${pipeline.run_id}/candidate.jsonl
+      - ../out/${pipeline.run_id}/resolution.jsonl
+    metrics:
+      - ../out/${pipeline.run_id}/bias.json:
+          cache: false
