@@ -1,0 +1,107 @@
+# Push check (Data-Pipeline/UPDATE-PLAN.md, Phase 2): P1–P9 on a PR to a watched repo, as one comment, against the
+# last published block. Read-only: the token can only read code and write PR comments. Never blocks a merge.
+#
+# It runs in the watched repo. Either copy this file there (on: pull_request), or call it from there:
+#
+#   on: pull_request
+#   jobs:
+#     push-check:
+#       uses: <owner>/Meridian/.github/workflows/push-check.yml@main
+#       with: { meridian_repo: <owner>/Meridian }
+#       permissions: { contents: read, pull-requests: write }
+#
+# Settings are Data-Pipeline/settings.toml [push_check], read from the Meridian checkout. No base block (the URL is
+# empty, or the fetch fails) = no comment (04-architecture §10). PRs from forks get a read-only token from GitHub, so
+# they get no comment either.
+name: push-check
+
+on:
+  pull_request:
+  workflow_call:
+    inputs:
+      meridian_repo:
+        description: "owner/name of the Meridian repo: the check's code and settings.toml"
+        type: string
+        required: true
+      meridian_ref:
+        description: "branch, tag or SHA of it ('' = its default branch)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:  # a new push to the PR replaces a check still running on the old one
+  group: push-check-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  push-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0          # the base SHA too: the check diffs base...head and reads its commit messages
+          path: target
+          persist-credentials: false
+
+      - name: Check out Meridian
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.meridian_repo || github.repository }}
+          ref: ${{ inputs.meridian_ref }}
+          path: meridian
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install the scanner (the check's only packages outside the standard library)
+        run: grep -E '^tree-sitter' meridian/Data-Pipeline/requirements.txt | pip install -r /dev/stdin
+
+      - name: Fetch the last published block
+        id: base
+        working-directory: meridian/Data-Pipeline
+        run: |
+          url=$(python -c "from meridian.common import load_settings; print(load_settings('push_check')['base_block_url'])")
+          # PLACEHOLDER until meridian.publish settles where the block lives (settings.toml [push_check] base_block_url).
+          # https: curl, as here. gs://: add google-github-actions/auth before this step and use
+          #   gcloud storage cp "$url" "$RUNNER_TEMP/base.sqlite"
+          if [ -z "$url" ]; then echo "no base_block_url in settings.toml [push_check]: no base, no comment"; exit 0; fi
+          if curl -fsSL --retry 3 "$url" -o "$RUNNER_TEMP/base.sqlite"; then echo "found=1" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Run the push check
+        if: steps.base.outputs.found
+        working-directory: meridian/Data-Pipeline
+        env:
+          REPO: ${{ github.repository }}
+          RANGE: ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}
+        run: >
+          python -m meridian.pushcheck --base "$RUNNER_TEMP/base.sqlite" --repo "$REPO" --changed "$RANGE"
+          --checkout "$GITHUB_WORKSPACE/target" > "$RUNNER_TEMP/comment.md"
+
+      - name: Post or update the one comment
+        if: steps.base.outputs.found
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          marker='<!-- meridian-push-check -->'   # = meridian.pushcheck.MARKER, the comment's first line
+          body="$RUNNER_TEMP/comment.md"
+          id=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+                 --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1)
+          if [ ! -s "$body" ]; then
+            if [ -z "$id" ]; then exit 0; fi   # nothing to say, and nothing said before
+            printf '%s\n**Meridian push check**: nothing to flag at %s.\n' "$marker" "$SHA" > "$body"
+          fi
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F "body=@$body" > /dev/null
+          else
+            gh api -X POST "repos/$REPO/issues/$PR/comments" -F "body=@$body" > /dev/null
+          fi

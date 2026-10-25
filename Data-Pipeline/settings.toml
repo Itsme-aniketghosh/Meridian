@@ -216,3 +216,21 @@ recent_since = "2020"                 # ticket mapping is sliced again on ticket
 
 [dvc]
 push = false                          # publish runs dvc commit and push to the DVC remote when true (.dvc/config names it)
+
+# ───────────── push check (meridian.pushcheck, .github/workflows/push-check.yml) ─────────────
+
+[push_check]
+# PLACEHOLDER: where meridian.publish puts the last published meridian.sqlite. Not settled yet (publish is being built).
+# The workflow fetches it with curl, so an https URL works as is; a gs:// path needs the workflow's fetch step swapped
+# for `gcloud storage cp` after google-github-actions/auth. "" = no base map: the check posts nothing (04 §10)
+base_block_url = ""
+max_scope_files = 200                 # 04 §10: changed files + importers over this, skip (said in one line)
+max_lines = 10                        # 04 §10: one comment, at most 10 findings
+defect_risk_threshold = 2000          # P9: lines × files above this. Not measured yet: 05-test's "P9 vs SZZ" sets it
+
+# Optional (Phase 2): a push to a watched repo's main branch starts the update DAG through Airflow's REST API
+# (.github/workflows/trigger-update.yml). max_active_runs = 1 and the "anything new?" step make a burst of pushes one run
+airflow_url = ""                      # e.g. https://airflow.example.com. "" = don't trigger
+airflow_dag_id = "meridian_update"
+airflow_user_env = "MERIDIAN_AIRFLOW_USER"          # the secret holding the Airflow API user
+airflow_password_env = "MERIDIAN_AIRFLOW_PASSWORD"  # ... and its password
