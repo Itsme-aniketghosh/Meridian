@@ -96,6 +96,23 @@ delta_overlap_minutes = 1440          # a ticket delta asks for changes since th
 [history]
 szz_workers = 0                       # SZZ processes. 0 = one per CPU
 
+# ───────────── caches (UPDATE-PLAN.md, Phase 3) ─────────────
+# Each switch lets a part reuse its last results for inputs that didn't change. All off: Phase 3 is signed off "only
+# if runs get slow". On or off, a part writes the same bytes (tests/test_cache.py). A cache lives under the data root in
+# snapshots/_cache/{scan,resolve,szz}/<repo>.json, is never hashed into a run, and keeps only what its last run used.
+# Delete a folder to start that cache over. The Sunday rebuild runs with all three off.
+
+[cache]
+scan = false                          # per file: its git blob SHA, path and kind, scan.py, tree-sitter's versions, the
+                                      # repo's symbols and [scanner]. A file whose key is unchanged keeps its rows
+resolve = false                       # per file: resolve.py and scan.py, the versions, the repo's symbols and [resolver]
+                                      # rules, the dependencies' SHAs (Django, for the packages), every file name in the
+                                      # checkout, the file's candidates, and the blob of every repo file Jedi read for it
+                                      # (what it imports, however deep). A push that adds or deletes a file redoes the
+                                      # repo. call_edge is always rebuilt
+szz = false                           # per fix commit: its SHA, szz.py, [szz] test_paths and comment_prefixes, git's
+                                      # version. Only new fix commits are blamed; key and file_bug_fixes are redone
+
 # ───────────── data checks (meridian.validate) ─────────────
 # Allowances were measured on run 70dd1dabfed544b8 (Oct 24) and carry the reason a column may be empty. Change one
 # only with a commit that says why.

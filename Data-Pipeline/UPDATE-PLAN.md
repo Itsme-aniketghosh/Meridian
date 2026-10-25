@@ -1,6 +1,6 @@
 # Keeping the graph up to date · plan
 
-Draft from Aniket's discussion with Utkarsh. Nothing here is built yet. Numbers (#1–#18) are the items to confirm.
+Draft from Aniket's discussion with Utkarsh. Built so far: the Phase 3 caches, all switched off (Phases, below). Numbers (#1–#18) are the items to confirm.
 
 ## Now vs where we want to be
 
@@ -67,8 +67,8 @@ Times now (Oct 23–24), **on Aniket's Windows machine**: history 430 s, resolve
 | **Built (Oct 24).** validate builds `meridian.sqlite` once (the dashboard reuses it) and runs one stats query per table, not per column | Estimated 165 s → ~30 s; measured on a copy of 70dd's block (Windows, 0.3–0.5 GB free): statistics 14–41 s per column, 15–43 s per table, the same `stats.json`, so **no gain**. The time is counting distinct values of long text columns (`ticket.description` alone 19 s), not reading tables. The dashboard saves its own ~1 min writer rebuild | 1 |
 | Bias and full statistics weekly (in the rebuild), not on every update. The quick checks (rows, formats, ranges, coverage floors) still run on every update: they decide publish | −35 s per update | 1 |
 | **Built (Oct 24), off by default:** `docker-compose.volumes.yaml`. Keep `snapshots/` and `out/` on a Docker volume, not the Windows/Mac folder. Mount the volumes at those same paths in the repo: `dvc.yaml` reads `../out` and `../snapshots` | git and file reads several times faster in Docker (not timed yet) | 1 |
-| Scan cached per file, by git blob SHA. Resolve cached per file too, but also redone for every file that imports a changed module (caveat 2) | scan + resolve from ~7 min to seconds on a typical push | 3 |
-| SZZ on new fix commits only; keep earlier `bug_inducing` rows (blame of past commits never changes). Recount `file_bug_fixes`: its 365-day window moves | history from ~7 min to seconds | 3 |
+| Scan cached per file, by git blob SHA. Resolve cached per file too, but also redone for every file that imports a changed module (caveat 2). **Built, off by default**: `[cache] scan` and `[cache] resolve` in `settings.toml`. Resolve records every repo file Jedi reads for a file (imports and re-exports however deep, stub lookups) and redoes the file when any of them changes; a push that adds or deletes a file redoes its repo; `call_edge` is rebuilt every run, not cached | scan + resolve from ~7 min to seconds on a typical push (resolve: less, its `call_edge` questions are still all asked) | 3 |
+| SZZ on new fix commits only; keep earlier `bug_inducing` rows (blame of past commits never changes). Recount `file_bug_fixes`: its 365-day window moves. **Built, off by default**: `[cache] szz`. The fix's ticket `key` is recomputed too | history from ~7 min to seconds | 3 |
 
 **Caveats.** Each one is a way an update could go quietly wrong. The Sunday rebuild would catch it, but only days later:
 
@@ -93,9 +93,10 @@ Times now (Oct 23–24), **on Aniket's Windows machine**: history 430 s, resolve
 - Optional: a merged push starts `meridian_update` itself (still one run at a time, batched).
 - Done when: a PR gets its comment in under 5 minutes (05-test), and a burst of pushes makes one run, not many.
 
-**Phase 3 · update only what changed, inside each part.** Once runs get slow.
+**Phase 3 · update only what changed, inside each part.** Once runs get slow. Built, every switch off (`settings.toml` `[cache]`); `tests/test_cache.py` checks on fixtures that each cache writes the same bytes as no cache, and that after one change (for resolve, in an imported module) it equals a run from scratch.
 - Scan and resolve cached per file, by git blob SHA.
 - SZZ on new fix commits only.
+- To switch on: set the three to true for updates, keep them off for the Sunday rebuild, and compare.
 - Done when: the Sunday rebuild still equals the updates (0 differences), and a typical update takes seconds.
 
 ## Fixes on `mlops-pipeline` before it merges

@@ -45,16 +45,22 @@ Parse failures. A file whose tree has an ERROR or MISSING node is excluded and b
 (CONTRACTS.md rule 9: nothing is silently dropped). The log says how many tracked names those files held.
 
 Same run, same bytes: files and rows in a fixed order, no clock, nothing random.
+
+Cache (settings.toml [cache] scan, off by default). A file's rows depend on its bytes, path and kind, this code,
+tree-sitter's versions, the repo's symbols and [scanner], and nothing else. With all of them as before (the bytes
+by their git blob SHA), its rows are reused from snapshots/_cache/scan/<repo>.json with this run_id. Same bytes either way.
 """
 import json, os, re
 from collections import Counter
 from fnmatch import fnmatchcase
+from importlib.metadata import version
 from pathlib import Path
 
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser
 
-from meridian.common import data_root, git, handoff, load_config, log, parser, write_jsonl
+from meridian.common import (Cache, blob_sha, cache_key, data_root, git, handoff, load_config, load_settings, log, parser,
+                             source_hash, write_jsonl)
 
 PY = Parser(Language(tspython.language()))
 COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "role", "scope", "text", "junk", "file_kind", "in_except"]
@@ -322,39 +328,59 @@ def deprecations(nodes, patterns):
     return found
 
 
-def scan_repo(run_id, repo, repo_dir, symbols, scanner):
-    """(candidate rows, parse_failure rows, counts, module_import rows, deprecation rows) for one repo."""
-    rows, failures, imported, deprecated, counts = [], [], [], [], Counter()
+def scan_file(run_id, repo, rel, kind, source, symbols, scanner):
+    """{table: rows} and counts for one file. Depends on nothing but these arguments (the [cache] scan rule)."""
+    rows, failures, imported, deprecated, counts = [], [], [], [], Counter(files=1)
     rules = scanner.get("junk", {})
-    for rel, kind in files(repo_dir, scanner):
-        source = (repo_dir / rel).read_bytes()
-        tree = PY.parse(source)
-        nodes = list(walk(tree.root_node))
-        names = [n for n in nodes if n.type == "identifier" and n.text.decode("utf-8", errors="replace") in symbols]
-        counts["files"] += 1
-        if tree.root_node.has_error:
-            failures.append(dict(zip(FAIL_COLUMNS, [run_id, repo, rel, first_error(tree.root_node)])))
-            counts["names_in_failed_files"] += len(names)
-            continue
+    tree = PY.parse(source)
+    nodes = list(walk(tree.root_node))
+    names = [n for n in nodes if n.type == "identifier" and n.text.decode("utf-8", errors="replace") in symbols]
+    if tree.root_node.has_error:
+        failures.append(dict(zip(FAIL_COLUMNS, [run_id, repo, rel, first_error(tree.root_node)])))
+        counts["names_in_failed_files"] += len(names)
+        names = []
+    else:
         test = int(is_test(rel, rules))
         imported += [dict(zip(IMPORT_COLUMNS, [run_id, repo, rel, *i, test])) for i in sorted(imports(rel, nodes))]
         deprecated += [dict(zip(DEPRECATION_COLUMNS, [run_id, repo, rel, line, sc, qualname(rel, sc), marker]))
                        for line, (sc, marker) in sorted(deprecations(nodes, scanner["deprecation_markers"]).items())]
-        if not names:
-            continue
+    if names:
         lines = source.decode("utf-8", errors="replace").split("\n")
         label = junk(rel, source, rules)
-        for node in names:
-            if name_only(node):
-                counts["name_only"] += 1
-                if not scanner["keep_name_only"]:
-                    continue
-            line = node.start_point[0] + 1
-            rows.append(dict(zip(COLUMNS, [run_id, repo, rel, line, char_col(source, node),
-                                           node.text.decode("utf-8", errors="replace"), role(node), scope(node),
-                                           lines[line - 1].strip(), label, kind, in_except(node)])))
-    rows.sort(key=lambda r: (r["path"], r["line"], r["col"]))
-    return rows, failures, counts, imported, deprecated
+    for node in names:
+        if name_only(node):
+            counts["name_only"] += 1
+            if not scanner["keep_name_only"]:
+                continue
+        line = node.start_point[0] + 1
+        rows.append(dict(zip(COLUMNS, [run_id, repo, rel, line, char_col(source, node),
+                                       node.text.decode("utf-8", errors="replace"), role(node), scope(node),
+                                       lines[line - 1].strip(), label, kind, in_except(node)])))
+    return dict(zip(KEYS, (rows, failures, imported, deprecated))), counts
+
+
+def scan_repo(run_id, repo, repo_dir, symbols, scanner, cache=None):
+    """(candidate rows, parse_failure rows, counts, module_import rows, deprecation rows) for one repo.
+    cache ([cache] scan): a common.Cache of each file's rows without run_id, keyed on its blob SHA, path and kind, plus
+    this code, tree-sitter's versions, the repo's symbols and [scanner]: all scan_file depends on."""
+    tables, counts = {t: [] for t in KEYS}, Counter()
+    base = cache and cache_key(source_hash(__file__), [version(d) for d in ("tree-sitter", "tree-sitter-python")],
+                               symbols, scanner)
+    for rel, kind in files(repo_dir, scanner):
+        source = (repo_dir / rel).read_bytes()
+        if cache is None:
+            got, n = scan_file(run_id, repo, rel, kind, source, symbols, scanner)
+        elif hit := cache.get(key := cache_key(base, rel, kind, blob_sha(source))):
+            got, n = {t: [{"run_id": run_id, **r} for r in rs] for t, rs in hit["rows"].items()}, Counter(hit["counts"])
+        else:
+            got, n = scan_file(run_id, repo, rel, kind, source, symbols, scanner)
+            cache.put(key, {"rows": {t: [{k: v for k, v in r.items() if k != "run_id"} for r in rs] for t, rs in got.items()},
+                            "counts": n})
+        for t in KEYS:
+            tables[t] += got[t]
+        counts.update(n)
+    rows = sorted(tables["candidate"], key=lambda r: (r["path"], r["line"], r["col"]))
+    return rows, tables["parse_failure"], counts, tables["module_import"], tables["deprecation"]
 
 
 def head(repo_dir):
@@ -375,13 +401,18 @@ def run(run_id, cfg, root=None):
     wanted, keys = tracked(cfg), answer_keys(cfg)
     scanner = cfg.get("scanner", {})
     tables = {t: [] for t in KEYS}
+    cached = load_settings("cache").get("scan", False)
     for repo, sha in sorted(manifest["repos"].items()):
         if repo not in wanted:
             continue
         repo_dir = snap / "repos" / repo.replace("/", "__")
         if head(repo_dir) != sha:
             raise SystemExit(f"{repo}: checkout is at {head(repo_dir)!r}, the manifest says {sha}")
-        got, failed, counts, imported, deprecated = scan_repo(run_id, repo, repo_dir, wanted[repo], scanner)
+        cache = Cache("scan", repo, root) if cached else None
+        got, failed, counts, imported, deprecated = scan_repo(run_id, repo, repo_dir, wanted[repo], scanner, cache)
+        if cache:
+            cache.save()
+            log(f"  cache: {len(cache.hits)} of {counts['files']} files reused")
         log(f"{repo}: {len(got)} candidates in {counts['files']} files · "
             f"roles {dict(sorted(Counter(r['role'] for r in got).items()))} · "
             f"junk {dict(sorted(Counter(r['junk'] for r in got).items()))} · {sum(r['in_except'] for r in got)} in except")
