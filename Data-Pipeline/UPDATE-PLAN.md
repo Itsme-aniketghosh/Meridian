@@ -37,7 +37,7 @@ Draft from Aniket's discussion with Utkarsh. Nothing here is built yet. Numbers 
 
 14. Repos follow their main branch, resolved to a commit at collect time.
 15. `snapshot_at` moves forward to each run's pull time.
-16. Collect pulls only what changed since the last run, from a stored cursor.
+16. Collect pulls only what changed since the last run, from a stored cursor. Each changed ticket comes with its **full changelog** (the rollback to `snapshot_at` replays it), and deleted tickets and links are noticed too.
 17. Schema: `call_site.effective_sha` (join already blames each line, so the SHA is there), plus the commit that introduced each `call_edge`.
 18. Storage: one permanent mirror per repo, plus a small manifest per run.
 
@@ -56,23 +56,29 @@ Today there is one DAG that recomputes everything. Proposed:
 
 ## Faster
 
-Times now (Oct 23–24): history 430 s, resolve 295 s, validate 165 s, scan 140 s, everything else under a minute each.
+Times now (Oct 23–24), **on Aniket's Windows machine**: history 430 s, resolve 295 s, validate 165 s, scan 140 s, everything else under a minute each. On Utkarsh's Mac the same run takes history ~300 s, resolve ~74 s, validate ~19 s, scan ~6 s (about 7 minutes in all), so part of the Windows time is the file system and Docker's folder mount, not the pipeline.
 
 | Change | Gain (estimated) | Phase |
 |---|---|---|
-| Skip repos with no new commits: reuse their last rows | most daily runs touch a few of 22 repos | 1 |
-| Repos in parallel inside a run (#8) | a run takes as long as its slowest repo, not the sum | 1 |
+| Skip repos with no new commits: reuse their last rows (code parts only, see caveat 1) | most daily runs touch a few of 22 repos | 1 |
+| Repos in parallel inside a run (#8), with a worker cap: resolve uses ~1 GB per repo | a run takes as long as its slowest repo, not the sum | 1 |
 | Repo mirrors kept between runs: `git fetch`, not clone (#18) | collect from ~1 min to seconds | 1 |
-| Ticket pulls since a cursor (#16), not all 59k | Jira from a full pull to the day's changes | 1 |
+| Ticket pulls since a cursor (#16), not all 59k, each with its full changelog (caveat 3) | Jira from a full pull to the day's changes | 1 |
 | validate builds `meridian.sqlite` once (the dashboard reuses it) and runs one stats query per table, not per column | 165 s → ~30 s | 1 |
-| Bias and full statistics weekly (in the rebuild), not on every update | −35 s per update | 1 |
-| Keep `snapshots/` and `out/` on a Docker volume, not the Windows/Mac folder | git and file reads several times faster in Docker | 1 |
-| Scan and resolve cached per file, by git blob SHA: only changed files are parsed | scan + resolve from ~7 min to seconds on a typical push | 3 |
-| SZZ on new fix commits only; keep earlier `bug_inducing` rows | history from ~7 min to seconds | 3 |
+| Bias and full statistics weekly (in the rebuild), not on every update. The quick checks (rows, formats, ranges, coverage floors) still run on every update: they decide publish | −35 s per update | 1 |
+| Keep `snapshots/` and `out/` on a Docker volume, not the Windows/Mac folder. Mount the volumes at those same paths in the repo: `dvc.yaml` reads `../out` and `../snapshots` | git and file reads several times faster in Docker | 1 |
+| Scan cached per file, by git blob SHA. Resolve cached per file too, but also redone for every file that imports a changed module (caveat 2) | scan + resolve from ~7 min to seconds on a typical push | 3 |
+| SZZ on new fix commits only; keep earlier `bug_inducing` rows (blame of past commits never changes). Recount `file_bug_fixes`: its 365-day window moves | history from ~7 min to seconds | 3 |
+
+**Caveats.** Each one is a way an update could go quietly wrong. The Sunday rebuild would catch it, but only days later:
+
+1. **"No new commits" skips only the code parts** (scan, resolve, blame). Owners and tickets still run on every update: the 180-day ownership window moves every day, and tickets change without pushes. And a **Django change re-runs every package**, because the packages resolve against the Django checkout (`[resolver] env = "snapshot"`).
+2. **A file's resolution depends on other files**: what it imports and re-exports, and Django for the packages. Call edges reach 3 calls deep, across files. So a resolve cache keyed on a file's own content isn't enough: when a module changes, redo every file that imports it (`module_import`, read in reverse), and the callers within `call_edge_depth` of it.
+3. **Cursor pulls must keep what the rollback needs.** Each changed ticket comes with its whole changelog, not just the latest fields, and a ticket or link deleted since the last pull is noticed, not silently kept.
 
 ## Phases
 
-**Phase 0 · before `mlops-pipeline` merges.** The four fixes below.
+**Phase 0 · before `mlops-pipeline` merges.** The fixes below: four done; the `manifest.json` dependency, the one-machine rule for `dvc.lock` and the Windows gap still open.
 
 **Phase 1 · runs on request, daily, and a weekly rebuild.** Each run still recomputes every part, but only for repos that changed.
 - Contract changes #14–#18 (one new team run_id).
