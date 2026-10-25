@@ -477,7 +477,7 @@ class Edges(unittest.TestCase):
         cls.log = io.StringIO()
         with contextlib.redirect_stdout(cls.log):
             R.run(RUN, cfg, root)
-        cls.repo_dir = repo_dir
+        cls.repo_dir, cls.sha = repo_dir, sha
         cls.path = root / "out" / RUN / "call_edge.jsonl"
         cls.rows = read_jsonl(cls.path)
 
@@ -507,6 +507,25 @@ class Edges(unittest.TestCase):
         schema = (HERE / "schema.sql").read_text(encoding="utf-8")
         rows = W.read_rows(self.path, W.tables(schema)["call_edge"], RUN)
         self.assertEqual(len(rows), len(EDGES))
+
+    def test_introduced_sha_is_the_commit_that_last_changed_the_caller_line(self):
+        self.assertEqual({e["introduced_sha"] for e in self.rows}, {self.sha})  # one commit: every edge is from it
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_dir = Path(tmp) / "fix__edges"
+            first = fixture_repo(repo_dir, EDGE_FILES)
+            with open(repo_dir / "app/chain.py", "a", encoding="utf-8", newline="\n") as f:
+                f.write("\ndef extra():\n    return level1()\n")  # a later commit adds a caller of level1
+            git = lambda *a: subprocess.run(["git", "-C", str(repo_dir), "-c", "user.name=F", "-c", "user.email=f@example.com",
+                                             *a], check=True, capture_output=True, text=True).stdout.strip()
+            git("commit", "-qam", "extra")
+            second = git("rev-parse", "HEAD")
+            use = ("app/chain.py", 4, 11, "fix/edges", "lib/translation.py", "ugettext")
+            edges = R.call_edges(RUN, "fix/edges", R.Repo(repo_dir, {"ugettext": "lib.translation"}), [use],
+                                 R.py_files(repo_dir, []), 3)
+            got = {(e["caller_scope"], e["line"], e["introduced_sha"]) for e in edges}
+            self.assertIn(("level1", 4, first), got)
+            self.assertIn(("level2", 7, first), got)
+            self.assertIn(("extra", 21, second), got)
 
 
 RECEIVER_FILES = {

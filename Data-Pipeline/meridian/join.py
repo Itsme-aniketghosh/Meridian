@@ -22,7 +22,7 @@ call_site: a line someone must edit (04-architecture, Definitions). One row per 
   new ones get a new ID; a removed site's ID can come back, but only to one site.
 - effective_date: the first first-parent commit where the version became true. Present: blame of the line at this
   run's SHA (--first-parent -w). Removed: the first-parent commit after the last one that still had the line
-  (reverse blame). Dates are that commit's authored_at from git_commit.
+  (reverse blame). Dates are that commit's authored_at from git_commit; effective_sha is the commit itself.
 - owner_team from file_owner ('unowned' if the file has no row), bug_fixes from file_bug_fixes (0 if none).
 
 ticket_map: every ticket gets rows, all hits kept, no fuzzy matching ([join] fuzzy_ticket_matching must be false).
@@ -50,7 +50,7 @@ KEYS = {
 }
 ID_FIELDS = ["repo", "symbol", "path", "scope", "normalized_line", "occurrence"]
 MATCH_ORDER = ["git_line_map_with_renames", "same_repo_symbol_scope_normalized_line"]
-# fields that make a new version when they change; run_id, known_at and effective_date describe the version itself
+# fields that make a new version when they change; run_id, known_at and effective_date/_sha describe the version itself
 VERSIONED = ("repo", "path", "line", "col", "scope", "symbol", "role", "detection", "junk", "in_except",
              "owner_team", "bug_fixes", "status")
 JAVA_FRAME = re.compile(r"\bat\s+((?:[\w$]+\.)+)[\w$<>]+\(([\w$]+\.(?:java|scala)):(\d+)\)")
@@ -279,7 +279,7 @@ def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout, faile
             row = {k: s[k] for k in VERSIONED if k in s} | {
                 "call_site_id": ids[i], "run_id": run_id, "status": "present", "known_at": snapshot_at,
                 "owner_team": owner.get((repo, s["path"]), "unowned"), "bug_fixes": fixes.get((repo, s["path"]), 0),
-                "effective_date": date[(repo, sha)]}
+                "effective_date": date[(repo, sha)], "effective_sha": sha}
             old = last.get(ids[i])
             if old and all(old[k] == row[k] for k in VERSIONED):
                 n["unchanged"] += 1
@@ -293,16 +293,16 @@ def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout, faile
             sha = blame(co, shas[repo], to[0], [to[1]])[to[1]]
             written.append({**{k: p[k] for k in VERSIONED}, "path": to[0], "line": to[1], "call_site_id": p["call_site_id"],
                             "run_id": run_id, "known_at": snapshot_at, "owner_team": owner.get((repo, to[0]), "unowned"),
-                            "bug_fixes": fixes.get((repo, to[0]), 0), "effective_date": date[(repo, sha)]})
+                            "bug_fixes": fixes.get((repo, to[0]), 0), "effective_date": date[(repo, sha)], "effective_sha": sha})
         if gone:
             for path in sorted({p["path"] for p in gone}):
                 ps = [p for p in gone if p["path"] == path]
                 still = blame(co, f"{old_sha}..{shas[repo]}", path, [p["line"] for p in ps], reverse=True)
                 for p in ps:
-                    nxt = fp_seq.get((repo, seq_of.get((repo, still[p["line"]]), -2) + 1))
+                    nxt = fp_seq.get((repo, seq_of.get((repo, still[p["line"]]), -2) + 1)) or shas[repo]
                     written.append({**{k: p[k] for k in VERSIONED}, "call_site_id": p["call_site_id"], "run_id": run_id,
                                     "status": "removed", "known_at": snapshot_at,
-                                    "effective_date": date[(repo, nxt or shas[repo])]})
+                                    "effective_date": date[(repo, nxt)], "effective_sha": nxt})
                     n["removed"] += 1
         n["matched"] += len([i for i in ids if ids[i] in last and last[ids[i]]["status"] == "present"])
         n["prev_present"] += len(was)

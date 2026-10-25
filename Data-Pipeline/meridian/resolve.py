@@ -390,7 +390,8 @@ def dependency_paths(snap, manifest, repo, symbols):
     return paths
 
 
-EDGE_COLUMNS = ["run_id", "repo", "caller_path", "caller_scope", "line", "col", "callee_path", "callee_repo", "callee_scope"]
+EDGE_COLUMNS = ["run_id", "repo", "caller_path", "caller_scope", "line", "col", "callee_path", "callee_repo", "callee_scope",
+                "introduced_sha"]
 
 
 def scope_of(root, src, line, col):
@@ -438,14 +439,16 @@ def call_edges(run_id, repo, r, uses, files, depth):
     Then the callers of every function holding one (depth 2), and their callers (depth 3, [resolver] call_edge_depth).
     A call counts only when Jedi lands on that very function's def (or, for an __init__, its class). Module and class
     bodies get edges but have no callers, so they stop the walk. Imports never make edges.
+    introduced_sha: the commit that last changed the caller's line, by join's blame (--first-parent -w) at the checkout's
+    HEAD, which run() has checked is the manifest's SHA. So an edge and the call site on its line name the same commit.
     """
+    from meridian.join import blame
     edges, frontier, seen, answers = {}, {}, set(), {}
 
     def add(path, line, col, callee_repo, callee_path, callee_scope):
         src, root = r.tree(path)
         scope, callers = scope_of(root, src, line, col)
-        row = dict(zip(EDGE_COLUMNS, [run_id, repo, path, scope, line, col, callee_path, callee_repo, callee_scope]))
-        edges[(path, line, col, callee_repo, callee_path, callee_scope)] = row
+        edges[(path, line, col, callee_repo, callee_path, callee_scope)] = scope
         if callers and (path, callers[0][1]) not in seen:
             seen.add((path, callers[0][1]))
             frontier[(path, callers[0][1])] = (scope, callers)
@@ -465,7 +468,12 @@ def call_edges(run_id, repo, r, uses, files, depth):
                         answers[site] = {r.where(n)[:2] for n in r.goto(*site) if r.where(n)}
                     if (t_path, lands) in answers[site]:
                         add(*site, repo, t_path, t_scope)
-    return [edges[k] for k in sorted(edges)]
+    lines = {}
+    for path, line, *_ in edges:
+        lines.setdefault(path, set()).add(line)
+    made = {path: blame(r.dir, "HEAD", path, ls) for path, ls in sorted(lines.items())}
+    return [dict(zip(EDGE_COLUMNS, [run_id, repo, path, scope, line, col, callee_path, callee_repo, callee_scope, made[path][line]]))
+            for (path, line, col, callee_repo, callee_path, callee_scope), scope in sorted(edges.items())]
 
 
 def summary(rows):

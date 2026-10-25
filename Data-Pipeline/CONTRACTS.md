@@ -180,5 +180,6 @@ python -m meridian.<part> --run-id <run_id> --config meridian.toml
 | 4 tables | 25 tables | Every part's output is a table, so every number has a row |
 | — | `coverage` | "Always report what we missed" |
 | — | v1.1: `ticket.description`, `candidate.in_except` / `call_site.in_except`, `module_import`, `deprecation`, `resolution.receiver_from`; `blocked_by.depth` is `>= 1` | Planned features had nothing to read ([KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md), [FIXES.md](FIXES.md)). Depth is `[graph] blocked_by_max_depth`, a setting |
+| — | v1.2: `call_site.effective_sha` (the commit `effective_date` is from), `call_edge.introduced_sha` (blame of the caller's line), both 40 hex | Per-commit attribution and the per-run change report, `meridian.report` → `changes.json` ([UPDATE-PLAN.md](UPDATE-PLAN.md) #5, #17) |
 
 03-data gets updated to match once v1 is frozen (Day 10).

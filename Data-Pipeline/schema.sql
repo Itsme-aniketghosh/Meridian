@@ -1,4 +1,4 @@
--- Meridian graph data block · schema v1.1 (v1 + description, in_except, receiver_from, module_import, deprecation; see FIXES.md)
+-- Meridian graph data block · schema v1.2 (v1.1 + call_site.effective_sha, call_edge.introduced_sha: UPDATE-PLAN.md #17. v1.1 = v1 + description, in_except, receiver_from, module_import, deprecation; see FIXES.md)
 -- The contract every part writes to. Change it only with Utkarsh and Aniket's OK.
 --
 -- Conventions (full list in CONTRACTS.md):
@@ -203,6 +203,7 @@ CREATE TABLE call_edge (
   callee_path     TEXT NOT NULL,             -- may be in another repo: see callee_repo
   callee_repo     TEXT NOT NULL,
   callee_scope    TEXT NOT NULL,
+  introduced_sha  TEXT NOT NULL,             -- 40 hex: the commit that last changed the caller's line at the run's SHA (blame --first-parent -w)
   PRIMARY KEY (run_id, repo, caller_path, line, col, callee_repo, callee_path, callee_scope)
 ) WITHOUT ROWID;
 -- Resolved calls only. Imports are never edges.
@@ -269,6 +270,7 @@ CREATE TABLE call_site (                     -- append-only: a row is written on
   bug_fixes       INTEGER NOT NULL,
   status          TEXT NOT NULL CHECK (status IN ('present','removed')),
   effective_date  TEXT NOT NULL,             -- first first-parent commit where this became true
+  effective_sha   TEXT NOT NULL,             -- 40 hex: that commit. Present: blame of the line. Removed: the removing commit
   known_at        TEXT NOT NULL,             -- = run.snapshot_at of the writing run
   PRIMARY KEY (call_site_id, run_id)
 ) WITHOUT ROWID;
