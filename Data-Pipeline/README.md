@@ -76,6 +76,9 @@ cp .env.example .env                     # set the UI password; alert secrets if
 docker compose up -d --build             # Postgres, scheduler, web UI at http://localhost:8080
 ```
 
+On Windows or Mac, file I/O through Docker's folder mount is several times slower; to keep `snapshots/` and `out/` on Docker volumes instead, add `-f docker-compose.volumes.yaml` after `-f docker-compose.yaml` to every `docker compose` command (off by default; the host's `snapshots/` and `out/` are then hidden from the containers).
+The volumes start empty, so get the raw data in from inside the container: put the team zip at the repo root and run `docker compose -f docker-compose.yaml -f docker-compose.volumes.yaml run --rm airflow-scheduler python -m zipfile -e /opt/meridian/meridian-raw-973531f7fd4cfd5e.zip /opt/meridian/snapshots/`, or `... run --rm airflow-scheduler bash -c "cd /opt/meridian/Data-Pipeline && /opt/meridian-venv/bin/dvc pull"`.
+
 In the UI, unpause `meridian_nightly` and trigger it. It processes `settings.toml [pipeline] run_id`; to run another, trigger with config `{"run_id": "...", "prev_run": "..."}`. Task logs are in the UI and in `Data-Pipeline/logs/`. The DAG runs nightly at 02:00 UTC (`[orchestration] schedule`).
 
 **Without Airflow.** Each task is one command, from `Data-Pipeline/`, in the order above:
@@ -132,6 +135,8 @@ On run `70dd1dabfed544b8`: 1,788,242 rows in 25 tables, 0 errors. It found 289 S
 | | | | bias | 35 s |
 
 In sequence that is about 1,130 s. In the DAG the two branches overlap (history + owners 445 s, scan + resolve 435 s), so a run takes about 700 s: **−38%**. The bottleneck is `history`'s SZZ step; it already runs one process per CPU (`[history] szz_workers`). Airflow's Gantt view (DAG → a run → Gantt) shows the same split on every run.
+
+Inside validate, about a minute is the writer building `meridian.sqlite` (the dashboard reuses it, not rebuilding it), the checks ~20 s, and the statistics 15–40 s on a copy of this block (Windows, little free memory). They now read each table once, in one aggregate query, with the same `stats.json`; that took as long as one query per column, because the time is in counting distinct values of long text columns (`ticket.description`, 19 s), not in reading the table.
 
 ## Tests
 

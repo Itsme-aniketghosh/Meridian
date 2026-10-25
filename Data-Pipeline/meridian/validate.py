@@ -32,15 +32,21 @@ NUMERIC = ("INTEGER", "REAL")
 
 
 def column_stats(db, table, cols, top_n):
-    """{column: stats} for one table, all in SQL so a big table never sits in memory."""
-    rows = db.execute(f'SELECT count(*) FROM "{table}"').fetchone()[0]
-    out = {}
+    """(rows, {column: stats}) for one table, all in SQL so a big table never sits in memory. One aggregate query
+    reads the table once for every column's missing / distinct / min / max / mean; top values, one query per column
+    that has them."""
+    exprs = ["count(*)"]
     for name, typ, *_ in cols:
         q = f'"{name}"'
-        missing, distinct = db.execute(f"SELECT sum({q} IS NULL OR {q} = ''), count(DISTINCT {q}) FROM \"{table}\"").fetchone()
+        exprs += [f"sum({q} IS NULL OR {q} = '')", f"count(DISTINCT {q})"] + ([f"min({q})", f"max({q})", f"avg({q})"] if typ in NUMERIC else [])
+    got = iter(db.execute(f'SELECT {", ".join(exprs)} FROM "{table}"').fetchone())
+    rows, out = next(got), {}
+    for name, typ, *_ in cols:
+        q = f'"{name}"'
+        missing, distinct = next(got), next(got)
         s = {"missing": missing or 0, "distinct": distinct}
         if typ in NUMERIC:
-            lo, hi, mean = db.execute(f'SELECT min({q}), max({q}), avg({q}) FROM "{table}"').fetchone()
+            lo, hi, mean = next(got), next(got), next(got)
             s |= {"min": lo, "max": hi, "mean": None if mean is None else round(mean, 4)}
         if 0 < distinct <= top_n and distinct < rows:  # every value unique (run's image_digest): nothing common to list
             s["top"] = [list(r) for r in db.execute(

@@ -64,9 +64,9 @@ Times now (Oct 23–24), **on Aniket's Windows machine**: history 430 s, resolve
 | Repos in parallel inside a run (#8), with a worker cap: resolve uses ~1 GB per repo | a run takes as long as its slowest repo, not the sum | 1 |
 | Repo mirrors kept between runs: `git fetch`, not clone (#18) | collect from ~1 min to seconds | 1 |
 | Ticket pulls since a cursor (#16), not all 59k, each with its full changelog (caveat 3) | Jira from a full pull to the day's changes | 1 |
-| validate builds `meridian.sqlite` once (the dashboard reuses it) and runs one stats query per table, not per column | 165 s → ~30 s | 1 |
+| **Built (Oct 24).** validate builds `meridian.sqlite` once (the dashboard reuses it) and runs one stats query per table, not per column | Estimated 165 s → ~30 s; measured on a copy of 70dd's block (Windows, 0.3–0.5 GB free): statistics 14–41 s per column, 15–43 s per table, the same `stats.json`, so **no gain**. The time is counting distinct values of long text columns (`ticket.description` alone 19 s), not reading tables. The dashboard saves its own ~1 min writer rebuild | 1 |
 | Bias and full statistics weekly (in the rebuild), not on every update. The quick checks (rows, formats, ranges, coverage floors) still run on every update: they decide publish | −35 s per update | 1 |
-| Keep `snapshots/` and `out/` on a Docker volume, not the Windows/Mac folder. Mount the volumes at those same paths in the repo: `dvc.yaml` reads `../out` and `../snapshots` | git and file reads several times faster in Docker | 1 |
+| **Built (Oct 24), off by default:** `docker-compose.volumes.yaml`. Keep `snapshots/` and `out/` on a Docker volume, not the Windows/Mac folder. Mount the volumes at those same paths in the repo: `dvc.yaml` reads `../out` and `../snapshots` | git and file reads several times faster in Docker (not timed yet) | 1 |
 | Scan cached per file, by git blob SHA. Resolve cached per file too, but also redone for every file that imports a changed module (caveat 2) | scan + resolve from ~7 min to seconds on a typical push | 3 |
 | SZZ on new fix commits only; keep earlier `bug_inducing` rows (blame of past commits never changes). Recount `file_bug_fixes`: its 365-day window moves | history from ~7 min to seconds | 3 |
 
