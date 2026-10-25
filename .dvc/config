@@ -1,0 +1,5 @@
+[core]
+    autostage = true
+    analytics = false
+['remote "gcs"']
+    url = gs://meridian-pipeline-snapshots/dvc

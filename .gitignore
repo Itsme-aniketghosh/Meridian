@@ -1,11 +1,22 @@
-# Data never goes in git. Keep it local, or in GCS.
+# Data never goes in git. Keep it local, in GCS, or in the DVC remote: git keeps only DVC's small pointer files.
 
 # Data folders, at any depth
 data/
 repos/
 results/
-snapshots/
 out/
+# snapshots/: everything but DVC's pointers to the raw ticket pulls (snapshots/_cache/{jira,gitlab}.dvc) and the
+# ignore file DVC keeps next to them. The repo mirrors in _cache/repos aren't tracked: collect clones them again
+/snapshots/*
+!/snapshots/_cache/
+/snapshots/_cache/*
+!/snapshots/_cache/*.dvc
+!/snapshots/_cache/.gitignore
+/*/**/snapshots/
+
+# Airflow task logs (Data-Pipeline/logs/): the folder stays, its content doesn't
+Data-Pipeline/logs/*
+!Data-Pipeline/logs/.gitkeep
 
 # Data files, anywhere
 *.sqlite
@@ -31,7 +42,7 @@ out/
 # a killed write: may hold every email and name
 *.tmp
 
-# Exceptions: small hand-made evidence files, not data (DATA PIPELINE/CSV-POLICY.md)
+# Exceptions: small hand-made evidence files, not data (Data-Pipeline/CSV-POLICY.md)
 !week1/pair2/merged/links_hand_check_50.csv
 !**/labels/*.csv
 
