@@ -26,7 +26,7 @@ Run time on 70dd1dabfed544b8: about 74 s, peak 0.8 GB (Django + 20 packages). On
 
 - **Candidates:** Jedi `goto` (follow imports). `ast_resolved` only if it lands on the candidate's own old name, never the new name it aliases. `dropped` if it lands on something else, `ast_unresolved` if no answer (kept). `via = reexport` when the name comes through another module (guardian's `compat.py`: 18 rows).
 - **Alias calls:** `_("Hello")` rows the scanner can't see. One-hop rule: when Jedi stops at `_ = ugettext_lazy`, follow the right side once more.
-- **Call edges:** each confirmed call of a tracked symbol (depth 1), then callers of the functions holding one, up to `[resolver] call_edge_depth`. Module and class bodies get edges but don't propagate. Imports never count.
+- **Call edges:** each confirmed call of a tracked symbol (depth 1), then callers of the functions holding one, up to `[resolver] call_edge_depth`. Module and class bodies get edges but don't propagate. Imports never count. `introduced_sha` = the commit that last changed the caller's line (join's blame, `--first-parent -w`, at the run's SHA).
 
 ## Flags
 

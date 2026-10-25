@@ -24,7 +24,7 @@ SYMBOL = "verify_token"
 def site(sid, run, path, line, scope, team, status="present", eff="2026-01-10T00:00:00Z", bug=0, exc=0, junk="none"):
     return dict(call_site_id=sid, run_id=run[0], repo=REPO, path=path, line=line, col=4, scope=scope, symbol=SYMBOL,
                 role="call", detection="ast_resolved", junk=junk, in_except=exc, owner_team=team, bug_fixes=bug,
-                status=status, effective_date=eff, known_at=run[1])
+                status=status, effective_date=eff, effective_sha="e" * 40, known_at=run[1])
 
 
 SITES = [  # R1 writes every site; R2 writes only what changed (append-only)
@@ -141,7 +141,7 @@ def build():
                             receiver_from=f"{REPO}:shared/client.py:get_client" if s["call_site_id"] == "S_f1" else None)
                        for s in SITES if s["run_id"] == "R1" or s["call_site_id"] == "S_new"])
     ins("call_edge", [dict(run_id="R2", repo=REPO, caller_path=cp, caller_scope=cs, line=ln, col=4, callee_path=ep,
-                           callee_repo=REPO, callee_scope=es) for cp, cs, ln, ep, es in EDGES])
+                           callee_repo=REPO, callee_scope=es, introduced_sha="e" * 40) for cp, cs, ln, ep, es in EDGES])
     ins("module_import", [dict(run_id="R2", repo=REPO, path="tests/test_totals.py", line=1, module="cart.totals", name="total", is_test=1),
                           dict(run_id="R2", repo=REPO, path="checkout/api.py", line=1, module="cart.pricing", name="price", is_test=0),
                           # `from shared import client` / `from ship import label`: the module is parent + name
@@ -210,7 +210,7 @@ class KnowledgeBase(unittest.TestCase):
         db = build()
         paths = ["django/utils/translation/__init__.py", "django/utils/translation/trans_real.py", "setup.py"]
         db.executemany("INSERT INTO call_site VALUES (?, 'R2', 'acme/shop', ?, 1, 0, '<module>', 's', 'call', 'ast_resolved', "
-                       "'none', 0, 't', 0, 'present', ?, ?)", [(f"X{i}", p, R2[1], R2[1]) for i, p in enumerate(paths)])
+                       "'none', 0, 't', 0, 'present', ?, ?, ?)", [(f"X{i}", p, R2[1], "e" * 40, R2[1]) for i, p in enumerate(paths)])
         db.executescript(next(sql for name, sql, _, _ in blocks() if name == "setup"))
         got = dict(db.execute(f"SELECT path, module FROM file_module WHERE path IN ({', '.join('?' * len(paths))})", paths))
         self.assertEqual(got, {p: module_of(p) for p in paths})
