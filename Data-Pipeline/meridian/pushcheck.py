@@ -33,6 +33,7 @@ from meridian.scan import PY, module_of, scan_repo, scope, tracked
 
 KB = HERE / "KNOWLEDGE-BASE.md"
 PUSH_AT = "9999-12-31T23:59:59Z"  # the push's versions sort after every base version. Only in TEMP tables, never written
+PUSH_SHA = "0" * 40  # ... and their effective_sha: the commit is the PR itself, not in the block
 MARKER = "<!-- meridian-push-check -->"  # the workflow finds its own comment by this line
 NAMES = {"P1": "Drift", "P2": "Legacy use", "P3": "Collision", "P4": "New block", "P5": "Ticket can move",
          "P6": "Mismatch", "P7": "Risky edit", "P8": "Bad key", "P9": "Defect risk"}
@@ -161,7 +162,7 @@ def push_check(base, repo, checkout, changed, cfg, settings, rng=None):
                        "VALUES ('push', ?, ?, ?, ?, ?, 'ast_unresolved', 'none', ?, 'push')",
                        (repo, s["path"], s["line"], s["col"], s["symbol"], target[0][0] if target else None))
         for v in versions:
-            v |= dict(run_id="push", effective_date=PUSH_AT, known_at=PUSH_AT)
+            v |= dict(run_id="push", effective_date=PUSH_AT, effective_sha=PUSH_SHA, known_at=PUSH_AT)
             db.execute(f"INSERT INTO call_site ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})", [v[c] for c in cols])
         db.executemany("INSERT INTO commit_file (run_id, repo, sha, path, added, deleted) VALUES ('push', ?, 'push', ?, ?, ?)",
                        [(repo, *n) for n in numstat])

@@ -184,7 +184,7 @@ pattern = '[0-9a-f]{16}'
 
 [[validate.formats]]
 name = "40-hex git SHAs"
-columns = 'sha|parent_sha|fix_sha|inducing_sha'
+columns = 'sha|parent_sha|fix_sha|inducing_sha|effective_sha|introduced_sha'
 pattern = '[0-9a-f]{40}'
 
 [[validate.formats]]

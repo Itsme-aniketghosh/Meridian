@@ -90,7 +90,7 @@ def block(path, co):
                      status="complete")])
     cs = [dict(call_site_id=i, run_id="R1", repo=REPO, path=s["path"], line=s["line"], col=s["col"], scope=s["scope"],
                symbol=s["symbol"], role=s["role"], detection="ast_resolved", junk=s["junk"], in_except=s["in_except"],
-               owner_team=team(s["path"]), bug_fixes=0, status=st, effective_date="2026-01-01T00:00:00Z", known_at=BASE_AT)
+               owner_team=team(s["path"]), bug_fixes=0, status=st, effective_date="2026-01-01T00:00:00Z", effective_sha="1" * 40, known_at=BASE_AT)
           for d, st in ((sites, "present"), (removed, "removed")) for i, s in d.items()]
     ins("call_site", cs)
     ins("resolution", [dict(run_id="R1", repo=REPO, path=s["path"], line=s["line"], col=s["col"], symbol=s["symbol"],
