@@ -67,9 +67,9 @@ class Spec(unittest.TestCase):
                          "py -m meridian.report --run-id R --config meridian.toml --prev-run Q")
         self.assertEqual(c("update", "publish"), "py -m meridian.publish --run-id R --config meridian.toml")
         # the rebuild computes under its own root, compares with the main one, and publishes where the views read
-        self.assertEqual(c("rebuild", "scan"), "MERIDIAN_DATA=/d/rb py -m meridian.scan --run-id R --config meridian.toml")
+        self.assertEqual(c("rebuild", "scan"), "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 py -m meridian.scan --run-id R --config meridian.toml")
         self.assertEqual(c("rebuild", "compare"),
-                         "MERIDIAN_DATA=/d/rb py -m meridian.compare --run-id R --config meridian.toml --against-root /d")
+                         "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 py -m meridian.compare --run-id R --config meridian.toml --against-root /d")
         self.assertEqual(c("rebuild", "publish", "--prev-run Q"),
                          "py -m meridian.publish --run-id R --config meridian.toml --prev-run Q --from-root /d/rb")
         fresh = c("rebuild", "fresh", prev="Q")

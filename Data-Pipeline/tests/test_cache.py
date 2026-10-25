@@ -14,7 +14,7 @@ import meridian.szz as Z
 import tests.test_resolve as TR
 import tests.test_scan as TS
 import tests.test_szz as TZ
-from meridian.common import Cache, load_config, write_jsonl
+from meridian.common import Cache, cache_on, load_config, write_jsonl
 
 RUN, RUN2 = "abcdef0123456789", "0123456789abcdef"
 
@@ -49,6 +49,14 @@ def next_snapshot(root, repo_dir_name, repo, files):
     (root / "snapshots" / RUN2 / "manifest.json").write_text(json.dumps({"run_id": RUN2, "repos": {repo: git("rev-parse", "HEAD")}}))
     (root / "out" / RUN2).mkdir(parents=True, exist_ok=True)
     return co
+
+
+class Switch(unittest.TestCase):
+    def test_rebuild_turns_every_cache_off(self):
+        with tempfile.TemporaryDirectory() as tmp, switched(Path(tmp), scan=True, resolve=True, szz=True):
+            self.assertTrue(all(cache_on(n) for n in ("scan", "resolve", "szz")))
+            with mock.patch.dict(os.environ, {"MERIDIAN_NO_CACHE": "1"}):   # what the rebuild DAG sets
+                self.assertFalse(any(cache_on(n) for n in ("scan", "resolve", "szz")))
 
 
 class ScanCache(unittest.TestCase):

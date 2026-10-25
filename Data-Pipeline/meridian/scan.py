@@ -59,7 +59,7 @@ from pathlib import Path
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser
 
-from meridian.common import (Cache, blob_sha, cache_key, data_root, git, handoff, load_config, load_settings, log, parser,
+from meridian.common import (Cache, blob_sha, cache_key, cache_on, data_root, git, handoff, load_config, load_settings, log, parser,
                              source_hash, write_jsonl)
 
 PY = Parser(Language(tspython.language()))
@@ -401,7 +401,7 @@ def run(run_id, cfg, root=None):
     wanted, keys = tracked(cfg), answer_keys(cfg)
     scanner = cfg.get("scanner", {})
     tables = {t: [] for t in KEYS}
-    cached = load_settings("cache").get("scan", False)
+    cached = cache_on("scan")
     for repo, sha in sorted(manifest["repos"].items()):
         if repo not in wanted:
             continue

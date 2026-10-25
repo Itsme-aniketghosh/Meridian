@@ -68,7 +68,7 @@ import parso.cache, parso.file_io
 from jedi.inference.compiled.subprocess import functions as jedi_functions
 
 from meridian import scan as S
-from meridian.common import (Cache, blob_sha, cache_key, data_root, handoff, load_config, load_settings, log, parser,
+from meridian.common import (Cache, blob_sha, cache_key, cache_on, data_root, handoff, load_config, load_settings, log, parser,
                              read_jsonl, source_hash, write_jsonl)
 from meridian.scan import PY, char_col, tracked, walk
 
@@ -596,7 +596,7 @@ def run(run_id, cfg, root=None):
         raise SystemExit("[resolver] keep_unresolved = false would drop rows silently, which CONTRACTS.md rule 9 forbids")
     rules = dict(one_hop=settings.get("one_hop_assignment", True), score_on_old_name=settings.get("score_on_old_name", True))
     roles = {(c["repo"], c["path"], c["line"], c["col"]): c["role"] for cs in by_repo.values() for c in cs}
-    cached = load_settings("cache").get("resolve", False)
+    cached = cache_on("resolve")
     rows, edges = [], []
     for repo, sha in sorted(manifest["repos"].items()):
         if repo not in wanted:

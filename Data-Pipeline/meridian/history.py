@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from meridian import szz, tickets
-from meridian.common import CONFIG, Cache, data_root, git, handoff, load_config, load_infra, log, parser, write_jsonl
+from meridian.common import CONFIG, Cache, cache_on, data_root, git, handoff, load_config, load_infra, log, parser, write_jsonl
 
 FMT = "%x1e%H%x1f%P%x1f%at%x1f%ae%x1f%ce%x1f%s"
 
@@ -123,7 +123,7 @@ def main(run_id, config=CONFIG, root=None):
     write_jsonl(out / "ticket_link.jsonl", d4["ticket_link"], ("key", "link_type", "other_key"))
     write_jsonl(out / "commit_ticket.jsonl", d4["commit_ticket"], ("repo", "sha", "key"))
 
-    cache_of = (lambda repo: Cache("szz", repo, root)) if load_infra("cache").get("szz", False) else None
+    cache_of = (lambda repo: Cache("szz", repo, root)) if cache_on("szz") else None
     d6 = szz.build(commits, files, d4, manifest, cfg, run_id, co, load_infra("history").get("szz_workers") or None,  # 0: one per CPU
                    cache_of)
     write_jsonl(out / "bug_inducing.jsonl", d6["bug_inducing"], ("repo", "fix_sha", "path", "inducing_sha"))

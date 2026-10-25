@@ -100,7 +100,7 @@ szz_workers = 0                       # SZZ processes. 0 = one per CPU
 # Each switch lets a part reuse its last results for inputs that didn't change. All off: Phase 3 is signed off "only
 # if runs get slow". On or off, a part writes the same bytes (tests/test_cache.py). A cache lives under the data root in
 # snapshots/_cache/{scan,resolve,szz}/<repo>.json, is never hashed into a run, and keeps only what its last run used.
-# Delete a folder to start that cache over. The Sunday rebuild runs with all three off.
+# Delete a folder to start that cache over. The Sunday rebuild runs with all three off (MERIDIAN_NO_CACHE).
 
 [cache]
 scan = false                          # per file: its git blob SHA, path and kind, scan.py, tree-sitter's versions, the

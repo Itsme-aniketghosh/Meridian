@@ -55,5 +55,5 @@ def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", re
     if task == "compare":
         cmd += f" --against-root {main}"
     if dag == "rebuild":
-        cmd = f"{cmd} --from-root {rebuild}" if task == "publish" else f"MERIDIAN_DATA={rebuild} {cmd}"
+        cmd = f"{cmd} --from-root {rebuild}" if task == "publish" else f"MERIDIAN_DATA={rebuild} MERIDIAN_NO_CACHE=1 {cmd}"
     return cmd

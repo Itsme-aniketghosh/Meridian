@@ -56,6 +56,11 @@ def load_settings(section, path=None):
 load_infra = load_settings  # the name collect and history use: settings.toml was infra.toml
 
 
+def cache_on(name):
+    """settings.toml [cache] <name>, except under MERIDIAN_NO_CACHE: the weekly rebuild must not reuse what it checks."""
+    return bool(load_settings("cache").get(name, False)) and not os.environ.get("MERIDIAN_NO_CACHE")
+
+
 def git(co, *args, text=True):
     """git in repo co, deaf to the user's global and system git config, so every machine gives the same output."""
     env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
