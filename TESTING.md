@@ -19,7 +19,7 @@ cd "Data-Pipeline"
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 244 tests ... OK (skipped=10)` (Windows, Python 3.11, Oct 24). 7 skipped ones need the team run, 3 need Airflow (`test_dag`'s DagBag half). CI runs exactly this on every push and pull request, on Linux and Windows, and runs the 3 Airflow ones in the Docker image (`.github/workflows/ci.yml`, below).
+Expect `Ran 246 tests ... OK (skipped=10)` (Windows, Python 3.11, Oct 24). 7 skipped ones need the team run, 3 need Airflow (`test_dag`'s DagBag half). CI runs exactly this on every push and pull request, on Linux and Windows, and runs the 3 Airflow ones in the Docker image (`.github/workflows/ci.yml`, below).
 
 ## Every test, the team run included
 
@@ -33,7 +33,7 @@ export MERIDIAN_RUN_ID=70dd1dabfed544b8                   # Mac, Linux
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 244 tests ... OK (skipped=3)`, only the Airflow ones skipped. The extra 7 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`, no tracked name lost to parse failures), the packages' precision and recall, and the v1 golden files (below). On Windows the golden one fails on 3 files until the resolver's Windows gap is fixed.
+Expect `Ran 246 tests ... OK (skipped=3)`, only the Airflow ones skipped. The extra 7 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`, no tracked name lost to parse failures), the packages' precision and recall, and the v1 golden files (below). The golden one checks the files on disk: on Windows, files made before the resolver fix (63851a7) fail on resolution, call_edge and blast_radius until resolve and graph are rerun with v1 code. Code from v1.2 on (schema.sql) writes other bytes by design: the next team run_id gets its own golden file.
 
 ## Freeze v1
 
