@@ -88,6 +88,10 @@ http_429_factor = 10                  # x this again when the server says 429 (r
 graphql_tries = 6                     # GitLab GraphQL: attempts when the answer carries "errors"
 graphql_backoff_s = 5                 # wait (attempt + 1) x this
 gitlab_batch = 20                     # issues per notes / parents query (GitLab caps iids lists)
+mirrors = "snapshots/_cache/repos"    # one bare mirror per repo, under $MERIDIAN_DATA, kept between runs (git fetch, never
+                                      # cloned twice). Every snapshot's checkout borrows its objects: moving it breaks them
+delta_overlap_minutes = 1440          # a ticket delta asks for changes since the last pull started, less this: Jira reads
+                                      # the time in its own zone. Tickets pulled twice come back the same
 
 [history]
 szz_workers = 0                       # SZZ processes. 0 = one per CPU

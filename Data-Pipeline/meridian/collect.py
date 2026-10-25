@@ -9,19 +9,30 @@ The run_id comes out of the inputs, so it can't be chosen up front: 'new' makes 
 A run_id instead checks the inputs still give that run, and fails if anything changed. Either way the last
 line printed is `run_id=<run_id>`, for the tasks after this one.
 
-1. Fills a cache in snapshots/_cache/: one bare clone per repo, raw Jira pages, raw GitLab issues.
-   Kill it any time and rerun: it resumes. A finished source is reused as is, never re-queried, unless --refresh.
-2. Builds the manifest: pinned refs -> full SHAs, sha256 per raw source, config_hash.
-   run_id = first 16 hex of sha256 over the manifest without run_id, keys sorted. Same inputs -> same run_id.
-3. If snapshots/<run_id>/ already exists, stops there. Otherwise checks out each repo at its SHA (full history),
-   links the raw files in, and moves the folder into place only once it's complete.
-4. Writes the run row to out/<run_id>/run.jsonl for the writer (D3).
+1. Repos: one permanent bare mirror per repo (settings.toml [collect] mirrors), kept between runs. A ref that names a
+   branch is followed: the mirror is fetched and the branch resolved to where it is now. Any other ref (a SHA, sha^1)
+   is pinned, and fetched only if the mirror doesn't have it yet.
+2. snapshot_at: --snapshot-at if given. Else, if any repo follows a branch, the pull time: read here, after the
+   fetches, the only clock in the pipeline. Else the run-wide or the one per-dataset snapshot_at in meridian.toml.
+3. Tickets, in snapshots/_cache/<source>/: a base pull, then delta-<time>/ folders, each the tickets changed since
+   the last pull started (the cursor, in cursor.json), each in full with its whole changelog or notes, plus every
+   key or iid that still exists (keys.json.gz / iids.json.gz: a deleted ticket is one missing there). A run reads
+   the base and the deltas up to the first pull that started after snapshot_at (rollback needs every change up to
+   it); if none did, it pulls a new delta. Later pulls are left out, so the same snapshot_at reads the same files.
+   Kill it any time and rerun: it resumes. A finished pull is never re-queried; --refresh drops the source's pulls.
+4. Builds the manifest: refs -> full SHAs, sha256 per raw source over the pulls it reads (cursors included),
+   config_hash. run_id = first 16 hex of sha256 over the manifest without run_id, keys sorted.
+   Same inputs -> same run_id.
+5. If snapshots/<run_id>/ already exists, stops there. Otherwise checks out each repo at its SHA (full history,
+   objects borrowed from the mirror, which keeps a refs/runs/<run_id> so they're never pruned), links the raw
+   files in, and moves the folder into place only once it's complete.
+6. Writes the run row to out/<run_id>/run.jsonl for the writer (D3).
 
 A repo whose ref can't be resolved (TBD, or not in the repo) and a source whose pull fails are left out,
 and the run is 'partial' with the reason in run.notes. Nothing is dropped silently.
 """
 import gzip, hashlib, json, os, re, shutil, sqlite3, subprocess, sys, time, urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from meridian.common import CONFIG, data_root, git, handoff, load_config, load_infra, log, parser, write_jsonl
@@ -67,13 +78,19 @@ def save_meta(d, meta):
     write_atomic(d / ".pull.json", (json.dumps(meta, indent=1, sort_keys=True) + "\n").encode())
 
 
-def dir_hash(d):
-    """sha256 over 'path NUL sha256(file)' lines, sorted by path. Dotfiles (.pull.json, .work/) are not data."""
+def data_files(d, used=None):
+    """(path relative to d, path) of the data under d, sorted by path. Dotfiles (.pull.json, .work/) are not data,
+    and a delta-*/ folder is only if it's in used (default: every one)."""
+    keep = lambda rel: not any(part.startswith(".") for part in rel.parts) and (
+        used is None or not rel.parts[0].startswith("delta-") or d / rel.parts[0] in used)
+    return [(p.relative_to(d), p) for p in sorted(d.rglob("*")) if p.is_file() and keep(p.relative_to(d))]
+
+
+def dir_hash(d, used=None):
+    """sha256 over 'path NUL sha256(file)' lines of data_files(d, used)."""
     h = hashlib.sha256()
-    for p in sorted(d.rglob("*")):
-        rel = p.relative_to(d)
-        if p.is_file() and not any(part.startswith(".") for part in rel.parts):
-            h.update(f"{rel.as_posix()}\0{sha256(p.read_bytes())}\n".encode())
+    for rel, p in data_files(d, used):
+        h.update(f"{rel.as_posix()}\0{sha256(p.read_bytes())}\n".encode())
     return h.hexdigest()
 
 
@@ -110,9 +127,9 @@ def gql(url, query, variables):
 
 # ───────────── repos ─────────────
 
-def repo_cache(cache, repo, url):
-    """One bare clone per repo, full history, branches and tags. Shared by every run."""
-    d = cache / "repos" / (repo.replace("/", "__") + ".git")
+def mirror(mirrors, repo, url):
+    """One bare clone per repo, full history, branches and tags. Shared by every run, never deleted."""
+    d = mirrors / (repo.replace("/", "__") + ".git")
     if not (d / "HEAD").exists():
         tmp = d.with_name(d.name + ".partial")
         shutil.rmtree(tmp, ignore_errors=True)
@@ -123,25 +140,42 @@ def repo_cache(cache, repo, url):
     return d
 
 
+def rev(d, ref):
+    try:
+        return git(d, "rev-parse", "--verify", "--quiet", ref + "^{commit}").strip()
+    except subprocess.CalledProcessError:
+        return None
+
+
+def fetch(d):
+    try:
+        git(d, "fetch", "--quiet", "origin", "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*")
+        return True
+    except subprocess.CalledProcessError:
+        return False  # offline or gone: a pinned ref stays unresolved, a branch stays where it was
+
+
 def resolve(d, ref):
-    """Full SHA of ref, fetching once if the cache doesn't have it yet. None if it can't be resolved."""
-    for attempt in (0, 1):
-        try:
-            return git(d, "rev-parse", "--verify", "--quiet", ref + "^{commit}").strip()
-        except subprocess.CalledProcessError:
-            if attempt == 0:
-                try:
-                    git(d, "fetch", "--quiet", "origin", "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*")
-                except subprocess.CalledProcessError:
-                    pass  # offline or gone: the ref stays unresolved and the run is partial
-    return None
+    """(full SHA or None, follows, fetched). A ref naming a branch of the mirror is followed: fetched, then resolved
+    to where the branch is now. Any other ref (a SHA, sha^1) is pinned, fetched only if the mirror doesn't have it."""
+    head = f"refs/heads/{ref}"
+    follows = rev(d, head) is not None
+    fetched = follows and fetch(d)
+    sha = rev(d, head if follows else ref)
+    if sha is None:  # not in the mirror yet: a commit or a branch made since the last fetch
+        fetched = fetch(d)
+        follows = rev(d, head) is not None
+        sha = rev(d, head if follows else ref)
+    return sha, follows, fetched
 
 
 # ───────────── Jira ─────────────
 
-def pull_jira(dest, jira, stop_after=None):
+def pull_jira(dest, jira, stop_after=None, since=None):
     """Raw REST search pages, ORDER BY key as in the jql, saved as page-NNNNNN.json.gz.
     A page on disk is never fetched again, so a killed pull resumes where it stopped.
+    since: only tickets updated since then (a delta). Jira reads that time in its own zone, to the minute: the
+    cursor's overlap (settings.toml) covers it, and a ticket pulled twice is the same ticket.
     stop_after: stop after fetching that many pages (tests use it to fake a kill). Returns None then."""
     dest.mkdir(parents=True, exist_ok=True)
     meta = load_meta(dest)
@@ -149,13 +183,16 @@ def pull_jira(dest, jira, stop_after=None):
         return meta
     meta.setdefault("started_at", now())
     save_meta(dest, meta)
-    page, start, fetched = jira.get("page", 100), 0, 0
+    page, start, fetched, jql = jira.get("page", 100), 0, 0, jira["jql"]
+    if since:
+        m = re.fullmatch(r"(?is)(.*?)(\s+order\s+by\s.*)?", jql)
+        jql = f'({m[1]}) AND updated >= "{since[:16].replace("T", " ")}"{m[2] or ""}'
     while "total" not in meta or start < meta["total"]:
         p = dest / f"page-{start:06d}.json.gz"
         if p.exists():
             meta.setdefault("total", json.loads(gzip.decompress(p.read_bytes()))["total"])
         else:
-            q = urllib.parse.urlencode({"jql": jira["jql"], "startAt": start, "maxResults": page,
+            q = urllib.parse.urlencode({"jql": jql, "startAt": start, "maxResults": page,
                                         "fields": jira.get("fields", "*all"), "expand": jira.get("expand", "")})
             body = curl(f"{jira['base']}?{q}")
             data = json.loads(body)
@@ -171,15 +208,40 @@ def pull_jira(dest, jira, stop_after=None):
             if stop_after and fetched >= stop_after:
                 return None
         start += page
+    if since and "keys" not in meta:
+        meta["keys"] = list_jira_keys(dest, jira)
     meta["finished_at"] = now()
     save_meta(dest, meta)
     return meta
 
 
+def list_jira_keys(dest, jira):
+    """Every key the jql matches now, as keys.json.gz: a ticket the delta's `updated >=` can't return because it was
+    deleted is one missing here. Paged by key, not startAt: a ticket deleted mid-listing would shift the offsets
+    and skip a live key. Resumable by the last key in .work/keys.txt."""
+    work = dest / ".work"
+    work.mkdir(exist_ok=True)
+    keys = read_lines(work / "keys.txt")
+    m = re.fullmatch(r"(?is)(.*?)(\s+order\s+by\s.*)?", jira["jql"])
+    with open(work / "keys.txt", "a", encoding="utf-8", newline="\n") as f:
+        while True:
+            after = f' AND key > "{keys[-1]}"' if keys else ""
+            q = urllib.parse.urlencode({"jql": f"({m[1]}){after} ORDER BY key ASC", "startAt": 0,
+                                        "maxResults": jira.get("keys_page", 1000), "fields": "key"})
+            got = [it["key"] for it in json.loads(curl(f"{jira['base']}?{q}"))["issues"]]
+            if not got:  # stop on an empty page, not a short one: Jira caps maxResults silently
+                break
+            f.write("".join(k + "\n" for k in got))
+            f.flush()
+            keys += got
+    write_atomic(dest / "keys.json.gz", gz((canon(sorted(set(keys))) + "\n").encode()))
+    return len(set(keys))
+
+
 # ───────────── GitLab ─────────────
 
 ISSUES_Q = """query($after:String){ project(fullPath:"%s"){
-  issues(createdAfter:"%s", createdBefore:"%s", first:100, after:$after, sort:CREATED_ASC){
+  issues(createdAfter:"%s", createdBefore:"%s"%s, first:100, after:$after, sort:CREATED_ASC){
     pageInfo{ hasNextPage endCursor }
     nodes{ iid title description state type createdAt updatedAt closedAt webUrl hasParent
       epic{ iid group{ fullPath } } movedTo{ iid } author{ username } assignees{ nodes{ username } } labels(first:100){ nodes{ title } }
@@ -193,10 +255,10 @@ NOTES_MORE_Q = """query($iid:String!, $after:String){ project(fullPath:"%s"){ is
   notes(first:100, after:$after, filter:ONLY_ACTIVITY){ pageInfo{ hasNextPage endCursor } """ + NOTE + """ } } } }"""
 
 
-def pull_gitlab(dest, ds):
+def pull_gitlab(dest, ds, since=None):
     """Raw issues created in the window, with labels, current blocked-by links, epic, the work-item parent
     of every issue that has one (a task's issue), and every activity note (links added and removed, label changes),
-    written as one issues.jsonl.gz sorted by iid.
+    written as one issues.jsonl.gz sorted by iid. since: only issues updated since then (a delta), each in full.
     Notes are pulled only for issues whose title doesn't start with drop_titles_starting (the [Test] bot);
     those keep "notes": null. Resumable: issue pages by cursor, notes by iid."""
     work = dest / ".work"
@@ -214,7 +276,7 @@ def pull_gitlab(dest, ds):
         after = (cur.read_text(encoding="utf-8").strip() or None) if cur.exists() else None
         with open(work / "issues.jsonl", "a", encoding="utf-8", newline="\n") as f:
             while True:
-                page = gql(url, ISSUES_Q % (proj, frm, to), {"after": after})["project"]["issues"]
+                page = gql(url, ISSUES_Q % (proj, frm, to, f', updatedAfter:"{since}"' if since else ""), {"after": after})["project"]["issues"]
                 for n in page["nodes"]:
                     f.write(json.dumps(n, ensure_ascii=False) + "\n")
                 f.flush()
@@ -278,10 +340,60 @@ def pull_gitlab(dest, ds):
     for iid in sorted(issues, key=int):
         lines.append(json.dumps({**issues[iid], "parent": parents.get(iid), "notes": notes.get(iid)}, sort_keys=True, ensure_ascii=False))
     write_atomic(dest / "issues.jsonl.gz", gz(("\n".join(lines) + "\n").encode()))
+    if since:
+        meta["iids"] = list_gitlab_iids(dest, ds)
     meta.update(finished_at=now(), issues=len(issues), notes_skipped=len(issues) - len(want),
                 notes_missing=sum(1 for i in want if notes.get(i) is None))
     save_meta(dest, meta)
     return meta
+
+
+IIDS_Q = """query($after:String){ project(fullPath:"%s"){
+  issues(createdAfter:"%s", createdBefore:"%s", first:100, after:$after, sort:CREATED_ASC){
+    pageInfo{ hasNextPage endCursor } nodes{ iid } } } }"""
+
+
+def list_gitlab_iids(dest, ds):
+    """Every iid in the window now, as iids.json.gz: what a delta needs to notice a deleted issue (list_jira_keys).
+    GitLab's cursor is keyset, so a deletion mid-listing can't skip one."""
+    url, proj, (frm, to), after, iids = ds["graphql"], ds["project"], ds["issues_created"], None, set()
+    while True:
+        page = gql(url, IIDS_Q % (proj, frm, to), {"after": after})["project"]["issues"]
+        iids |= {n["iid"] for n in page["nodes"]}
+        after = page["pageInfo"]["endCursor"]
+        if not page["pageInfo"]["hasNextPage"]:
+            break
+    write_atomic(dest / "iids.json.gz", gz((canon(sorted(iids, key=int)) + "\n").encode()))
+    return len(iids)
+
+
+# ───────────── tickets: the base pull and deltas ─────────────
+
+def pull_source(d, pull, snapshot_at):
+    """The pulls of one source a run reads: the base pull d, then each delta-*/ in the order pulled, up to the first
+    that started after snapshot_at. If none did, pulls a new delta: what changed since the newest of them started,
+    less settings.toml's overlap. pull(dest, since) does one pull or resumes it; since None is the base.
+    Returns (the pulls read, the last one's meta)."""
+    todo, used, meta = [d, *sorted(d.glob("delta-*"))], [], None
+    while meta is None or meta["started_at"] <= snapshot_at:  # rollback to snapshot_at needs every change up to it
+        if not todo:
+            start = now()
+            if start <= snapshot_at:
+                raise SystemExit(f"snapshot_at {snapshot_at} is in the future: a pull must start after it")
+            back = timedelta(minutes=load_infra("collect").get("delta_overlap_minutes", 1440))
+            since = (datetime.strptime(meta["started_at"], "%Y-%m-%dT%H:%M:%SZ") - back).strftime("%Y-%m-%dT%H:%M:%SZ")
+            name = f"delta-{start.replace('-', '').replace(':', '')}"
+            p, tmp = d / name, d / f".{name}"
+            shutil.rmtree(tmp, ignore_errors=True)
+            tmp.mkdir()
+            write_atomic(tmp / "cursor.json", (canon({"since": since}) + "\n").encode())
+            save_meta(tmp, {"started_at": start})
+            tmp.rename(p)  # a delta folder always has its cursor
+            todo.append(p)
+        p = todo.pop(0)
+        meta = pull(p, json.loads((p / "cursor.json").read_text(encoding="utf-8"))["since"] if p != d else None)
+        used.append(p)
+    return used, meta
 
 
 # ───────────── snapshot ─────────────
@@ -298,6 +410,30 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
     names = datasets or list(cfg["datasets"])
     if unknown := [n for n in names if n not in cfg["datasets"]]:
         raise SystemExit(f"not in {config.name}: {unknown}")
+    snaps = root / "snapshots"
+    cache, mirrors = snaps / "_cache", root / load_infra("collect").get("mirrors", "snapshots/_cache/repos")
+    repos, sources, src_dirs, gaps, pulls, follows = {}, {}, {}, [], [], False
+
+    for name in names:
+        log(f"{name}")
+        for r in cfg["datasets"][name].get("repos", []):
+            repo, ref = r["repo"], r["ref"]
+            if ref.startswith("TBD"):
+                gaps.append(f"{repo}: ref not set yet ({ref})")
+                continue
+            sha, branch, fetched = resolve(mirror(mirrors, repo, r.get("url", f"https://github.com/{repo}.git")), ref)
+            follows |= branch
+            if branch and not fetched:
+                gaps.append(f"{repo}: fetch failed, {ref} is where the last fetch left it")
+            if not sha:
+                gaps.append(f"{repo}: ref {ref} not found")
+            elif repos.setdefault(repo, sha) != sha:
+                raise SystemExit(f"{repo} is pinned at two SHAs: {repos[repo]} and {sha}")
+
+    if not snapshot_at and follows:
+        snapshot_at = now()  # the pull time: after the fetches, before the ticket pulls
+        while now() <= snapshot_at:  # a ticket pull must start after snapshot_at (pull_source): under a second
+            time.sleep(0.1)
     snapshot_at = snapshot_at or cfg["run"].get("snapshot_at")  # a run-wide one wins (proposed, not in v1 yet)
     declared = {cfg["datasets"][n]["snapshot_at"] for n in names if "snapshot_at" in cfg["datasets"][n]}
     if not snapshot_at:
@@ -305,48 +441,31 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
             raise SystemExit(f"need one snapshot_at, the config gives {sorted(declared) or 'none'}: pass --snapshot-at")
         snapshot_at = declared.pop()
 
-    snaps = root / "snapshots"
-    cache = snaps / "_cache"
-    repos, sources, src_dirs, gaps, pulls = {}, {}, {}, [], []
-
     for name in names:
         ds = cfg["datasets"][name]
-        log(f"{name}")
-        for r in ds.get("repos", []):
-            repo, ref = r["repo"], r["ref"]
-            if ref.startswith("TBD"):
-                gaps.append(f"{repo}: ref not set yet ({ref})")
-                continue
-            sha = resolve(repo_cache(cache, repo, r.get("url", f"https://github.com/{repo}.git")), ref)
-            if not sha:
-                gaps.append(f"{repo}: ref {ref} not found")
-            elif repos.setdefault(repo, sha) != sha:
-                raise SystemExit(f"{repo} is pinned at two SHAs: {repos[repo]} and {sha}")
-
         tracker = ds.get("tracker", "none")
         if tracker == "none":
             continue
         if tracker == "jira":
             m = re.search(r"project\s*=\s*(\w+)", ds["jira"]["jql"])
             key = f"jira/{m.group(1) if m else name.upper()}"
-            pull = lambda d: pull_jira(d, ds["jira"])
+            pull = lambda d, since: pull_jira(d, ds["jira"], since=since)
         elif tracker == "gitlab":
             key = "gitlab"
-            pull = lambda d: pull_gitlab(d, ds)
+            pull = lambda d, since: pull_gitlab(d, ds, since)
         else:
             raise SystemExit(f"{name}: unknown tracker {tracker!r}")
         d = cache / key
         if key in refresh:
             shutil.rmtree(d, ignore_errors=True)
         try:
-            meta = pull(d)
+            used, meta = pull_source(d, pull, snapshot_at)
         except RuntimeError as e:  # tracker down: code-only run, flagged partial (04-architecture, Failures)
             gaps.append(f"{key}: pull failed, rerun to resume ({e})")
             continue
-        if meta["started_at"] <= snapshot_at:  # rollback to snapshot_at needs every change up to it
-            raise SystemExit(f"{key} was pulled at {meta['started_at']}, before snapshot_at {snapshot_at}. Use --refresh {key}")
-        sources[key], src_dirs[key] = dir_hash(d), d
-        pulls.append(f"{key} pulled {meta['started_at']}..{meta['finished_at']}")
+        sources[key], src_dirs[key] = dir_hash(d, used), (d, used)
+        pulls.append(f"{key} pulled {load_meta(d)['started_at']}..{meta['finished_at']}"
+                     + (f", base pull + {len(used) - 1} delta(s)" if len(used) > 1 else ""))
 
     manifest = {"snapshot_at": snapshot_at, "repos": repos, "sources": sources,
                 "config_hash": sha256(canon(cfg).encode())}  # parsed, so comments and spacing don't count
@@ -360,22 +479,21 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
         stage = snaps / f".staging-{run_id}"
         shutil.rmtree(stage, ignore_errors=True)
         for repo, sha in sorted(repos.items()):
-            co = stage / "repos" / repo.replace("/", "__")
+            co, src = stage / "repos" / repo.replace("/", "__"), mirrors / (repo.replace("/", "__") + ".git")
             log(f"  checkout {repo} @ {sha[:10]}")
+            git(src, "update-ref", f"refs/runs/{run_id}", sha)  # the checkout borrows the mirror's objects: gc keeps them
             git(".", "-c", "core.longpaths=true", "-c", "core.symlinks=false", "clone", "--shared", "--no-checkout", "--quiet",
-                str(cache / "repos" / (repo.replace("/", "__") + ".git")), str(co))
+                str(src), str(co))
             git(co, "config", "core.longpaths", "true")
             git(co, "config", "core.symlinks", "false")  # a symlink is its target text on every OS, never followed
             git(co, "checkout", "--quiet", "--detach", sha)
-        for key, d in sorted(src_dirs.items()):
-            for p in sorted(d.rglob("*")):
-                rel = p.relative_to(d)
-                if p.is_file() and not any(part.startswith(".") for part in rel.parts):
-                    (stage / key / rel).parent.mkdir(parents=True, exist_ok=True)
-                    try:
-                        os.link(p, stage / key / rel)  # hard link: no second copy on disk
-                    except OSError:
-                        shutil.copy2(p, stage / key / rel)
+        for key, (d, used) in sorted(src_dirs.items()):
+            for rel, p in data_files(d, used):
+                (stage / key / rel).parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    os.link(p, stage / key / rel)  # hard link: no second copy on disk
+                except OSError:
+                    shutil.copy2(p, stage / key / rel)
         stage.mkdir(parents=True, exist_ok=True)
         (stage / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
         stage.rename(dest)
@@ -395,8 +513,9 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
 def main(argv=None):
     ap = parser(__doc__, "'new' for whatever run the inputs give, or a run_id the inputs must still give")
     ap.add_argument("--datasets", help="comma-separated, default all")
-    ap.add_argument("--refresh", default="", help="comma-separated sources to pull again, e.g. jira/SPARK,gitlab")
-    ap.add_argument("--snapshot-at", help="only when the chosen datasets don't declare exactly one")
+    ap.add_argument("--refresh", default="", help="comma-separated sources to pull again in full, deltas dropped, e.g. jira/SPARK,gitlab")
+    ap.add_argument("--snapshot-at", help="wins over the config and the pull time: when the chosen datasets don't declare "
+                                          "exactly one, or to make a branch-following run again from the same pulls")
     a = ap.parse_args(argv)
     row = snapshot(a.config, a.datasets.split(",") if a.datasets else None, None,
                    tuple(filter(None, a.refresh.split(","))), a.snapshot_at)
