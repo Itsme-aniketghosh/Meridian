@@ -19,7 +19,7 @@ cd "Data-Pipeline"
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 202 tests ... OK (skipped=10)` (Windows, Python 3.11, Oct 24). 7 skipped ones need the team run, 3 need Airflow (`test_dag`, run in the Docker image). CI runs exactly this on every push and pull request, on Linux and Windows (`.github/workflows/ci.yml`).
+Expect `Ran 244 tests ... OK (skipped=10)` (Windows, Python 3.11, Oct 24). 7 skipped ones need the team run, 3 need Airflow (`test_dag`'s DagBag half). CI runs exactly this on every push and pull request, on Linux and Windows, and runs the 3 Airflow ones in the Docker image (`.github/workflows/ci.yml`, below).
 
 ## Every test, the team run included
 
@@ -33,7 +33,7 @@ export MERIDIAN_RUN_ID=70dd1dabfed544b8                   # Mac, Linux
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 202 tests ... OK (skipped=3)`, only the Airflow ones skipped. The extra 7 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`, no tracked name lost to parse failures), the packages' precision and recall, and the v1 golden files (below). On Windows the golden one fails on 3 files until the resolver's Windows gap is fixed.
+Expect `Ran 244 tests ... OK (skipped=3)`, only the Airflow ones skipped. The extra 7 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`, no tracked name lost to parse failures), the packages' precision and recall, and the v1 golden files (below). On Windows the golden one fails on 3 files until the resolver's Windows gap is fixed.
 
 ## Freeze v1
 
@@ -46,13 +46,26 @@ On Windows (Oct 24) 21 of 24 match; `resolution`, `call_edge` and `blast_radius`
 
 To change the fixture's bytes on purpose: `python -m tests.test_golden --update` (from `Data-Pipeline/`), and say why in the commit. The team-run file is never regenerated: a contract change means a new team `run_id` and a new golden file.
 
+## Airflow
+
+`test_dag` checks both DAGs against `dags/pipeline_spec.py` everywhere. Its last 3 tests load them with Airflow's own DagBag, so they need the Docker image. CI's `airflow` job runs them on every push. By hand, from `Data-Pipeline/`, with Docker running:
+
+```
+docker compose build airflow-scheduler
+docker compose run --rm --no-deps -e CONNECTION_CHECK_MAX_COUNT=0 -w /opt/meridian/Data-Pipeline airflow-scheduler python -m unittest tests.test_dag -v
+```
+
+No database is needed: DagBag only parses the files. The image build needs about 3 GB of free memory.
+
 ## One part
 
 ```
 python -m unittest tests.test_graph -v
 ```
 
-One file per part: `test_collect`, `test_history`, `test_tickets`, `test_szz`, `test_scan`, `test_resolve`, `test_owners`, `test_join`, `test_graph`, plus `test_kb` (the knowledge base's queries), `test_dashboard`, `test_gold`, `test_golden`, `test_check_csv`.
+One file per part: `test_collect` (branches, ticket deltas, deleted tickets, mirrors), `test_history`, `test_tickets`, `test_szz`, `test_scan`, `test_resolve`, `test_owners`, `test_join`, `test_graph`, `test_validate`, `test_bias`, `test_report` (the per-run change report), `test_publish` (publish, compare, status).
+
+And across parts: `test_kb` (the knowledge base's queries), `test_cache` (Phase 3: each cache on equals off, and an update equals a run from scratch), `test_dag` (both DAGs follow the spec), `test_pushcheck` (P1–P9 on a fixture block), `test_dashboard`, `test_gold`, `test_golden`, `test_check_csv`.
 
 ## Seeing the data
 

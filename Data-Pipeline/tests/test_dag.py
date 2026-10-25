@@ -3,7 +3,8 @@ publish only follows validate, and every task is one command. The Airflow DAGs t
 installed (the Docker image):
 
     python -m unittest tests.test_dag -v                                              # from Data-Pipeline/
-    docker compose run --rm airflow-scheduler python -m unittest tests.test_dag -v    # with Airflow
+    docker compose run --rm --no-deps -e CONNECTION_CHECK_MAX_COUNT=0 -w /opt/meridian/Data-Pipeline \
+        airflow-scheduler python -m unittest tests.test_dag -v                        # with Airflow, no database
 """
 import importlib.util, sys, unittest
 from pathlib import Path
