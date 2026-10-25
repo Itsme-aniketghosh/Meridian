@@ -98,9 +98,30 @@ Times now (Oct 23–24): history 430 s, resolve 295 s, validate 165 s, scan 140 
 - [x] Add `dvc-gs` to `requirements.txt` (for the `gcs` remote). Done: `dvc-gs==3.1.0`, `gcsfs==2026.10.1`; `dvc version` lists gs
 - [x] Add `.DS_Store` and `Thumbs.db` to `.dvcignore`. Done: the raw-pull hashes now match on Mac and Windows
 - [ ] Find the Windows-vs-Mac difference in `resolution` and `call_edge` (2,293 vs 2,288 edges). Needs both machines' files. The regenerated `dvc.lock` records the Mac values: `resolution`, `call_edge`, `blast_radius`, `stats.json` differ from Windows, and `run.jsonl` by design (`image_digest`)
+  - Aniket, checked on Windows after the LF refresh: no code or config file shows changed any more. Mac's `call_edge.jsonl` is 662,303 bytes ≈ **2,288** edges, as RESOLVER.md; Windows has 2,293. `resolution.jsonl` has the same 3,739 rows on both but 48 bytes differ, so a few values, not rows. The gap is Windows only. Next: Utkarsh sends his `resolution.jsonl` and `call_edge.jsonl`, Aniket diffs them
+- [ ] **`run.jsonl` makes stages look changed on every other machine.** Its `image_digest` differs by machine on purpose, and history, scan, validate and bias depend on it in `dvc.yaml`, so `dvc repro` would rerun history and scan for nothing. Fix: depend on `../snapshots/${pipeline.run_id}/manifest.json` instead (the same run, no machine fingerprint), then regenerate `dvc.lock` once on Mac/Linux
+- [ ] **One machine kind writes `dvc.lock`.** Until the Windows gap is fixed, a `dvc commit` on Windows overwrites the Mac values and back. Rule: `dvc.lock` is committed from Linux or Mac only (the Docker image, or Utkarsh's Mac)
+- [x] The Windows refresh command below used `&&`, which Windows PowerShell 5.1 doesn't have. Fixed: one command per line
 
-On Windows, after pulling this, commit or stash your work first, then once: `git rm -r --cached -q . && git reset --hard`, so every file is checked out with LF.
+On Windows, after pulling this, commit or stash your work first, then once (cmd or PowerShell):
+
+```
+git rm -r --cached -q .
+git reset --hard
+```
+
+so every file is checked out with LF.
+
+## Sign-off before building
+
+**Utkarsh, please sign off on DAGs, Faster and Phases (and #6–#18) before anything there is built.** Tick one line, or write what to change next to it:
+
+- [ ] DAGs: `meridian_update`, `meridian_rebuild`, the push check in GitHub Actions
+- [ ] Faster: the Phase 1 speed-ups, and the Phase 3 ones for later
+- [ ] Phases 0–3 and their "done when"
+- [ ] #6–#13 confirmed
+- [ ] #14–#18 agreed (contract changes, a new team run_id)
 
 ## Next
 
-Confirm #6–#13 and agree #14–#18 with Aniket, then this becomes one design record for the team.
+Once signed off, this becomes one design record for the team, and Phase 0, then Phase 1, get built.
