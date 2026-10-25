@@ -19,7 +19,7 @@ cd "Data-Pipeline"
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 179 tests ... OK (skipped=6)`. The 6 skipped ones need the team run.
+Expect `Ran 202 tests ... OK (skipped=10)` (Windows, Python 3.11, Oct 24). 7 skipped ones need the team run, 3 need Airflow (`test_dag`, run in the Docker image). CI runs exactly this on every push and pull request, on Linux and Windows (`.github/workflows/ci.yml`).
 
 ## Every test, the team run included
 
@@ -33,7 +33,18 @@ export MERIDIAN_RUN_ID=70dd1dabfed544b8                   # Mac, Linux
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 179 tests ... OK`, none skipped (178 on Windows, Python 3.11, Oct 24, before the collision test). The extra 6 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`) and the packages' precision and recall.
+Expect `Ran 202 tests ... OK (skipped=3)`, only the Airflow ones skipped. The extra 7 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`, no tracked name lost to parse failures), the packages' precision and recall, and the v1 golden files (below). On Windows the golden one fails on 3 files until the resolver's Windows gap is fixed.
+
+## Freeze v1
+
+v1 is frozen on run `70dd1dabfed544b8`: no contract change before this passes. `tests/test_golden.py`, two halves:
+
+1. **Fixture, everywhere (CI too).** The KB fixture through `graph` and the writer: the sha256 of all 25 `.jsonl` files and of every SQLite table's rows must equal `Data-Pipeline/golden/fixture.json`. Rows, not the `.sqlite` file: its header holds the SQLite version.
+2. **Team run, with `MERIDIAN_RUN_ID=70dd1dabfed544b8` and `out/70dd1dabfed544b8/` present.** The md5 and size of all 24 `.jsonl` outputs must equal `Data-Pipeline/golden/70dd1dabfed544b8.json`, which holds `dvc.lock`'s Mac values. `run.jsonl` is left out: its `image_digest` differs per machine by design. Every mismatching file is listed. It never runs in CI: the team data is private.
+
+On Windows (Oct 24) 21 of 24 match; `resolution`, `call_edge` and `blast_radius` don't (the resolver's Windows gap, UPDATE-PLAN.md).
+
+To change the fixture's bytes on purpose: `python -m tests.test_golden --update` (from `Data-Pipeline/`), and say why in the commit. The team-run file is never regenerated: a contract change means a new team `run_id` and a new golden file.
 
 ## One part
 
@@ -41,7 +52,7 @@ Expect `Ran 179 tests ... OK`, none skipped (178 on Windows, Python 3.11, Oct 24
 python -m unittest tests.test_graph -v
 ```
 
-One file per part: `test_collect`, `test_history`, `test_tickets`, `test_szz`, `test_scan`, `test_resolve`, `test_owners`, `test_join`, `test_graph`, plus `test_kb` (the knowledge base's queries), `test_dashboard`, `test_gold`, `test_check_csv`.
+One file per part: `test_collect`, `test_history`, `test_tickets`, `test_szz`, `test_scan`, `test_resolve`, `test_owners`, `test_join`, `test_graph`, plus `test_kb` (the knowledge base's queries), `test_dashboard`, `test_gold`, `test_golden`, `test_check_csv`.
 
 ## Seeing the data
 
