@@ -89,6 +89,11 @@ The log should also say `94.0% from the subject` for the last 1,000 Spark commit
 - **Pass `--run-id 70dd1dabfed544b8` to your own part too,** so every table carries the same run.
 - Your data lands in `snapshots/70dd1dabfed544b8/` and `out/70dd1dabfed544b8/`. Both are git-ignored.
 
+## What collect keeps between runs
+
+- `snapshots/_cache/repos/<owner>__<name>.git`: one mirror per repo, cloned once and then updated with `git fetch` (path: `mirrors` in [settings.toml](../settings.toml)). Every snapshot's `repos/` checkout borrows its objects, so **don't move or delete it**.
+- `snapshots/_cache/jira/SPARK/`, `snapshots/_cache/gitlab/`: the base pull from the zip, plus a `delta-<time>/` folder for each later pull of just the changed tickets. Deltas are only pulled for a run whose `snapshot_at` is after every pull, which happens once a repo `ref` names a branch (`snapshot_at` is then the pull time). v1 pins every ref, so it never pulls one, and a delta on disk doesn't change `70dd1dabfed544b8`.
+
 ## When the run changes
 
 Around D4, Rachna's 4 package refs land in `meridian.toml`. That gives a new `run_id`, and Vishwa posts it. Utkarsh's bucket settings are in `settings.toml`, which doesn't change the `run_id`.

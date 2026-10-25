@@ -93,13 +93,17 @@ def jira_link(a, kind, side, b):
 
 
 def read_jira(d):
-    issues, seen = [], set()
-    for p in sorted(d.glob("page-*.json.gz")):
-        for it in json.loads(gzip.decompress(p.read_bytes()))["issues"]:
-            if it["key"] not in seen:  # a ticket created mid-pull can shift paging and appear twice
-                seen.add(it["key"])
-                issues.append(it)
-    return issues
+    """The base pull's pages, then each delta-*/ in the order pulled (collect.py): a later pull's copy of a ticket
+    replaces the earlier one in place, and a ticket new in a delta comes after the rest."""
+    issues = {}
+    for pull in [d, *sorted(d.glob("delta-*"))]:
+        seen = set()
+        for p in sorted(pull.glob("page-*.json.gz")):
+            for it in json.loads(gzip.decompress(p.read_bytes()))["issues"]:
+                if it["key"] not in seen:  # a ticket created mid-pull can shift paging and appear twice
+                    seen.add(it["key"])
+                    issues[it["key"]] = it
+    return list(issues.values())
 
 
 def jira(issues, snapshot_at, rules, run_id, project):
@@ -262,8 +266,13 @@ def gl_parent(n):
 
 
 def read_gitlab(d):
-    with gzip.open(d / "issues.jsonl.gz", "rt", encoding="utf-8") as f:
-        return [json.loads(l) for l in f if l.strip()]
+    """issues.jsonl.gz, then each delta-*/ in the order pulled, as read_jira."""
+    issues = {}
+    for p in [d / "issues.jsonl.gz", *sorted(d.glob("delta-*/issues.jsonl.gz"))]:
+        with gzip.open(p, "rt", encoding="utf-8") as f:
+            for n in (json.loads(l) for l in f if l.strip()):
+                issues[n["iid"]] = n
+    return list(issues.values())
 
 
 def gitlab(issues, snapshot_at, ds, rules, prefix, run_id):
