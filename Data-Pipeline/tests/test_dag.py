@@ -55,7 +55,8 @@ class Spec(unittest.TestCase):
             self.assertTrue({"validate", next(iter(dag))} <= ancestors("publish", dag), name)   # behind the first task
         self.assertEqual(list(P.DAGS["update"])[:2], ["anything_new", "collect"])
         self.assertNotIn("bias", P.DAGS["update"])
-        self.assertTrue({"bias", "compare"} <= ancestors("publish", P.DAGS["rebuild"]))
+        self.assertTrue({"bias", "report", "compare"} <= ancestors("publish", P.DAGS["rebuild"]))
+        self.assertIn("report", ancestors("compare", P.DAGS["rebuild"]))   # the rebuild's report checks the update's
         self.assertTrue(all(any(g in dag for dag in P.DAGS.values()) for g in P.GATES))
 
     def test_commands(self):

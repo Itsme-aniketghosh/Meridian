@@ -112,9 +112,9 @@ jira = { base = "https://example.invalid/rest/api/2/search", jql = "project=FIX 
 PINNED_RUN = {"config_hash": "4fa921f28b531a6407ecb1033949005fb1b7eaa72a353bfb6a53869bf425e2a7", "model_versions": "{}",
               "notes": "jira/FIX pulled 2026-01-03T00:00:00Z..2026-01-03T00:00:05Z | ticket status, resolution and resolved_at "
                        "are as of snapshot_at; other ticket fields are as of the pull",
-              "repo_shas": '{"fixture/repo":"327aca897508485cb01090564786b637d8f0bb8d"}', "run_id": "cfa90df0ad17968d",
+              "repo_shas": '{"fixture/repo":"327aca897508485cb01090564786b637d8f0bb8d"}', "run_id": "b50f349d8a81d027",
               "snapshot_at": "2026-01-02T00:00:00Z",
-              "source_hashes": '{"jira/FIX":"9a111fdcf82d8c9d79a5512d8c9a95442bf496919753742b132dfd0c2167ef31"}',
+              "source_hashes": '{"jira/FIX":"0d71e4b84315a06430c6916b0e6d4c82ad4dbb71837ee2e515ac5becc4cca764"}',
               "status": "complete"}
 
 
@@ -126,7 +126,7 @@ def pinned_cache(root, upstream):
     issues = [{"key": f"FIX-{i}", "fields": {"summary": f"ticket {i}", "created": "2026-01-01T00:00:00.000+0000"},
                "changelog": {"histories": []}} for i in (1, 2, 3)]
     body = json.dumps({"startAt": 0, "maxResults": 100, "total": 3, "issues": issues}).encode()
-    (jira / "page-000000.json.gz").write_bytes(gzip.compress(body, mtime=0))
+    (jira / "page-000000.json.gz").write_bytes(S.gz(body))
     (jira / ".pull.json").write_text(json.dumps({"started_at": "2026-01-03T00:00:00Z", "finished_at": "2026-01-03T00:00:05Z", "total": 3}))
     return jira
 
@@ -237,7 +237,7 @@ min_share = {threshold}
                            ("delta-20260205T000000Z", {"started_at": "2026-02-05T00:00:00Z"})):  # the second one killed
             (jira / name).mkdir()
             (jira / name / "cursor.json").write_text('{"since":"2026-01-03T00:00:00Z"}\n')
-            (jira / name / "page-000000.json.gz").write_bytes(gzip.compress(b'{"total": 0, "issues": []}', mtime=0))
+            (jira / name / "page-000000.json.gz").write_bytes(S.gz(b'{"total": 0, "issues": []}'))
             (jira / name / ".pull.json").write_text(json.dumps(meta))
         row = S.snapshot(cfg, root=root)
         self.assertEqual({k: v for k, v in row.items() if k != "image_digest"}, PINNED_RUN)

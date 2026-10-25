@@ -28,13 +28,13 @@ CORE = {p: STEPS[p][0] for p in ("history", "scan", "resolve", "owners", "join",
 # report (meridian.report: what changed, and which commit), publish, compare (meridian.<task>), and fresh (shell).
 DAGS = {
     "update": {"anything_new": (), "collect": ("anything_new",), **CORE, "report": ("validate",), "publish": ("report",)},
-    "rebuild": {"fresh": (), "collect": ("fresh",), **CORE, "bias": ("validate",), "compare": ("bias",),
-                "publish": ("compare",)},
+    "rebuild": {"fresh": (), "collect": ("fresh",), **CORE, "bias": ("validate",), "report": ("validate",),
+                "compare": ("bias", "report"), "publish": ("compare",)},
 }
 
 # Gates stop the rest of their DAG by their command's exit code: task -> (go on, stop). Any other code fails the task.
 GATES = {"anything_new": (0, 99),   # meridian.status: 0 = something new since the last published run, 99 = nothing
-         "compare": (1, 0)}         # meridian.compare: 1 = the rebuild differs (alerted): publish it; 0 = same: done
+         "compare": (3, 0)}         # meridian.compare: 3 = the rebuild differs (alerted): publish it; 0 = same: done
 
 
 def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", rebuild="", handoff="out/{run_id}"):

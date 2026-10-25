@@ -61,7 +61,11 @@ def write_atomic(path, data):
 
 
 def gz(data):
-    return gzip.compress(data, mtime=0)  # mtime 0: the same body always gives the same bytes
+    """The same body always gives the same bytes: mtime 0, and the header's OS byte fixed (Python 3.11 writes the
+    machine's: 0 on Windows, 3 on Linux), so a pull hashes the same wherever it was made."""
+    b = bytearray(gzip.compress(data, mtime=0))
+    b[9] = 255  # "unknown", what gzip.GzipFile writes
+    return bytes(b)
 
 
 def load_meta(d):

@@ -90,7 +90,7 @@ class Compare(Base):
     def tables(self, root, **t):
         out = self.block(root)
         for name, lines in t.items():
-            (out / f"{name}.jsonl").write_text("".join(f"{x}\n" for x in lines), encoding="utf-8")
+            (out / f"{name}.jsonl").write_text("".join(f"{x}\n" for x in lines), encoding="utf-8", newline="\n")
 
     def run_it(self):
         with redirect_stdout(io.StringIO()), mock.patch.object(alert, "send") as sent:
@@ -109,13 +109,33 @@ class Compare(Base):
         self.assertIsNone(failed)
         sent.assert_not_called()
 
-    def test_a_different_or_missing_table_alerts_with_its_row_counts(self):
+    def test_a_different_or_missing_table_alerts_with_its_rows(self):
         self.tables(self.tmp / "a", t=[1, 2], u=[3], v=[4])
-        self.tables(self.tmp / "b", t=[1, 2, 5], u=[3])
+        self.tables(self.tmp / "b", t=[1, 5, 6], u=[3])
         self.assertEqual(C.compare(self.tmp / "a" / "out" / "R1", self.tmp / "b" / "out" / "R1"), [("t", 2, 3), ("v", 1, None)])
         failed, sent = self.run_it()
-        self.assertIn("2 tables differ", failed)
-        self.assertIn("t: 2 rows here, 3 under", sent.call_args[0][1][0])
+        self.assertEqual(failed, str(C.DIFFERENT))   # not 1: a crash fails the task instead of publishing
+        self.assertIn("the weekly rebuild is the truth", sent.call_args[0][0])
+        report = json.loads((self.tmp / "a" / "out" / "R1" / "compare.json").read_text(encoding="utf-8"))
+        t = report["tables"][0]
+        self.assertEqual((t["table"], t["only_rebuild"], t["only_update"]), ("t", 1, 2))
+        self.assertEqual((t["examples_rebuild"], t["examples_update"]), (["2"], ["5", "6"]))
+
+    def test_says_which_part_went_wrong(self):
+        # resolve's input (candidate) is the same, its output isn't: resolve, not the parts after it
+        self.assertEqual(C.where({"resolution", "call_edge", "call_site", "blast_radius"}), ["resolve"])
+        self.assertEqual(C.where({"candidate", "resolution"}), ["scan"])
+        self.assertEqual(C.where({C.REPORT}), ["report"])                    # every table right, the report wrong
+        self.assertEqual(C.where({"blast_radius", C.REPORT}), ["graph"])    # the report only followed graph
+
+    def test_a_wrong_change_report_is_caught(self):
+        self.tables(self.tmp / "a", t=[1])
+        self.tables(self.tmp / "b", t=[1])
+        (self.tmp / "a" / "out" / "R1" / "changes.json").write_text('{"totals": {"call_edges_added": 2}}\n')
+        (self.tmp / "b" / "out" / "R1" / "changes.json").write_text('{"totals": {"call_edges_added": 3}}\n')
+        failed, sent = self.run_it()
+        self.assertEqual(failed, str(C.DIFFERENT))
+        self.assertIn("went wrong in: report", sent.call_args[0][1][0])
 
     def test_nothing_to_compare_is_an_error(self):
         failed, sent = self.run_it()
