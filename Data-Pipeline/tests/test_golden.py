@@ -10,6 +10,9 @@
     python -m tests.test_golden --update                    # rewrites golden/fixture.json: only for a meant change
 
 golden/70dd1dabfed544b8.json is never regenerated: a new contract means a new team run_id and a new golden file.
+One exception, before v1 reached main: schema v1.2 added call_site.effective_sha and call_edge.introduced_sha without
+changing the run_id (the run_id hashes meridian.toml, not schema.sql), so call_site and call_edge were recorded again
+from the regenerated dvc.lock. Every other file kept its hash.
 """
 import hashlib, json, os, shutil, sqlite3, sys, tempfile, unittest
 from contextlib import closing, redirect_stdout
