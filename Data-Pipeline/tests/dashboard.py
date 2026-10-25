@@ -1,6 +1,7 @@
 """A dashboard of one run, for testing: how the data behaves, and which planned features have data on it. Local only.
 
     python -m tests.dashboard --run-id <run_id> --config meridian.toml     # -> out/<run_id>/dashboard.html
+    python -m tests.dashboard --run-id <run_id> --config meridian.toml --serve 8765   # and serve it, with the button
 
 Reads out/<run_id>/meridian.sqlite, as validate built it; builds it with meridian.writer (so it also proves the block
 loads) only when it is missing or older than any out/<run_id>/*.jsonl or schema.sql. Opens it read-only, adds the
@@ -8,10 +9,15 @@ tracking tables KNOWLEDGE-BASE.md proposes as TEMP tables (suggestion, outcome, 
 writes them), then runs every named query in KNOWLEDGE-BASE.md against it. The doc's parameters name fixture teams
 and files, so team, path, scope and key are swapped for this run's biggest. Both files sit under out/, which git
 ignores: keep them there, they carry ticket keys and, in the stall queries, people's names.
+
+The header says how stale the published block is (meridian.status). Its "Update graph" button works when the page is
+served (--serve, on 127.0.0.1 only): a click triggers meridian_update through Airflow's REST API (meridian.status
+trigger), and says whether it queued a run or one was queued already.
 """
-import html, json, re, sqlite3, time
+import html, http.server, json, re, sqlite3, time
 from pathlib import Path
 
+import meridian.status as S
 import meridian.writer as W
 from meridian.common import data_root, handoff, load_config, log, parser
 
@@ -89,7 +95,7 @@ def tile(label, value, note=""):
 STATUS = {"rows": ("good", "✓", "has rows"), "empty": ("warning", "○", "no rows"), "error": ("critical", "✕", "error")}
 
 
-def page(run, sections):
+def page(run, sections, stale=""):
     nav = "".join(f'<a href="#{i}">{esc(t)}</a>' for i, (t, _) in enumerate(sections))
     body = "".join(f'<section id="{i}"><h2>{esc(t)}</h2>{s}</section>' for i, (t, s) in enumerate(sections))
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -120,12 +126,14 @@ td.num{{font-variant-numeric:tabular-nums;white-space:nowrap;position:relative}}
 code,.mono{{font:12px ui-monospace,Consolas,monospace}}details summary{{cursor:pointer;color:var(--s1)}}
 </style></head><body><header><h1>Meridian · run <span class="mono">{esc(run["run_id"])}</span></h1>
 <p>snapshot_at {esc(run["snapshot_at"])} · status {esc(run["status"])} · built from <code>out/{esc(run["run_id"])}/</code>, local only</p>
-<nav>{nav}</nav></header>{body}</body></html>"""
+<p>{esc(stale)} · <button onclick="fetch('/update',{{method:'POST',headers:{{'X-Meridian':'1'}}}}).then(r=>r.text())
+.catch(()=>'serve the page (--serve) to use the button').then(t=>this.nextElementSibling.textContent=t)">Update graph</button>
+<span class="note"></span></p><nav>{nav}</nav></header>{body}</body></html>"""
 
 
 # ───────────── sections ─────────────
 
-def build(db, run, queries):
+def build(db, run, queries, stale=""):
     q = lambda sql: db.execute(sql).fetchall()
     sections = []
 
@@ -194,7 +202,7 @@ def build(db, run, queries):
                      f'rows, the tracking queries only show the control group.</p><p>{legend}</p>'
                      '<div class="scroll"><table><thead><tr><th>section</th><th>query</th><th>status</th><th>rows</th>'
                      f'<th>params · error · preview</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>'))
-    return page(run, sections)
+    return page(run, sections, stale)
 
 
 def main(run_id, config, root=None):
@@ -222,7 +230,7 @@ def main(run_id, config, root=None):
             results.append((section, name, sql, params, [], [], f"{type(e).__name__}: {e}"))
     path = out / "dashboard.html"
     try:
-        path.write_text(build(db, run, results), encoding="utf-8", newline="\n")
+        path.write_text(build(db, run, results, S.line(S.status(config, root))), encoding="utf-8", newline="\n")
     finally:
         db.close()
     state = lambda r: "error" if r[6] else "rows" if r[5] else "empty"
@@ -231,6 +239,35 @@ def main(run_id, config, root=None):
     return path
 
 
+def serve(path, port):
+    """The page on http://127.0.0.1:port/. POST /update (the button) triggers meridian_update. The custom header keeps
+    other sites' pages from clicking it: a cross-site request can't send one without a preflight this server refuses."""
+    class Page(http.server.BaseHTTPRequestHandler):
+        def reply(self, code, text, kind="text/plain"):
+            self.send_response(code)
+            self.send_header("Content-Type", f"{kind}; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(text.encode("utf-8"))
+
+        def do_GET(self):
+            self.reply(200, path.read_text(encoding="utf-8"), "text/html")
+
+        def do_POST(self):
+            if self.path != "/update" or self.headers.get("X-Meridian") != "1":
+                return self.reply(403, "no")
+            try:
+                self.reply(200, S.trigger())
+            except OSError as e:  # Airflow down, wrong login: say so on the page
+                self.reply(200, f"trigger failed: {e}")
+
+    log(f"http://127.0.0.1:{port}/")
+    http.server.HTTPServer(("127.0.0.1", port), Page).serve_forever()
+
+
 if __name__ == "__main__":
-    a = parser(__doc__).parse_args()
-    main(a.run_id, a.config)
+    ap = parser(__doc__)
+    ap.add_argument("--serve", type=int, metavar="PORT", help="serve the page on 127.0.0.1:PORT, with the Update graph button")
+    a = ap.parse_args()
+    path = main(a.run_id, a.config)
+    if a.serve:
+        serve(path, a.serve)

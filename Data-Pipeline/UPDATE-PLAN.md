@@ -43,16 +43,16 @@ Draft from Aniket's discussion with Utkarsh. Nothing here is built yet. Numbers 
 
 ## DAGs
 
-Today there is one DAG that recomputes everything. Proposed:
+**Built (Phase 1 orchestration):** `meridian_update` and `meridian_rebuild` in `dags/meridian_dag.py`, from `dags/pipeline_spec.py`; `meridian.status`, `meridian.publish`, `meridian.compare`; the dashboard's staleness line and Update graph button. Not yet: collect's mirrors and cursors (#14–#18), parallel repos (#8), `meridian.report`'s content, the push check. Each DAG recomputes every part for now.
 
 | DAG | Runs | Does |
 |---|---|---|
-| `meridian_update` | the "Update graph" click, daily, later on pushes (Phase 2) | 1. **Anything new?** New commits or ticket changes since the last published run; if none, stop (so repeat clicks cost nothing). 2. Collect the changed repos and tickets. 3. Per changed repo, in parallel: history, scan → resolve (one task per repo, Airflow's dynamic task mapping). 4. owners → join → graph → validate → publish → change report |
-| `meridian_rebuild` | Sunday | The same parts on every repo from scratch, then compare with the last update: 0 differences, else alert and publish the rebuild. Also runs bias and the full statistics |
+| `meridian_update` **(built)** | the "Update graph" click, daily, later on pushes (Phase 2) | 1. **Anything new?** New commits or ticket changes since the last published run; if none, stop (so repeat clicks cost nothing). 2. Collect the changed repos and tickets. 3. Per changed repo, in parallel: history, scan → resolve (one task per repo, Airflow's dynamic task mapping). 4. owners → join → graph → validate → publish → change report |
+| `meridian_rebuild` **(built)** | Sunday | The same parts on every repo from scratch, then compare with the last update: 0 differences, else alert and publish the rebuild. Also runs bias and the full statistics |
 | push check | every PR to a watched repo (GitHub Actions, not Airflow) | Changed files + their importers against the last published block. P1–P9 as one comment. Read-only |
 
-- **One run at a time:** `max_active_runs = 1` (already set). A click during a run queues one run; when it starts, it takes every push up to then (#4). The "anything new?" step drops a second queued click.
-- **Publish** = copy `meridian.sqlite` and `dvc push`, only after validate passes (#10). Views always read the last published block.
+- **One run at a time:** `max_active_runs = 1` (built, both DAGs). A click during a run queues one run; when it starts, it takes every push up to then (#4). A click while one is already queued adds nothing (built: `meridian.status --update`), and the "anything new?" step drops a queued run with nothing to do (built: exit 99 skips the rest).
+- **Publish** = copy `meridian.sqlite` and `dvc push`, only after validate passes (#10). Views always read the last published block. *(Built: `published/<run_id>.sqlite` and `published/latest.json`, both atomic; refused on any data error; `dvc commit` + `push` when `[dvc] push`.)*
 
 ## Faster
 

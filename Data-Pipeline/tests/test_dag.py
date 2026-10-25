@@ -1,5 +1,6 @@
-"""DAG tests. The spec (dags/pipeline_spec.py) runs anywhere: every table a part reads is written upstream of it, and
-every task is one command. The Airflow DAG itself is checked where Airflow is installed (the Docker image):
+"""DAG tests. The spec (dags/pipeline_spec.py) runs anywhere: every table a part reads is written upstream of it,
+publish only follows validate, and every task is one command. The Airflow DAGs themselves are checked where Airflow is
+installed (the Docker image):
 
     python -m unittest tests.test_dag -v                                              # from Data-Pipeline/
     docker compose run --rm airflow-scheduler python -m unittest tests.test_dag -v    # with Airflow
@@ -14,13 +15,14 @@ from meridian.common import SCHEMA, load_settings
 from meridian.writer import tables
 
 
-def ancestors(part):
-    seen, todo = set(), list(P.STEPS[part][0])
+def ancestors(task, dag=None):
+    up = dag or {p: u for p, (u, _, _) in P.STEPS.items()}
+    seen, todo = set(), list(up[task])
     while todo:
         p = todo.pop()
         if p not in seen:
             seen.add(p)
-            todo += P.STEPS[p][0]
+            todo += up[p]
     return seen
 
 
@@ -37,19 +39,42 @@ class Spec(unittest.TestCase):
         self.assertEqual(sorted(writers), sorted(set(writers)))
         self.assertEqual(set(writers), set(tables(SCHEMA.read_text(encoding="utf-8"))))
 
-    def test_order_is_a_run_order_and_parts_are_modules(self):
-        order = list(P.STEPS)
-        for part, (upstream, _, _) in P.STEPS.items():
-            self.assertTrue(all(order.index(u) < order.index(part) for u in upstream), part)
-        for part in P.PARTS:
-            self.assertTrue((HERE / "meridian" / f"{part}.py").exists(), part)
+    def test_each_dag_runs_in_order_and_its_tasks_are_modules(self):
+        for name, dag in P.DAGS.items():
+            order = list(dag)
+            for task, upstream in dag.items():
+                self.assertTrue(all(order.index(u) < order.index(task) for u in upstream), f"{name}.{task}")
+                if task in P.STEPS:
+                    self.assertTrue(set(P.STEPS[task][0]) <= ancestors(task, dag), f"{name}.{task}")
+        for m in set(P.PARTS) | {"status", "compare", "publish"}:   # meridian.report is being written
+            self.assertTrue((HERE / "meridian" / f"{m}.py").exists(), m)
+
+    def test_publish_only_after_validate_and_bias_only_weekly(self):
+        for name, dag in P.DAGS.items():
+            self.assertTrue({"validate", next(iter(dag))} <= ancestors("publish", dag), name)   # behind the first task
+        self.assertEqual(list(P.DAGS["update"])[:2], ["anything_new", "collect"])
+        self.assertNotIn("bias", P.DAGS["update"])
+        self.assertTrue({"bias", "compare"} <= ancestors("publish", P.DAGS["rebuild"]))
+        self.assertTrue(all(any(g in dag for dag in P.DAGS.values()) for g in P.GATES))
 
     def test_commands(self):
-        self.assertEqual(P.command("join", "R", "meridian.toml", "py", "--prev-run Q"),
-                         "py -m meridian.join --run-id R --config meridian.toml --prev-run Q")
-        self.assertEqual(P.command("graph", "R", "meridian.toml", "py", "--prev-run Q"),
-                         "py -m meridian.graph --run-id R --config meridian.toml")      # only join and validate take it
-        self.assertEqual(P.command("version", "R", "m", "py", "", True), "py -m dvc commit --force --quiet && py -m dvc push")
+        c = lambda dag, task, prev_arg="", prev="": P.command(dag, task, "R", "meridian.toml", "py", prev_arg, prev,
+                                                              "/d", "/d/rb")
+        self.assertEqual(c("update", "join", "--prev-run Q"), "py -m meridian.join --run-id R --config meridian.toml --prev-run Q")
+        self.assertEqual(c("update", "graph", "--prev-run Q"), "py -m meridian.graph --run-id R --config meridian.toml")
+        self.assertEqual(c("update", "anything_new"), "py -m meridian.status --config meridian.toml")
+        self.assertEqual(c("update", "report", "--prev-run Q"),
+                         "py -m meridian.report --run-id R --config meridian.toml --prev-run Q")
+        self.assertEqual(c("update", "publish"), "py -m meridian.publish --run-id R --config meridian.toml")
+        # the rebuild computes under its own root, compares with the main one, and publishes where the views read
+        self.assertEqual(c("rebuild", "scan"), "MERIDIAN_DATA=/d/rb py -m meridian.scan --run-id R --config meridian.toml")
+        self.assertEqual(c("rebuild", "compare"),
+                         "MERIDIAN_DATA=/d/rb py -m meridian.compare --run-id R --config meridian.toml --against-root /d")
+        self.assertEqual(c("rebuild", "publish", "--prev-run Q"),
+                         "py -m meridian.publish --run-id R --config meridian.toml --prev-run Q --from-root /d/rb")
+        fresh = c("rebuild", "fresh", prev="Q")
+        self.assertTrue(fresh.startswith("rm -rf /d/rb/out/R && mkdir -p /d/rb/out/R && ln -sfn /d/snapshots /d/rb/snapshots"))
+        self.assertIn('p="Q" && if [ -n "$p" ]; then ln -sfn /d/out/$p /d/rb/out/$p; fi', fresh)
 
 
 @unittest.skipUnless(importlib.util.find_spec("airflow"), "Airflow isn't installed here: run it in the Docker image")
@@ -59,23 +84,27 @@ class Dag(unittest.TestCase):
         from airflow.models import DagBag
         bag = DagBag(dag_folder=str(HERE / "dags"), include_examples=False)
         cls.errors = bag.import_errors
-        cls.dag = bag.get_dag(load_settings("orchestration")["dag_id"])
+        cls.dags = {name: bag.get_dag(s["dag_id"]) for name, s in load_settings("dags").items()}
 
     def test_loads_without_errors(self):
         self.assertEqual(self.errors, {})
-        self.assertIsNotNone(self.dag)
+        self.assertEqual(set(self.dags), set(P.DAGS))
+        self.assertTrue(all(self.dags.values()))
 
     def test_tasks_and_edges_follow_the_spec(self):
-        self.assertEqual(set(self.dag.task_ids), set(P.STEPS))
-        for part, (upstream, _, _) in P.STEPS.items():
-            self.assertEqual(self.dag.get_task(part).upstream_task_ids, set(upstream), part)
+        for name, dag in self.dags.items():
+            self.assertEqual(set(dag.task_ids), set(P.DAGS[name]))
+            self.assertEqual(dag.max_active_runs, 1)
+            for task, upstream in P.DAGS[name].items():
+                self.assertEqual(dag.get_task(task).upstream_task_ids, set(upstream), f"{name}.{task}")
 
     def test_settings_reach_the_tasks(self):
         orch = load_settings("orchestration")
-        for task in self.dag.tasks:
-            self.assertEqual(task.retries, orch["retries"])
-            self.assertEqual(task.execution_timeout.total_seconds(), orch["timeout_minutes"][task.task_id] * 60)
-            self.assertIsNotNone(task.on_failure_callback)
+        for dag in self.dags.values():
+            for task in dag.tasks:
+                self.assertEqual(task.retries, orch["retries"])
+                self.assertEqual(task.execution_timeout.total_seconds(), orch["timeout_minutes"][task.task_id] * 60)
+                self.assertIsNotNone(task.on_failure_callback)
 
 
 if __name__ == "__main__":

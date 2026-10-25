@@ -5,6 +5,8 @@ data/
 repos/
 results/
 out/
+/published/
+/rebuild/
 # snapshots/: everything but DVC's pointers to the raw ticket pulls (snapshots/_cache/{jira,gitlab}.dvc) and the
 # ignore file DVC keeps next to them. The repo mirrors in _cache/repos aren't tracked: collect clones them again
 /snapshots/*
