@@ -1,11 +1,14 @@
 # Meridian data pipeline
 
-Meridian joins code, git and Jira to find every call site of a dying internal API, who owns it, how risky it is, and which teams wait on each other. This folder is the data pipeline: ten tasks in one Airflow DAG, from the raw sources to a validated, versioned SQLite block (the knowledge base every later stage reads).
+Meridian joins code, git and Jira to find every call site of a dying internal API, who owns it, how risky it is, and which teams wait on each other. This folder is the data pipeline: two Airflow DAGs from the raw sources to a validated, published SQLite block (the knowledge base every later stage reads). `meridian_update` runs on the "Update graph" click and daily; `meridian_rebuild` recomputes everything weekly and checks the updates against it ([UPDATE-PLAN.md](UPDATE-PLAN.md)).
 
 ```
-collect ──┬── history ───────── owners ──┐
-          │                              ├── join ── graph ── validate ── bias ── version
-          └── scan ──── resolve ─────────┘
+meridian_update (click, daily)
+anything_new ── collect ──┬── history ───────── owners ──┐
+                          │                              ├── join ── graph ── validate ── report ── publish
+                          └── scan ──── resolve ─────────┘
+
+meridian_rebuild (Sunday): fresh ── collect ── … ── validate ── bias ── compare ── publish (only if they differ)
 ```
 
 | Task | Does | Writes (`out/<run_id>/`) | Doc |
@@ -19,13 +22,16 @@ collect ──┬── history ───────── owners ──┐
 | `graph` | Which site waits on which, blast radius, ticket chains | `blocked_by`, `blast_radius`, `chain` | [GRAPH](GRAPH.md) |
 | `validate` | Schema, statistics, anomalies; alerts | `meridian.sqlite`, `stats.json`, `anomalies.json` | below |
 | `bias` | Slices the pipeline's rules by team, module and repo (Fairlearn) | `bias.json` | [BIAS](BIAS.md) |
-| `version` | `dvc commit`: every output's hash into `dvc.lock` | `dvc.lock` | below |
+| `report` | What changed since the last published run, and which commit caused it (`meridian.report`) | | |
+| `publish` | Only after validate, and no data error: copies the block to `published/<run_id>.sqlite`, points `published/latest.json` at it; with `[dvc] push`, `dvc commit` and `dvc push` | `published/` | below |
+| `anything_new` | `meridian.status`: new commits since the published SHAs, or a publish older than a day; else the update stops | | below |
+| `compare` | Rebuild only: every table byte for byte against the update's; a difference alerts and publishes the rebuild | | below |
 
 ## Folder structure
 
 ```
 Data-Pipeline/
-├── dags/                  Airflow: meridian_dag.py (the DAG), pipeline_spec.py (its tasks and tables, as data)
+├── dags/                  Airflow: meridian_dag.py (the two DAGs), pipeline_spec.py (their tasks and tables, as data)
 ├── meridian/              the parts, one module each: python -m meridian.<part> --run-id <id> --config meridian.toml
 ├── tests/                 unittest: one file per part, plus the DAG, validation, bias; demo.py, dashboard.py
 ├── labels/                hand-checked answer keys and gold sets (CSV-POLICY.md)
@@ -38,7 +44,7 @@ Data-Pipeline/
 └── requirements.txt       every pinned dependency
 ```
 
-The data itself lives outside this folder, at the repo root (or under `$MERIDIAN_DATA`): `snapshots/` (inputs) and `out/<run_id>/` (outputs). Both are git-ignored; DVC versions them.
+The data itself lives outside this folder, at the repo root (or under `$MERIDIAN_DATA`): `snapshots/` (inputs), `out/<run_id>/` (outputs), `published/` (the live block and `latest.json`) and `rebuild/` (the weekly rebuild's own `out/`). All are git-ignored; DVC versions `snapshots/` and `out/`.
 
 ## Settings: three places, nothing hard-coded
 
@@ -75,7 +81,12 @@ cp .env.example .env                     # set the UI password; alert secrets if
 docker compose up -d --build             # Postgres, scheduler, web UI at http://localhost:8080
 ```
 
-In the UI, unpause `meridian_nightly` and trigger it. It processes `settings.toml [pipeline] run_id`; to run another, trigger with config `{"run_id": "...", "prev_run": "..."}`. Task logs are in the UI and in `Data-Pipeline/logs/`. The DAG runs nightly at 02:00 UTC (`[orchestration] schedule`).
+In the UI, unpause `meridian_update` and `meridian_rebuild`. Task logs are in the UI and in `Data-Pipeline/logs/`. Ids and schedules are in `settings.toml [dags.update]` and `[dags.rebuild]`; both run one at a time (`max_active_runs = 1`).
+
+- **`meridian_update`**: the "Update graph" click and daily at 02:00 UTC. Trigger it in the UI, with `python -m meridian.status --update` (Airflow's REST API, the UI login from `.env`), or with the dashboard's button (below). It processes `[pipeline] run_id`, or the trigger's config `{"run_id": "...", "prev_run": "..."}`; prev_run defaults to the last published run. Its first task, `anything_new`, stops the run when nothing changed since the last publish, so repeat clicks cost nothing; a click while a run is queued adds nothing. It publishes only if validate passed: a failed run leaves the last good block live.
+- **`meridian_rebuild`**: Sunday 04:00 UTC. Recomputes the last published run from scratch under `rebuild/` (`fresh` wipes its `out/<run_id>/` and links the snapshot and the previous run in), runs bias, then `compare`s every table with the update's. 0 differences: done. Otherwise: an alert, and the rebuild is published as `published/<run_id>.rebuild.sqlite`.
+
+**Staleness.** `python -m meridian.status --config meridian.toml` prints `data 2 days old · 14 new commits · run <id>` (`--json` for all of it): the published run's age, and per repo the commits between its published SHA and the tip of its ref in the local mirror (`[status] mirrors`, collect's bare clones; never fetched). Exit 0 = something new, 99 = nothing new. The dashboard shows the same line with an **Update graph** button: `python -m tests.dashboard --run-id <id> --config meridian.toml --serve 8765`, then http://127.0.0.1:8765/.
 
 **Without Airflow.** Each task is one command, from `Data-Pipeline/`, in the order above:
 
@@ -85,7 +96,7 @@ python -m meridian.history --run-id 70dd1dabfed544b8 --config meridian.toml
 ...                                                   # scan, resolve, owners, join, graph
 python -m meridian.validate --run-id 70dd1dabfed544b8 --config meridian.toml
 python -m meridian.bias --run-id 70dd1dabfed544b8 --config meridian.toml
-dvc commit --force
+python -m meridian.publish --run-id 70dd1dabfed544b8 --config meridian.toml     # -> published/, if validate passed
 ```
 
 or let DVC run what changed: `dvc repro`. Then look at the data: `python -m tests.demo --run-id 70dd1dabfed544b8 --config meridian.toml` (each part's tables in the terminal) and `python -m tests.dashboard ...` (one HTML page).
@@ -95,8 +106,8 @@ or let DVC run what changed: `dvc repro`. Then look at the data: `python -m test
 ## Data versioning (DVC)
 
 - **Inputs:** `snapshots/_cache/jira.dvc` and `gitlab.dvc` pin the raw pulls (`dvc add`). The repo clones aren't tracked: collect rebuilds them byte for byte from the pinned SHAs in `meridian.toml`.
-- **Outputs:** [dvc.yaml](dvc.yaml) declares each part as a stage, with the code, settings and tables it depends on and the tables it writes. The DAG's `version` task runs `dvc commit --force`, which writes every output's hash into `dvc.lock`. Git tracks `dvc.lock`, so every commit pins the exact data its code produced; `dvc diff` shows what changed between two commits.
-- **Remote:** `.dvc/config` names the team's GCS bucket as remote `gcs` (from `settings.toml`, a placeholder until GCP is set up; needs `pip install dvc-gs`). Until then, keep a copy anywhere with `dvc remote add -d --local mine /path/to/store`, then `dvc push`. Set `[dvc] push = true` for the DAG to push after every run.
+- **Outputs:** [dvc.yaml](dvc.yaml) declares each part as a stage, with the code, settings and tables it depends on and the tables it writes. With `[dvc] push = true`, the DAGs' `publish` task runs `dvc commit --force`, which writes every output's hash into `dvc.lock`, then `dvc push`. Git tracks `dvc.lock`, so every commit pins the exact data its code produced; `dvc diff` shows what changed between two commits.
+- **Remote:** `.dvc/config` names the team's GCS bucket as remote `gcs` (from `settings.toml`, a placeholder until GCP is set up; needs `pip install dvc-gs`). Until then, keep a copy anywhere with `dvc remote add -d --local mine /path/to/store`, then `dvc push`. Set `[dvc] push = true` for publish to push after every published run.
 
 ## Data quality: schema, statistics, anomalies
 
@@ -138,4 +149,4 @@ In sequence that is about 1,130 s. In the DAG the two branches overlap (history 
 python -m unittest discover -s tests -t .      # from Data-Pipeline/
 ```
 
-One test file per part, plus the DAG's structure (`test_dag.py`; the Airflow half runs in the image: `docker compose run --rm airflow-scheduler python -m unittest tests.test_dag`), validation and alerts (`test_validate.py`) and bias (`test_bias.py`). Edge cases are fixtures: renames, splits, parse failures, missing values, schema violations, broken alert channels. Details and the team-run tests: [TESTING.md](../TESTING.md).
+One test file per part, plus publish, compare, status and the Update graph trigger (`test_publish.py`), the DAGs' structure (`test_dag.py`; the Airflow half runs in the image: `docker compose run --rm airflow-scheduler python -m unittest tests.test_dag`), validation and alerts (`test_validate.py`) and bias (`test_bias.py`). Edge cases are fixtures: renames, splits, parse failures, missing values, schema violations, broken alert channels. Details and the team-run tests: [TESTING.md](../TESTING.md).

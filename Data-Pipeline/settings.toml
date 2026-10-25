@@ -14,11 +14,8 @@ config = "meridian.toml"              # what the parts compute
 
 # ───────────── orchestration (Airflow) ─────────────
 
-[orchestration]
+[orchestration]                       # both DAGs (dags/meridian_dag.py); each one's id and schedule in [dags.*]
 tool = "airflow"
-dag_id = "meridian_nightly"
-schedule = "0 2 * * *"                # 02:00 UTC nightly, incremental. "" = only when triggered
-full_rebuild_day = "sun"              # check: rebuild must equal incremental, else halt
 retries = 2
 retry_delay_minutes = 5
 max_active_tasks = 4                  # parts that may run at once: history next to scan and resolve
@@ -27,10 +24,11 @@ task_runner = "bash"                  # "bash": each part is a command in the Ai
 python = "/opt/meridian-venv/bin/python"   # the pipeline's own environment in the image, built from requirements.txt
 image = "us-east1-docker.pkg.dev/meridian-pipeline/meridian/pipeline"   # Artifact Registry path. Placeholder until GCP is set up
 snapshot_bucket = "gs://meridian-pipeline-snapshots"                   # raw pulls and snapshots, replaces shared-snapshot/. Placeholder until GCP is set up
-publish_only_if_check_passes = true
 alert_on = ["failed", "halted", "partial"]
 
-[orchestration.timeout_minutes]       # a part running longer than this is killed and retried
+[orchestration.timeout_minutes]       # a task running longer than this is killed and retried
+anything_new = 5
+fresh = 5
 collect = 30
 history = 60
 scan = 20
@@ -40,7 +38,30 @@ join = 30
 graph = 10
 validate = 30
 bias = 20
-version = 30
+report = 20
+compare = 20
+publish = 30                          # with [dvc] push, the upload
+
+[dags.update]                         # the "Update graph" click (a trigger, through the UI or the REST API) and daily
+dag_id = "meridian_update"
+schedule = "0 2 * * *"                # 02:00 UTC. "" = only when triggered
+api = "http://localhost:8080/api/v1"  # Airflow's REST API, for the dashboard's "Update graph" button
+api_user_env = "AIRFLOW_ADMIN_USER"  # the environment variables holding its login: the UI's, from .env
+api_password_env = "AIRFLOW_ADMIN_PASSWORD"
+
+[dags.rebuild]                        # everything from scratch, compared with the updates
+dag_id = "meridian_rebuild"
+schedule = "0 4 * * 0"                # Sunday 04:00 UTC, after the day's update
+data_root = "rebuild"                 # its own snapshots/ (a link to the real one) and out/, under the data root
+
+# ───────────── publishing and staleness ─────────────
+
+[publish]
+dir = "published"                     # under the data root: <run_id>.sqlite per published run, latest.json -> the live one
+
+[status]                              # meridian.status: "data 2 days old · 14 new commits"
+mirrors = "snapshots/_cache/repos"    # under the data root: one bare <owner>__<name>.git per repo (collect's). Never fetched
+stale_after_hours = 24                # a publish older than this counts as new: ticket changes can't be seen without a pull
 
 # ───────────── alerts ─────────────
 
@@ -194,4 +215,4 @@ recent_since = "2020"                 # ticket mapping is sliced again on ticket
 # ───────────── data versioning ─────────────
 
 [dvc]
-push = false                          # the DAG's last task pushes to the DVC remote when true (.dvc/config names it)
+push = false                          # publish runs dvc commit and push to the DVC remote when true (.dvc/config names it)

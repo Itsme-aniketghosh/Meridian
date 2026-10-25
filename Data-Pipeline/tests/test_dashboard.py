@@ -40,6 +40,7 @@ class Dashboard(unittest.TestCase):
             path = D.main("R2", tmp / "meridian.toml", tmp)
         page = path.read_text(encoding="utf-8")
         self.assertIn("Planned features", page)
+        self.assertIn("nothing published yet · <button", page)   # the staleness line and the Update graph button
         self.assertIn(" 0 error", log.getvalue())  # the doc's queries all run on a real block's layout
 
 
