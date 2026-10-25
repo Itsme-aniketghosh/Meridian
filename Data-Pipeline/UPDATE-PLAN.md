@@ -31,10 +31,7 @@ Draft from Aniket's discussion with Utkarsh. Nothing here is built yet. Numbers 
 10. **Publish only if validate passes**, else the last good block stays live. *(`settings.toml` has the switch; the publish step isn't built.)*
 11. **Per-push blast radius lives in the push check** on PRs, before merge.
 12. **Show staleness before the click:** "data 2 days old · 14 new pushes · Update". A click during a run doesn't start a second one.
-13. **Build in phases:**
-    - Phase 1: on request + daily + weekly rebuild, all as a full recompute.
-    - Phase 2: optional push-triggered runs.
-    - Phase 3: update only what changed per part, once runs get slow.
+13. **Build in phases** (see Phases, below).
 
 ## Contract changes (after the v1 freeze, Aniket's OK)
 
@@ -72,6 +69,28 @@ Times now (Oct 23–24): history 430 s, resolve 295 s, validate 165 s, scan 140 
 | Keep `snapshots/` and `out/` on a Docker volume, not the Windows/Mac folder | git and file reads several times faster in Docker | 1 |
 | Scan and resolve cached per file, by git blob SHA: only changed files are parsed | scan + resolve from ~7 min to seconds on a typical push | 3 |
 | SZZ on new fix commits only; keep earlier `bug_inducing` rows | history from ~7 min to seconds | 3 |
+
+## Phases
+
+**Phase 0 · before `mlops-pipeline` merges.** The four fixes below.
+
+**Phase 1 · runs on request, daily, and a weekly rebuild.** Each run still recomputes every part, but only for repos that changed.
+- Contract changes #14–#18 (one new team run_id).
+- `meridian_update` and `meridian_rebuild`; the "anything new?" step; publish only after validate (#10).
+- The per-run change report: what changed, and which commit caused it (#5, #17).
+- Staleness and the "Update graph" button in the tool (#12).
+- The Phase 1 speed-ups in the table above.
+- Done when: a click picks up every push since the last update, a Sunday rebuild shows 0 differences, and a failed validate leaves the last good block live.
+
+**Phase 2 · pushes.**
+- The push check on PRs (#11): GitHub Actions, read-only, P1–P9 as one comment, base = the last published block.
+- Optional: a merged push starts `meridian_update` itself (still one run at a time, batched).
+- Done when: a PR gets its comment in under 5 minutes (05-test), and a burst of pushes makes one run, not many.
+
+**Phase 3 · update only what changed, inside each part.** Once runs get slow.
+- Scan and resolve cached per file, by git blob SHA.
+- SZZ on new fix commits only.
+- Done when: the Sunday rebuild still equals the updates (0 differences), and a typical update takes seconds.
 
 ## Fixes on `mlops-pipeline` before it merges
 
