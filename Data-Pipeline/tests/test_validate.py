@@ -38,6 +38,24 @@ IDS = """\
     """
 
 
+def per_column_stats(db, table, cols, top_n):
+    """validate.column_stats as it was, one or two queries per column: the reference the one-query version must equal."""
+    rows = db.execute(f'SELECT count(*) FROM "{table}"').fetchone()[0]
+    out = {}
+    for name, typ, *_ in cols:
+        q = f'"{name}"'
+        missing, distinct = db.execute(f"SELECT sum({q} IS NULL OR {q} = ''), count(DISTINCT {q}) FROM \"{table}\"").fetchone()
+        s = {"missing": missing or 0, "distinct": distinct}
+        if typ in V.NUMERIC:
+            lo, hi, mean = db.execute(f'SELECT min({q}), max({q}), avg({q}) FROM "{table}"').fetchone()
+            s |= {"min": lo, "max": hi, "mean": None if mean is None else round(mean, 4)}
+        if 0 < distinct <= top_n and distinct < rows:
+            s["top"] = [list(r) for r in db.execute(
+                f'SELECT {q}, count(*) FROM "{table}" GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT {top_n}')]
+        out[name] = s
+    return rows, out
+
+
 class Validate(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
@@ -67,6 +85,15 @@ class Validate(unittest.TestCase):
         self.assertEqual(stats["call_site"]["rows"], 17)
         self.assertEqual(stats["call_site"]["columns"]["status"]["top"], [["present", 12], ["removed", 5]])
         self.assertEqual(stats["file_owner"]["columns"]["share"]["max"], 1.0)
+
+    def test_one_query_per_table_gives_the_same_statistics_as_one_per_column(self):
+        self.run_it()
+        spec = V.W.tables(V.W.SCHEMA.read_text(encoding="utf-8"))
+        with sqlite3.connect(self.out / "meridian.sqlite") as db:
+            for table, cols in sorted(spec.items()):
+                new, old = V.column_stats(db, table, cols, 10), per_column_stats(db, table, cols, 10)
+                self.assertEqual(json.dumps(new, sort_keys=True), json.dumps(old, sort_keys=True), table)
+        db.close()
 
     def test_a_bad_format_is_an_error_and_alerts(self):
         failed, found, sent = self.run_it(IDS)   # the fixture's IDs are readable names, not hashes

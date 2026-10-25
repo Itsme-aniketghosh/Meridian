@@ -2,8 +2,9 @@
 
     python -m tests.dashboard --run-id <run_id> --config meridian.toml     # -> out/<run_id>/dashboard.html
 
-Loads out/<run_id>/*.jsonl with meridian.writer into out/<run_id>/meridian.sqlite (so it also proves the block
-loads), adds the tracking tables KNOWLEDGE-BASE.md proposes (suggestion, outcome, push_alert: empty until stage 6
+Reads out/<run_id>/meridian.sqlite, as validate built it; builds it with meridian.writer (so it also proves the block
+loads) only when it is missing or older than any out/<run_id>/*.jsonl or schema.sql. Opens it read-only, adds the
+tracking tables KNOWLEDGE-BASE.md proposes as TEMP tables (suggestion, outcome, push_alert: empty until stage 6
 writes them), then runs every named query in KNOWLEDGE-BASE.md against it. The doc's parameters name fixture teams
 and files, so team, path, scope and key are swapped for this run's biggest. Both files sit under out/, which git
 ignores: keep them there, they carry ticket keys and, in the stall queries, people's names.
@@ -129,7 +130,8 @@ def build(db, run, queries):
     sections = []
 
     counts = [(t, db.execute(f"SELECT count(*) FROM {t}").fetchone()[0])
-              for (t,) in q("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")]
+              for (t,) in q("""SELECT name FROM sqlite_master WHERE type = 'table'
+                               UNION SELECT name FROM temp.sqlite_master WHERE type = 'table' AND name != 'asof' ORDER BY name""")]
     present = q("SELECT count(*) FROM site_now WHERE status = 'present'")[0][0]
     blocked = q("SELECT count(*) FROM blocked_by")[0][0]
     tiles = (tile("present call sites", present) + tile("call edges", dict(counts)["call_edge"])
@@ -198,8 +200,10 @@ def build(db, run, queries):
 def main(run_id, config, root=None):
     cfg = load_config(config)
     out = handoff(cfg, run_id, Path(root or data_root()))
-    loaded = W.write(out)  # meridian.sqlite: the block itself, git-ignored like out/
-    db = sqlite3.connect(out / "meridian.sqlite")
+    block = out / "meridian.sqlite"  # the block itself, git-ignored like out/
+    fresh = block.exists() and all(block.stat().st_mtime > p.stat().st_mtime for p in [*out.glob("*.jsonl"), W.SCHEMA])
+    loaded = None if fresh else W.write(out)
+    db = sqlite3.connect(block.resolve().as_uri() + "?mode=ro", uri=True)  # the block stays as validate wrote it
     run = dict(zip(("run_id", "snapshot_at", "status"), db.execute("SELECT run_id, snapshot_at, status FROM run").fetchone()))
     top = db.execute("""SELECT repo, symbol FROM call_site GROUP BY 1, 2 ORDER BY count(*) DESC, 1, 2 LIMIT 1""").fetchone() or ("", "")
     db.execute("CREATE TEMP TABLE asof (run_id TEXT, at TEXT, repo TEXT, symbol TEXT)")
@@ -207,7 +211,7 @@ def main(run_id, config, root=None):
     results, pick = [], None
     for section, name, sql, params, is_query in doc_queries():
         if not is_query:  # setup views and the proposed tracking tables
-            db.executescript(sql)
+            db.executescript(re.sub(r"\bCREATE TABLE\b", "CREATE TEMP TABLE", sql))
             continue
         pick = pick or picks(db, run)
         params = {k: pick.get(k) or v for k, v in params.items()}
@@ -222,7 +226,7 @@ def main(run_id, config, root=None):
     finally:
         db.close()
     state = lambda r: "error" if r[6] else "rows" if r[5] else "empty"
-    log(f"{sum(loaded.values()):,} rows loaded · {len(results)} planned queries: "
+    log((f"{sum(loaded.values()):,} rows loaded" if loaded else f"reused {block.name}") + f" · {len(results)} planned queries: "
         + ", ".join(f"{sum(state(r) == s for r in results)} {s}" for s in STATUS) + f" -> {path}")
     return path
 

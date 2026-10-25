@@ -6,7 +6,8 @@
 #   docker compose down             # stop; the database volume keeps run history
 #
 # The whole repo is mounted at /opt/meridian: the parts read snapshots/ and write out/ there (MERIDIAN_DATA), exactly
-# as on a laptop, so DVC sees the same files. Airflow's task logs land in Data-Pipeline/logs/.
+# as on a laptop, so DVC sees the same files. Airflow's task logs land in Data-Pipeline/logs/. On Windows or Mac, where
+# that folder mount is slow, add -f docker-compose.volumes.yaml to keep snapshots/ and out/ on Docker volumes instead.
 
 x-airflow: &airflow
   build:
