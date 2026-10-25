@@ -86,7 +86,7 @@ class Dag(unittest.TestCase):
         from airflow.models import DagBag
         bag = DagBag(dag_folder=str(HERE / "dags"), include_examples=False)
         cls.errors = bag.import_errors
-        cls.dags = {name: bag.get_dag(s["dag_id"]) for name, s in load_settings("dags").items()}
+        cls.dags = {name: bag.dags.get(s["dag_id"]) for name, s in load_settings("dags").items()}   # get_dag() asks the database
 
     def test_loads_without_errors(self):
         self.assertEqual(self.errors, {})
