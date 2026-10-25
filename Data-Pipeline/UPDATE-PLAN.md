@@ -44,6 +44,35 @@ Draft from Aniket's discussion with Utkarsh. Nothing here is built yet. Numbers 
 17. Schema: `call_site.effective_sha` (join already blames each line, so the SHA is there), plus the commit that introduced each `call_edge`.
 18. Storage: one permanent mirror per repo, plus a small manifest per run.
 
+## DAGs
+
+Today there is one DAG that recomputes everything. Proposed:
+
+| DAG | Runs | Does |
+|---|---|---|
+| `meridian_update` | the "Update graph" click, daily, later on pushes (Phase 2) | 1. **Anything new?** New commits or ticket changes since the last published run; if none, stop (so repeat clicks cost nothing). 2. Collect the changed repos and tickets. 3. Per changed repo, in parallel: history, scan → resolve (one task per repo, Airflow's dynamic task mapping). 4. owners → join → graph → validate → publish → change report |
+| `meridian_rebuild` | Sunday | The same parts on every repo from scratch, then compare with the last update: 0 differences, else alert and publish the rebuild. Also runs bias and the full statistics |
+| push check | every PR to a watched repo (GitHub Actions, not Airflow) | Changed files + their importers against the last published block. P1–P9 as one comment. Read-only |
+
+- **One run at a time:** `max_active_runs = 1` (already set). A click during a run queues one run; when it starts, it takes every push up to then (#4). The "anything new?" step drops a second queued click.
+- **Publish** = copy `meridian.sqlite` and `dvc push`, only after validate passes (#10). Views always read the last published block.
+
+## Faster
+
+Times now (Oct 23–24): history 430 s, resolve 295 s, validate 165 s, scan 140 s, everything else under a minute each.
+
+| Change | Gain (estimated) | Phase |
+|---|---|---|
+| Skip repos with no new commits: reuse their last rows | most daily runs touch a few of 22 repos | 1 |
+| Repos in parallel inside a run (#8) | a run takes as long as its slowest repo, not the sum | 1 |
+| Repo mirrors kept between runs: `git fetch`, not clone (#18) | collect from ~1 min to seconds | 1 |
+| Ticket pulls since a cursor (#16), not all 59k | Jira from a full pull to the day's changes | 1 |
+| validate builds `meridian.sqlite` once (the dashboard reuses it) and runs one stats query per table, not per column | 165 s → ~30 s | 1 |
+| Bias and full statistics weekly (in the rebuild), not on every update | −35 s per update | 1 |
+| Keep `snapshots/` and `out/` on a Docker volume, not the Windows/Mac folder | git and file reads several times faster in Docker | 1 |
+| Scan and resolve cached per file, by git blob SHA: only changed files are parsed | scan + resolve from ~7 min to seconds on a typical push | 3 |
+| SZZ on new fix commits only; keep earlier `bug_inducing` rows | history from ~7 min to seconds | 3 |
+
 ## Fixes on `mlops-pipeline` before it merges
 
 - [ ] Add `.gitattributes` (LF line endings) and regenerate `dvc.lock` on Mac/Linux: Windows line endings change the hashes.
