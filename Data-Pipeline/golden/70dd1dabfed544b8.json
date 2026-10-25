@@ -1,0 +1,98 @@
+{
+ "blast_radius.jsonl": {
+  "md5": "9a49fb0ed5b5f12c933e6162631cadf2",
+  "size": 4626
+ },
+ "blocked_by.jsonl": {
+  "md5": "d41d8cd98f00b204e9800998ecf8427e",
+  "size": 0
+ },
+ "bug_inducing.jsonl": {
+  "md5": "ad4430da2129390326af5af3d7253df8",
+  "size": 7377921
+ },
+ "call_edge.jsonl": {
+  "md5": "8f21c3d025f820aa72deda0e54c5b2b7",
+  "size": 804159
+ },
+ "call_site.jsonl": {
+  "md5": "ac22c89d1f628ab3523b31ec4bac3f20",
+  "size": 770593
+ },
+ "candidate.jsonl": {
+  "md5": "4f0b4ab3bd3e2852d6b9d7b199be2b20",
+  "size": 1012206
+ },
+ "chain.jsonl": {
+  "md5": "c6f932e07bde79aab07689003d4fea1c",
+  "size": 39263
+ },
+ "commit_file.jsonl": {
+  "md5": "c11fc11b93e6c0ce792f7f645e093ba5",
+  "size": 188505318
+ },
+ "commit_ticket.jsonl": {
+  "md5": "a6968bd564b1a29f1c95592debbef8d8",
+  "size": 6279065
+ },
+ "coverage.jsonl": {
+  "md5": "7e260024e292acd0ce4cabc08ab26264",
+  "size": 2321
+ },
+ "deprecation.jsonl": {
+  "md5": "57ecda275785d0bb3c473484e5346e2a",
+  "size": 13697
+ },
+ "file_bug_fixes.jsonl": {
+  "md5": "1150e2c97ce8f41b0ff24d34b1681148",
+  "size": 423269
+ },
+ "file_owner.jsonl": {
+  "md5": "53335a8b177719c71f334d8dfc8e6c68",
+  "size": 12451385
+ },
+ "git_commit.jsonl": {
+  "md5": "83aae8ea578d8d295f830ebf32ed2a19",
+  "size": 57991639
+ },
+ "module_import.jsonl": {
+  "md5": "d4f4edfc51ffa019700fcf5aa1ccdb73",
+  "size": 6789317
+ },
+ "parse_failure.jsonl": {
+  "md5": "9b12b15c93dde40ffd2dac2c9c313ca4",
+  "size": 1533
+ },
+ "person.jsonl": {
+  "md5": "dae0d5fe60102d7850a3a578102269bb",
+  "size": 846567
+ },
+ "person_alias.jsonl": {
+  "md5": "bdf6f8b6240879e881e14514c770f12c",
+  "size": 1558937
+ },
+ "resolution.jsonl": {
+  "md5": "69ea8ece406afadf4d4bf5281e08d9f4",
+  "size": 1124796
+ },
+ "team_map.jsonl": {
+  "md5": "86139809118a640341d8653dac61b934",
+  "size": 489602
+ },
+ "ticket.jsonl": {
+  "md5": "70454ae4331143def20fd112c3b6d185",
+  "size": 129255751
+ },
+ "ticket_event.jsonl": {
+  "md5": "1753845e74620421f29ca1078408d4fc",
+  "size": 44054710
+ },
+ "ticket_link.jsonl": {
+  "md5": "f92fbd8bb0a4a29e355251ed4a5a723d",
+  "size": 10214686
+ },
+ "ticket_map.jsonl": {
+  "md5": "17731006c888286cf4f737842d5cb909",
+  "size": 45808002
+ }
+}

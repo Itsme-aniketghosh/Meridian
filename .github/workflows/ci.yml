@@ -1,0 +1,35 @@
+# Every test that needs no team data, on Linux and Windows, then the Airflow ones in the Docker image. The team-run
+# tests skip here (TESTING.md).
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -t .
+        working-directory: Data-Pipeline
+
+  airflow:  # test_dag's last 3 tests: Airflow's own DagBag loads both DAGs, in the image the pipeline runs in
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Data-Pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env && sed -i "s/^AIRFLOW_UID=.*/AIRFLOW_UID=$(id -u)/" .env
+      - run: docker compose build airflow-scheduler
+      - run: >-
+          docker compose run --rm --no-deps -e CONNECTION_CHECK_MAX_COUNT=0 -w /opt/meridian/Data-Pipeline
+          airflow-scheduler python -m unittest tests.test_dag -v

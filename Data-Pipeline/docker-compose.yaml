@@ -6,7 +6,8 @@
 #   docker compose down             # stop; the database volume keeps run history
 #
 # The whole repo is mounted at /opt/meridian: the parts read snapshots/ and write out/ there (MERIDIAN_DATA), exactly
-# as on a laptop, so DVC sees the same files. Airflow's task logs land in Data-Pipeline/logs/.
+# as on a laptop, so DVC sees the same files. Airflow's task logs land in Data-Pipeline/logs/. On Windows or Mac, where
+# that folder mount is slow, add -f docker-compose.volumes.yaml to keep snapshots/ and out/ on Docker volumes instead.
 
 x-airflow: &airflow
   build:
@@ -20,6 +21,7 @@ x-airflow: &airflow
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${POSTGRES_PASSWORD:-airflow}@postgres/airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session   # the Update graph button and .github/workflows/trigger-update.yml
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__CORE__DAGS_FOLDER: /opt/meridian/Data-Pipeline/dags
     AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/meridian/Data-Pipeline/logs

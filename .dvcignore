@@ -1,3 +1,7 @@
 # Add patterns of files dvc should ignore, which could improve
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
+
+# OS junk: Finder and Explorer drop these into folders, and DVC would hash them into the raw pulls
+.DS_Store
+Thumbs.db

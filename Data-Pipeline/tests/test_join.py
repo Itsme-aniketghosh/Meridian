@@ -167,7 +167,7 @@ class TwoRuns(unittest.TestCase):
     def test_first_run_writes_every_site_present(self):
         self.assertEqual(len(self.r1), 11)  # 4 imports + 7 calls
         self.assertTrue(all(s["status"] == "present" and s["run_id"] == "R1" for s in self.r1))
-        self.assertTrue(all(s["effective_date"] == COMMITS[0][0] for s in self.r1))
+        self.assertTrue(all(s["effective_date"] == COMMITS[0][0] and s["effective_sha"] == self.shas[0] for s in self.r1))
         self.assertEqual(len({s["call_site_id"] for s in self.r1}), 11)
 
     def test_insert_lines_above_keeps_the_id(self):   # g's calls shift down 2, up 3 (f moved away): git's line map
@@ -177,6 +177,7 @@ class TwoRuns(unittest.TestCase):
     def test_move_keeps_the_id(self):                 # f's call moved below g: same scope and text
         self.same(("a.py", 4), ("a.py", 12))
         self.assertEqual(self.now[("a.py", 12)]["effective_date"], COMMITS[2][0])  # blame: the move
+        self.assertEqual(self.now[("a.py", 12)]["effective_sha"], self.shas[2])
 
     def test_rename_keeps_the_id(self):
         self.same(("old.py", 1), ("new.py", 1))
@@ -198,11 +199,14 @@ class TwoRuns(unittest.TestCase):
         rows = [r for r in self.r2 if r["call_site_id"] == rid]
         self.assertEqual([r["status"] for r in rows], ["present", "removed"])
         self.assertEqual(rows[1]["effective_date"], COMMITS[4][0])
+        self.assertEqual([r["effective_sha"] for r in rows], [self.shas[0], self.shas[4]])  # added by 1, removed by 5
         self.assertEqual(rows[1]["run_id"], "R2")
 
     def test_new_site_is_dated_by_its_commit(self):
         s = self.now[("a.py", 9)]
         self.assertEqual(s["effective_date"], COMMITS[5][0])
+        self.assertEqual(s["effective_sha"], self.shas[5])
+        self.assertEqual(self.now[("new.py", 3)]["effective_sha"], self.shas[0])  # renamed, line unchanged: still commit 1
         self.assertNotIn(s["call_site_id"], {r["call_site_id"] for r in self.r1})
 
     def test_append_only_unchanged_sites_get_no_new_version(self):

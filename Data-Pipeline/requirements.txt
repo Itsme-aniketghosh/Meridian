@@ -16,6 +16,8 @@ scikit-learn==1.9.1
 
 # data versioning
 dvc==3.67.1
+dvc-gs==3.1.0               # the gcs remote in .dvc/config: without it `dvc push` can't reach GCS
+gcsfs==2026.10.1            # what dvc-gs resolves to with dvc 3.67.1 (fsspec 2026.9.0)
 
 # Airflow is not here on purpose: it pins its own versions of many of these, and it doesn't install on Windows.
 # It comes pinned in the image (Dockerfile: apache/airflow:2.10.5-python3.11), which runs every part from a

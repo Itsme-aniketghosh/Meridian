@@ -2,7 +2,7 @@
 
     python -m unittest tests.test_dashboard -v      # from Data-Pipeline/
 """
-import shutil, sqlite3, sys, tempfile, unittest
+import os, shutil, sqlite3, sys, tempfile, unittest
 from contextlib import closing, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -40,7 +40,20 @@ class Dashboard(unittest.TestCase):
             path = D.main("R2", tmp / "meridian.toml", tmp)
         page = path.read_text(encoding="utf-8")
         self.assertIn("Planned features", page)
+        self.assertIn("nothing published yet · <button", page)   # the staleness line and the Update graph button
         self.assertIn(" 0 error", log.getvalue())  # the doc's queries all run on a real block's layout
+
+        block = path.parent / "meridian.sqlite"
+        before = block.read_bytes()
+        with redirect_stdout(StringIO()) as log:
+            D.main("R2", tmp / "meridian.toml", tmp)  # newer than every .jsonl: reused, and left as it was
+        self.assertIn("reused meridian.sqlite", log.getvalue())
+        self.assertEqual(block.read_bytes(), before)
+        later = block.stat().st_mtime + 10
+        os.utime(path.parent / "ticket.jsonl", (later, later))
+        with redirect_stdout(StringIO()) as log:
+            D.main("R2", tmp / "meridian.toml", tmp)  # a .jsonl changed since: rebuilt
+        self.assertIn("rows loaded", log.getvalue())
 
 
 if __name__ == "__main__":

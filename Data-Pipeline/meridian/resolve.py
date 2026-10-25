@@ -50,17 +50,32 @@ earlier names changed a later answer from run to run (1 row in 3,451 on the pack
 a run (below): otherwise Jedi failed on names whose file had just been evicted, 30 on the packages, depending on what
 was parsed before. Now repeated runs and any PYTHONHASHSEED give the same bytes. Parsing stays cached within a repo
 and is emptied between repos, and tree-sitter trees are kept only for files a question comes back to.
+
+Cache (settings.toml [cache] resolve, off by default). A file's rows (its candidates and alias calls) are reused from
+snapshots/_cache/resolve/<repo>.json when this code, the versions, the repo's symbols and rules, its dependencies'
+SHAs (Django, for the packages), every folder and file name in the checkout and the file's candidates are the same,
+and so is the blob of every repo file read while resolving it last time: the file, what it imports and re-exports,
+however deep Jedi went, and any file Jedi searched. Imports aren't guessed from module_import: what Jedi read is
+recorded. call_edge is never cached: every run rebuilds it from the rows. Same bytes either way.
+
+Same bytes on every OS. To guess a parameter, Jedi reads the calls of its function in the first file of a project
+walk that has one, and the walk listed folders in the filesystem's order: NTFS by name, APFS by a hash of the name. On
+70dd1dabfed544b8 Windows had 5 call edges macOS didn't (django's AdminField.label_tag landing on BoundField.label_tag)
+and 2 allauth rows with another resolved_to. Jedi's walk now uses APFS's order on every OS (below).
 """
-import importlib.machinery, json, sys, sysconfig
+import functools, importlib.machinery, json, os, sys, sysconfig, types, unicodedata
 from collections import Counter
+from importlib.metadata import version
 from pathlib import Path
 
 import jedi
-import parso.cache
+import jedi.file_io
+import parso.cache, parso.file_io
 from jedi.inference.compiled.subprocess import functions as jedi_functions
 
 from meridian import scan as S
-from meridian.common import data_root, handoff, load_config, log, parser, read_jsonl, write_jsonl
+from meridian.common import (Cache, blob_sha, cache_key, cache_on, data_root, handoff, load_config, load_settings, log, parser,
+                             read_jsonl, source_hash, write_jsonl)
 from meridian.scan import PY, char_col, tracked, walk
 
 # parso (pinned in requirements.txt) evicts parsed files from memory once it holds 600, judging age by the file's
@@ -88,9 +103,50 @@ def _find_module(string, path=None, full_name=None, is_global_search=True):
 
 jedi_functions._find_module = _find_module
 
+# [cache] resolve only: while _reads is a set, every file Jedi gets the content of goes in it. Jedi gets each one as a
+# parso FileIO (read from disk, or KnownContentFileIO with what the importer read), and Repo.source adds its own.
+_reads = None
+_file_io_init = parso.file_io.FileIO.__init__
+
+
+def _file_io(self, path):
+    _file_io_init(self, path)
+    if _reads is not None:
+        _reads.add(str(self.path))
+
+
+parso.file_io.FileIO.__init__ = _file_io
+
+
+# Jedi (pinned) guesses a parameter from the calls of its function in the first file of a project walk (os.walk) that
+# has one. os.walk lists a folder in the filesystem's order, so which caller it used, and so the answers, depended on the
+# OS: Windows (NTFS, by name) had 5 more django edges than macOS. Walk in one fixed order on every OS. The order is
+# macOS's own (APFS, case-insensitive, its default), so the team's numbers, made on a Mac, stay.
+_CRC32C = [functools.reduce(lambda c, _: c >> 1 ^ (0x82F63B78 if c & 1 else 0), range(8), i) for i in range(256)]
+
+
+@functools.cache
+def _apfs_order(name):
+    """Where APFS lists a name in its folder: by a 22-bit CRC-32C of the name case-folded and decomposed (NFD)."""
+    crc = 0xFFFFFFFF
+    for b in unicodedata.normalize("NFD", name.casefold()).encode("utf-32-le"):
+        crc = _CRC32C[(crc ^ b) & 0xFF] ^ crc >> 8
+    return crc & 0x3FFFFF, len(name.encode()) + 1, name
+
+
+def _walk(top):
+    for root, folders, files in os.walk(top):
+        folders.sort(key=_apfs_order)
+        files.sort(key=_apfs_order)
+        yield root, folders, files
+
+
+jedi.file_io.os = types.SimpleNamespace(**{**vars(os), "walk": _walk})  # only Jedi's folder walk changes
+
 RESOLVER = f"jedi=={jedi.__version__}"
 COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "detection", "via", "resolved_to", "resolver", "receiver_from"]
 STDLIB = sorted({sysconfig.get_paths()[k] for k in ("stdlib", "platstdlib")})
+ENVIRONMENT = [Path(p).resolve() for p in STDLIB] + [Path(jedi.__file__).resolve().parent]  # with Jedi's own stubs
 
 
 def py_files(repo_dir, skip):
@@ -166,6 +222,8 @@ class Repo:
         parso.cache.parser_cache.clear()  # a new repo: nothing parsed for the last one is asked about again
 
     def source(self, path):
+        if _reads is not None:
+            _reads.add(str(self.dir / path))
         return (self.dir / path).read_bytes()
 
     def parse(self, path):
@@ -349,11 +407,11 @@ def resolve_candidates(run_id, repo, repo_dir, symbols, candidates, r=None):
     return rows
 
 
-def resolve_aliases(run_id, repo, repo_dir, symbols, skip=(), r=None):
-    """One resolution row per alias call in the repo."""
+def resolve_aliases(run_id, repo, repo_dir, symbols, skip=(), r=None, paths=None):
+    """One resolution row per alias call in the repo (or in paths only)."""
     r = r or Repo(repo_dir, symbols)
     rows = []
-    for path in py_files(repo_dir, skip):
+    for path in py_files(repo_dir, skip) if paths is None else paths:
         src, root = r.parse(path)
         binds = bindings(root, set(symbols))
         if not binds:
@@ -367,6 +425,74 @@ def resolve_aliases(run_id, repo, repo_dir, symbols, skip=(), r=None):
                 symbol, via = next((b for b in binds[alias] if b[1] == "import_alias"), binds[alias][0])
             rows.append(dict(zip(COLUMNS, [run_id, repo, path, line, col, symbol, detection, via, resolved_to, RESOLVER, None])))
     return rows
+
+
+def names_in(repo_dir):
+    """Every folder and file name in the checkout but .git, in a fixed order: all Jedi can find, never what's inside."""
+    found = []
+    for top, dirs, names in os.walk(repo_dir, onerror=S.fail):
+        dirs[:] = sorted(d for d in dirs if d != ".git")
+        found.append([Path(top).relative_to(repo_dir).as_posix(), dirs, sorted(names)])
+    return found
+
+
+# Read outside parso's FileIO: a buildout.cfg makes Jedi read bin/ scripts' first lines, and Jedi imports compiled or
+# bytecode-only modules for real. A repo holding any of them is never cached.
+UNCACHEABLE = ("buildout.cfg", *importlib.machinery.EXTENSION_SUFFIXES, *importlib.machinery.BYTECODE_SUFFIXES)
+
+
+def resolve_cached(run_id, repo, r, candidates, files, cache, base):
+    """resolve_candidates and resolve_aliases file by file, for [cache] resolve: (candidate rows, alias rows).
+
+    A file's rows are what Jedi and Repo make of the files they read while resolving it, given the checkout's names
+    (in base, with the code, versions, config and dependency SHAs). So they are reused when base and the file's
+    candidates are the same and every repo file read for it last time has the same blob SHA: a changed import, re-export
+    or anything else it read redoes it. A read in a dependency or the Python install is covered by base. A file that read
+    anything else, or had a Jedi failure, is never kept. call_edge is not cached: run() rebuilds it from these rows.
+    """
+    global _reads
+    by_path, blobs, places = {}, {}, {}
+    for c in candidates:
+        by_path.setdefault(c["path"], []).append(c)
+    files = set(files)
+    home, outside = r.dir.resolve(), [p.resolve() for p in r.deps] + ENVIRONMENT
+
+    def blob(rel):
+        if rel not in blobs:
+            p = r.dir / rel
+            blobs[rel] = blob_sha(p.read_bytes()) if p.is_file() else None
+        return blobs[rel]
+
+    def place(p):  # repo-relative path, "" for a dependency or the Python install, None for anywhere else
+        if p not in places:
+            q = Path(p).resolve()
+            places[p] = q.relative_to(home).as_posix() if q.is_relative_to(home) else \
+                "" if any(q.is_relative_to(o) for o in outside) else None
+        return places[p]
+
+    cands, aliases, todo = [], [], sorted(files | set(by_path))
+    for path in todo:
+        cs = by_path.get(path, [])
+        key = cache_key(base, path, [{k: v for k, v in c.items() if k != "run_id"} for c in cs])
+        if hit := cache.get(path, lambda v: v["key"] == key and all(blob(p) == b for p, b in v["inputs"].items())):
+            got = [[{"run_id": run_id, **x} for x in rows] for rows in hit["rows"]]
+        else:
+            failures, _reads = r.failures, {str(r.dir / path)}
+            try:
+                got = [resolve_candidates(run_id, repo, r.dir, r.symbols, cs, r),
+                       resolve_aliases(run_id, repo, r.dir, r.symbols, r=r, paths=[path]) if path in files else []]
+                spots = {place(p) for p in _reads}
+            finally:
+                _reads = None
+            if r.failures == failures and None not in spots:
+                cache.put(path, {"key": key, "inputs": {p: blob(p) for p in sorted(spots - {""})},
+                                 "rows": [[{k: v for k, v in x.items() if k != "run_id"} for x in rows] for rows in got]})
+        taken = {(x["path"], x["line"], x["col"]) for x in got[0]}
+        cands += got[0]
+        aliases += [x for x in got[1] if (x["path"], x["line"], x["col"]) not in taken]  # a candidate already covers that spot
+    log(f"  cache: {len(cache.hits)} of {len(todo)} files reused, {len(cache.new) - len(cache.hits)} resolved and kept, "
+        f"{len(todo) - len(cache.new)} resolved and not kept")
+    return cands, aliases
 
 
 def load_candidates(out, run_id):
@@ -390,7 +516,8 @@ def dependency_paths(snap, manifest, repo, symbols):
     return paths
 
 
-EDGE_COLUMNS = ["run_id", "repo", "caller_path", "caller_scope", "line", "col", "callee_path", "callee_repo", "callee_scope"]
+EDGE_COLUMNS = ["run_id", "repo", "caller_path", "caller_scope", "line", "col", "callee_path", "callee_repo", "callee_scope",
+                "introduced_sha"]
 
 
 def scope_of(root, src, line, col):
@@ -438,14 +565,16 @@ def call_edges(run_id, repo, r, uses, files, depth):
     Then the callers of every function holding one (depth 2), and their callers (depth 3, [resolver] call_edge_depth).
     A call counts only when Jedi lands on that very function's def (or, for an __init__, its class). Module and class
     bodies get edges but have no callers, so they stop the walk. Imports never make edges.
+    introduced_sha: the commit that last changed the caller's line, by join's blame (--first-parent -w) at the checkout's
+    HEAD, which run() has checked is the manifest's SHA. So an edge and the call site on its line name the same commit.
     """
+    from meridian.join import blame
     edges, frontier, seen, answers = {}, {}, set(), {}
 
     def add(path, line, col, callee_repo, callee_path, callee_scope):
         src, root = r.tree(path)
         scope, callers = scope_of(root, src, line, col)
-        row = dict(zip(EDGE_COLUMNS, [run_id, repo, path, scope, line, col, callee_path, callee_repo, callee_scope]))
-        edges[(path, line, col, callee_repo, callee_path, callee_scope)] = row
+        edges[(path, line, col, callee_repo, callee_path, callee_scope)] = scope
         if callers and (path, callers[0][1]) not in seen:
             seen.add((path, callers[0][1]))
             frontier[(path, callers[0][1])] = (scope, callers)
@@ -465,7 +594,12 @@ def call_edges(run_id, repo, r, uses, files, depth):
                         answers[site] = {r.where(n)[:2] for n in r.goto(*site) if r.where(n)}
                     if (t_path, lands) in answers[site]:
                         add(*site, repo, t_path, t_scope)
-    return [edges[k] for k in sorted(edges)]
+    lines = {}
+    for path, line, *_ in edges:
+        lines.setdefault(path, set()).add(line)
+    made = {path: blame(r.dir, "HEAD", path, ls) for path, ls in sorted(lines.items())}
+    return [dict(zip(EDGE_COLUMNS, [run_id, repo, path, scope, line, col, callee_path, callee_repo, callee_scope, made[path][line]]))
+            for (path, line, col, callee_repo, callee_path, callee_scope), scope in sorted(edges.items())]
 
 
 def summary(rows):
@@ -494,6 +628,7 @@ def run(run_id, cfg, root=None):
         raise SystemExit("[resolver] keep_unresolved = false would drop rows silently, which CONTRACTS.md rule 9 forbids")
     rules = dict(one_hop=settings.get("one_hop_assignment", True), score_on_old_name=settings.get("score_on_old_name", True))
     roles = {(c["repo"], c["path"], c["line"], c["col"]): c["role"] for cs in by_repo.values() for c in cs}
+    cached = cache_on("resolve")
     rows, edges = [], []
     for repo, sha in sorted(manifest["repos"].items()):
         if repo not in wanted:
@@ -503,11 +638,24 @@ def run(run_id, cfg, root=None):
             raise SystemExit(f"{repo}: checkout is at {S.head(repo_dir)}, the manifest says {sha}")
         deps = dependency_paths(snap, manifest, repo, wanted[repo])
         r = Repo(repo_dir, wanted[repo], deps, **rules)
-        cands = resolve_candidates(run_id, repo, repo_dir, wanted[repo], sorted(
-            by_repo.get(repo, []), key=lambda c: (c["path"], c["line"], c["col"])), r)
-        taken = {(x["path"], x["line"], x["col"]) for x in cands}
-        aliases = [x for x in resolve_aliases(run_id, repo, repo_dir, wanted[repo], skip, r)
-                   if (x["path"], x["line"], x["col"]) not in taken]  # a candidate already covers that spot
+        repo_cands = sorted(by_repo.get(repo, []), key=lambda c: (c["path"], c["line"], c["col"]))
+        # shortcut: every name in the checkout is in base, so adding or deleting any file redoes the whole repo. If that
+        # costs too much, record the folders Jedi and importlib list for a file and key on those names only
+        names = names_in(repo_dir) if cached else []
+        if names and not any(n.endswith(UNCACHEABLE) for _, _, ns in names for n in ns):
+            cache = Cache("resolve", repo, root)
+            base = cache_key(source_hash(__file__, S.__file__), [version(d) for d in ("jedi", "parso", "tree-sitter",
+                             "tree-sitter-python")], sys.version, STDLIB, wanted[repo], rules,
+                             [[d.name, S.head(d)] for d in deps], names)
+            cands, aliases = resolve_cached(run_id, repo, r, repo_cands, py_files(repo_dir, skip), cache, base)
+            cache.save()
+        else:
+            cands = resolve_candidates(run_id, repo, repo_dir, wanted[repo], repo_cands, r)
+            taken = {(x["path"], x["line"], x["col"]) for x in cands}
+            aliases = [x for x in resolve_aliases(run_id, repo, repo_dir, wanted[repo], skip, r)
+                       if (x["path"], x["line"], x["col"]) not in taken]  # a candidate already covers that spot
+            if cached:
+                log(f"  cache: not used, the checkout holds a file Jedi reads outside parso ({', '.join(UNCACHEABLE)})")
         log(f"{repo}{' (on the path: ' + ', '.join(p.name for p in deps) + ')' if deps else ''}")
         log(f"  {len(cands)} candidates · {summary(cands)}")
         log(f"  {len(aliases)} alias calls · {summary(aliases)}")
@@ -522,6 +670,8 @@ def run(run_id, cfg, root=None):
                 if home_path:
                     uses.append((x["path"], x["line"], x["col"], home_repo, home_path, name))
         failed = r.failures
+        # shortcut: with [cache] resolve on, call_edge's Jedi questions are still all asked. If resolve stays slow,
+        # cache each call site's answer under its file's recorded reads, as resolve_cached does for rows
         found = call_edges(run_id, repo, r, uses, py_files(repo_dir, skip), depth)
         log(f"  {len(found)} call edges ({len(uses)} from confirmed calls, {len(found) - len(uses)} from their callers) · "
             f"{r.failures - failed} Jedi failures while finding callers · "

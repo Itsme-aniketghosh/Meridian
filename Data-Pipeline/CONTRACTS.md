@@ -29,12 +29,22 @@ To change `schema.sql`, `meridian.toml` or this page, ask Utkarsh and Aniket. If
 ```
 snapshots/<run_id>/
   manifest.json          run_id, snapshot_at, repos {repo: sha}, sources {name: sha256}, config_hash
-  repos/<owner>__<name>/ checkout at the pinned sha (full history, core.longpaths=true)
-  jira/SPARK/page-*.json.gz          raw REST pages with changelog
-  gitlab/issues.jsonl.gz             raw issues, labels, links, activity
+  repos/<owner>__<name>/ checkout at the run's sha (full history, core.longpaths=true)
+  jira/SPARK/page-*.json.gz          raw REST pages with changelog (the base pull)
+  jira/SPARK/delta-<time>/           tickets changed since the pull before: cursor.json, page-*.json.gz, keys.json.gz
+  gitlab/issues.jsonl.gz             raw issues, labels, links, activity (the base pull)
+  gitlab/delta-<time>/               issues changed since the pull before: cursor.json, issues.jsonl.gz, iids.json.gz
+snapshots/_cache/                    kept between runs, shared by all of them
+  repos/<owner>__<name>.git          one bare mirror per repo, updated with git fetch (settings.toml [collect] mirrors)
+  jira/SPARK/, gitlab/               the base pull and every delta, never overwritten
 ```
 
 - `run_id` = the first 16 hex characters of sha256 over `manifest.json` without `run_id`, with keys sorted. The same inputs always give the same run.
+- A `ref` in `meridian.toml` that names a branch follows it: collect fetches the mirror and resolves the branch to a commit. A SHA (or `sha^1`) stays pinned.
+- When any repo follows a branch, `snapshot_at` is the run's pull time, read by collect (`--snapshot-at` still wins). Otherwise it's the configured one.
+- Tickets: a base pull, then deltas, each the tickets changed since the pull before, each in full (whole changelog or activity notes). A run reads the base and the deltas up to the first pull that started after `snapshot_at`, and pulls a new delta if none did. Readers take the base, then each delta in order: a later copy of a ticket replaces the earlier one. The manifest's source hash covers exactly those files, cursors included.
+- Deleted tickets: an `updated >=` query can't return them, so each delta also lists every key (Jira `keys.json.gz`) or iid (GitLab `iids.json.gz`) that exists now. Readers leave out a ticket missing from the newest listing. When it was deleted isn't known, so a run whose snapshot_at is before the deletion drops it too.
+- Each checkout borrows the mirror's objects (`git clone --shared`), and the mirror keeps `refs/runs/<run_id>` so they're never pruned. Don't move or delete the mirrors.
 - Snapshots live in GCS or a local `snapshots/` folder, never in git.
 
 ## Before the writer lands (Days 2–3)
@@ -180,5 +190,6 @@ python -m meridian.<part> --run-id <run_id> --config meridian.toml
 | 4 tables | 25 tables | Every part's output is a table, so every number has a row |
 | — | `coverage` | "Always report what we missed" |
 | — | v1.1: `ticket.description`, `candidate.in_except` / `call_site.in_except`, `module_import`, `deprecation`, `resolution.receiver_from`; `blocked_by.depth` is `>= 1` | Planned features had nothing to read ([KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md), [FIXES.md](FIXES.md)). Depth is `[graph] blocked_by_max_depth`, a setting |
+| — | v1.2: `call_site.effective_sha` (the commit `effective_date` is from), `call_edge.introduced_sha` (blame of the caller's line), both 40 hex | Per-commit attribution and the per-run change report, `meridian.report` → `changes.json` ([UPDATE-PLAN.md](UPDATE-PLAN.md) #5, #17) |
 
 03-data gets updated to match once v1 is frozen (Day 10).

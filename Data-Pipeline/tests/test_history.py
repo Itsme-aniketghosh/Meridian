@@ -189,7 +189,7 @@ class Writer(unittest.TestCase):
     def test_call_site_carries_earlier_runs_versions(self):   # append-only: other tables stay one run_id
         site = {"call_site_id": "a1", "repo": "r", "path": "p.py", "line": 1, "col": 0, "scope": "<module>", "symbol": "s",
                 "role": "call", "detection": "ast_resolved", "junk": "none", "owner_team": "t", "bug_fixes": 0,
-                "status": "present", "effective_date": "2026-01-01T00:00:00Z"}
+                "status": "present", "effective_date": "2026-01-01T00:00:00Z", "effective_sha": "e" * 40}
         old = {**site, "run_id": "R0", "known_at": "2026-01-15T00:00:00Z"}
         self.refused([old], "snapshot_at None", table="call_site")  # no run row: can't tell when "now" is
         (self.out / "run.jsonl").write_text(json.dumps({"run_id": RUN, "snapshot_at": "2026-02-01T00:00:00Z", "repo_shas": "{}",

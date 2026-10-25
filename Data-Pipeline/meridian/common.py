@@ -4,8 +4,10 @@
 - Logs go to stdout. A part that fails exits non-zero (SystemExit with the reason, or the exception).
 - meridian.toml is what a part computes (hashed into the run_id). settings.toml is everything else (how and where it
   runs, alerts, data checks): never hashed.
+- A cache (settings.toml [cache], off by default) keeps a part's results for inputs that didn't change, in
+  snapshots/_cache/<part>/, never hashed into a run. On or off, a part writes the same bytes.
 """
-import argparse, json, os, subprocess, tomllib
+import argparse, hashlib, json, os, subprocess, tomllib
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]  # Data-Pipeline/
@@ -54,6 +56,11 @@ def load_settings(section, path=None):
 load_infra = load_settings  # the name collect and history use: settings.toml was infra.toml
 
 
+def cache_on(name):
+    """settings.toml [cache] <name>, except under MERIDIAN_NO_CACHE: the weekly rebuild must not reuse what it checks."""
+    return bool(load_settings("cache").get(name, False)) and not os.environ.get("MERIDIAN_NO_CACHE")
+
+
 def git(co, *args, text=True):
     """git in repo co, deaf to the user's global and system git config, so every machine gives the same output."""
     env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
@@ -80,6 +87,51 @@ def write_jsonl(path, rows, key=None):
 def read_jsonl(path):
     with open(path, encoding="utf-8", newline="") as f:  # split on '\n' only: U+2028 inside a value is not a line end
         return [json.loads(line) for line in f.read().split("\n") if line.strip()]
+
+
+def blob_sha(data):
+    """git's blob SHA of these bytes: what `git hash-object` gives for the file."""
+    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
+
+
+def cache_key(*parts):
+    return hashlib.sha256(json.dumps(parts, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def source_hash(*files):
+    """sha256 of these source files: an entry another version of the code made is never reused."""
+    return hashlib.sha256(b"\0".join(Path(f).read_bytes() for f in files)).hexdigest()
+
+
+class Cache:
+    """{key: value} a part kept from its last run, in snapshots/_cache/<part>/<name>.json under the data root.
+    get() hands back a value only if ok(value), and lists its key in hits. save() keeps only what this run used or
+    made, so nothing stale piles up. Values keep their key order, so a cached row is written in the same bytes."""
+
+    def __init__(self, part, name, root=None):
+        self.path = Path(root or data_root()) / "snapshots" / "_cache" / part / f"{name.replace('/', '__')}.json"
+        self.old = json.loads(self.path.read_text(encoding="utf-8")) if self.path.exists() else {}
+        self.new, self.hits = {}, []
+
+    def get(self, key, ok=lambda value: True):
+        value = self.old.get(key)
+        if value is None or not ok(value):
+            return None
+        self.hits.append(key)
+        self.new[key] = value
+        return value
+
+    def put(self, key, value):
+        self.new[key] = value
+
+    def save(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.path.with_name(self.path.name + ".tmp")
+        try:
+            tmp.write_text(json.dumps(self.new, ensure_ascii=False), encoding="utf-8")
+            tmp.replace(self.path)
+        finally:
+            tmp.unlink(missing_ok=True)  # a killed write leaves the last good cache, never half a file
 
 
 def handoff(cfg, run_id, root=None):

@@ -10,6 +10,9 @@
   fix's Bug ticket, the smallest if it names several.
 - file_bug_fixes: per path, the fix commits that touched it in the 365 days up to snapshot_at (authored_at, start
   excluded), every file, tests too. path is as in that commit; a file renamed inside the window counts under both names.
+- Cache (settings.toml [cache] szz, off by default): a fix commit blamed in an earlier run keeps its blame, from
+  snapshots/_cache/szz/<repo>.json; only new fix commits are blamed. Which commits are fixes, their key, and
+  file_bug_fixes (its 365-day window moves) are worked out again every run. Same bytes either way.
 """
 import re
 from collections import Counter, defaultdict
@@ -17,7 +20,7 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
 
-from meridian.common import git, log
+from meridian.common import cache_key, git, log, source_hash
 from meridian.tickets import jlist
 
 HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+")
@@ -108,20 +111,34 @@ def fixes(commits, tickets, commit_ticket, rule, since):
     return {k: (by[k], sorted(v)) for k, v in out.items()}
 
 
-def bug_inducing(fix_rows, co_of, run_id, code, workers=None):
+def bug_inducing(fix_rows, co_of, run_id, code, workers=None, cache_of=None):
+    """cache_of ([cache] szz): repo -> common.Cache of each fix's {path: inducing SHAs}, keyed on its SHA, this code,
+    the code rules and git's version. A commit's SHA fixes its parent and their history, so its blame never changes.
+    key (the fix's ticket) is never cached: which tickets a commit fixes can change from run to run."""
     rows, by_repo = [], defaultdict(list)
     for (repo, sha), (c, keys) in fix_rows.items():
         by_repo[repo].append((c, keys))
     for repo, fs in sorted(by_repo.items()):
         keys = {c["sha"]: ks[0] for c, ks in fs}
         jobs = sorted((str(co_of(repo)), c["sha"], c["parent_sha"]) for c, _ in fs if c["parent_sha"])  # a root commit has no parent to blame
+        cache, done = cache_of and cache_of(repo), {}
+        if cache:
+            base = cache_key(source_hash(__file__), code[0].pattern, sorted(code[1].items()), git(co_of(repo), "version"))
+            done = {fix: hit for _, fix, _ in jobs if (hit := cache.get(cache_key(base, fix))) is not None}
         with ProcessPoolExecutor(workers) as pool:
-            for fix, files in pool.map(partial(_szz, code), jobs, chunksize=8):
-                for path, c in files.items():
-                    rows += [{"run_id": run_id, "repo": repo, "fix_sha": fix, "key": keys[fix], "path": path,
-                              "inducing_sha": s} for s in sorted(c)]
+            for fix, files in pool.map(partial(_szz, code), [j for j in jobs if j[1] not in done], chunksize=8):
+                done[fix] = {path: sorted(c) for path, c in files.items()}
+                if cache:
+                    cache.put(cache_key(base, fix), done[fix])
+        for fix, files in sorted(done.items()):
+            for path, shas in files.items():
+                rows += [{"run_id": run_id, "repo": repo, "fix_sha": fix, "key": keys[fix], "path": path,
+                          "inducing_sha": s} for s in shas]
         log(f"{repo:45} {len(fs):>7,} fix commits  {len({r['fix_sha'] for r in rows if r['repo'] == repo}):>7,} with lines to blame  "
-            f"{sum(r['repo'] == repo for r in rows):>8,} bug_inducing rows  {len(fs) - len(jobs)} root commits skipped")
+            f"{sum(r['repo'] == repo for r in rows):>8,} bug_inducing rows  {len(fs) - len(jobs)} root commits skipped"
+            + (f"  {len(cache.hits)} reused from the cache" if cache else ""))
+        if cache:
+            cache.save()
     return rows
 
 
@@ -138,10 +155,10 @@ def file_bug_fixes(fix_rows, files, snapshot_at, days, run_id, fmt):
              "window_start": start, "window_end": snapshot_at} for (repo, path), s in shas.items()]
 
 
-def build(commits, files, d4, manifest, cfg, run_id, co_of, workers=None):
+def build(commits, files, d4, manifest, cfg, run_id, co_of, workers=None, cache_of=None):
     """{table: rows} for bug_inducing and file_bug_fixes."""
     s = cfg["szz"]
     fx = fixes(commits, d4["ticket"], d4["commit_ticket"], s["fix"], s["fix_since"])
-    return {"bug_inducing": bug_inducing(fx, co_of, run_id, code_rules(cfg), workers),
+    return {"bug_inducing": bug_inducing(fx, co_of, run_id, code_rules(cfg), workers, cache_of),
             "file_bug_fixes": file_bug_fixes(fx, files, manifest["snapshot_at"], s["bug_fixes_window_days"], run_id,
                                              cfg["run"]["time_format"])}

@@ -1,0 +1,34 @@
+# Optional: snapshots/ and out/ on Docker volumes, not the Windows/Mac folder mount, where file I/O is several times
+# slower. Mounted at the same paths inside the repo mount, so dvc.yaml's ../snapshots and ../out still work:
+#
+#   docker compose -f docker-compose.yaml -f docker-compose.volumes.yaml up -d --build
+#
+# The volumes start empty and outlive `docker compose down` (only `down -v` deletes them): get the data in from inside
+# the container (README, "Run it"). The host's snapshots/ and out/ are hidden from the containers while this is on.
+
+services:
+  data-volumes:   # a new volume is root's: hand it to the Airflow user once, before anything writes
+    image: meridian-airflow:local
+    user: "0:0"
+    entrypoint: chown
+    command: ["${AIRFLOW_UID:-50000}:0", /opt/meridian/snapshots, /opt/meridian/out]
+    volumes: &data
+      - snapshots:/opt/meridian/snapshots
+      - out:/opt/meridian/out
+    restart: "no"
+
+  airflow-init:
+    volumes: *data
+    depends_on:
+      data-volumes:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    volumes: *data
+
+  airflow-webserver:
+    volumes: *data
+
+volumes:
+  snapshots:
+  out:

@@ -1,0 +1,10 @@
+# One line ending everywhere: LF in git and in every checkout, Windows included. DVC hashes the code files it
+# depends on (Data-Pipeline/dvc.yaml), so a CRLF checkout would make every stage look changed on another machine.
+* text=auto eol=lf
+
+*.pdf binary
+*.png binary
+*.sqlite binary
+
+# A hand-check sheet committed with CRLF before this file existed: left as it is, not rewritten
+week1/pair2/merged/links_hand_check_50.csv -text

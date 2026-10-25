@@ -1,0 +1,78 @@
+# Optional, Phase 2 (Data-Pipeline/UPDATE-PLAN.md): a push to a watched repo's main branch starts the update DAG
+# through Airflow's REST API. A burst of pushes is fine: the DAG has max_active_runs = 1, and its "anything new?" step
+# drops a queued run that has nothing left to pick up.
+#
+# Runs in the watched repo, like push-check.yml: copy it there, or call it with
+#   on: { push: { branches: [main] } }
+#   jobs: { update: { uses: <owner>/Meridian/.github/workflows/trigger-update.yml@main,
+#                     with: { meridian_repo: <owner>/Meridian }, secrets: inherit } }
+#
+# Settings are Data-Pipeline/settings.toml [push_check] airflow_*. airflow_url = "" = do nothing. The credentials are
+# the repo's secrets MERIDIAN_AIRFLOW_USER and MERIDIAN_AIRFLOW_PASSWORD (the names settings.toml airflow_*_env give).
+# Airflow must accept basic auth on its API (docker-compose.yaml sets AIRFLOW__API__AUTH_BACKENDS) and be reachable
+# from GitHub's runners; the DAG must be unpaused.
+name: trigger-update
+
+on:
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      meridian_repo:
+        description: "owner/name of the Meridian repo: its settings.toml"
+        type: string
+        required: true
+      meridian_ref:
+        description: "branch, tag or SHA of it ('' = its default branch)"
+        type: string
+        default: ""
+    secrets:
+      MERIDIAN_AIRFLOW_USER:
+        required: false
+      MERIDIAN_AIRFLOW_PASSWORD:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Meridian's settings
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.meridian_repo || github.repository }}
+          ref: ${{ inputs.meridian_ref }}
+          path: meridian
+          sparse-checkout: Data-Pipeline
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Start the update DAG
+        working-directory: meridian/Data-Pipeline
+        env:
+          MERIDIAN_AIRFLOW_USER: ${{ secrets.MERIDIAN_AIRFLOW_USER }}
+          MERIDIAN_AIRFLOW_PASSWORD: ${{ secrets.MERIDIAN_AIRFLOW_PASSWORD }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          python - <<'EOF'
+          import base64, json, os, sys, urllib.request
+          from meridian.common import CONFIG, load_config, load_settings
+          s = load_settings("push_check")
+          watched = {r["repo"] for d in load_config(CONFIG)["datasets"].values() for r in d.get("repos", [])}
+          if not s.get("airflow_url") or os.environ["REPO"] not in watched:
+              print("no airflow_url in settings.toml [push_check], or not a repo meridian.toml watches: nothing to do")
+              sys.exit(0)
+          auth = base64.b64encode(f"{os.environ[s['airflow_user_env']]}:{os.environ[s['airflow_password_env']]}".encode()).decode()
+          req = urllib.request.Request(
+              f"{s['airflow_url'].rstrip('/')}/api/v1/dags/{s['airflow_dag_id']}/dagRuns", method="POST",
+              data=json.dumps({"conf": {"repo": os.environ["REPO"], "sha": os.environ["SHA"]}}).encode(),
+              headers={"Content-Type": "application/json", "Authorization": f"Basic {auth}"})
+          with urllib.request.urlopen(req, timeout=30) as r:
+              print(r.status, json.loads(r.read())["dag_run_id"])
+          EOF

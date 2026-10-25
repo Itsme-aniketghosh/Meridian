@@ -7,7 +7,8 @@ FROM ${AIRFLOW_IMAGE}
 USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir /opt/meridian-venv && chown airflow:0 /opt/meridian-venv   # /opt is root's; the venv is airflow's
 
 USER airflow
 COPY Data-Pipeline/requirements.txt /tmp/meridian-requirements.txt

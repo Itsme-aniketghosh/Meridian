@@ -1,9 +1,10 @@
 # Data versioning: every part as a DVC stage, with the code and settings it depends on and the tables it writes.
-# Airflow runs the parts (dags/meridian_dag.py); its last task, `version`, runs `dvc commit`, which records the hash of
-# every output below in dvc.lock. Git tracks dvc.lock, so each commit pins the exact data the code produced.
+# Airflow runs the parts (dags/meridian_dag.py); with [dvc] push, its publish task runs `dvc commit`, which records the
+# hash of every output below in dvc.lock, then `dvc push`. Git tracks dvc.lock, so each commit pins the exact data the
+# code produced.
 #
 #   dvc repro                 # rerun only the stages whose code, config or inputs changed
-#   dvc commit --force        # record outputs a run already made, without rerunning (what the DAG does)
+#   dvc commit --force        # record outputs a run already made, without rerunning (what publish does)
 #   dvc dag                   # the stages, as Airflow runs them
 #   dvc push / dvc pull       # to and from the remote in .dvc/config (README, "Data versioning")
 #
@@ -35,7 +36,7 @@ stages:
       - meridian/szz.py
       - meridian/common.py
       - ${pipeline.config}
-      - ../out/${pipeline.run_id}/run.jsonl
+      - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
     outs:
       - ../out/${pipeline.run_id}/git_commit.jsonl
       - ../out/${pipeline.run_id}/commit_file.jsonl
@@ -52,7 +53,7 @@ stages:
       - meridian/scan.py
       - meridian/common.py
       - ${pipeline.config}
-      - ../out/${pipeline.run_id}/run.jsonl
+      - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
     outs:
       - ../out/${pipeline.run_id}/candidate.jsonl
       - ../out/${pipeline.run_id}/parse_failure.jsonl
@@ -133,7 +134,7 @@ stages:
       - meridian/alert.py
       - schema.sql
       - settings.toml
-      - ../out/${pipeline.run_id}/run.jsonl
+      - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
       - ../out/${pipeline.run_id}/git_commit.jsonl
       - ../out/${pipeline.run_id}/commit_file.jsonl
       - ../out/${pipeline.run_id}/ticket.jsonl
@@ -170,7 +171,7 @@ stages:
       - meridian/bias.py
       - meridian/owners.py
       - settings.toml
-      - ../out/${pipeline.run_id}/run.jsonl
+      - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
       - ../out/${pipeline.run_id}/git_commit.jsonl
       - ../out/${pipeline.run_id}/commit_file.jsonl
       - ../out/${pipeline.run_id}/commit_ticket.jsonl
