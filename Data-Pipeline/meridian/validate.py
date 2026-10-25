@@ -42,7 +42,7 @@ def column_stats(db, table, cols, top_n):
         if typ in NUMERIC:
             lo, hi, mean = db.execute(f'SELECT min({q}), max({q}), avg({q}) FROM "{table}"').fetchone()
             s |= {"min": lo, "max": hi, "mean": None if mean is None else round(mean, 4)}
-        if 0 < distinct <= top_n:
+        if 0 < distinct <= top_n and distinct < rows:  # every value unique (run's image_digest): nothing common to list
             s["top"] = [list(r) for r in db.execute(
                 f'SELECT {q}, count(*) FROM "{table}" GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT {top_n}')]
         out[name] = s
