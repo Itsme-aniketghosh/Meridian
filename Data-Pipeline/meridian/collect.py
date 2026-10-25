@@ -1,7 +1,8 @@
 """Collect · step 1 · D2: freeze one snapshot and write its `run` row. See CONTRACTS.md, "Snapshot".
 
     python -m meridian.collect --run-id new --config meridian.toml               # every dataset in meridian.toml
-    python -m meridian.collect --run-id <run_id> --config meridian.toml          # again: must give the same run
+    python -m meridian.collect --run-id <run_id> --config meridian.toml          # again: must give the same run.
+                                                                                 # snapshots/<run_id>/ exists: replays its SHAs and snapshot_at
     python -m meridian.collect --run-id new --datasets spark                     # just these
     python -m meridian.collect --run-id new --refresh jira/SPARK                 # pull a source again instead of reusing it
 
@@ -408,7 +409,8 @@ def image_digest():
                          "git": git(".", "--version").strip(), "collect": sha256(Path(__file__).read_bytes())}).encode())
 
 
-def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=None):
+def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=None, pins=None):
+    """pins: {repo: SHA} to use instead of resolving each ref (replaying a run: see main)."""
     config, root = Path(config), Path(root or data_root())
     cfg = load_config(config)
     names = datasets or list(cfg["datasets"])
@@ -425,10 +427,14 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
             if ref.startswith("TBD"):
                 gaps.append(f"{repo}: ref not set yet ({ref})")
                 continue
-            sha, branch, fetched = resolve(mirror(mirrors, repo, r.get("url", f"https://github.com/{repo}.git")), ref)
-            follows |= branch
-            if branch and not fetched:
-                gaps.append(f"{repo}: fetch failed, {ref} is where the last fetch left it")
+            d = mirror(mirrors, repo, r.get("url", f"https://github.com/{repo}.git"))
+            if pins and repo in pins:  # replaying a run: its SHA, wherever the branch is now
+                sha = rev(d, pins[repo]) or (fetch(d) and rev(d, pins[repo]))
+            else:
+                sha, branch, fetched = resolve(d, ref)
+                follows |= branch
+                if branch and not fetched:
+                    gaps.append(f"{repo}: fetch failed, {ref} is where the last fetch left it")
             if not sha:
                 gaps.append(f"{repo}: ref {ref} not found")
             elif repos.setdefault(repo, sha) != sha:
@@ -521,8 +527,17 @@ def main(argv=None):
     ap.add_argument("--snapshot-at", help="wins over the config and the pull time: when the chosen datasets don't declare "
                                           "exactly one, or to make a branch-following run again from the same pulls")
     a = ap.parse_args(argv)
+    snapshot_at, pins = a.snapshot_at, None
+    made = data_root() / "snapshots" / a.run_id / "manifest.json"
+    if a.run_id != "new" and made.exists() and not snapshot_at:
+        # replay: a run asked for by id whose snapshot exists is made again from its own SHAs and snapshot_at, so a
+        # branch that moved on, or the clock, can't turn it into another run (the weekly rebuild, a forced rerun).
+        # The rest of the inputs (sources, config) must still give the same run_id, which is the check
+        m = json.loads(made.read_text(encoding="utf-8"))
+        snapshot_at, pins = m["snapshot_at"], m["repos"]
+        log(f"replaying {a.run_id}: snapshot_at {snapshot_at}, {len(pins)} repos at their recorded SHAs")
     row = snapshot(a.config, a.datasets.split(",") if a.datasets else None, None,
-                   tuple(filter(None, a.refresh.split(","))), a.snapshot_at)
+                   tuple(filter(None, a.refresh.split(","))), snapshot_at, pins)
     log(f"status {row['status']}")
     for n in filter(None, row["notes"].split(" | ")):
         log(f"  {n}")

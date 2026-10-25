@@ -4,8 +4,10 @@
 
 Prints "data 2 days old · 14 new commits · run <run_id>": the published run (latest.json, see meridian.publish), the age
 of its snapshot_at, and, per repo in meridian.toml, the commits between its published SHA and the tip of its ref in
-the repo's local mirror ([status] mirrors: collect's bare clones). Nothing is fetched: the mirrors are as fresh as the
-last collect. A repo whose mirror, ref or published SHA isn't there is unknown, and never counts as new.
+the repo's local mirror ([status] mirrors: collect's bare clones). A repo that follows a branch has its mirror fetched
+first ([status] fetch), so a push made since the last collect counts: without it the "Update graph" click and the daily
+run saw nothing until stale_after_hours passed. A pinned repo is never fetched. A fetch that fails (offline) leaves the
+mirror as the last collect did. A repo whose mirror, ref or published SHA isn't there is unknown, and never counts as new.
 
 Exit 0 = something new: nothing published yet, a new commit or repo, or a publish older than [status]
 stale_after_hours (ticket changes can't be seen without a pull). Exit 99 = nothing new. Anything else is an error.
@@ -22,10 +24,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from meridian import publish
+from meridian.collect import fetch, rev
 from meridian.common import CONFIG, HERE, data_root, git, load_config, load_settings, log
 
 NOTHING_NEW = 99
 TIME = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def refresh(mirror, ref):
+    """Fetch the mirror if ref is one of its branches (a followed repo). True if it fetched."""
+    return (mirror / "HEAD").exists() and rev(mirror, f"refs/heads/{ref}") is not None and fetch(mirror)
 
 
 def new_commits(mirror, published_sha, ref):
@@ -42,8 +50,12 @@ def status(config=CONFIG, root=None, settings=None, now=None):
     root, now = Path(root or data_root()), now or datetime.now(timezone.utc)
     pub = publish.latest(root, settings)
     shas, mirrors = pub.get("repo_shas", {}), root / s.get("mirrors", "snapshots/_cache/repos")
-    repos = {r["repo"]: new_commits(mirrors / (r["repo"].replace("/", "__") + ".git"), shas.get(r["repo"]), r["ref"])
-             for ds in cfg.get("datasets", {}).values() for r in ds.get("repos", [])}
+    listed = [r for ds in cfg.get("datasets", {}).values() for r in ds.get("repos", [])]
+    mirror = lambda r: mirrors / (r["repo"].replace("/", "__") + ".git")
+    if s.get("fetch", True):
+        for r in listed:
+            refresh(mirror(r), r["ref"])
+    repos = {r["repo"]: new_commits(mirror(r), shas.get(r["repo"]), r["ref"]) for r in listed}
     since = lambda key: now - datetime.strptime(pub[key], TIME).replace(tzinfo=timezone.utc)
     commits = sum(n for n in repos.values() if n)
     stale = not pub or since("published_at").total_seconds() > s.get("stale_after_hours", 24) * 3600

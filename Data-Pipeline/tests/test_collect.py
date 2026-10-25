@@ -2,7 +2,8 @@
 
     python -m unittest tests.test_collect -v      # from Data-Pipeline/
 """
-import gzip, json, os, re, shutil, subprocess, sys, tempfile, threading, unittest, urllib.parse
+import gzip, io, json, os, re, shutil, subprocess, sys, tempfile, threading, unittest, urllib.parse
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -313,6 +314,24 @@ min_share = {threshold}
         td = T.read_jira(root / "snapshots" / d["run_id"] / "jira" / "FIX")
         self.assertEqual([t["key"] for t in td], [t["key"] for t in ta if t["key"] != "FIX-7"])
         self.assertEqual(len(T.read_jira(snap_b / "jira" / "FIX")), TOTAL)  # older runs keep it
+
+    def test_a_run_asked_for_by_id_is_replayed_after_the_branch_moved(self):
+        """The weekly rebuild and a forced rerun ask for a run by id: its snapshot's SHAs and snapshot_at, not the
+        branch's tip or the clock, so it is the same run. 'new' still follows the branch."""
+        cfg, root = self.config(ref="main", snapshot_at=None), self.tmp / "root"
+        with mock.patch.object(S, "now", clock("2026-02-01T00:00:00Z")):
+            a = self.run_once(cfg)
+        moved = commit(self.tmp / "upstream", 3)
+        n = len(MockJira.jqls)
+        env = {"MERIDIAN_DATA": str(root)}
+        with mock.patch.object(S, "now", clock("2026-02-05T00:00:00Z")), mock.patch.dict(os.environ, env), \
+             redirect_stdout(io.StringIO()):
+            again = S.main(["--run-id", a["run_id"], "--config", str(cfg)])
+            new = S.main(["--run-id", "new", "--config", str(cfg)])
+        self.assertEqual(again, a)
+        self.assertEqual(len(MockJira.jqls) - n, 3)   # only 'new' pulled a delta (query, key listing, next page)
+        self.assertNotEqual(new["run_id"], a["run_id"])
+        self.assertEqual(json.loads(new["repo_shas"]), {"fixture/repo": moved})
 
     def test_gitlab_delta(self):
         """A GitLab delta asks for issues updated after the cursor, each with all its notes again; the newest wins."""
