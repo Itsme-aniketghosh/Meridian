@@ -2,7 +2,7 @@
 
     python -m unittest tests.test_collect -v      # from Data-Pipeline/
 """
-import gzip, json, os, shutil, subprocess, sys, tempfile, threading, unittest, urllib.parse
+import gzip, json, os, re, shutil, subprocess, sys, tempfile, threading, unittest, urllib.parse
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,14 +18,18 @@ TOTAL = 250
 class MockJira(BaseHTTPRequestHandler):
     cap = None  # set to an int to fake Jira silently capping maxResults
     changed = {}  # ticket index -> summary: edited since the base pull, and all an `updated >=` query returns
+    deleted = set()  # ticket indexes no query returns any more
     jqls = []  # every jql asked for
 
     def do_GET(self):
         q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         start, n = int(q["startAt"][0]), int(q["maxResults"][0])
         n = min(n, self.cap or n)
-        MockJira.jqls.append(q["jql"][0])
-        ids = sorted(self.changed) if "updated >=" in q["jql"][0] else range(TOTAL)
+        jql = q["jql"][0]
+        MockJira.jqls.append(jql)
+        ids = [i for i in (sorted(self.changed) if "updated >=" in jql else range(TOTAL)) if i not in self.deleted]
+        if m := re.search(r'key > "FIX-(\d+)"', jql):
+            ids = [i for i in ids if i + 1 > int(m[1])]
         issues = [{"key": f"FIX-{i + 1}", "fields": {"summary": self.changed.get(i, f"ticket {i + 1}"), "created": "2026-01-01T00:00:00.000+0000"},
                    "changelog": {"histories": []}} for i in ids[start:start + n]]
         body = json.dumps({"startAt": start, "maxResults": n, "total": len(ids), "issues": issues}).encode()
@@ -143,7 +147,7 @@ class Collect(unittest.TestCase):
         cls.gl_server.shutdown()
 
     def setUp(self):
-        MockJira.cap, MockJira.changed, MockJira.jqls = None, {}, []
+        MockJira.cap, MockJira.changed, MockJira.deleted, MockJira.jqls = None, {}, set(), []
         self.tmp = Path(tempfile.mkdtemp())
         self.sha = fixture_repo(self.tmp / "upstream")
 
@@ -266,13 +270,15 @@ min_share = {threshold}
         self.assertEqual(b["snapshot_at"], "2026-02-02T00:00:01Z")
         self.assertEqual(json.loads(b["repo_shas"]), {"fixture/repo": new})
         # cursor: the base started at 2026-02-01T00:00:03Z, less a day of overlap (settings.toml)
-        self.assertEqual(MockJira.jqls[n:], ['(project=FIX) AND updated >= "2026-01-31 00:00" ORDER BY key ASC'])
+        self.assertEqual(MockJira.jqls[n:], ['(project=FIX) AND updated >= "2026-01-31 00:00" ORDER BY key ASC',
+                                             "(project=FIX) ORDER BY key ASC",  # then every key there is now
+                                             '(project=FIX) AND key > "FIX-250" ORDER BY key ASC'])
         self.assertIn("jira/FIX pulled 2026-02-01T00:00:03Z..", b["notes"])
         self.assertIn("base pull + 1 delta(s)", b["notes"])
 
         snap_a, snap_b = root / "snapshots" / a["run_id"], root / "snapshots" / b["run_id"]
         delta = snap_b / "jira" / "FIX" / "delta-20260202T000003Z"
-        self.assertEqual(sorted(p.name for p in delta.iterdir()), ["cursor.json", "page-000000.json.gz"])
+        self.assertEqual(sorted(p.name for p in delta.iterdir()), ["cursor.json", "keys.json.gz", "page-000000.json.gz"])
         self.assertEqual(json.loads((delta / "cursor.json").read_text()), {"since": "2026-01-31T00:00:03Z"})
         for p in (snap_a / "jira" / "FIX").glob("page-*"):  # the base pull, unchanged
             self.assertEqual(p.read_bytes(), (snap_b / "jira" / "FIX" / p.name).read_bytes())
@@ -300,6 +306,14 @@ min_share = {threshold}
         self.assertEqual(self.run_once(cfg, snapshot_at=b["snapshot_at"]), b)
         self.assertEqual(len(MockJira.jqls), n)
 
+        # a deleted ticket: no `updated >=` query returns it, the delta's key listing lacks it, so it's left out
+        MockJira.changed, MockJira.deleted = {}, {6}
+        with mock.patch.object(S, "now", clock("2026-02-04T00:00:00Z")):
+            d = self.run_once(cfg)
+        td = T.read_jira(root / "snapshots" / d["run_id"] / "jira" / "FIX")
+        self.assertEqual([t["key"] for t in td], [t["key"] for t in ta if t["key"] != "FIX-7"])
+        self.assertEqual(len(T.read_jira(snap_b / "jira" / "FIX")), TOTAL)  # older runs keep it
+
     def test_gitlab_delta(self):
         """A GitLab delta asks for issues updated after the cursor, each with all its notes again; the newest wins."""
         MockGitLab.issues = {"1": ("one", []), "2": ("two", []), "3": ("three", [])}
@@ -315,6 +329,7 @@ min_share = {threshold}
         note = {"body": "marked this issue as blocking #1", "createdAt": "2026-02-01T12:00:00Z", "system": True, "author": None}
         MockGitLab.issues["2"] = ("two, edited", [note])
         MockGitLab.changed = {"2"}
+        MockGitLab.issues.pop("3")  # deleted: only the delta's iid listing can tell
         n = len(MockGitLab.queries)
         with mock.patch.object(S, "now", clock("2026-02-02T00:00:00Z")):
             used, meta = S.pull_source(d, pull, "2026-02-02T00:00:00Z")
@@ -323,7 +338,7 @@ min_share = {threshold}
         self.assertEqual((d / "issues.jsonl.gz").read_bytes(), base)
         issues = T.read_gitlab(d)
         self.assertEqual([(n["iid"], n["title"], n["notes"]) for n in issues],
-                         [("1", "one", []), ("2", "two, edited", [note]), ("3", "three", [])])
+                         [("1", "one", []), ("2", "two, edited", [note])])
         self.assertNotEqual(S.dir_hash(d, used), S.dir_hash(d, used[:1]))
 
     def test_raw_pages_are_byte_stable(self):

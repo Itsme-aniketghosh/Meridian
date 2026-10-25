@@ -15,7 +15,8 @@ line printed is `run_id=<run_id>`, for the tasks after this one.
 2. snapshot_at: --snapshot-at if given. Else, if any repo follows a branch, the pull time: read here, after the
    fetches, the only clock in the pipeline. Else the run-wide or the one per-dataset snapshot_at in meridian.toml.
 3. Tickets, in snapshots/_cache/<source>/: a base pull, then delta-<time>/ folders, each the tickets changed since
-   the last pull started (the cursor, in cursor.json), each in full with its whole changelog or notes. A run reads
+   the last pull started (the cursor, in cursor.json), each in full with its whole changelog or notes, plus every
+   key or iid that still exists (keys.json.gz / iids.json.gz: a deleted ticket is one missing there). A run reads
    the base and the deltas up to the first pull that started after snapshot_at (rollback needs every change up to
    it); if none did, it pulls a new delta. Later pulls are left out, so the same snapshot_at reads the same files.
    Kill it any time and rerun: it resumes. A finished pull is never re-queried; --refresh drops the source's pulls.
@@ -207,9 +208,34 @@ def pull_jira(dest, jira, stop_after=None, since=None):
             if stop_after and fetched >= stop_after:
                 return None
         start += page
+    if since and "keys" not in meta:
+        meta["keys"] = list_jira_keys(dest, jira)
     meta["finished_at"] = now()
     save_meta(dest, meta)
     return meta
+
+
+def list_jira_keys(dest, jira):
+    """Every key the jql matches now, as keys.json.gz: a ticket the delta's `updated >=` can't return because it was
+    deleted is one missing here. Paged by key, not startAt: a ticket deleted mid-listing would shift the offsets
+    and skip a live key. Resumable by the last key in .work/keys.txt."""
+    work = dest / ".work"
+    work.mkdir(exist_ok=True)
+    keys = read_lines(work / "keys.txt")
+    m = re.fullmatch(r"(?is)(.*?)(\s+order\s+by\s.*)?", jira["jql"])
+    with open(work / "keys.txt", "a", encoding="utf-8", newline="\n") as f:
+        while True:
+            after = f' AND key > "{keys[-1]}"' if keys else ""
+            q = urllib.parse.urlencode({"jql": f"({m[1]}){after} ORDER BY key ASC", "startAt": 0,
+                                        "maxResults": jira.get("keys_page", 1000), "fields": "key"})
+            got = [it["key"] for it in json.loads(curl(f"{jira['base']}?{q}"))["issues"]]
+            if not got:  # stop on an empty page, not a short one: Jira caps maxResults silently
+                break
+            f.write("".join(k + "\n" for k in got))
+            f.flush()
+            keys += got
+    write_atomic(dest / "keys.json.gz", gz((canon(sorted(set(keys))) + "\n").encode()))
+    return len(set(keys))
 
 
 # ───────────── GitLab ─────────────
@@ -314,10 +340,31 @@ def pull_gitlab(dest, ds, since=None):
     for iid in sorted(issues, key=int):
         lines.append(json.dumps({**issues[iid], "parent": parents.get(iid), "notes": notes.get(iid)}, sort_keys=True, ensure_ascii=False))
     write_atomic(dest / "issues.jsonl.gz", gz(("\n".join(lines) + "\n").encode()))
+    if since:
+        meta["iids"] = list_gitlab_iids(dest, ds)
     meta.update(finished_at=now(), issues=len(issues), notes_skipped=len(issues) - len(want),
                 notes_missing=sum(1 for i in want if notes.get(i) is None))
     save_meta(dest, meta)
     return meta
+
+
+IIDS_Q = """query($after:String){ project(fullPath:"%s"){
+  issues(createdAfter:"%s", createdBefore:"%s", first:100, after:$after, sort:CREATED_ASC){
+    pageInfo{ hasNextPage endCursor } nodes{ iid } } } }"""
+
+
+def list_gitlab_iids(dest, ds):
+    """Every iid in the window now, as iids.json.gz: what a delta needs to notice a deleted issue (list_jira_keys).
+    GitLab's cursor is keyset, so a deletion mid-listing can't skip one."""
+    url, proj, (frm, to), after, iids = ds["graphql"], ds["project"], ds["issues_created"], None, set()
+    while True:
+        page = gql(url, IIDS_Q % (proj, frm, to), {"after": after})["project"]["issues"]
+        iids |= {n["iid"] for n in page["nodes"]}
+        after = page["pageInfo"]["endCursor"]
+        if not page["pageInfo"]["hasNextPage"]:
+            break
+    write_atomic(dest / "iids.json.gz", gz((canon(sorted(iids, key=int)) + "\n").encode()))
+    return len(iids)
 
 
 # ───────────── tickets: the base pull and deltas ─────────────

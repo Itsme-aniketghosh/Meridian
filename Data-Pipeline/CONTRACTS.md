@@ -31,9 +31,9 @@ snapshots/<run_id>/
   manifest.json          run_id, snapshot_at, repos {repo: sha}, sources {name: sha256}, config_hash
   repos/<owner>__<name>/ checkout at the run's sha (full history, core.longpaths=true)
   jira/SPARK/page-*.json.gz          raw REST pages with changelog (the base pull)
-  jira/SPARK/delta-<time>/           tickets changed since the pull before: cursor.json, page-*.json.gz
+  jira/SPARK/delta-<time>/           tickets changed since the pull before: cursor.json, page-*.json.gz, keys.json.gz
   gitlab/issues.jsonl.gz             raw issues, labels, links, activity (the base pull)
-  gitlab/delta-<time>/               issues changed since the pull before: cursor.json, issues.jsonl.gz
+  gitlab/delta-<time>/               issues changed since the pull before: cursor.json, issues.jsonl.gz, iids.json.gz
 snapshots/_cache/                    kept between runs, shared by all of them
   repos/<owner>__<name>.git          one bare mirror per repo, updated with git fetch (settings.toml [collect] mirrors)
   jira/SPARK/, gitlab/               the base pull and every delta, never overwritten
@@ -43,7 +43,7 @@ snapshots/_cache/                    kept between runs, shared by all of them
 - A `ref` in `meridian.toml` that names a branch follows it: collect fetches the mirror and resolves the branch to a commit. A SHA (or `sha^1`) stays pinned.
 - When any repo follows a branch, `snapshot_at` is the run's pull time, read by collect (`--snapshot-at` still wins). Otherwise it's the configured one.
 - Tickets: a base pull, then deltas, each the tickets changed since the pull before, each in full (whole changelog or activity notes). A run reads the base and the deltas up to the first pull that started after `snapshot_at`, and pulls a new delta if none did. Readers take the base, then each delta in order: a later copy of a ticket replaces the earlier one. The manifest's source hash covers exactly those files, cursors included.
-- Deleted tickets are not noticed yet: an `updated >=` query doesn't return them, so a ticket deleted after the base pull stays.
+- Deleted tickets: an `updated >=` query can't return them, so each delta also lists every key (Jira `keys.json.gz`) or iid (GitLab `iids.json.gz`) that exists now. Readers leave out a ticket missing from the newest listing. When it was deleted isn't known, so a run whose snapshot_at is before the deletion drops it too.
 - Each checkout borrows the mirror's objects (`git clone --shared`), and the mirror keeps `refs/runs/<run_id>` so they're never pruned. Don't move or delete the mirrors.
 - Snapshots live in GCS or a local `snapshots/` folder, never in git.
 
