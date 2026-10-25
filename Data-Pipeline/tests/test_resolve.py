@@ -580,6 +580,31 @@ class ReceiverFrom(unittest.TestCase):
         self.assertEqual({(r["path"], r["line"]): r["receiver_from"] for r in rows}, RECEIVERS)
 
 
+class WalkOrder(unittest.TestCase):
+    """The same answers whatever order the filesystem lists a folder in (NTFS sorts, APFS doesn't)."""
+
+    def test_callers_found_dont_depend_on_listing_order(self):
+        files = {"lib/__init__.py": "", "lib/use.py": "def use(obj):\n    return obj.run()\n"}
+        for i in range(2):  # Jedi guesses obj from the first file of its walk that calls use(), so the order picks C0 or C1
+            files[f"c{i}.py"] = f"from lib.use import use\n\nclass C{i}:\n    def run(self):\n        pass\n\nuse(C{i}())\n"
+        walk = os.walk
+
+        def reversed_walk(top, **kw):  # a filesystem that lists each folder the other way round
+            for root, dirs, names in walk(top, **kw):
+                dirs.reverse(), names.reverse()
+                yield root, dirs, names
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            fixture_repo(repo, files)
+            ask = lambda: sorted(n.full_name for n in R.Repo(repo, SYMBOLS).goto("lib/use.py", 2, 15))
+            forward = ask()
+            with mock.patch("os.walk", reversed_walk):
+                backward = ask()
+        self.assertEqual(len(forward), 1)
+        self.assertEqual(forward, backward)
+
+
 class Helpers(unittest.TestCase):
     """score_packages and the alias hand check: the same output on every machine."""
 

@@ -57,13 +57,19 @@ SHAs (Django, for the packages), every folder and file name in the checkout and 
 and so is the blob of every repo file read while resolving it last time: the file, what it imports and re-exports,
 however deep Jedi went, and any file Jedi searched. Imports aren't guessed from module_import: what Jedi read is
 recorded. call_edge is never cached: every run rebuilds it from the rows. Same bytes either way.
+
+Same bytes on every OS. To guess a parameter, Jedi reads the calls of its function in the first file of a project
+walk that has one, and the walk listed folders in the filesystem's order: NTFS by name, APFS by a hash of the name. On
+70dd1dabfed544b8 Windows had 5 call edges macOS didn't (django's AdminField.label_tag landing on BoundField.label_tag)
+and 2 allauth rows with another resolved_to. Jedi's walk now uses APFS's order on every OS (below).
 """
-import importlib.machinery, json, os, sys, sysconfig
+import functools, importlib.machinery, json, os, sys, sysconfig, types, unicodedata
 from collections import Counter
 from importlib.metadata import version
 from pathlib import Path
 
 import jedi
+import jedi.file_io
 import parso.cache, parso.file_io
 from jedi.inference.compiled.subprocess import functions as jedi_functions
 
@@ -110,6 +116,32 @@ def _file_io(self, path):
 
 
 parso.file_io.FileIO.__init__ = _file_io
+
+
+# Jedi (pinned) guesses a parameter from the calls of its function in the first file of a project walk (os.walk) that
+# has one. os.walk lists a folder in the filesystem's order, so which caller it used, and so the answers, depended on the
+# OS: Windows (NTFS, by name) had 5 more django edges than macOS. Walk in one fixed order on every OS. The order is
+# macOS's own (APFS, case-insensitive, its default), so the team's numbers, made on a Mac, stay.
+_CRC32C = [functools.reduce(lambda c, _: c >> 1 ^ (0x82F63B78 if c & 1 else 0), range(8), i) for i in range(256)]
+
+
+@functools.cache
+def _apfs_order(name):
+    """Where APFS lists a name in its folder: by a 22-bit CRC-32C of the name case-folded and decomposed (NFD)."""
+    crc = 0xFFFFFFFF
+    for b in unicodedata.normalize("NFD", name.casefold()).encode("utf-32-le"):
+        crc = _CRC32C[(crc ^ b) & 0xFF] ^ crc >> 8
+    return crc & 0x3FFFFF, len(name.encode()) + 1, name
+
+
+def _walk(top):
+    for root, folders, files in os.walk(top):
+        folders.sort(key=_apfs_order)
+        files.sort(key=_apfs_order)
+        yield root, folders, files
+
+
+jedi.file_io.os = types.SimpleNamespace(**{**vars(os), "walk": _walk})  # only Jedi's folder walk changes
 
 RESOLVER = f"jedi=={jedi.__version__}"
 COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "detection", "via", "resolved_to", "resolver", "receiver_from"]
