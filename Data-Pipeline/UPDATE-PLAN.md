@@ -94,10 +94,12 @@ Times now (Oct 23–24): history 430 s, resolve 295 s, validate 165 s, scan 140 
 
 ## Fixes on `mlops-pipeline` before it merges
 
-- [ ] Add `.gitattributes` (LF line endings) and regenerate `dvc.lock` on Mac/Linux: Windows line endings change the hashes.
-- [ ] Add `dvc-gs` to `requirements.txt` (for the `gcs` remote).
-- [ ] Add `.DS_Store` and `Thumbs.db` to `.dvcignore`.
-- [ ] Find the Windows-vs-Mac difference in `resolution` and `call_edge` (2,293 vs 2,288 edges). Needs both machines' files.
+- [x] Add `.gitattributes` (LF line endings) and regenerate `dvc.lock` on Mac/Linux: Windows line endings change the hashes. Done: 13 code and config hashes were Windows-only; `dvc status` is clean on Mac. On Windows, refresh the checkout once so files come out LF (below)
+- [x] Add `dvc-gs` to `requirements.txt` (for the `gcs` remote). Done: `dvc-gs==3.1.0`, `gcsfs==2026.10.1`; `dvc version` lists gs
+- [x] Add `.DS_Store` and `Thumbs.db` to `.dvcignore`. Done: the raw-pull hashes now match on Mac and Windows
+- [ ] Find the Windows-vs-Mac difference in `resolution` and `call_edge` (2,293 vs 2,288 edges). Needs both machines' files. The regenerated `dvc.lock` records the Mac values: `resolution`, `call_edge`, `blast_radius`, `stats.json` differ from Windows, and `run.jsonl` by design (`image_digest`)
+
+On Windows, after pulling this, commit or stash your work first, then once: `git rm -r --cached -q . && git reset --hard`, so every file is checked out with LF.
 
 ## Next
 
