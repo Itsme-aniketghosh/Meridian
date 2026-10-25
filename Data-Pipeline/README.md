@@ -28,6 +28,7 @@ Data-Pipeline/
 ├── dags/                  Airflow: meridian_dag.py (the DAG), pipeline_spec.py (its tasks and tables, as data)
 ├── meridian/              the parts, one module each: python -m meridian.<part> --run-id <id> --config meridian.toml
 ├── tests/                 unittest: one file per part, plus the DAG, validation, bias; demo.py, dashboard.py
+├── golden/                v1 frozen: the expected hashes tests/test_golden.py checks (TESTING.md)
 ├── labels/                hand-checked answer keys and gold sets (CSV-POLICY.md)
 ├── logs/                  Airflow's task logs (git-ignored)
 ├── meridian.toml          what the parts compute: hashed into the run_id
