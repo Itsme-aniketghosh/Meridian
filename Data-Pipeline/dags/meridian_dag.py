@@ -15,8 +15,8 @@ idempotent ("same run, same output"), so a retry just reruns the part. A task th
 alert ([alerts], through meridian.alert). One run at a time per DAG (max_active_runs = 1): a click during a run queues
 one more, and its anything_new drops it if that run already took every push.
 
-The run: the trigger's config {"run_id": "...", "prev_run": "..."}, else [pipeline] run_id (update) or the last
-published run (rebuild). prev_run: the config, else [pipeline] prev_run or the last published run (update), or the
+The run: the trigger's config {"run_id": "...", "prev_run": "..."}, else whatever run collect makes from the inputs
+(update) or the last published run (rebuild). prev_run: the config, else [pipeline] prev_run or the last published run (update), or the
 published run's own prev_run (rebuild, to give the same bytes). Never the run itself.
 """
 import subprocess, sys
@@ -39,8 +39,10 @@ MAIN = data_root()
 REBUILD = MAIN / SPECS["rebuild"]["data_root"]
 HANDOFF = load_config(HERE / PIPELINE["config"])["run"]["handoff_dir"]
 
-# Jinja expressions, rendered when a task runs: published(key) reads the live latest.json
-RUN = {"update": "dag_run.conf.get('run_id') or params.run_id",
+# Jinja expressions, rendered when a task runs: published(key) reads the live latest.json. The update's collect makes
+# whatever run the inputs give ('new': repos may follow a branch), and its last line, run_id=<id>, is the run after it
+COLLECT = "dag_run.conf.get('run_id') or 'new'"
+RUN = {"update": "dag_run.conf.get('run_id') or (ti.xcom_pull(task_ids='collect') or '').split('=')[-1]",
        "rebuild": "dag_run.conf.get('run_id') or published('run_id') or params.run_id"}
 PREV = {"update": "dag_run.conf.get('prev_run') or params.prev_run or published('run_id')",
         "rebuild": "dag_run.conf.get('prev_run') or published('prev_run') or params.prev_run"}
@@ -85,7 +87,7 @@ def build(name, description):
     ) as dag:
         tasks = {}
         for task, upstream in DAGS[name].items():
-            cmd = command(name, task, run, PIPELINE["config"], ORCH["python"], prev_arg, prev, MAIN.as_posix(),
+            cmd = command(name, task, f"{{{{ {COLLECT} }}}}" if (name, task) == ("update", "collect") else run, PIPELINE["config"], ORCH["python"], prev_arg, prev, MAIN.as_posix(),
                           REBUILD.as_posix(), HANDOFF)
             timeout = timedelta(minutes=ORCH.get("timeout_minutes", {}).get(task, 60))
             if task in GATES:
