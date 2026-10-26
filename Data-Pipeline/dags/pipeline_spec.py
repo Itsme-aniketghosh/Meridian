@@ -26,10 +26,11 @@ CORE = {p: STEPS[p][0] for p in ("history", "scan", "resolve", "owners", "join",
 
 # Each DAG: task -> upstream tasks. Order = a valid run order. Besides the parts: anything_new (meridian.status),
 # report (meridian.report: what changed, and which commit), publish, compare (meridian.<task>), and fresh (shell).
+# gx (meridian.gx, the weekly Great Expectations audit) runs beside bias and nothing waits for it: it never gates.
 DAGS = {
     "update": {"anything_new": (), "collect": ("anything_new",), **CORE, "report": ("validate",), "publish": ("report",)},
-    "rebuild": {"fresh": (), "collect": ("fresh",), **CORE, "bias": ("validate",), "report": ("validate",),
-                "compare": ("bias", "report"), "publish": ("compare",)},
+    "rebuild": {"fresh": (), "collect": ("fresh",), **CORE, "bias": ("validate",), "gx": ("validate",),
+                "report": ("validate",), "compare": ("bias", "report"), "publish": ("compare",)},
 }
 
 # Gates stop the rest of their DAG by their command's exit code: task -> (go on, stop). Any other code fails the task.
@@ -37,11 +38,12 @@ GATES = {"anything_new": (0, 99),   # meridian.status: 0 = something new since t
          "compare": (3, 0)}         # meridian.compare: 3 = the rebuild differs (alerted): publish it; 0 = same: done
 
 
-def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", rebuild="", handoff="out/{run_id}"):
+def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", rebuild="", handoff="out/{run_id}",
+            gx_python=""):
     """The shell command for one task of one DAG. Every part is the same one command (CONTRACTS.md). prev_arg is
     '--prev-run <run_id>' or '', prev the bare run_id or '' (in the DAG, templates that render to them). main and
     rebuild are the two data roots. The rebuild's tasks run under its own root (MERIDIAN_DATA), except publish, which
-    puts the rebuild where the views read."""
+    puts the rebuild where the views read. gx runs in its own environment (gx_python) and puts its Data Docs there too."""
     if task == "fresh":   # from scratch: its out/<run_id> wiped; the snapshot and the previous run's out/ linked in
         out = f"{rebuild}/{handoff.format(run_id=run_id)}"
         prev_out = handoff.format(run_id="$p")
@@ -49,11 +51,13 @@ def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", re
                 f' && if [ -n "$p" ]; then ln -sfn {main}/{prev_out} {rebuild}/{prev_out}; fi')
     if task == "anything_new":
         return f"{python} -m meridian.status --config {config}"
-    cmd = f"{python} -m meridian.{task} --run-id {run_id} --config {config}"
+    cmd = f"{gx_python if task == 'gx' and gx_python else python} -m meridian.{task} --run-id {run_id} --config {config}"
     if prev_arg and task in ("join", "validate", "report", "publish"):
         cmd += f" {prev_arg}"
     if task == "compare":
         cmd += f" --against-root {main}"
+    if task == "gx" and main:
+        cmd += f" --publish-root {main}"
     if dag == "rebuild":
         cmd = f"{cmd} --from-root {rebuild}" if task == "publish" else f"MERIDIAN_DATA={rebuild} MERIDIAN_NO_CACHE=1 {cmd}"
     return cmd

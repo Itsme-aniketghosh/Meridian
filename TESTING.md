@@ -63,7 +63,7 @@ No database is needed: DagBag only parses the files. The image build needs about
 python -m unittest tests.test_graph -v
 ```
 
-One file per part: `test_collect` (branches, ticket deltas, deleted tickets, mirrors), `test_history`, `test_tickets`, `test_szz`, `test_scan`, `test_resolve`, `test_owners`, `test_join`, `test_graph`, `test_validate`, `test_bias`, `test_report` (the per-run change report), `test_publish` (publish, compare, status).
+One file per part: `test_collect` (branches, ticket deltas, deleted tickets, mirrors), `test_history`, `test_tickets`, `test_szz`, `test_scan`, `test_resolve`, `test_owners`, `test_join`, `test_graph`, `test_validate`, `test_bias`, `test_gx` (the weekly GX audit: specs and never-gate rules everywhere, the suite itself in the `[gx]` environment, CI's gx job), `test_report` (the per-run change report), `test_publish` (publish, compare, status).
 
 And across parts: `test_kb` (the knowledge base's queries), `test_cache` (Phase 3: each cache on equals off, and an update equals a run from scratch), `test_dag` (both DAGs follow the spec), `test_pushcheck` (P1–P9 on a fixture block), `test_dashboard`, `test_gold`, `test_golden`, `test_check_csv`.
 

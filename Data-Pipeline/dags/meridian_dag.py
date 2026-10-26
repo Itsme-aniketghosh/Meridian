@@ -8,7 +8,8 @@ meridian_update: the "Update graph" click (a trigger, from the UI or the REST AP
 meridian_rebuild: weekly. Recomputes the last published run from scratch under its own data root, with bias, then
     compares every table with the update's (meridian.compare): same -> done; different -> alerted, and the rebuild is
     published.
-    fresh -> collect -> ... -> validate -> bias -> compare -> publish
+    fresh -> collect -> ... -> validate -> bias -> compare -> publish, and gx beside bias: the Great Expectations audit
+    with Data Docs, in its own environment, never gating (meridian.gx)
 
 Each task runs one command in the pipeline's own environment ([orchestration] python), from Data-Pipeline/. Parts are
 idempotent ("same run, same output"), so a retry just reruns the part. A task that fails after its retries sends an
@@ -38,6 +39,7 @@ from meridian.common import data_root, load_config, load_settings   # noqa: E402
 from pipeline_spec import DAGS, GATES, command       # noqa: E402
 
 PIPELINE, ORCH, SPECS = load_settings("pipeline"), load_settings("orchestration"), load_settings("dags")
+GX_PYTHON = load_settings("gx").get("python") or ORCH["python"]   # the GX audit's own environment
 MAIN = data_root()
 REBUILD = MAIN / SPECS["rebuild"]["data_root"]
 HANDOFF = load_config(HERE / PIPELINE["config"])["run"]["handoff_dir"]
@@ -98,7 +100,7 @@ def build(name, description):
         tasks = {}
         for task, upstream in DAGS[name].items():
             cmd = command(name, task, f"{{{{ {COLLECT} }}}}" if (name, task) == ("update", "collect") else run, PIPELINE["config"], ORCH["python"], prev_arg, prev, MAIN.as_posix(),
-                          REBUILD.as_posix(), HANDOFF)
+                          REBUILD.as_posix(), HANDOFF, GX_PYTHON)
             timeout = timedelta(minutes=ORCH.get("timeout_minutes", {}).get(task, 60))
             if task in GATES:
                 force = FORCE if task == "anything_new" else ""   # compare is never skipped: it is the weekly check

@@ -60,6 +60,15 @@ class Spec(unittest.TestCase):
         self.assertIn("report", ancestors("compare", P.DAGS["rebuild"]))   # the rebuild's report checks the update's
         self.assertTrue(all(any(g in dag for dag in P.DAGS.values()) for g in P.GATES))
 
+    def test_gx_is_weekly_beside_bias_and_never_gates(self):
+        rebuild = P.DAGS["rebuild"]
+        self.assertEqual(rebuild["gx"], ("validate",))
+        self.assertNotIn("gx", P.DAGS["update"])
+        self.assertTrue(all("gx" not in ancestors(t, rebuild) for t in rebuild))   # nothing waits for it
+        cmd = P.command("rebuild", "gx", "R", "meridian.toml", "py", "", "", "/d", "/d/rb", gx_python="gxpy")
+        self.assertEqual(cmd, "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 gxpy -m meridian.gx --run-id R --config meridian.toml "
+                              "--publish-root /d")   # its own environment; Data Docs where the views read
+
     def test_commands(self):
         c = lambda dag, task, prev_arg="", prev="": P.command(dag, task, "R", "meridian.toml", "py", prev_arg, prev,
                                                               "/d", "/d/rb")

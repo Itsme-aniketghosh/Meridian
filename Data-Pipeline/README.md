@@ -9,6 +9,7 @@ anything_new ── collect ──┬── history ───────── 
                           └── scan ──── resolve ─────────┘
 
 meridian_rebuild (Sunday): fresh ── collect ── … ── validate ── bias ── compare ── publish (only if they differ)
+                                                         └── gx (beside bias, never gates)
 ```
 
 | Task | Does | Writes (`out/<run_id>/`) | Doc |
@@ -22,6 +23,7 @@ meridian_rebuild (Sunday): fresh ── collect ── … ── validate ─�
 | `graph` | Which site waits on which, blast radius, ticket chains | `blocked_by`, `blast_radius`, `chain` | [GRAPH](GRAPH.md) |
 | `validate` | Schema, statistics, anomalies; alerts | `meridian.sqlite`, `stats.json`, `anomalies.json` | below |
 | `bias` | Slices the pipeline's rules by team, module and repo (Fairlearn) | `bias.json` | [BIAS](BIAS.md) |
+| `gx` | Weekly rebuild only: `[validate]`'s generic checks (rows, missing, formats, ranges, dates) as a Great Expectations suite, in its own environment (`requirements-gx.txt`, `[gx] python`). Alerts, never gates: `validate` stays the gate | `gx.json`, Data Docs in `published/gx/<run_id>/` | `meridian/gx.py` |
 | `report` | What changed since the last published run, and which commit caused it (`meridian.report`) | | |
 | `publish` | Only after validate, and no data error: copies the block to `published/<run_id>.sqlite`, points `published/latest.json` at it; with `[dvc] push`, `dvc commit` and `dvc push` | `published/` | below |
 | `anything_new` | `meridian.status`: new commits since the published SHAs, or a publish older than a day; else the update stops | | below |
