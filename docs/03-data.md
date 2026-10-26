@@ -16,6 +16,20 @@ intake (Slack, support, GitHub issues).
 | [GitLab](https://gitlab.com/gitlab-org/gitlab) issues | Cross-team blocks, stalls (one repo, ~100 teams) |
 | GitHub issues | Vague and duplicate labels |
 
+## Data sources and licences
+
+Meridian's own code is MIT (`LICENSE`). The data it reads keeps its own terms:
+
+- **Django**: BSD-3-Clause
+- **Spark**: Apache-2.0
+- **Django packages**: each under its own OSS licence, mostly BSD or MIT
+- **Apache Jira**: public issue data from Apache's public tracker
+- **GitLab.com issues**: public issues under GitLab's terms. The repo holds only short quoted excerpts
+  (`Data-Pipeline/labels/`), with `@handles` and emails scrubbed
+- **Defects4J**: MIT
+
+The raw ticket pulls, which carry real names, are not in git: DVC tracks them (`snapshots/_cache/*.dvc`).
+
 ## Measured
 
 **Django**

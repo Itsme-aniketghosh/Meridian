@@ -136,6 +136,8 @@ code,.mono{{font:12px ui-monospace,Consolas,monospace}}details summary{{cursor:p
 def build(db, run, queries, stale=""):
     q = lambda sql: db.execute(sql).fetchall()
     sections = []
+    scope = " · ".join(map(str, db.execute("SELECT repo, symbol FROM asof").fetchone()))
+    db.execute("UPDATE asof SET repo = NULL, symbol = NULL")  # the planned queries ran on one repo and symbol; the rest is the whole block
 
     counts = [(t, db.execute(f"SELECT count(*) FROM {t}").fetchone()[0])
               for (t,) in q("""SELECT name FROM sqlite_master WHERE type = 'table'
@@ -197,7 +199,7 @@ def build(db, run, queries, stale=""):
                     f'<td class="num">{esc(len(got))}</td><td><span class="note">{esc(err or (json.dumps(params) if params else ""))}</span>{preview}</td></tr>')
     n = {s: sum(state(got, err) == s for *_, got, err in queries) for s in STATUS}
     legend = " · ".join(f'<span class="st {STATUS[s][0]}"><b>{STATUS[s][1]}</b>{STATUS[s][2]}</span> {n[s]}' for s in STATUS)
-    sections.append(("Planned features", f'<p class="note">Every named query in KNOWLEDGE-BASE.md, run on this block. '
+    sections.append(("Planned features", f'<p class="note">Every named query in KNOWLEDGE-BASE.md, run on the biggest repo and symbol ({esc(scope)}). '
                      f'Empty can be right (no chains without tickets on call sites), and rows can be hollow: with no suggestion '
                      f'rows, the tracking queries only show the control group.</p><p>{legend}</p>'
                      '<div class="scroll"><table><thead><tr><th>section</th><th>query</th><th>status</th><th>rows</th>'

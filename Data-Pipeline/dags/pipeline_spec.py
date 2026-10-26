@@ -10,7 +10,7 @@ STEPS = {
                                           "commit_ticket", "bug_inducing", "file_bug_fixes")),
     "scan": (("collect",), ("run",), ("candidate", "parse_failure", "module_import", "deprecation")),
     "resolve": (("scan",), ("candidate",), ("resolution", "call_edge")),
-    "owners": (("history",), ("git_commit", "commit_file", "ticket", "commit_ticket"),
+    "owners": (("history",), ("run", "git_commit", "commit_file", "ticket", "commit_ticket"),
                ("person", "person_alias", "team_map", "file_owner")),
     "join": (("history", "resolve", "owners"), ("candidate", "resolution", "parse_failure", "file_owner", "file_bug_fixes",
                                                 "ticket", "commit_ticket", "commit_file", "git_commit", "run"),
@@ -30,7 +30,7 @@ CORE = {p: STEPS[p][0] for p in ("history", "scan", "resolve", "owners", "join",
 DAGS = {
     "update": {"anything_new": (), "collect": ("anything_new",), **CORE, "report": ("validate",), "publish": ("report",)},
     "rebuild": {"fresh": (), "collect": ("fresh",), **CORE, "bias": ("validate",), "gx": ("validate",),
-                "report": ("validate",), "compare": ("bias", "report"), "publish": ("compare",)},
+                "report": ("validate",), "compare": ("report",), "publish": ("compare", "bias")},   # bias.json ships with it
 }
 
 # Gates stop the rest of their DAG by their command's exit code: task -> (go on, stop). Any other code fails the task.
@@ -44,11 +44,13 @@ def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", re
     '--prev-run <run_id>' or '', prev the bare run_id or '' (in the DAG, templates that render to them). main and
     rebuild are the two data roots. The rebuild's tasks run under its own root (MERIDIAN_DATA), except publish, which
     puts the rebuild where the views read. gx runs in its own environment (gx_python) and puts its Data Docs there too."""
-    if task == "fresh":   # from scratch: its out/<run_id> wiped; the snapshot and the previous run's out/ linked in
+    if task == "fresh":   # from scratch: its out/<run_id> wiped; the snapshot and the previous run's out/ linked in.
+        # Its last line names the run once, for the later tasks (xcom): an update publishing meanwhile can't switch it
         out = f"{rebuild}/{handoff.format(run_id=run_id)}"
         prev_out = handoff.format(run_id="$p")
         return (f'rm -rf {out} && mkdir -p {out} && ln -sfn {main}/snapshots {rebuild}/snapshots && p="{prev}"'
-                f' && if [ -n "$p" ]; then ln -sfn {main}/{prev_out} {rebuild}/{prev_out}; fi')
+                f' && if [ -n "$p" ]; then rm -rf {rebuild}/{prev_out} && ln -sfn {main}/{prev_out} {rebuild}/{prev_out}; fi'
+                f' && echo "run_id={run_id} prev_run=$p"')   # rm: ln -sfn onto a real dir would link inside it
     if task == "anything_new":
         return f"{python} -m meridian.status --config {config}"
     cmd = f"{gx_python if task == 'gx' and gx_python else python} -m meridian.{task} --run-id {run_id} --config {config}"

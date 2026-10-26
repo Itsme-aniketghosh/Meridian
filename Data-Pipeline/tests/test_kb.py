@@ -209,11 +209,34 @@ class KnowledgeBase(unittest.TestCase):
         from meridian.scan import module_of
         db = build()
         paths = ["django/utils/translation/__init__.py", "django/utils/translation/trans_real.py", "setup.py"]
-        db.executemany("INSERT INTO call_site VALUES (?, 'R2', 'acme/shop', ?, 1, 0, '<module>', 's', 'call', 'ast_resolved', "
+        db.executemany("INSERT INTO call_site VALUES (?, 'R2', 'acme/shop', ?, 1, 0, '<module>', 'verify_token', 'call', 'ast_resolved', "
                        "'none', 0, 't', 0, 'present', ?, ?, ?)", [(f"X{i}", p, R2[1], "e" * 40, R2[1]) for i, p in enumerate(paths)])
         db.executescript(next(sql for name, sql, _, _ in blocks() if name == "setup"))
         got = dict(db.execute(f"SELECT path, module FROM file_module WHERE path IN ({', '.join('?' * len(paths))})", paths))
         self.assertEqual(got, {p: module_of(p) for p in paths})
+
+    def test_scope_done_case_and_blast_depth(self):
+        """A block holds many symbols and trackers: another symbol's site must not leak into the asof one, GitLab's
+        lowercase 'closed' is done, and derive_blast_radius counts each edge once, as graph does, through a self-call."""
+        import meridian.graph as G
+        db, q = build(), {name: sql for name, sql, _, _ in blocks()}
+        db.execute("INSERT INTO call_site VALUES ('S_x', 'R2', ?, 'cart/totals.py', 60, 4, 'total', 'other', 'call', "
+                   "'ast_resolved', 'none', 0, 'checkout', 0, 'present', ?, ?, ?)", (REPO, R2[1], "e" * 40, R2[1]))
+        db.execute("INSERT INTO ticket VALUES ('R2', 'shop#1', 'gitlab', 'Task', 'Task', NULL, 'closed', NULL, ?, NULL, "
+                   "'[\"checkout\"]', NULL, NULL, 0, 0, 'Remove totals call', 'Done when totals.py is clean.')", (R2[1],))
+        db.execute("INSERT INTO ticket_map VALUES ('R2', 'shop#1', 'call_site', 'S_c3', 'symbol')")
+        db.execute("INSERT INTO call_edge VALUES ('R2', ?, 'cart/pricing.py', 'price', 300, 4, 'cart/pricing.py', ?, 'price', ?)",
+                   (REPO, REPO, "e" * 40))
+        db.executescript(q["setup"])
+        self.assertEqual(db.execute(q["staff_headline"]).fetchall(), [(8, 5)])  # not S_x, not shop#1
+        self.assertIn(("checkout", "shop#1", "S_c3"), db.execute(q["stall_ticket_mismatch"]).fetchall())
+        db.row_factory = sqlite3.Row
+        res, edges = (list(map(dict, db.execute(f"SELECT * FROM {t}"))) for t in ("resolution", "call_edge"))
+        row = next(r for r in G.build_blast_radius("R2", [], res, edges, 3) if r["symbol"] == SYMBOL)
+        db.row_factory = None
+        self.assertEqual({str(d): n for d, n in db.execute(q["derive_blast_radius"])}, json.loads(row["by_depth"]))
+        db.execute("UPDATE asof SET symbol = NULL")  # NULL: every symbol
+        self.assertEqual(db.execute(q["staff_headline"]).fetchall(), [(9, 5)])
 
 
 if __name__ == "__main__":

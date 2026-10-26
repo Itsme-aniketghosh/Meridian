@@ -2,6 +2,15 @@
 
 Meridian joins code, git and Jira to find every call site of a dying internal API, who owns it, how risky it is, and which teams wait on each other. This folder is the data pipeline: two Airflow DAGs from the raw sources to a validated, published SQLite block (the knowledge base every later stage reads). `meridian_update` runs on the "Update graph" click and daily; `meridian_rebuild` recomputes everything weekly and checks the updates against it ([UPDATE-PLAN.md](UPDATE-PLAN.md)).
 
+## Demo for TAs
+
+From `Data-Pipeline/`, after `pip install -r requirements.txt`; each step names the rubric item, the command, the result and what it showed, then a pass/skip/fail table:
+
+- `python run_demo.py short`: about 1 minute, no team data, no Docker. Both DAGs and the DVC stages, the pipeline end to end on the built-in fixture, schema and statistics, four injected anomalies caught with an alert, bias slices with mitigations, KNOWLEDGE-BASE views and a P1–P9 push check.
+- `python run_demo.py long`: 10+ minutes. All of short, plus every unit test, the GX suite (if its environment exists), the data download, the team-run tests (team data only), every task's command, and Airflow in Docker (`--airflow-run` also triggers `meridian_update` and waits for it).
+- `python run_demo.py download`: only gets the data: the raw ticket pulls (already there, `dvc pull`, `--zip <team zip>`, or `--public-pull` for a run of your own), then `collect`'s repo checkouts (~2.5 GB).
+- Heavy steps check free RAM, disk, network and Docker first. If something is short, the step is skipped with the reason and the demo goes on; `--force` runs it anyway.
+
 ```
 meridian_update (click, daily)
 anything_new ── collect ──┬── history ───────── owners ──┐

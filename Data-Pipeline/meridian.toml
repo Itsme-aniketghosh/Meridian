@@ -209,7 +209,7 @@ eta_min_removals = 3                   # fewer removals in the window -> no ETA
 competing_load_ratio = 0.75            # stall reason #8: team commits in the last stall_days >= this x usual
 competing_load_usual_days = 56         # "usual" = the team's commits in this many days before, per stall_days
 stale_ticket_days = 30                 # ticket check: no ticket change this long while its code changed
-done_statuses = ["Done", "Closed", "Resolved"]   # per tracker vocabulary; anything else is open
+done_statuses = ["Done", "Closed", "Resolved"]   # per tracker vocabulary, any case (GitLab: closed); anything else is open
 done_condition = '(?i)\bdone when\b'   # ticket check "no done condition": description doesn't match
 
 # ───────────── outcomes · did they use it (stage 6+, not built yet; KNOWLEDGE-BASE.md "Tracking") ─────────────

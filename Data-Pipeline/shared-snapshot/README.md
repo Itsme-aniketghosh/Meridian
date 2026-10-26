@@ -18,10 +18,10 @@ Everyone has to work on the same run, or our tables won't join. The `run_id` pro
 | run_id | `70dd1dabfed544b8` |
 | snapshot_at | `2026-10-01T01:23:03Z` |
 | status | `complete`: all 22 repos pinned. Built 2026-10-23 after dynamic-config ([FIXES.md](../FIXES.md)). Replaces `973531f7fd4cfd5e` |
-| zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB · [Google Drive](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link) (team only) |
+| zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB · ask the team for it (team only) |
 | sha256 | `d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523` |
 
-**The zip is not in git.** It holds raw tickets with real names ([CSV-POLICY.md](../CSV-POLICY.md): raw data never goes in git), and it's over GitHub's 100 MB limit. Download it from **[Google Drive](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link)**. Access is restricted to the team: if it says you need access, ask Vishwa. Keep it within the team, and don't reshare it.
+**The zip is not in git.** It holds raw tickets with real names ([CSV-POLICY.md](../CSV-POLICY.md): raw data never goes in git), and it's over GitHub's 100 MB limit. Ask Vishwa for it: the link is shared with team members only, never in git. Keep it within the team, and don't reshare it.
 
 ## Get the run · step by step
 
@@ -35,7 +35,7 @@ git checkout main
 git pull
 ```
 
-**2. Download the zip** from the [Drive link](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link) and put it in this folder (`Data-Pipeline/shared-snapshot/`). git ignores it here.
+**2. Download the zip** (ask Vishwa for the link) and put it in this folder (`Data-Pipeline/shared-snapshot/`). git ignores it here.
 
 **3. Check the download.** It must print the sha256 above.
 

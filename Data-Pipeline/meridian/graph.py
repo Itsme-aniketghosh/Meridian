@@ -19,7 +19,7 @@ shortest depth. files = the distinct caller files of those invocations.
 chain, ticket to ticket, through ticket_map's call_site targets:
 - depends_on: a key on A and another on B, for a blocked_by A -> B. Evidence 'A>B'.
 - duplicates: two keys on the same call site. Evidence: the shared sites.
-- collides: two open keys ([rules] done_statuses) on sites in the same function that share no site. Evidence 'repo:path:scope'.
+- collides: two open keys ([rules] done_statuses, any case) on sites in the same function that share no site. Evidence 'repo:path:scope'.
 - untracked: per owner team, its present sites no key maps to. from_key = the team, to_key = ''.
 in_cycle = 1 on a depends_on chain whose to_key leads back to its from_key.
 """
@@ -139,7 +139,8 @@ def build_chain(run_id, sites, present, blocked, tmap, tickets, done):
     for sid, ks in keys_on.items():
         for ka, kb in combinations(sorted(ks), 2):
             ev[(ka, kb, "duplicates")].add(sid)
-    open_ = {t["key"] for t in tickets if t["status"] not in done}
+    done = {d.lower() for d in done}  # GitLab writes "closed"
+    open_ = {t["key"] for t in tickets if t["status"].lower() not in done}
     on_fn = defaultdict(set)
     for sid, ks in keys_on.items():
         if s := sites.get(sid):

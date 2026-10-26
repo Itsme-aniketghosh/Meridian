@@ -28,7 +28,7 @@ def send(subject, lines=(), event="error", settings=None):
             req = urllib.request.Request(hook, json.dumps({"text": text}).encode(), {"Content-Type": "application/json"})
             urllib.request.urlopen(req, timeout=timeout).close()
             sent.append("slack")
-        except OSError as e:
+        except (OSError, ValueError) as e:  # ValueError: a malformed webhook URL
             log(f"alert: Slack failed: {e}")
     if to := a.get("email_to"):
         try:
@@ -42,6 +42,6 @@ def send(subject, lines=(), event="error", settings=None):
                     s.login(user, os.environ.get(a.get("smtp_password_env", ""), ""))
                 s.send_message(msg)
             sent.append("email")
-        except (OSError, smtplib.SMTPException) as e:
+        except (OSError, ValueError, smtplib.SMTPException) as e:
             log(f"alert: email failed: {e}")
     return sent

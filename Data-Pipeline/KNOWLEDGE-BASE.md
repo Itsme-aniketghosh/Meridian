@@ -135,23 +135,25 @@ Tickets: `PLAT-2291` (platform), `CHK-311` "Fix auth stuff in checkout" (no desc
 
 ### Setup: the current state
 
-Every view reads the call sites as of one moment. `call_site` is append-only, so "now" is each site's newest version written at or before then. The test puts the moment (run, time, repo, symbol) in a one-row `asof` table.
+Every view reads the call sites as of one moment. `call_site` is append-only, so "now" is each site's newest version written at or before then. The test puts the moment (run, time, repo, symbol) in a one-row `asof` table. A block holds many repos and symbols: `site_now` keeps only the `asof` repo and symbol (NULL means all), and `ticket_open` only the tickets on those sites, so no view mixes datasets. Done statuses are `[rules] done_statuses`, compared lower-case: GitLab writes `closed`.
 
 ```sql
 -- name: setup
 CREATE TEMP VIEW site_now AS
 SELECT c.* FROM call_site c, asof
-WHERE c.known_at = (SELECT max(x.known_at) FROM call_site x WHERE x.call_site_id = c.call_site_id AND x.known_at <= asof.at);
+WHERE c.repo = coalesce(asof.repo, c.repo) AND c.symbol = coalesce(asof.symbol, c.symbol)
+  AND c.known_at = (SELECT max(x.known_at) FROM call_site x WHERE x.call_site_id = c.call_site_id AND x.known_at <= asof.at);
 CREATE TEMP VIEW ticket_open AS
-SELECT * FROM ticket WHERE status NOT IN ('Done', 'Closed', 'Resolved');
+SELECT * FROM ticket WHERE lower(status) NOT IN ('done', 'closed', 'resolved')
+  AND key IN (SELECT m.key FROM ticket_map m JOIN site_now s ON s.call_site_id = m.target WHERE m.target_kind = 'call_site');
 -- the dotted module of every call-site file, as imports name it: pkg/__init__.py is pkg
 CREATE TEMP VIEW file_module AS
-SELECT DISTINCT path, replace(CASE WHEN path LIKE '%/__init__.py' THEN substr(path, 1, length(path) - 12)
-                                   ELSE substr(path, 1, length(path) - 3) END, '/', '.') AS module FROM site_now;
+SELECT DISTINCT repo, path, replace(CASE WHEN path LIKE '%/__init__.py' THEN substr(path, 1, length(path) - 12)
+                                         ELSE substr(path, 1, length(path) - 3) END, '/', '.') AS module FROM site_now;
 -- module m is imported by a row that names it, or by `from parent import leaf`
 CREATE TEMP VIEW imports_of AS
 SELECT f.path AS imported, f.module, i.path AS importer, i.is_test
-FROM file_module f JOIN module_import i ON i.module = f.module OR i.module || '.' || i.name = f.module;
+FROM file_module f JOIN module_import i ON i.repo = f.repo AND (i.module = f.module OR i.module || '.' || i.name = f.module);
 ```
 
 ### Staff engineer
@@ -338,7 +340,8 @@ JOIN site_now s ON s.call_site_id = m.target GROUP BY t.key HAVING sum(s.status 
 -- name: p7_risky_edit
 -- params: {"path": "cart/pricing.py"}
 -- expect: [["cart/pricing.py", 4, "[\"BUG-0\", \"BUG-1\", \"BUG-2\", \"BUG-3\"]"]]
-SELECT path, bug_fixes, fix_keys FROM file_bug_fixes WHERE path = :path AND bug_fixes >= 3;
+SELECT f.path, f.bug_fixes, f.fix_keys FROM file_bug_fixes f, asof
+WHERE f.repo = coalesce(asof.repo, f.repo) AND f.path = :path AND f.bug_fixes >= 3;
 ```
 
 ```sql
@@ -378,7 +381,7 @@ HAVING sum(call_site_id IN (SELECT target FROM ticket_map WHERE target_kind = 'c
 -- expect: [["payments", "PAY-10", "S_p1"]]
 SELECT s.owner_team, t.key, s.call_site_id FROM ticket t
 JOIN ticket_map m ON m.key = t.key AND m.target_kind = 'call_site' JOIN site_now s ON s.call_site_id = m.target
-WHERE t.status IN ('Done', 'Closed', 'Resolved') AND s.status = 'present';
+WHERE lower(t.status) IN ('done', 'closed', 'resolved') AND s.status = 'present';
 ```
 
 ```sql
@@ -386,8 +389,8 @@ WHERE t.status IN ('Done', 'Closed', 'Resolved') AND s.status = 'present';
 -- expect: [["checkout", "cart/pricing.py", "p_ann", 91]]
 SELECT f.owner_team, f.path, f.top_person_id, CAST(julianday(asof.at) - julianday(max(g.authored_at)) AS INTEGER)
 FROM file_owner f JOIN person_alias p ON p.person_id = f.top_person_id JOIN git_commit g ON g.author_email = p.email, asof
-WHERE f.path IN (SELECT path FROM site_now WHERE status = 'present')
-GROUP BY f.path HAVING julianday(asof.at) - julianday(max(g.authored_at)) >= 60;
+WHERE (f.repo, f.path) IN (SELECT repo, path FROM site_now WHERE status = 'present')
+GROUP BY f.repo, f.path HAVING julianday(asof.at) - julianday(max(g.authored_at)) >= 60;
 ```
 
 ```sql
@@ -410,7 +413,7 @@ WHERE s.status = 'present' AND s.path NOT IN (SELECT imported FROM imports_of WH
 ORDER BY s.owner_team;
 ```
 
-Usual load = the team's commits in the 56 days before the last 14, per 14 days.
+Usual load = the team's commits in the 56 days before the last 14, per 14 days. Only teams that still own a call site: a busy team with none isn't stalled.
 
 ```sql
 -- name: stall_competing_load
@@ -421,10 +424,11 @@ WITH c AS (SELECT DISTINCT g.sha, g.authored_at, t.team FROM git_commit g
                   sum(julianday(c.authored_at) > julianday(asof.at) - 14) AS recent,
                   sum(julianday(c.authored_at) BETWEEN julianday(asof.at) - 70 AND julianday(asof.at) - 14) / 4.0 AS usual,
                   sum(julianday(c.authored_at) > julianday(asof.at) - 14 AND EXISTS (
-                      SELECT 1 FROM commit_file f JOIN site_now s ON s.path = f.path AND s.status = 'present'
+                      SELECT 1 FROM commit_file f JOIN site_now s ON s.repo = f.repo AND s.path = f.path AND s.status = 'present'
                       WHERE f.sha = c.sha)) AS on_sites
            FROM c, asof GROUP BY c.team)
-SELECT team, recent, usual FROM w WHERE on_sites = 0 AND usual > 0 AND recent >= 0.75 * usual;
+SELECT team, recent, usual FROM w WHERE on_sites = 0 AND usual > 0 AND recent >= 0.75 * usual
+  AND team IN (SELECT owner_team FROM site_now WHERE status = 'present');
 ```
 
 ### Graph, from its inputs
@@ -443,22 +447,30 @@ WHERE a.status = 'present' AND b.status = 'present' AND a.owner_team != b.owner_
 ```sql
 -- name: derive_blast_radius
 -- expect: [[1, 8], [2, 3], [3, 1]]
-WITH RECURSIVE fn(path, scope, depth) AS (       -- functions that reach the symbol, and how far up
-  SELECT DISTINCT caller_path, caller_scope, 1 FROM call_edge WHERE callee_scope = 'AuthClient.verify_token'
+WITH RECURSIVE d AS (                            -- depth 1: the edges at a resolved resolution row of the symbol
+  SELECT e.* FROM call_edge e JOIN resolution r ON r.repo = e.repo AND r.path = e.caller_path AND r.line = e.line AND r.col = e.col, asof
+  WHERE r.detection = 'ast_resolved' AND r.symbol = coalesce(asof.symbol, r.symbol) AND e.repo = coalesce(asof.repo, e.repo)),
+fn(repo, path, scope, depth) AS (                -- functions that reach the symbol, and how far up
+  SELECT DISTINCT repo, caller_path, caller_scope, 1 FROM d
   UNION
-  SELECT e.caller_path, e.caller_scope, f.depth + 1 FROM call_edge e JOIN fn f
-    ON e.callee_path = f.path AND e.callee_scope = f.scope WHERE f.depth < 3)
-SELECT 1, count(*) FROM call_edge WHERE callee_scope = 'AuthClient.verify_token'
-UNION ALL                                        -- invocations at depth n = calls into the functions at depth n - 1
-SELECT f.depth + 1, count(*) FROM call_edge e JOIN fn f ON e.callee_path = f.path AND e.callee_scope = f.scope
-WHERE f.depth < 3 GROUP BY f.depth;
+  SELECT e.repo, e.caller_path, e.caller_scope, f.depth + 1 FROM call_edge e JOIN fn f
+    ON e.callee_repo = f.repo AND e.callee_path = f.path AND e.callee_scope = f.scope WHERE f.depth < 2)
+SELECT 1, count(*) FROM d
+UNION ALL                                        -- invocations at depth n = calls into the functions at depth n - 1,
+SELECT depth, count(*) FROM (                    -- each edge once, at its shortest depth (a function can sit at two)
+  SELECT min(f.depth) + 1 AS depth FROM call_edge e JOIN fn f
+    ON e.callee_repo = f.repo AND e.callee_path = f.path AND e.callee_scope = f.scope
+  WHERE NOT EXISTS (SELECT 1 FROM d WHERE d.repo = e.repo AND d.caller_path = e.caller_path AND d.line = e.line AND d.col = e.col
+                      AND d.callee_repo = e.callee_repo AND d.callee_path = e.callee_path AND d.callee_scope = e.callee_scope)
+  GROUP BY e.repo, e.caller_path, e.line, e.col, e.callee_repo, e.callee_path, e.callee_scope)
+GROUP BY depth;
 ```
 
 ```sql
 -- name: derive_duplicates
 -- expect: [["CHK-311", "PAY-12", "S_c1"]]
 SELECT a.key, b.key, a.target FROM ticket_map a JOIN ticket_map b ON a.target = b.target AND a.key < b.key
-WHERE a.target_kind = 'call_site' AND b.target_kind = 'call_site';
+WHERE a.target_kind = 'call_site' AND b.target_kind = 'call_site' AND a.target IN (SELECT call_site_id FROM site_now);
 ```
 
 Collides: two open tickets mapped to the same function that don't already share a site.
@@ -478,7 +490,7 @@ ORDER BY a.key, b.key;
 ```sql
 -- name: derive_depends_on
 -- expect: [["FUL-7", "PLAT-2291"]]
-SELECT DISTINCT ma.key, mb.key FROM blocked_by b
+SELECT DISTINCT ma.key, mb.key FROM blocked_by b JOIN site_now s ON s.call_site_id = b.call_site_id
 JOIN ticket_map ma ON ma.target = b.call_site_id JOIN ticket_map mb ON mb.target = b.blocker_id;
 ```
 
@@ -499,7 +511,8 @@ ORDER BY v.n, s.bug_fixes DESC, s.call_site_id;
 -- name: radar_deprecated_with_callers
 -- expect: [["auth/client.py", "AuthClient.verify_token", "DeprecationWarning", 8]]
 SELECT d.path, d.scope, d.marker, count(e.line) FROM deprecation d
-JOIN call_edge e ON e.callee_path = d.path AND e.callee_scope = d.scope GROUP BY d.path, d.scope;
+JOIN call_edge e ON e.callee_repo = d.repo AND e.callee_path = d.path AND e.callee_scope = d.scope, asof
+WHERE d.repo = coalesce(asof.repo, d.repo) GROUP BY d.repo, d.path, d.scope;
 ```
 
 Replay may only see what was known then. As of R1, only R1's rows exist:
@@ -508,8 +521,9 @@ Replay may only see what was known then. As of R1, only R1's rows exist:
 -- name: replay_as_of
 -- params: {"t": "2026-09-01T00:00:00Z"}
 -- expect: [[11, 1]]
-SELECT sum(c.status = 'present'), sum(c.status = 'removed') FROM call_site c
-WHERE c.known_at = (SELECT max(x.known_at) FROM call_site x WHERE x.call_site_id = c.call_site_id AND x.known_at <= :t);
+SELECT sum(c.status = 'present'), sum(c.status = 'removed') FROM call_site c, asof
+WHERE c.repo = coalesce(asof.repo, c.repo) AND c.symbol = coalesce(asof.symbol, c.symbol)
+  AND c.known_at = (SELECT max(x.known_at) FROM call_site x WHERE x.call_site_id = c.call_site_id AND x.known_at <= :t);
 ```
 
 ## Tracking whether our suggestions work
@@ -607,7 +621,7 @@ ORDER BY kind;
 -- expect: [["billing", "suggested", 0, 0], ["checkout", "suggested", 0, 1], ["fulfillment", "control", 0, 0], ["payments", "suggested", 0, 2], ["platform", "control", 0, 0], ["search", "control", 0, 1]]
 WITH f AS (SELECT t.team, coalesce(min(s.offered_at), (SELECT min(offered_at) FROM suggestion)) AS at,
                   count(s.suggestion_id) > 0 AS suggested
-           FROM (SELECT DISTINCT owner_team AS team FROM call_site) t
+           FROM (SELECT DISTINCT owner_team AS team FROM site_now) t
            LEFT JOIN suggestion s ON s.owner_team = t.team GROUP BY t.team)
 SELECT f.team, CASE WHEN f.suggested THEN 'suggested' ELSE 'control' END,
        (SELECT count(*) FROM site_now c WHERE c.owner_team = f.team AND c.status = 'removed'
@@ -625,7 +639,7 @@ FROM f ORDER BY f.team;
 -- expect: [["control", 3, 0.0, 0.33], ["suggested", 3, 0.0, 1.0]]
 WITH f AS (SELECT t.team, coalesce(min(s.offered_at), (SELECT min(offered_at) FROM suggestion)) AS at,
                   count(s.suggestion_id) > 0 AS suggested
-           FROM (SELECT DISTINCT owner_team AS team FROM call_site) t
+           FROM (SELECT DISTINCT owner_team AS team FROM site_now) t
            LEFT JOIN suggestion s ON s.owner_team = t.team GROUP BY t.team),
      r AS (SELECT CASE WHEN f.suggested THEN 'suggested' ELSE 'control' END AS grp,
                   (SELECT count(*) FROM site_now c WHERE c.owner_team = f.team AND c.status = 'removed'
@@ -678,7 +692,7 @@ What the KB still can't answer, and what closes each.
 | G5 | No intake | Intake tool | Its own collect source, later |
 | G6 | The GitLab gold set lives in `labels/*.csv`, not the KB | Nothing: graph scoring reads the CSV directly | Fine as is. Labels are inputs to tests, not facts about the code |
 | G7 | No dataset fills every table: Django has no Jira, GitLab has no Python, packages don't call each other | One real end-to-end story | Known since week 1 (02-product). The fixture above is the end-to-end story; each table is scored on the dataset that has it |
-| G8 | "Done" differs per tracker (`Done`, `Closed`, `Resolved`) | Every open/closed rule | Done in this change: `[rules] done_statuses`, with every other rule threshold (14 days, 28 days, 3 removals, 0.75, …), is in meridian.toml for the rules stage to read |
+| G8 | "Done" differs per tracker (`Done`, `Closed`, `Resolved`; GitLab writes `closed`) | Every open/closed rule | Done: `[rules] done_statuses`, with every other rule threshold (14 days, 28 days, 3 removals, 0.75, …), is in meridian.toml for the rules stage to read. It is compared in any case (here and in graph): matched exactly, all 14,524 GitLab issues on the team block counted as open, not 3,680 |
 
 ## Testing plan
 

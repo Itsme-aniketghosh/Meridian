@@ -136,7 +136,7 @@ def push_check(base, repo, checkout, changed, cfg, settings, rng=None):
                          "CREATE TEMP TABLE resolution AS SELECT * FROM main.resolution;"
                          "CREATE TEMP TABLE commit_file AS SELECT * FROM main.commit_file WHERE 0;"  # P9 reads the push only
                          "CREATE TEMP TABLE asof (run_id TEXT, at TEXT, repo TEXT, symbol TEXT);")
-        db.execute("INSERT INTO asof VALUES (?, ?, ?, '')", (base_run, base_at, repo))
+        db.execute("INSERT INTO asof VALUES (?, ?, ?, NULL)", (base_run, base_at, repo))  # this repo, every symbol
         db.executescript(q["setup"])
         db.row_factory = sqlite3.Row
         in_changed = f"path IN ({', '.join('?' * len(changed))})"
@@ -197,8 +197,6 @@ def push_check(base, repo, checkout, changed, cfg, settings, rng=None):
                 fns |= {(p, s, "edits `{s}` in `{p}`") for s in scopes_of(src, range(1, src.count(b"\n") + 2) if lines == "all" else lines)}
         fns |= {(p, s, "`{s}` in `{p}` imports a changed file") for p in importers
                 for (s,) in rows(db, "SELECT DISTINCT scope FROM site_now WHERE repo = ? AND path = ?", (repo, p))}
-        # shortcut: p3_collision and p7_risky_edit match on path alone; a path two repos share (setup.py) can show the
-        # other repo's rows. Upgrade: a repo parameter in the doc's queries
         for p, s, how in sorted(fns):
             found += [("P3", f"{p}:{s}", f"{how.format(s=s, p=p)}: mapped to {k} ({st}), another team's open ticket")
                       for k, st in at(PUSH_AT, "p3_collision", {"path": p, "scope": s, "team": team})]

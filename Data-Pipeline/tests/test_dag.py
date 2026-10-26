@@ -6,9 +6,10 @@ installed (the Docker image):
     docker compose run --rm --no-deps -e CONNECTION_CHECK_MAX_COUNT=0 -w /opt/meridian/Data-Pipeline \
         airflow-scheduler python -m unittest tests.test_dag -v                        # with Airflow, no database
 """
-import importlib.util, io, sys, unittest
+import importlib.util, io, shutil, subprocess, sys, tempfile, unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HERE / "dags"))
@@ -57,6 +58,7 @@ class Spec(unittest.TestCase):
         self.assertEqual(list(P.DAGS["update"])[:2], ["anything_new", "collect"])
         self.assertNotIn("bias", P.DAGS["update"])
         self.assertTrue({"bias", "report", "compare"} <= ancestors("publish", P.DAGS["rebuild"]))
+        self.assertEqual(P.DAGS["rebuild"]["compare"], ("report",))   # a bias crash never skips the weekly check
         self.assertIn("report", ancestors("compare", P.DAGS["rebuild"]))   # the rebuild's report checks the update's
         self.assertTrue(all(any(g in dag for dag in P.DAGS.values()) for g in P.GATES))
 
@@ -86,7 +88,21 @@ class Spec(unittest.TestCase):
                          "py -m meridian.publish --run-id R --config meridian.toml --prev-run Q --from-root /d/rb")
         fresh = c("rebuild", "fresh", prev="Q")
         self.assertTrue(fresh.startswith("rm -rf /d/rb/out/R && mkdir -p /d/rb/out/R && ln -sfn /d/snapshots /d/rb/snapshots"))
-        self.assertIn('p="Q" && if [ -n "$p" ]; then ln -sfn /d/out/$p /d/rb/out/$p; fi', fresh)
+        self.assertIn('p="Q" && if [ -n "$p" ]; then rm -rf /d/rb/out/$p && ln -sfn /d/out/$p /d/rb/out/$p; fi', fresh)
+        self.assertTrue(fresh.endswith('echo "run_id=R prev_run=$p"'))   # the run, named once for the later tasks
+
+    @unittest.skipUnless(shutil.which("bash"), "needs bash")
+    def test_fresh_replaces_last_weeks_real_prev_dir(self):   # ln -sfn onto a real dir would link inside it
+        d = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, d, True)
+        (d / "out" / "Q").mkdir(parents=True)
+        (d / "snapshots").mkdir()
+        (d / "out" / "Q" / "call_site.jsonl").write_text("main")
+        (d / "rb" / "out" / "Q").mkdir(parents=True)   # last week's rebuild of Q, a real dir
+        fresh = P.command("rebuild", "fresh", "R", "m.toml", "py", "", "Q", d.as_posix(), (d / "rb").as_posix())
+        p = subprocess.run([shutil.which("bash"), "-c", fresh], capture_output=True, text=True)
+        self.assertEqual((p.returncode, p.stdout.split()[-2:]), (0, ["run_id=R", "prev_run=Q"]), p.stderr)
+        self.assertEqual(sorted(x.name for x in (d / "rb" / "out" / "Q").iterdir()), ["call_site.jsonl"])
 
 
 @unittest.skipUnless(importlib.util.find_spec("airflow"), "Airflow isn't installed here: run it in the Docker image")
@@ -119,11 +135,35 @@ class Dag(unittest.TestCase):
             self.assertFalse(M.gate("exit 99", 0, 99))                # not forced: nothing new stops the DAG
             self.assertTrue(M.gate("exit 0", 0, 99))
 
+    def test_templates_name_one_run_and_never_it_as_its_prev(self):
+        import meridian.publish as Pub
+        from types import SimpleNamespace as NS
+
+        def render(dag, task, latest, conf=None, xcom=None):
+            t = self.dags[dag].get_task(task)
+            ctx = {"dag_run": NS(conf=conf or {}), "ti": NS(xcom_pull=lambda task_ids: xcom), "params": self.dags[dag].params}
+            with mock.patch.object(Pub, "latest", return_value=latest):   # the published() macro's latest.json
+                return t.render_template(t.op_kwargs if task in P.GATES else t.bash_command, ctx)
+        pub = {"run_id": "R", "prev_run": "Q"}
+        self.assertTrue(render("update", "join", pub, xcom="run_id=S").endswith("--run-id S --config meridian.toml --prev-run R"))
+        # a forced rerun of the published run keeps its prev_run, not none
+        self.assertTrue(render("update", "join", pub, {"run_id": "R"}).endswith("--run-id R --config meridian.toml --prev-run Q"))
+        self.assertEqual(render("update", "anything_new", pub, {"force": True})["force"], "force")
+        # the rebuild names its run once, in fresh: an update published meanwhile doesn't switch the later tasks
+        self.assertTrue(render("rebuild", "fresh", pub).endswith('p="Q" && if [ -n "$p" ]; then rm -rf {0}/out/$p && ln -sfn '
+                                                                 '{1}/out/$p {0}/out/$p; fi && echo "run_id=R prev_run=$p"'
+                                                                 .format(M.REBUILD.as_posix(), M.MAIN.as_posix())))
+        later = {"run_id": "S", "prev_run": "R"}
+        self.assertIn("--run-id R --config meridian.toml --prev-run Q --from-root",
+                      render("rebuild", "publish", later, xcom="run_id=R prev_run=Q"))
+        self.assertIn("--run-id R --config meridian.toml --against-root",
+                      render("rebuild", "compare", later, xcom="run_id=R prev_run=Q")["cmd"])
+
     def test_settings_reach_the_tasks(self):
         orch = load_settings("orchestration")
         for dag in self.dags.values():
             for task in dag.tasks:
-                self.assertEqual(task.retries, orch["retries"])
+                self.assertEqual(task.retries, orch["task_retries"].get(task.task_id, orch["retries"]))
                 self.assertEqual(task.execution_timeout.total_seconds(), orch["timeout_minutes"][task.task_id] * 60)
                 self.assertIsNotNone(task.on_failure_callback)
 

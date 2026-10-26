@@ -54,12 +54,16 @@ def scrubber(usernames, always=()):
 
     def scrub(text, limit=None):
         text = re.sub(r"[\w.+-]+@[\w-]+\.[\w.-]+", "[email]", text or "")
-        text = re.sub(r"(?<![\w@])@(?!user\b)[A-Za-z0-9_][\w.-]*", "@user", text)
+        text = re.sub(r"(?<![\w@])@(?!user(?![\w.-]))[\w.][\w.-]*", "@user", text)  # also @.name, @user.name
         if rx:
             text = rx.sub("user", text)
         text = " ".join(text.split())
         return text if not limit or len(text) <= limit else text[: limit - 1] + "…"
     return scrub
+
+
+_s = scrubber([])
+assert _s("@.name @user.x @a_b @user @user/team-x a@b.co g=h@156b") == "@user @user @user @user @user/team-x [email] g=h@156b"
 
 
 def group(components):

@@ -1,0 +1,6 @@
+# Build context is the repo root (Data-Pipeline/docker-compose.yaml), but the image needs only the two files
+# Data-Pipeline/Dockerfile COPYs. Allowlist them so snapshots/, out/, published/, rebuild/, .git, .dvc/cache, .claude,
+# week1/ and Data-Pipeline/logs/ never reach the daemon. A new COPY in the Dockerfile needs a new ! line here.
+*
+!Data-Pipeline/requirements.txt
+!Data-Pipeline/requirements-gx.txt

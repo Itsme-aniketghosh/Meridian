@@ -185,6 +185,24 @@ class Writer(unittest.TestCase):
         self.refused([{**ok, "run_id": "dev"}], "folder is")
         self.refused([ok, ok], "same primary key")
         self.refused([{"run_id": RUN, "repo": "r", "path": "p", "error": "e"}], "no table", table="nope")
+        (self.out / "nope.jsonl").unlink()
+        (self.out / "coverage.jsonl").write_bytes(json.dumps(ok).encode() + b"\n\xff\xfe\n")
+        with self.assertRaisesRegex(W.BadRow, r"^coverage.jsonl:2: not UTF-8"):
+            W.write(self.out, self.tmp / "x.sqlite")
+        self.coverage([ok])
+        (self.out / "run.jsonl").write_text("{not json\n")
+        with self.assertRaisesRegex(W.BadRow, r"^run.jsonl:1: can't read snapshot_at"):
+            W.write(self.out, self.tmp / "x.sqlite")
+
+    def test_a_missing_table_or_folder_is_refused_not_loaded_empty(self):
+        with self.assertRaisesRegex(SystemExit, "run meridian.collect"):
+            W.write(self.tmp / "nope", self.tmp / "x.sqlite")
+        with self.assertRaisesRegex(SystemExit, "run.jsonl: run meridian.collect"):
+            W.write(self.out, self.tmp / "x.sqlite", complete=True)
+        (self.out / "run.jsonl").write_text("")
+        with self.assertRaisesRegex(W.BadRow, r"^no blast_radius.jsonl, blocked_by.jsonl, .*ticket_map.jsonl: a part didn't"):
+            W.write(self.out, self.tmp / "x.sqlite", complete=True)
+        W.write(self.out, self.tmp / "x.sqlite")   # a part's own tests load just its tables
 
     def test_call_site_carries_earlier_runs_versions(self):   # append-only: other tables stay one run_id
         site = {"call_site_id": "a1", "repo": "r", "path": "p.py", "line": 1, "col": 0, "scope": "<module>", "symbol": "s",

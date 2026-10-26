@@ -40,13 +40,15 @@ def read_rows(path, cols, run_id, snapshot_at=None):
     required = {c[0] for c in cols if c[2] and not c[3]}
     pk = [c[0] for c in sorted((c for c in cols if c[4]), key=lambda c: c[4])]
     rows = []
-    with open(path, encoding="utf-8") as f:
+    with open(path, "rb") as f:  # bytes, so a bad byte is refused with its line, not a bare traceback
         for n, line in enumerate(f, 1):
             if not line.strip():
                 continue
             where = f"{path.name}:{n}"
             try:
-                r = json.loads(line)
+                r = json.loads(line.decode("utf-8"))
+            except UnicodeDecodeError as e:
+                raise BadRow(f"{where}: not UTF-8 ({e})")
             except json.JSONDecodeError as e:
                 raise BadRow(f"{where}: not JSON ({e})")
             if not isinstance(r, dict):
@@ -84,17 +86,25 @@ def check_sqlite(config=CONFIG):
         raise SystemExit(f"SQLite is {sqlite3.sqlite_version}, meridian.toml pins {pinned}: the bytes would differ")
 
 
-def write(src, db=None, schema=SCHEMA):
+def write(src, db=None, schema=SCHEMA, complete=False):
+    """complete: every table's file must be there (validate's block). Off, a part's tests load just their tables."""
     src = Path(src)
     run_id = src.name
     db = Path(db) if db else src / "meridian.sqlite"
+    run = src / "run.jsonl"
+    if not src.is_dir() or complete and not run.exists():
+        raise SystemExit(f"no {run}: run meridian.collect (and the parts before validate) first")
     sql = Path(schema).read_text(encoding="utf-8")
     spec = tables(sql)
     files = sorted(src.glob("*.jsonl"))
     if unknown := [p.name for p in files if p.stem not in spec]:
         raise BadRow(f"no table in schema.sql for {unknown}")
-    run = src / "run.jsonl"
-    snapshot_at = json.loads(run.read_text(encoding="utf-8").split("\n")[0])["snapshot_at"] if run.exists() and run.stat().st_size else None
+    if complete and (missing := sorted(set(spec) - {p.stem for p in files})):
+        raise BadRow(f"no {', '.join(t + '.jsonl' for t in missing)}: a part didn't write its table (an empty file is an empty table)")
+    try:
+        snapshot_at = json.loads(run.read_text(encoding="utf-8").split("\n")[0])["snapshot_at"] if run.exists() and run.stat().st_size else None
+    except (ValueError, KeyError, TypeError) as e:  # UnicodeDecodeError is a ValueError
+        raise BadRow(f"{run.name}:1: can't read snapshot_at ({type(e).__name__}: {e})")
     loaded = {p.stem: read_rows(p, spec[p.stem], run_id, snapshot_at) for p in files}
 
     tmp = db.with_name(db.name + ".tmp")
