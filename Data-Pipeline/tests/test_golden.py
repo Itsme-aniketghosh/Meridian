@@ -14,6 +14,9 @@ golden/70dd1dabfed544b8.json is never regenerated: a new contract means a new te
 One exception, before v1 reached main: schema v1.2 added call_site.effective_sha and call_edge.introduced_sha without
 changing the run_id (the run_id hashes meridian.toml, not schema.sql), so call_site and call_edge were recorded again
 from the regenerated dvc.lock. Every other file kept its hash.
+A second, after v1.2: the golden is the pipeline image's output (CONTRACTS.md: one image). commit_file was recorded
+again from the Docker run, where git 2.39 detects the renames of three small Django template files differently from
+the Mac's git 2.50 (9 of 849,643 rows). A native run with another git can differ in commit_file only.
 """
 import hashlib
 import json

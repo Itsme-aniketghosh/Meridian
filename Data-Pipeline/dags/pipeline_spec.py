@@ -51,6 +51,9 @@ def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", re
     too."""
     if task == "fresh":   # from scratch: its out/<run_id> wiped; the snapshot and the previous run's out/ linked in.
         # Its last line names the run once, for the later tasks (xcom): an update publishing meanwhile can't switch it
+        if not rebuild or rebuild.rstrip("/") in ("", ".", main.rstrip("/")):   # fresh rm -rf's under it
+            raise ValueError(f"[dags.rebuild] data_root must be a folder of its own, not {rebuild!r} "
+                             f"(main is {main!r})")
         out = f"{rebuild}/{handoff.format(run_id=run_id)}"
         prev_out = handoff.format(run_id="$p")
         return (f'rm -rf {out} && mkdir -p {out} && ln -sfn {main}/snapshots {rebuild}/snapshots && p="{prev}"'

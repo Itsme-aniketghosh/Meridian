@@ -18,8 +18,8 @@ The knowledge-base queries also had four bugs, found while running the product's
 
 ## Still open
 
-- Bias: the flag rule isn't corrected for testing ~125 slices at once. Under Bonferroni a few flags (`core/`, `common/`, Deploy) don't hold, and BIAS.md says so.
-- The 730-day lookback for a person's team is validated but not applied: it changes `meridian.toml` and so needs a new team run.
+- Bias: the flag rule isn't corrected for testing 136 slices at once. Under Bonferroni 26 of the 32 flags hold; 6 (`core/`, `common/`, Deploy twice, GraphX, Spark Shell) don't, and BIAS.md says so.
+- ~~The 730-day lookback for a person's team~~ Decided: not adopted. On the held-out check it scores the same as 180 days (0.502 vs 0.505, delta 0.0), so it isn't worth a new team run (BIAS.md).
 - The old deleted CSV with public GitLab usernames stays in git history (team decision: public data).
 - P1's precision on the 21-commit replay is 0.36, under the 0.80 bar, because the push check has no resolver at push time.
 - No real Slack or email alert has gone out: no channel is configured. The alert path is tested with mocks and logs every alert.

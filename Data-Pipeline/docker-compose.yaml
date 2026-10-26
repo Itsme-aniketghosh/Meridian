@@ -54,11 +54,11 @@ services:
   airflow-init:
     <<: *airflow
     entrypoint: /bin/bash
-    command:
+    command:   # through the image's /entrypoint: it registers an AIRFLOW_UID other than 50000 (Linux's `id -u`)
       - -c
       - >
-        airflow db migrate &&
-        airflow users create --role Admin --username "$${AIRFLOW_ADMIN_USER:?set it in .env}" --password "$${AIRFLOW_ADMIN_PASSWORD:?set it in .env}"
+        /entrypoint airflow db migrate &&
+        /entrypoint airflow users create --role Admin --username "$${AIRFLOW_ADMIN_USER:?set it in .env}" --password "$${AIRFLOW_ADMIN_PASSWORD:?set it in .env}"
         --firstname Meridian --lastname Admin --email admin@example.com || true
     restart: "no"
 

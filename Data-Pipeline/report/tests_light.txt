@@ -1,8 +1,14 @@
 test_a_longer_lookback_gives_ann_a_team (tests.test_bias.Bias.test_a_longer_lookback_gives_ann_a_team) ... ok
+test_ci_flag_rule_and_n_at_min_n (tests.test_bias.Bias.test_ci_flag_rule_and_n_at_min_n) ... ok
+test_held_out_cut_is_one_window_earlier (tests.test_bias.Bias.test_held_out_cut_is_one_window_earlier) ... ok
+test_mitigation_scoring (tests.test_bias.Bias.test_mitigation_scoring) ... ok
+test_next_author_prior_commits (tests.test_bias.Bias.test_next_author_prior_commits) ... ok
 test_no_jira_tickets_is_no_ticket_slices_not_a_crash (tests.test_bias.Bias.test_no_jira_tickets_is_no_ticket_slices_not_a_crash) ... ok
 test_owner_rule_by_module (tests.test_bias.Bias.test_owner_rule_by_module) ... ok
 test_ticket_mapping_and_resolver_slices (tests.test_bias.Bias.test_ticket_mapping_and_resolver_slices) ... ok
 test_written_as_json (tests.test_bias.Bias.test_written_as_json) ... ok
+test_a_corrupt_jsonl_line_names_file_and_line (tests.test_cache.Corrupt.test_a_corrupt_jsonl_line_names_file_and_line) ... ok
+test_a_truncated_cache_file_is_a_miss (tests.test_cache.Corrupt.test_a_truncated_cache_file_is_a_miss) ... ok
 test_change_in_a_callee_module (tests.test_cache.ResolveCache.test_change_in_a_callee_module) ... ok
 test_change_in_an_imported_module (tests.test_cache.ResolveCache.test_change_in_an_imported_module) ... ok
 test_same_bytes_and_reuse (tests.test_cache.ScanCache.test_same_bytes_and_reuse) ... ok
@@ -14,12 +20,23 @@ test_handles (tests.test_check_csv.Check.test_handles) ... ok
 test_ok_columns (tests.test_check_csv.Check.test_ok_columns) ... ok
 test_people_columns (tests.test_check_csv.Check.test_people_columns) ... ok
 test_quote_length (tests.test_check_csv.Check.test_quote_length) ... ok
+test_a_killed_collects_staging_is_cleaned (tests.test_collect.Collect.test_a_killed_collects_staging_is_cleaned) ... fix
+  cloning fixture/repo
+  checkout fixture/repo @ 327aca8975
+ok
 test_a_run_asked_for_by_id_is_replayed_after_the_branch_moved (tests.test_collect.Collect.test_a_run_asked_for_by_id_is_replayed_after_the_branch_moved)
 The weekly rebuild and a forced rerun ask for a run by id: its snapshot's SHAs and snapshot_at, not the ... fix
   cloning fixture/repo
   checkout fixture/repo @ e9d92b577e
 ok
 test_capped_jira_page_fails_loudly (tests.test_collect.Collect.test_capped_jira_page_fails_loudly) ... ok
+test_checkouts_work_wherever_the_data_root_is_mounted (tests.test_collect.Collect.test_checkouts_work_wherever_the_data_root_is_mounted)
+clone --shared wrote the mirror's absolute path: under Docker's /opt/meridian mount every git call in history ... fix
+  cloning fixture/repo
+  checkout fixture/repo @ 327aca8975
+fix
+snapshots/79bd27343af076b2 already exists: same inputs, same run
+ok
 test_follows_the_branch_and_pulls_only_what_changed (tests.test_collect.Collect.test_follows_the_branch_and_pulls_only_what_changed)
 #14-#16: a branch ref moves with the branch, snapshot_at is the pull time, and Jira is asked only for ... fix
   cloning fixture/repo
@@ -29,7 +46,7 @@ fix
 fix
   checkout fixture/repo @ e9adde4d10
 fix
-snapshots/53389a42192579d7 already exists: same inputs, same run
+snapshots/4061ea279b332e00 already exists: same inputs, same run
 fix
   checkout fixture/repo @ e9adde4d10
 ok
@@ -51,7 +68,7 @@ test_run_id_follows_config_values_not_comments (tests.test_collect.Collect.test_
   cloning fixture/repo
   checkout fixture/repo @ 327aca8975
 fix
-snapshots/f0e12b6360615f4f already exists: same inputs, same run
+snapshots/e1e4743be6a4f55a already exists: same inputs, same run
 fix
   checkout fixture/repo @ 327aca8975
 ok
@@ -63,7 +80,7 @@ test_same_inputs_same_run (tests.test_collect.Collect.test_same_inputs_same_run)
   cloning fixture/repo
   checkout fixture/repo @ 327aca8975
 fix
-snapshots/590a5a0e83e1378b already exists: same inputs, same run
+snapshots/6cb8d48e967cbb7f already exists: same inputs, same run
 ok
 test_snapshot_at_in_the_future_is_refused (tests.test_collect.Collect.test_snapshot_at_in_the_future_is_refused) ... fix
   cloning fixture/repo
@@ -73,14 +90,19 @@ test_unresolvable_refs_make_a_partial_run (tests.test_collect.Collect.test_unres
   cloning fixture/gone
   checkout fixture/repo @ 327aca8975
 ok
+test_gives_up_after_the_last_try (tests.test_collect.Curl.test_gives_up_after_the_last_try) ... ok
+test_retries_with_backoff_then_returns_the_body (tests.test_collect.Curl.test_retries_with_backoff_then_returns_the_body) ... ok
 test_a_trigger_naming_a_run_skips_anything_new (tests.test_dag.Dag.test_a_trigger_naming_a_run_skips_anything_new) ... skipped "Airflow isn't installed here: run it in the Docker image"
 test_loads_without_errors (tests.test_dag.Dag.test_loads_without_errors) ... skipped "Airflow isn't installed here: run it in the Docker image"
 test_settings_reach_the_tasks (tests.test_dag.Dag.test_settings_reach_the_tasks) ... skipped "Airflow isn't installed here: run it in the Docker image"
 test_tasks_and_edges_follow_the_spec (tests.test_dag.Dag.test_tasks_and_edges_follow_the_spec) ... skipped "Airflow isn't installed here: run it in the Docker image"
+test_templates_name_one_run_and_never_it_as_its_prev (tests.test_dag.Dag.test_templates_name_one_run_and_never_it_as_its_prev) ... skipped "Airflow isn't installed here: run it in the Docker image"
 test_commands (tests.test_dag.Spec.test_commands) ... ok
 test_each_dag_runs_in_order_and_its_tasks_are_modules (tests.test_dag.Spec.test_each_dag_runs_in_order_and_its_tasks_are_modules) ... ok
 test_every_schema_table_has_one_writer (tests.test_dag.Spec.test_every_schema_table_has_one_writer) ... ok
 test_every_table_a_part_reads_is_written_upstream (tests.test_dag.Spec.test_every_table_a_part_reads_is_written_upstream) ... ok
+test_fresh_refuses_the_main_data_root (tests.test_dag.Spec.test_fresh_refuses_the_main_data_root) ... ok
+test_fresh_replaces_last_weeks_real_prev_dir (tests.test_dag.Spec.test_fresh_replaces_last_weeks_real_prev_dir) ... ok
 test_gx_is_weekly_beside_bias_and_never_gates (tests.test_dag.Spec.test_gx_is_weekly_beside_bias_and_never_gates) ... ok
 test_publish_only_after_validate_and_bias_only_weekly (tests.test_dag.Spec.test_publish_only_after_validate_and_bias_only_weekly) ... ok
 test_renders_with_every_query_answered (tests.test_dashboard.Dashboard.test_renders_with_every_query_answered) ... ok
@@ -88,7 +110,7 @@ test_every_username_is_scrubbed_any_case_words_too (tests.test_gold.Gold.test_ev
 test_no_raw_dump_stops (tests.test_gold.Gold.test_no_raw_dump_stops) ... ok
 test_put_keeps_one_source_unless_both_lists_have_the_pair (tests.test_gold.Gold.test_put_keeps_one_source_unless_both_lists_have_the_pair) ... ok
 test_same_bytes_as_golden (tests.test_golden.Fixture.test_same_bytes_as_golden) ... ok
-test_every_output_as_frozen (tests.test_golden.TeamRun.test_every_output_as_frozen) ... skipped 'needs MERIDIAN_RUN_ID=70dd1dabfed544b8 and D:\\github\\Meridian\\out\\70dd1dabfed544b8 (team data, never in CI)'
+test_every_output_as_frozen (tests.test_golden.TeamRun.test_every_output_as_frozen) ... skipped 'needs MERIDIAN_RUN_ID=70dd1dabfed544b8 and /Users/utkarshsaraogi/Desktop/Meridian/out/70dd1dabfed544b8 (team data, never in CI)'
 test_each_edge_once_at_its_shortest_depth (tests.test_graph.BlastRadius.test_each_edge_once_at_its_shortest_depth) ... ok
 test_inside_f_and_within_its_calls (tests.test_graph.BlockedBy.test_inside_f_and_within_its_calls) ... ok
 test_max_depth (tests.test_graph.BlockedBy.test_max_depth) ... ok
@@ -115,6 +137,7 @@ test_end_to_end_loads (tests.test_history.Commits.test_end_to_end_loads) ... ok
 test_rename_binary_and_merge_files (tests.test_history.Commits.test_rename_binary_and_merge_files) ... ok
 test_seq_first_parent_and_merges (tests.test_history.Commits.test_seq_first_parent_and_merges) ... ok
 test_messages_and_keyed (tests.test_history.Keyed.test_messages_and_keyed) ... ok
+test_a_missing_table_or_folder_is_refused_not_loaded_empty (tests.test_history.Writer.test_a_missing_table_or_folder_is_refused_not_loaded_empty) ... ok
 test_bad_rows_are_refused (tests.test_history.Writer.test_bad_rows_are_refused) ... ok
 test_call_site_carries_earlier_runs_versions (tests.test_history.Writer.test_call_site_carries_earlier_runs_versions) ... ok
 test_check_constraints (tests.test_history.Writer.test_check_constraints) ... ok
@@ -143,6 +166,8 @@ test_settings_the_code_doesnt_do_stop (tests.test_join.Units.test_settings_the_c
 test_every_doc_query_returns_what_the_doc_says (tests.test_kb.KnowledgeBase.test_every_doc_query_returns_what_the_doc_says) ... ok
 test_file_module_view_names_modules_like_the_scanner (tests.test_kb.KnowledgeBase.test_file_module_view_names_modules_like_the_scanner)
 The doc's path -> module rule and scan.module_of must agree, or imports and deprecations stop joining. ... ok
+test_scope_done_case_and_blast_depth (tests.test_kb.KnowledgeBase.test_scope_done_case_and_blast_depth)
+A block holds many symbols and trackers: another symbol's site must not leak into the asof one, GitLab's ... ok
 test_django_path_teams (tests.test_owners.FileOwner.test_django_path_teams) ... ok
 test_last_toucher_test (tests.test_owners.FileOwner.test_last_toucher_test) ... ok
 test_share_of_exactly_min_share_owns (tests.test_owners.FileOwner.test_share_of_exactly_min_share_owns) ... ok
@@ -159,28 +184,28 @@ test_transitive_chain_is_one_risky_person (tests.test_owners.Merge.test_transiti
 fx/other                                           1 author emails ->      1 people
 fx/pkg                                             1 author emails ->      1 people
 fx/spark                                           3 author emails ->      3 people
-all repos, with co-authors                         4 emails        ->      4 people · 0 generic and 1 bot emails, never merged on name or local part · 0 emails joined by .mailmap · 0 local parts shared by 3+ names, never merged on
+all repos, with co-authors                         4 emails        ->      4 people Â· 0 generic and 1 bot emails, never merged on name or local part Â· 0 emails joined by .mailmap Â· 0 local parts shared by 3+ names, never merged on
 fx_a                                               3 people -> 1 with a team (1 teams), 2 unassigned (no keyed commit with a component since 2026-04-04)
                                               biggest teams: SQL 1
 fx_b                                               1 people -> 0 with a team (0 teams), 1 unassigned (no keyed commit with a component since 2026-04-04)
                                               biggest teams: 
 spark                                              0 people -> 0 with a team (0 teams), 0 unassigned (no keyed commit with a component since 2026-04-04)
                                               biggest teams: 
-fx/other                                           1 files ·      1 touched 2026-04-04..2026-10-01 · 1 unowned · basis author
-                                              next author after 2026-04-04, on owned source files: team owner n/a vs last toucher's team n/a (N=0) · person owner n/a vs last toucher n/a (N=0)
-fx/pkg                                             1 files ·      1 touched 2016-09-03..2017-03-02 · 0 unowned · basis repo
-fx/spark                                           3 files ·      2 touched 2026-04-04..2026-10-01 · 2 unowned · basis none
-                                              next author after 2026-04-04, on owned source files: team owner n/a vs last toucher's team n/a (N=0) · person owner n/a vs last toucher n/a (N=0)
+fx/other                                           1 files Â·      1 touched 2026-04-04..2026-10-01 Â· 1 unowned Â· basis author
+                                              next author after 2026-04-04, on owned source files: team owner n/a vs last toucher's team n/a (N=0) Â· person owner n/a vs last toucher n/a (N=0)
+fx/pkg                                             1 files Â·      1 touched 2016-09-03..2017-03-02 Â· 0 unowned Â· basis repo
+fx/spark                                           3 files Â·      2 touched 2026-04-04..2026-10-01 Â· 2 unowned Â· basis none
+                                              next author after 2026-04-04, on owned source files: team owner n/a vs last toucher's team n/a (N=0) Â· person owner n/a vs last toucher n/a (N=0)
 test_bots_dont_count (tests.test_owners.Modes.test_bots_dont_count) ... ok
 test_no_commits_in_window_is_basis_none (tests.test_owners.Modes.test_no_commits_in_window_is_basis_none) ... ok
 test_repo_window_ends_at_the_pinned_commit (tests.test_owners.Modes.test_repo_window_ends_at_the_pinned_commit) ... ok
 test_team_is_per_dataset (tests.test_owners.Modes.test_team_is_per_dataset) ... ok
 test_unassigned_person_never_owns (tests.test_owners.Modes.test_unassigned_person_never_owns) ... ok
 fix/repo                                           9 author emails ->      6 people
-all repos, with co-authors                        10 emails        ->      7 people · 2 generic and 1 bot emails, never merged on name or local part · 2 emails joined by .mailmap · 0 local parts shared by 3+ names, never merged on
+all repos, with co-authors                        10 emails        ->      7 people Â· 2 generic and 1 bot emails, never merged on name or local part Â· 2 emails joined by .mailmap Â· 0 local parts shared by 3+ names, never merged on
 spark                                              0 people -> 0 with a team (0 teams), 0 unassigned (no keyed commit with a component since 2025-08-05)
                                               biggest teams: 
-fix/repo                                          10 files ·      9 touched 2025-07-13..2026-01-09 · 0 unowned · basis repo
+fix/repo                                          10 files Â·      9 touched 2025-07-13..2026-01-09 Â· 0 unowned Â· basis repo
 test_coauthor_kept_committer_not (tests.test_owners.People.test_coauthor_kept_committer_not) ... ok
 test_emails_must_match_git_commit (tests.test_owners.People.test_emails_must_match_git_commit) ... ok
 test_every_file_at_the_sha_has_an_owner (tests.test_owners.People.test_every_file_at_the_sha_has_an_owner) ... ok
@@ -189,10 +214,10 @@ test_merges_on_name_local_part_and_mailmap (tests.test_owners.People.test_merges
 test_person_id_is_hash_of_smallest_email (tests.test_owners.People.test_person_id_is_hash_of_smallest_email) ... ok
 test_person_name_is_most_common_mapped_name (tests.test_owners.People.test_person_name_is_most_common_mapped_name) ... ok
 test_rerun_same_bytes_and_loads (tests.test_owners.People.test_rerun_same_bytes_and_loads) ... fix/repo                                           9 author emails ->      6 people
-all repos, with co-authors                        10 emails        ->      7 people · 2 generic and 1 bot emails, never merged on name or local part · 2 emails joined by .mailmap · 0 local parts shared by 3+ names, never merged on
+all repos, with co-authors                        10 emails        ->      7 people Â· 2 generic and 1 bot emails, never merged on name or local part Â· 2 emails joined by .mailmap Â· 0 local parts shared by 3+ names, never merged on
 spark                                              0 people -> 0 with a team (0 teams), 0 unassigned (no keyed commit with a component since 2025-08-05)
                                               biggest teams: 
-fix/repo                                          10 files ·      9 touched 2025-07-13..2026-01-09 · 0 unowned · basis repo
+fix/repo                                          10 files Â·      9 touched 2025-07-13..2026-01-09 Â· 0 unowned Â· basis repo
 ok
 test_top_lists_groups_joined_on_a_local_part_with_other_names (tests.test_owners.People.test_top_lists_groups_joined_on_a_local_part_with_other_names) ... ok
 test_after_snapshot_doesnt_count (tests.test_owners.Teams.test_after_snapshot_doesnt_count) ... ok
@@ -206,9 +231,14 @@ test_a_wrong_change_report_is_caught (tests.test_publish.Compare.test_a_wrong_ch
 test_nothing_to_compare_is_an_error (tests.test_publish.Compare.test_nothing_to_compare_is_an_error) ... ok
 test_same_tables_pass_and_run_jsonl_is_left_out (tests.test_publish.Compare.test_same_tables_pass_and_run_jsonl_is_left_out) ... ok
 test_says_which_part_went_wrong (tests.test_publish.Compare.test_says_which_part_went_wrong) ... ok
+test_a_partial_run_needs_allow_partial (tests.test_publish.Publish.test_a_partial_run_needs_allow_partial) ... ok
+test_a_rebuild_never_rolls_back_a_newer_run (tests.test_publish.Publish.test_a_rebuild_never_rolls_back_a_newer_run) ... ok
 test_a_rebuild_publishes_beside_the_update_never_over_it (tests.test_publish.Publish.test_a_rebuild_publishes_beside_the_update_never_over_it) ... ok
 test_a_validated_run_is_copied_and_becomes_latest (tests.test_publish.Publish.test_a_validated_run_is_copied_and_becomes_latest) ... ok
+test_bias_json_ships_beside_the_block_and_latest_has_the_config_hash (tests.test_publish.Publish.test_bias_json_ships_beside_the_block_and_latest_has_the_config_hash) ... ok
+test_dvc_only_for_the_run_dvc_yaml_tracks (tests.test_publish.Publish.test_dvc_only_for_the_run_dvc_yaml_tracks) ... ok
 test_errors_or_no_validate_refuse_and_the_last_good_block_stays_live (tests.test_publish.Publish.test_errors_or_no_validate_refuse_and_the_last_good_block_stays_live) ... ok
+test_a_new_repo_or_a_config_edit_is_new (tests.test_publish.Status.test_a_new_repo_or_a_config_edit_is_new) ... ok
 test_a_push_since_the_last_collect_is_seen (tests.test_publish.Status.test_a_push_since_the_last_collect_is_seen) ... ok
 test_an_old_publish_is_new_for_the_tickets (tests.test_publish.Status.test_an_old_publish_is_new_for_the_tickets) ... ok
 test_new_commits_since_the_published_sha_are_new (tests.test_publish.Status.test_new_commits_since_the_published_sha_are_new) ... ok
@@ -324,20 +354,25 @@ test_events_stop_at_snapshot (tests.test_tickets.Jira.test_events_stop_at_snapsh
 test_links (tests.test_tickets.Jira.test_links) ... ok
 test_rolled_back_to_snapshot (tests.test_tickets.Jira.test_rolled_back_to_snapshot) ... ok
 test_subtask_takes_parent_type_and_components_sorted (tests.test_tickets.Jira.test_subtask_takes_parent_type_and_components_sorted) ... ok
+test_a_malformed_webhook_url_is_logged_and_email_is_still_tried (tests.test_validate.Alert.test_a_malformed_webhook_url_is_logged_and_email_is_still_tried) ... ok
 test_logged_without_channels_and_a_broken_channel_never_raises (tests.test_validate.Alert.test_logged_without_channels_and_a_broken_channel_never_raises) ... ok
 test_slack_gets_the_text_only_for_events_it_is_on_for (tests.test_validate.Alert.test_slack_gets_the_text_only_for_events_it_is_on_for) ... ok
 test_a_date_before_earliest_or_after_the_snapshot_warns (tests.test_validate.Dates.test_a_date_before_earliest_or_after_the_snapshot_warns) ... ok
 test_iqr_fences_raw_and_log (tests.test_validate.Outliers.test_iqr_fences_raw_and_log) ... ok
+test_bug_fixes_range_and_every_table_that_cant_be_empty_has_a_minimum (tests.test_validate.Settings.test_bug_fixes_range_and_every_table_that_cant_be_empty_has_a_minimum) ... ok
+test_formats (tests.test_validate.Settings.test_formats) ... ok
 test_a_bad_format_is_an_error_and_alerts (tests.test_validate.Validate.test_a_bad_format_is_an_error_and_alerts) ... ok
 test_a_clean_block_passes_and_writes_its_statistics (tests.test_validate.Validate.test_a_clean_block_passes_and_writes_its_statistics) ... ok
+test_a_missing_table_or_run_folder_is_refused (tests.test_validate.Validate.test_a_missing_table_or_run_folder_is_refused) ... ok
 test_a_schema_violation_stops_before_anything_else (tests.test_validate.Validate.test_a_schema_violation_stops_before_anything_else) ... ok
+test_a_write_failure_is_said_as_one_and_alerts_before_anomalies_json (tests.test_validate.Validate.test_a_write_failure_is_said_as_one_and_alerts_before_anomalies_json) ... ok
+test_an_earlier_runs_results_never_outlive_a_crash (tests.test_validate.Validate.test_an_earlier_runs_results_never_outlive_a_crash) ... ok
 test_coverage_below_its_floor_is_an_error (tests.test_validate.Validate.test_coverage_below_its_floor_is_an_error) ... ok
 test_drift_from_the_previous_run_warns (tests.test_validate.Validate.test_drift_from_the_previous_run_warns) ... ok
 test_missing_values_warn_but_the_run_goes_on (tests.test_validate.Validate.test_missing_values_warn_but_the_run_goes_on) ... ok
 test_one_query_per_table_gives_the_same_statistics_as_one_per_column (tests.test_validate.Validate.test_one_query_per_table_gives_the_same_statistics_as_one_per_column) ... ok
 
 ----------------------------------------------------------------------
-Ran 261 tests in 78.970s
+Ran 287 tests in 19.942s
 
-OK (skipped=13)
-
+OK (skipped=14)

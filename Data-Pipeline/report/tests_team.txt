@@ -1,33 +1,69 @@
+=== tests.test_golden tests.test_scan tests.test_resolve, MERIDIAN_RUN_ID=70dd1dabfed544b8, 2026-10-26, macOS, Python 3.11 ===
 test_same_bytes_as_golden (tests.test_golden.Fixture.test_same_bytes_as_golden) ... ok
-test_every_output_as_frozen (tests.test_golden.TeamRun.test_every_output_as_frozen) ... FAIL
-
-======================================================================
-FAIL: test_every_output_as_frozen (tests.test_golden.TeamRun.test_every_output_as_frozen)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "D:\github\Meridian\Data-Pipeline\tests\test_golden.py", line 80, in test_every_output_as_frozen
-    self.assertEqual(mismatches(want, got), [])
-AssertionError: Lists differ: ["blast_radius.jsonl: want {'md5': '9a49fb[555 chars]44}"] != []
-
-First list contains 4 additional elements.
-First extra element 0:
-"blast_radius.jsonl: want {'md5': '9a49fb0ed5b5f12c933e6162631cadf2', 'size': 4626}, got {'md5': '64eb72b76d5318f6a6cc881caaab1d15', 'size': 4626}"
-
-Diff is 643 characters long. Set self.maxDiff to None to see it.
-
-----------------------------------------------------------------------
-Ran 2 tests in 0.921s
-
-FAILED (failures=1)
-
-=== tests.test_scan tests.test_resolve, MERIDIAN_RUN_ID=70dd1dabfed544b8, 2026-10-25 ===
+test_every_output_as_frozen (tests.test_golden.TeamRun.test_every_output_as_frozen) ... ok
 test_265_of_265_and_0_false (tests.test_scan.DjangoAnswerKey.test_265_of_265_and_0_false) ... ok
 test_2_lines_outside_py (tests.test_scan.DjangoAnswerKey.test_2_lines_outside_py) ... ok
 test_no_tracked_name_lost_to_parse_failures (tests.test_scan.DjangoAnswerKey.test_no_tracked_name_lost_to_parse_failures) ... ok
+test_columns_are_characters (tests.test_scan.Goldens.test_columns_are_characters) ... ok
+test_columns_match_the_contract (tests.test_scan.Goldens.test_columns_match_the_contract) ... ok
+test_deprecation (tests.test_scan.Goldens.test_deprecation) ... ok
+test_edit_roles_from_config (tests.test_scan.Goldens.test_edit_roles_from_config) ... ok
+test_embedded_python (tests.test_scan.Goldens.test_embedded_python) ... ok
+test_exactly_the_expected_rows (tests.test_scan.Goldens.test_exactly_the_expected_rows) ... ok
+test_except_group_counts (tests.test_scan.Goldens.test_except_group_counts) ... ok
+test_hand_check_saves_utf8 (tests.test_scan.Goldens.test_hand_check_saves_utf8) ... ok
+test_in_except (tests.test_scan.Goldens.test_in_except) ... ok
+test_junk (tests.test_scan.Goldens.test_junk) ... ok
+test_keep_name_only_off (tests.test_scan.Goldens.test_keep_name_only_off) ... ok
+test_keyword_and_parameter_names_counted (tests.test_scan.Goldens.test_keyword_and_parameter_names_counted) ... ok
+test_module_import (tests.test_scan.Goldens.test_module_import) ... ok
+test_parse_failure_is_a_row_and_excluded (tests.test_scan.Goldens.test_parse_failure_is_a_row_and_excluded) ... ok
+test_relative_import_above_root_kept_as_written (tests.test_scan.Goldens.test_relative_import_above_root_kept_as_written) ... ok
+test_same_input_same_rows (tests.test_scan.Goldens.test_same_input_same_rows) ... ok
+test_scope (tests.test_scan.Goldens.test_scope) ... ok
+test_symbol_and_role (tests.test_scan.Goldens.test_symbol_and_role) ... ok
+test_text_is_the_stripped_line (tests.test_scan.Goldens.test_text_is_the_stripped_line) ... ok
+test_unreadable_folder_halts (tests.test_scan.Goldens.test_unreadable_folder_halts) ... ok
+test_no_snapshot_halts (tests.test_scan.OneCommand.test_no_snapshot_halts) ... ok
+test_writes_every_table_sorted (tests.test_scan.OneCommand.test_writes_every_table_sorted) ... ok
+test_wrong_checkout_halts (tests.test_scan.OneCommand.test_wrong_checkout_halts) ... ok
+test_bindings (tests.test_resolve.Aliases.test_bindings) ... ok
+test_each_row (tests.test_resolve.Aliases.test_each_row) ... ok
+test_every_alias_call_is_a_row (tests.test_resolve.Aliases.test_every_alias_call_is_a_row) ... ok
+test_files_are_the_scanners (tests.test_resolve.Aliases.test_files_are_the_scanners) ... ok
+test_jedi_failure_is_no_answer_and_counted (tests.test_resolve.Aliases.test_jedi_failure_is_no_answer_and_counted) ... ok
+test_one_hop_reaches_the_old_name_not_the_new (tests.test_resolve.Aliases.test_one_hop_reaches_the_old_name_not_the_new) ... ok
+test_one_hop_switched_off (tests.test_resolve.Aliases.test_one_hop_switched_off) ... ok
+test_parso_emptied_per_repo_and_walks_keep_no_trees (tests.test_resolve.Aliases.test_parso_emptied_per_repo_and_walks_keep_no_trees) ... ok
+test_skipped_paths_have_no_rows (tests.test_resolve.Aliases.test_skipped_paths_have_no_rows) ... ok
+test_sys_path_is_repo_deps_stdlib (tests.test_resolve.Aliases.test_sys_path_is_repo_deps_stdlib) ... ok
+test_column_in_characters_or_bytes (tests.test_resolve.Candidates.test_column_in_characters_or_bytes) ... ok
+test_each_case (tests.test_resolve.Candidates.test_each_case) ... ok
+test_one_row_per_candidate_same_key (tests.test_resolve.Candidates.test_one_row_per_candidate_same_key) ... ok
+test_resolved_means_its_own_old_name (tests.test_resolve.Candidates.test_resolved_means_its_own_old_name) ... ok
+test_score_on_old_name_switched_off (tests.test_resolve.Candidates.test_score_on_old_name_switched_off) ... ok
+test_untracked_symbol_halts (tests.test_resolve.Candidates.test_untracked_symbol_halts) ... ok
+test_wrong_column_is_kept_unresolved (tests.test_resolve.Candidates.test_wrong_column_is_kept_unresolved) ...   app/direct.py:4:0 doesn't hold ugettext: kept as ast_unresolved
+ok
+test_checkout_not_at_the_manifest_sha_halts (tests.test_resolve.Command.test_checkout_not_at_the_manifest_sha_halts) ... ok
+test_keep_unresolved_false_halts (tests.test_resolve.Command.test_keep_unresolved_false_halts) ... ok
+test_no_candidate_table_halts (tests.test_resolve.Command.test_no_candidate_table_halts) ... ok
+test_rows_fit_the_schema (tests.test_resolve.Command.test_rows_fit_the_schema) ... ok
+test_same_run_same_bytes (tests.test_resolve.Command.test_same_run_same_bytes) ... ok
 test_542_of_542 (tests.test_resolve.DjangoAnswerKey.test_542_of_542) ... ok
 test_every_edit_line_resolves (tests.test_resolve.DjangoAnswerKey.test_every_edit_line_resolves) ... ok
+test_exact_edges (tests.test_resolve.Edges.test_exact_edges) ... ok
+test_introduced_sha_is_the_commit_that_last_changed_the_caller_line (tests.test_resolve.Edges.test_introduced_sha_is_the_commit_that_last_changed_the_caller_line) ... ok
+test_jedi_failures_while_finding_callers_are_counted (tests.test_resolve.Edges.test_jedi_failures_while_finding_callers_are_counted) ... ok
+test_no_edge_from_imports_or_past_depth_3 (tests.test_resolve.Edges.test_no_edge_from_imports_or_past_depth_3) ... ok
+test_rows_fit_the_schema (tests.test_resolve.Edges.test_rows_fit_the_schema) ... ok
+test_alias_hand_check_saves_utf8 (tests.test_resolve.Helpers.test_alias_hand_check_saves_utf8) ... ok
+test_changed_lines_ignore_user_git_config (tests.test_resolve.Helpers.test_changed_lines_ignore_user_git_config) ... ok
 test_precision_and_recall (tests.test_resolve.PackagesScore.test_precision_and_recall) ... ok
+test_each_case (tests.test_resolve.ReceiverFrom.test_each_case) ... ok
+test_callers_found_dont_depend_on_listing_order (tests.test_resolve.WalkOrder.test_callers_found_dont_depend_on_listing_order) ... ok
+
 ----------------------------------------------------------------------
-Ran 60 tests in 254.374s
+Ran 62 tests in 39.828s
 
 OK

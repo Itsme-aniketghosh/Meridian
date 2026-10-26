@@ -78,6 +78,11 @@ class Spec(unittest.TestCase):
                          "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 gxpy -m meridian.gx --run-id R "
                          "--config meridian.toml --publish-root /d")  # its own environment; Data Docs where views read
 
+    def test_fresh_refuses_the_main_data_root(self):   # its rm -rf would delete the live run's out/
+        for rebuild in ("/d", "/d/", "", "."):
+            with self.assertRaisesRegex(ValueError, "folder of its own"):
+                P.command("rebuild", "fresh", "R", "meridian.toml", "py", "", "Q", "/d", rebuild)
+
     def test_commands(self):
         c = lambda dag, task, prev_arg="", prev="": P.command(dag, task, "R", "meridian.toml", "py", prev_arg, prev,
                                                               "/d", "/d/rb")

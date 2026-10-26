@@ -152,6 +152,22 @@ def mirror(mirrors, repo, url):
     return d
 
 
+def borrow_relative(co, src):
+    """Point checkout co at its mirror src by a relative path. `clone --shared` writes the mirror's absolute path into
+    .git/objects/info/alternates, so a data root mounted elsewhere (Docker's /opt/meridian, another machine) has a
+    checkout whose history git can't find: every git call in history and resolve failed there. Relative to the
+    checkout's objects folder, the link holds wherever snapshots/ is mounted. Different drives (Windows): left as is."""
+    alt = co / ".git" / "objects" / "info" / "alternates"
+    if not alt.exists():
+        return
+    try:
+        rel = os.path.relpath(os.path.abspath(src / "objects"), os.path.abspath(co / ".git" / "objects"))
+    except ValueError:
+        return
+    if alt.read_text(encoding="utf-8").strip() != rel.replace(os.sep, "/"):
+        alt.write_text(rel.replace(os.sep, "/") + "\n", encoding="utf-8", newline="\n")
+
+
 def rev(d, ref):
     try:
         return git(d, "rev-parse", "--verify", "--quiet", ref + "^{commit}").strip()
@@ -497,6 +513,9 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
     dest = snaps / run_id
     if (dest / "manifest.json").exists():
         log(f"snapshots/{run_id} already exists: same inputs, same run")
+        for repo in sorted(repos):   # a snapshot from before relative links, or moved: its checkouts must work here
+            name = repo.replace("/", "__")
+            borrow_relative(dest / "repos" / name, mirrors / f"{name}.git")
     else:
         stage = snaps / f".staging-{run_id}"
         # every killed collect's half checkout, not only this run's (2.5 GB each).
@@ -511,6 +530,7 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
             git(".", "-c", "core.longpaths=true", "-c", "core.symlinks=false", "clone", "--shared",
                 "--no-checkout", "--quiet",
                 str(src), str(co))
+            borrow_relative(co, src)   # stage and dest are siblings, so the relative link survives the rename below
             git(co, "config", "core.longpaths", "true")
             git(co, "config", "core.symlinks", "false")  # a symlink is its target text on every OS, never followed
             git(co, "checkout", "--quiet", "--detach", sha)

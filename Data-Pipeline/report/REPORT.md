@@ -28,23 +28,26 @@ meridian_rebuild (Sunday 04:00 UTC): fresh ── collect ── … ── vali
 | Quality | `validate.py` (schema, stats, anomalies), `gx.py` (Great Expectations, weekly), `bias.py` (Fairlearn) | `stats.json`, `anomalies.json`, `bias.json` |
 | Output | `report.py` (what changed), `publish.py` (block + DVC), `compare.py` (rebuild vs update) | `published/` |
 
-## 3. Requirement checklist (course guidelines)
+## 3. Against the submission guidelines
 
-| # | Requirement | Where it is | Status |
+The guidelines grade 12 criteria (their §5). Each row says where the evidence is.
+
+| # | Criterion | Where it is | Status |
 |---|---|---|---|
-| 1 | Data acquisition, reproducible, deps pinned | `meridian/collect.py`; pinned `requirements.txt`; repos rebuilt byte for byte from the SHAs in `meridian.toml`; same inputs give the same `run_id` | ✅ |
-| 2 | Preprocessing, modular | One module per part, each a CLI `python -m meridian.<part> --run-id … --config meridian.toml`; contracts in [CONTRACTS.md](../CONTRACTS.md) | ✅ |
-| 3 | Unit tests, edge cases | `tests/`, one file per part; renames, splits, parse failures, missing values, schema violations and broken alert channels are fixtures. Results: [Appendix B](appendix-quality.md) | ✅ |
-| 4 | Airflow DAGs | Two DAGs in `dags/meridian_dag.py`, built from `dags/pipeline_spec.py`; `test_dag.py` checks both against the spec. Run: [Appendix A](appendix-airflow.md) | ✅ |
-| 5 | DVC | `dvc.yaml` (one stage per part), `dvc.lock` in git, `snapshots/_cache/{jira,gitlab}.dvc` pin the raw pulls; `publish` runs `dvc commit` + `dvc push` when `settings.toml` `[dvc] push = true` (false for now) | ✅ (remote still a placeholder, see §6) |
-| 6 | Tracking and logging | Every part logs counts to stdout; Airflow keeps per-task logs (`logs/`); `report.py` writes what changed per run | ✅ |
-| 7 | Schema and statistics | `schema.sql` (types, keys, allowed values) enforced by the writer; `stats.json` per table and column, compared run over run; weekly GX suite with Data Docs | ✅ |
-| 8 | Anomaly detection and alerts | `validate.py`: errors fail the task (row minimums, formats, ranges, coverage floors), warnings alert and the run goes on (missing values, implausible dates, IQR outliers, drift); `alert.py` logs every alert and can send Slack and/or email, but neither is configured yet, so alerts so far were only logged | ✅ |
-| 9 | Flow optimisation (Gantt) | history ∥ scan→resolve: ~1,130 s in sequence → ~700 s in the DAG, an estimated −38% from per-task timings until the Airflow Gantt confirms it; SZZ uses one process per CPU. Gantt: [Appendix A](appendix-airflow.md) | ✅ |
-| 10 | Bias via slicing, mitigation, docs | `bias.py` with Fairlearn `MetricFrame`; findings and scored mitigations in [BIAS.md](../BIAS.md); charts in [Appendix B](appendix-quality.md) | ✅ |
-| 11 | Folder structure, README | `Data-Pipeline/{dags,meridian,tests,golden,labels,logs}`, `dvc.yaml`, [README.md](../README.md) (setup, run, structure, DVC) | ✅ |
-| 12 | Reproducibility | Golden hashes (`golden/`); the weekly rebuild must equal the update byte for byte; CI on Linux and Windows | ✅ (see §6 for the Windows resolver gap) |
-| 13 | Error handling | A part that can't go on stops with the reason and a non-zero exit; Airflow retries (2 × 5 min), then alerts; parts are idempotent; publish only after validate passes, so a failed run leaves the last good block live | ✅ |
+| 1 | Documentation | [README.md](../README.md) (setup, run, structure, DVC, reproducibility), [CONTRACTS.md](../CONTRACTS.md) (every part's inputs and outputs), [TESTING.md](../../TESTING.md); every module opens with a docstring saying what it reads, writes and why. Folders: `Data-Pipeline/{dags,meridian,tests,golden,labels,logs,report}`, `dvc.yaml`; the README maps the guidelines' `data/` and `scripts/` to ours | ✅ |
+| 2 | Modular code | One module per part, each a CLI `python -m meridian.<part> --run-id … --config meridian.toml`, idempotent, reading only its declared inputs; shared helpers in `meridian/common.py`. flake8 (PEP 8, 120 columns) runs clean in CI | ✅ |
+| 3 | Airflow DAGs | Two DAGs in `dags/meridian_dag.py`, built from `dags/pipeline_spec.py` and checked against it (`test_dag`). `meridian_update` ran end to end in Docker, every task first try, 1,268 s; the weekly `meridian_rebuild` too, with 0 differences from the update. [Appendix A](appendix-airflow.md) | ✅ |
+| 4 | Tracking and logging | Every part logs its counts through Python's logging, which Airflow keeps as one log per try (`logs/`); `report.py` writes what changed per run; `alert.py` logs every alert and sends to Slack and/or email once a channel is set | ✅ (no real channel yet, §6) |
+| 5 | DVC | `dvc.yaml` (one stage per part), `dvc.lock` in git, `snapshots/_cache/{jira,gitlab}.dvc` pin the raw pulls; `publish` runs `dvc commit` + `dvc push` when `settings.toml` `[dvc] push = true` | ✅ (remote a placeholder, §6) |
+| 6 | Flow optimisation (Gantt) | Measured on the Airflow Gantt: the tasks add up to 1,599 s one after another, the DAG took 1,268 s, 21% saved by running scan → resolve beside history. history is the bottleneck: SZZ uses one process per CPU, and its cache takes a warm run from 312 s to 74 s. [Appendix A](appendix-airflow.md) | ✅ |
+| 7 | Schema and statistics | `schema.sql` (types, keys, allowed values) enforced by the writer; `stats.json` per table and column, compared run over run (drift); a Great Expectations suite with Data Docs in the weekly rebuild: 308 expectations, 0 failed beyond the 289 known bad Jira dates. [Appendix B](appendix-quality.md) | ✅ |
+| 8 | Anomalies and alerts | `validate.py`: errors fail the task (row minimums, formats, ranges, coverage floors, schema violations); warnings alert and the run goes on (missing values, implausible dates, IQR outliers, drift, constant columns). [Appendix B](appendix-quality.md) | ✅ |
+| 9 | Bias via slicing, mitigation | `bias.py` with Fairlearn `MetricFrame`, Wilson intervals, 136 slices judged and 32 flagged; mitigations scored on a held-out cut; [BIAS.md](../BIAS.md), charts in [Appendix B](appendix-quality.md) | ✅ |
+| 10 | Test modules | 287 unit tests, one file per part, edge cases as fixtures (renames, splits, parse failures, missing values, schema violations, broken alert channels); all pass, plus the Airflow, GX and team-data halves. [Appendix B](appendix-quality.md) | ✅ |
+| 11 | Reproducibility | Same inputs give the same `run_id` and the same bytes: golden hashes 24 of 24; the weekly rebuild equals the update (0 differences, in Airflow); CI on Linux and Windows; Docker Compose for Airflow. [Appendix F](appendix-robustness.md) | ✅ |
+| 12 | Error handling | A part that can't go on stops with the reason and a non-zero exit; Airflow retries (2 × 5 min) and timeouts, then alerts; publish only after validate passes, so a failed run leaves the last good block live; 27 injected faults ([Appendix E](appendix-redteam.md)) and 42 pipeline scenarios ([Appendix F](appendix-robustness.md)) | ✅ |
+
+The key components of the guidelines' §2 map onto the same parts: acquisition is `collect.py` (pinned SHAs, raw pulls, pinned `requirements.txt`), preprocessing is `history`, `scan`, `resolve` and `owners`, and feature building is `join` and `graph` (§2 above). The guidelines ask about demographic slices; our rules work on code and tickets, so the slices are module, team, component, ticket type, year and experience (BIAS.md says why).
 
 ## 4. Design decisions
 
@@ -78,9 +81,9 @@ Cross-team features: built, but quiet on our real data.
 Of 74 proposed features, 24 ✅ work now, 36 🟡 have their tables and queries but are quiet on real data or only partly covered, 6 ❌ are not built, and 8 ⛔ belong to later stages (LLM, gate, auditor).
 
 Tests:
-- 285 unit tests pass on Windows (14 skipped by design: team data, Airflow, GX).
+- 287 unit tests pass on macOS (14 skipped by design: they run in their own Airflow, GX and team-data environments, and pass there).
 - With the team data, the Django and packages answer keys pass: 6 of 6.
-- The v1.2 golden check matches 20 of 24 files. 3 (`resolution`, `call_edge`, `blast_radius`) are likely the resolver's Windows gap (unverified), and `call_site` likely the join fix made after the freeze. A fresh Linux run in Airflow will settle it.
+- The golden check matches 24 of 24 files on fresh outputs of the Airflow run.
 - 0 schema violations and 0 data errors on 1,788,242 rows.
 
 | Appendix | What |
@@ -90,14 +93,18 @@ Tests:
 | [C](appendix-scenarios.md) | Every product situation on the real block, with verdicts and charts |
 | [D](appendix-features.md) | Feature checklist: status, tables, evidence, reason |
 | [E](appendix-redteam.md) | Red team: what we attacked, found and fixed |
+| [F](appendix-robustness.md) | Scenario tests: 42 situations the pipeline must survive, and how it did |
 
 ## 6. Known limits
 
 - The DVC remote (GCS) is a placeholder until GCP is set up. Use a local remote until then (README, "Data versioning").
-- On Windows, 3 of 24 golden files (`resolution`, `call_edge`, `blast_radius`) differ from the Mac values. This is likely the resolver's Windows path gap ([UPDATE-PLAN.md](../notes/UPDATE-PLAN.md)), not yet verified; a fresh Linux run in Airflow will settle it.
-- None of the four sources has cross-repo chains, so chains and P4 are tested on fixtures only ([docs/02-product.md](../../docs/02-product.md), "Known gaps").
+- No alert has gone to a real channel: Slack and email aren't configured. The alert path is tested with mocks and logs every alert.
+- Airflow in Docker on a Mac or Windows is slow: the folder mount makes history ~3× slower than native (Appendix A). `docker-compose.volumes.yaml` or a Linux host fixes it.
+- None of the four sources has cross-repo chains, so chains and P4 are tested on fixtures only ([docs/02-product.md](../../docs/02-product.md), "Known gaps"). `blocked_by` is empty on real data for the same reason.
 - Spark tickets rarely link to each other (5.8% of the newest 500 carry a link), so P3, P5 and chains go quiet on Spark. Commits are well keyed: 41,138 of 50,371 Spark commits (82%) name a ticket.
-- The owner-rule mitigation (team lookback of 730 days) is scored, not applied. It needs a new team `run_id` ([BIAS.md](../BIAS.md)).
+- P1's precision on the 21-commit replay is 0.36: the push check has no resolver at push time.
+- Bias flags aren't corrected for multiple comparisons; under Bonferroni 26 of 32 hold (BIAS.md).
+- The owner-rule mitigation (team lookback of 730 days) was scored and is **not adopted**: on the held-out cut it scores the same as 180 days (0.502 vs 0.505). The rule stays at 180 days ([BIAS.md](../BIAS.md)).
 
 Fixed while writing this report:
 - `ticket_open`, `stall_ticket_mismatch` and graph.py's collides rule now compare done statuses case-insensitively. By the status rule alone, GitLab open issues go 14,524 → 3,680. The fixed `ticket_open` view also requires a mapping to a call site, so on 70dd it returns 0 GitLab issues.
@@ -113,3 +120,4 @@ Fixed while writing this report:
 - [C · Situations on real data](appendix-scenarios.md)
 - [D · Feature checklist and reasons](appendix-features.md)
 - [E · Red team](appendix-redteam.md)
+- [F · Scenario tests: does it hold up?](appendix-robustness.md)

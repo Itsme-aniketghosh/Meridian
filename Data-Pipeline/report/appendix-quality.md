@@ -1,37 +1,44 @@
 # Appendix · Testing, data quality and bias (run 70dd1dabfed544b8)
 
-Sources: `stats.json`, `anomalies.json`, `bias.json` and `meridian.sqlite` of team run `70dd1dabfed544b8` (copies taken Oct 25), and the unit tests run on Oct 25 (Windows 11, Python 3.11). Charts: `python report/figures_quality.py <dir with the three json files>` from `Data-Pipeline/` (needs matplotlib).
+Sources: `stats.json`, `anomalies.json`, `bias.json` and `meridian.sqlite` of team run `70dd1dabfed544b8`, from the Airflow run of Oct 26 (Appendix A), and the unit tests run on Oct 26 (macOS, Python 3.11). Charts: `python report/figures_quality.py <dir with the three json files>` from `Data-Pipeline/` (needs matplotlib).
 
 ## 1. Tests
 
-`python -m unittest discover -s tests -t .` from `Data-Pipeline/`, without team data: 285 tests, OK, 14 skipped, 0 failures, 0 errors. The saved verbose run (`tests_light.txt`: 261 tests in 79 s, 248 passed) and the chart below predate one new regression test in `test_kb.py`.
+`python -m unittest discover -s tests -t .` from `Data-Pipeline/`, without team data: **287 tests, OK, 14 skipped**, 0 failures, 0 errors (saved verbose run: `tests_light.txt`).
 
 ![](figures/tests_per_file.png)
 
 *Each bar is one test file: blue tests passed, grey ones were skipped. Every pipeline part has its own tests, and skips only appear in files that need Airflow, GX or the private team data.*
 
-The 22 files are one per pipeline part, plus cross-part ones (DAG structure, push checks, cache equivalence, golden hashes). The edge cases (renames, splits, parse failures, missing values, schema violations, broken alert channels) are fixtures inside them.
+The files are one per pipeline part, plus cross-part ones (DAG structure, push checks, cache equivalence, golden hashes). The edge cases (renames, splits, parse failures, missing values, schema violations, broken alert channels) are fixtures inside them.
 
-The 13 skips are all by design:
+The 14 skips are all by design, and each one was run in its own environment:
 
-| Skipped | N | Why |
-|---|---:|---|
-| `test_dag.Dag.*` (DagBag load, spec, settings, trigger) | 4 | Airflow isn't installed on the host; CI's `airflow` job runs them in the Docker image |
-| `test_gx.Audit.*` (suite on a block, Data Docs) | 2 | GX lives in its own `[gx]` environment; CI's `gx` job runs them |
-| `test_golden.TeamRun`, `test_resolve.DjangoAnswerKey` ×2, `test_resolve.PackagesScore`, `test_scan.DjangoAnswerKey` ×3 | 7 | Need the private team data (`MERIDIAN_RUN_ID` and `out/70dd…/`, or Django in `snapshots/dev/`) |
+| Skipped here | N | Why | Run where | Result |
+|---|---:|---|---|---|
+| `test_dag.Dag.*` (DagBag load, spec, settings, trigger, templates) | 5 | Airflow isn't installed on the host | Airflow 2.10.5 environment; CI's `airflow` job in the Docker image | ✅ 13 of 13 in `test_dag` |
+| `test_gx.Audit.*` (suite on a block, Data Docs) | 2 | GX lives in its own `[gx]` environment | GX 1.24.1 environment; CI's `gx` job | ✅ 7 of 7 in `test_gx` |
+| `test_golden.TeamRun`, `test_resolve.DjangoAnswerKey` ×2, `test_resolve.PackagesScore`, `test_scan.DjangoAnswerKey` ×3 | 7 | Need the private team data | With `MERIDIAN_RUN_ID=70dd1dabfed544b8` | ✅ below |
 
-TESTING.md's counts have been updated to match (it said `Ran 248 … skipped=10` on Oct 24). The tests added since include `test_gx` with its 2 GX-only skips, and `test_dag` now has 4 Airflow-only tests, not 3.
+With the team data, the whole suite is 287 tests, OK, 7 skipped (the Airflow and GX ones).
 
-Team-run tests (`MERIDIAN_RUN_ID=70dd1dabfed544b8`, Oct 25, `tests_team.txt`):
+Team-run tests (`MERIDIAN_RUN_ID=70dd1dabfed544b8`, Oct 26, `tests_team.txt`, on the outputs of the Airflow run):
 
 | Test | Result |
 |---|---|
 | `test_scan.DjangoAnswerKey`: 265 of 265 edit lines, 0 false; 2 lines outside `.py`; no tracked name lost to parse failures | ✅ 3 of 3 |
 | `test_resolve.DjangoAnswerKey`: 542 of 542 aliased `_()` calls; every edit line resolves | ✅ 2 of 2 |
 | `test_resolve.PackagesScore`: precision and recall on the 20 Django packages | ✅ 1 of 1 |
-| `test_golden.TeamRun`: md5 of the 24 `.jsonl` outputs vs `golden/70dd1dabfed544b8.json` (Mac, schema v1.2) | ❌ 20 of 24 match |
+| `test_golden.TeamRun`: md5 of the 24 `.jsonl` outputs vs `golden/70dd1dabfed544b8.json` | ✅ 24 of 24 |
 
-`test_scan` and `test_resolve` together: 60 tests, 254 s, OK, none skipped. Of the 4 golden mismatches, 3 (`resolution`, `call_edge`, `blast_radius`) are likely the resolver's known Windows gap (TESTING.md, notes/UPDATE-PLAN.md), not yet verified. `call_site` is likely the join fix made after the freeze: the outputs on disk date from Oct 24, before the golden file was regenerated for schema v1.2 and before join's "no stolen matches" fix (`b277e65`, Oct 25). A fresh Linux run in Airflow will settle it. The fixture half of the golden check (hashes of all 25 tables) runs everywhere and passed.
+`test_golden`, `test_scan` and `test_resolve` together: 62 tests, 40 s, OK, none skipped.
+
+The golden check went from 20 of 24 (Windows, Oct 25) to 24 of 24. Three causes, all found:
+- `resolution`, `call_edge`, `blast_radius`: Jedi walked folders in the file system's order, which differs between NTFS and APFS. Fixed: one order on every OS (Appendix F).
+- `call_site`: the outputs on disk predated join's "no stolen matches" fix. Fresh outputs match.
+- `commit_file`: 9 of 849,643 rows differ between the Mac's git 2.50 and the image's git 2.39, which detect renames of three small Django template files differently. The golden is defined as the pipeline image's output (CONTRACTS.md: one image), so `commit_file` was recorded again from the Docker run, in the golden file and `dvc.lock` (`test_golden.py` says why).
+
+The fixture half of the golden check (hashes of all 25 tables) runs everywhere and passes.
 
 ## 2. Schema and statistics
 
@@ -69,7 +76,7 @@ On 70dd the suite would hold 281 expectations over 25 tables: 191 missing, 52 fo
 
 ## 5. Bias (data slicing)
 
-`meridian.bias` slices the pipeline's three deciding rules with Fairlearn's `MetricFrame`. A slice is a subgroup, such as one module or one team. Each slice gets a Wilson 95% interval. A slice is judged when N ≥ 30, and flagged when its whole interval is more than 0.10 below overall, so a gap the slice's own noise could explain isn't flagged. A slice under N = 30 is unjudged, not cleared. In the charts the whiskers are the intervals, the solid line is overall, the dashed line is the flag line, red bars are flagged, and unjudged slices are left out. Ticket mapping and resolver below are recomputed with the current `bias.py` from 70dd's `meridian.sqlite`. Owner-rule numbers come from 70dd's `bias.json`. The owner rule's new per-slice numbers, the prior-commits slice and the held-out check wait for the rerun. BIAS.md has the full list.
+`meridian.bias` slices the pipeline's three deciding rules with Fairlearn's `MetricFrame`. A slice is a subgroup, such as one module or one team. Each slice gets a Wilson 95% interval. A slice is judged when N ≥ 30, and flagged when its whole interval is more than 0.10 below overall, so a gap the slice's own noise could explain isn't flagged. A slice under N = 30 is unjudged, not cleared. In the charts the whiskers are the intervals, the solid line is overall, the dashed line is the flag line, red bars are flagged, and unjudged slices are left out. Every number below is from the current `bias.py`, rerun on 70dd on the outputs of the Airflow run (Appendix A): 136 slices judged, 32 flagged. BIAS.md has the full list.
 
 ![](figures/bias_owner_rule.png)
 
@@ -89,7 +96,7 @@ Ticket → code mapping: 0.608 per ticket (N = 59,491). 18% of tickets have seve
 
 Resolver: 0.981 of edit-role candidates kept as call sites overall (N = 1,556), 0 of 12 judged repos flagged. The lowest judged repo is jazzband/django-silk at 0.933 (N = 30). django-tenants (0.857, N = 7) is unjudged.
 
-Ticket mapping and resolver judge 111 slices and flag 27. The owner rule judged 17 on 70dd and flagged 6. The rule isn't corrected for multiple comparisons. Under Bonferroni, `core/`, `common/`, Deploy, Spark Shell and all-time Spark Submit no longer hold. Fairlearn's difference / ratio over judged slices: component 0.690 / 0.107, component since 2020 0.608 / 0.256, type 0.645 / 0.153, year 0.692 / 0.033, resolver 0.067 / 0.933.
+Ticket mapping and resolver judge 111 slices and flag 27. The owner rule judges 25 and flags 5: 136 judged, 32 flagged in all. The rule isn't corrected for multiple comparisons. Under Bonferroni (z = 3.56 for 136 slices) 26 of the 32 hold; `core/`, `common/`, Deploy (all time and since 2020), GraphX and Spark Shell no longer do. Fairlearn's difference / ratio over judged slices: component 0.690 / 0.107, component since 2020 0.608 / 0.256, type 0.645 / 0.153, year 0.692 / 0.033, resolver 0.067 / 0.933.
 
 ### Mitigation and trade-offs
 
@@ -107,6 +114,6 @@ Scored on the same files (`bias.json` `owner_rule.mitigations`, N = 1,819). The 
 | **teams from 730 days** | **0.458** | **0.545** | **989** | **16.0%** | **0.202** |
 | fall back to the last toucher's team | 0.303 | 0.395 | 1,634 | 23.2% | 0.278 |
 
-Lowering the share threshold changes nothing: files are unowned because their authors have no team, not because shares sit near 0.30. Falling back to the last toucher owns 65% more files but is wrong more often and widens the worst module gap to 0.278. A longer team lookback helps, but each variant is scored against its own labels. The 730-day lookback gives a team to 86 next authors who were guaranteed misses before. Without them, accuracy goes 0.496 → 0.545 (+0.049, with overlapping intervals), and unassigned next authors fall 24.7% → 16.0%. The cost is that a two-year-old team can be stale for someone who moved. `bias.py` now checks the pick held out. It picks the variant at a cut one window earlier (2025-10-06), confirms it on the current cut (2026-04-04), and puts a seeded paired-bootstrap 95% interval on the delta. Those numbers come with the rerun.
+Lowering the share threshold changes nothing: files are unowned because their authors have no team, not because shares sit near 0.30. Falling back to the last toucher owns 65% more files but is wrong more often and widens the worst module gap to 0.278. A longer team lookback helps, but each variant is scored against its own labels. The 730-day lookback gives a team to 86 next authors who were guaranteed misses before. Without them, accuracy goes 0.496 → 0.545 (+0.049, with overlapping intervals), and unassigned next authors fall 24.7% → 16.0%. The cost is that a two-year-old team can be stale for someone who moved. `bias.py` checks the pick held out: it picks the variant at a cut one window earlier (2025-10-06), confirms it on the current cut (2026-04-04), and puts a seeded paired-bootstrap 95% interval on the delta. **At the earlier cut the configured 180-day rule wins** (0.505 vs 0.502 for 730 days, on 1,279 files), so the held-out delta is 0.0 (interval 0.0–0.0). The accuracy gain is in-sample only, and the 730-day lookback is not adopted. Its coverage gain (unassigned 24.7% → 16.0%) stays a team call.
 
 Applied now, without a new run_id: every slice in `bias.json` carries its N, interval and flag, so the views can show "low coverage" next to a flagged module, team or component, and "too few to judge" under N = 30. Next run (team decision): `[teams.spark] lookback_days = 730`. It changes `meridian.toml` and `owners.py`, so it needs a new team run_id. Adopt it if the held-out interval stays above 0. For ticket mapping, fuzzy matching is ruled out, so the fix is coverage: add `apache/spark-docker` and `apache/spark-kubernetes-operator` to the snapshot. `tests/test_bias.py` (9 tests, passed) pins the CI flag rule, a slice at exactly N = 30, multi-component tickets, the prior-commits slice and the held-out scoring on a synthetic history.
