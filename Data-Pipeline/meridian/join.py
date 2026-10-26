@@ -191,17 +191,22 @@ def blame(co, rev, path, lines, reverse=False):
     return porcelain_shas(git(co, *args))
 
 
-def match(prev, now, diff):
-    """prev: last run's present sites (with call_site_id); now: this run's sites. -> {index in now: id}, unmatched prev."""
+def match(prev, now, diff, unparsed=frozenset()):
+    """prev: last run's present sites (with call_site_id); now: this run's sites; unparsed: this repo's paths that failed
+    to parse this run. -> ({index in now: id}, unmatched prev, [(prev site, where the line map puts it)] in an unparsed
+    file). A site in an unparsed file has no candidate to match: it is set aside before step 2, which would otherwise
+    hand it any same-text site in another file (an import line, most often)."""
     taken, ids = set(), {}
     at = {(s["path"], s["line"], s["col"], s["symbol"]): i for i, s in enumerate(now)}
-    left = []
+    left, stuck = [], []
     for p in prev:  # 1. git line map, renames followed
         to = map_line(diff, p["path"], p["line"])
         i = at.get((to[0], to[1], p["col"], p["symbol"])) if to else None
         if i is not None and i not in taken:
             ids[i] = p["call_site_id"]
             taken.add(i)
+        elif (to[0] if to else p["path"]) in unparsed:
+            stuck.append((p, to))
         else:
             left.append(p)
     pool = defaultdict(list)  # 2. same repo, symbol, scope, normalized line, in occurrence order
@@ -217,7 +222,7 @@ def match(prev, now, diff):
             taken.add(i)
         else:
             gone.append(p)
-    return ids, gone
+    return ids, gone, stuck
 
 
 def newest(history):
@@ -250,12 +255,8 @@ def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout, faile
         ids, gone, stuck = {}, [], []
         if was:
             diff = line_map(co, old_sha, shas[repo])
-            ids, gone = match(was, now, diff)
-            for p in gone:  # a file that didn't parse has no candidates, not no sites: they stay present
-                to = map_line(diff, p["path"], p["line"])
-                if (repo, to[0] if to else p["path"]) in failed:
-                    stuck.append((p, to))
-            gone = [p for p in gone if all(p is not q for q, _ in stuck)]
+            # a file that didn't parse has no candidates, not no sites: they stay present
+            ids, gone, stuck = match(was, now, diff, {path for r, path in failed if r == repo})
         used = set(last) | set(ids.values())
         free = {i for i, r in last.items() if r["status"] == "removed"}  # a removed site's ID can come back, once
         for i, s in enumerate(now):  # new sites: their own ID, bumped past any ID another site already holds

@@ -105,6 +105,13 @@ class Bias(unittest.TestCase):
         self.assertEqual(t["mapped_share_by_year"]["by_group"]["0012"]["n"], 1.0)
         self.assertEqual(self.report["resolver"]["kept_share_by_repo"]["overall"]["kept_share"], 0.5)
 
+    def test_no_jira_tickets_is_no_ticket_slices_not_a_crash(self):   # a dataset without a tracker
+        out = self.tmp / "nojira"
+        out.mkdir()
+        write_jsonl(out / "ticket.jsonl", [])
+        write_jsonl(out / "ticket_map.jsonl", [])
+        self.assertEqual(B.mapping_report(out, {"min_n": 30, "max_gap": 0.1}), {})
+
     def test_written_as_json(self):
         self.assertEqual(self.saved["owner_rule"]["accuracy_by_module"], self.report["owner_rule"]["accuracy_by_module"])
 

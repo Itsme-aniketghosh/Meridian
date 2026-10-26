@@ -15,6 +15,9 @@ idempotent ("same run, same output"), so a retry just reruns the part. A task th
 alert ([alerts], through meridian.alert). One run at a time per DAG (max_active_runs = 1): a click during a run queues
 one more, and its anything_new drops it if that run already took every push.
 
+A trigger whose config names a run_id, or has "force": true, skips anything_new: that run is made even if nothing is
+new (a rerun after a code fix). For a run whose snapshot exists, collect replays its SHAs and snapshot_at.
+
 The run: the trigger's config {"run_id": "...", "prev_run": "..."}, else whatever run collect makes from the inputs
 (update) or the last published run (rebuild). prev_run: the config, else [pipeline] prev_run or the last published run (update), or the
 published run's own prev_run (rebuild, to give the same bytes). Never the run itself.
@@ -44,6 +47,9 @@ HANDOFF = load_config(HERE / PIPELINE["config"])["run"]["handoff_dir"]
 COLLECT = "dag_run.conf.get('run_id') or 'new'"
 RUN = {"update": "dag_run.conf.get('run_id') or (ti.xcom_pull(task_ids='collect') or '').split('=')[-1]",
        "rebuild": "dag_run.conf.get('run_id') or published('run_id') or params.run_id"}
+# A trigger that names a run ({"run_id": ...}) or says {"force": true} wants that run made: anything_new doesn't get a
+# say (a rerun after a code fix, or of an older run: collect replays an existing snapshot's SHAs and snapshot_at)
+FORCE = "{{ dag_run.conf.get('run_id') or ('force' if dag_run.conf.get('force') else '') }}"
 PREV = {"update": "dag_run.conf.get('prev_run') or params.prev_run or published('run_id')",
         "rebuild": "dag_run.conf.get('prev_run') or published('prev_run') or params.prev_run"}
 
@@ -55,8 +61,12 @@ def on_failure(context):
                [str(context.get("exception") or ""), f"log: {ti.log_url}"], "failure")
 
 
-def gate(cmd, go, stop):
-    """Run a gate's command: go on at exit code go, skip the rest of the DAG at stop, fail at anything else."""
+def gate(cmd, go, stop, force=""):
+    """Run a gate's command: go on at exit code go, skip the rest of the DAG at stop, fail at anything else.
+    force (rendered from the trigger's config): go on without asking, for a run someone asked for by name."""
+    if force:
+        print(f"forced by the trigger's config ({force}): not asking {cmd}", flush=True)
+        return True
     p = subprocess.run(cmd, shell=True, cwd=HERE, capture_output=True, text=True)
     print(p.stdout, p.stderr, sep="\n", flush=True)
     if p.returncode not in (go, stop):
@@ -91,8 +101,10 @@ def build(name, description):
                           REBUILD.as_posix(), HANDOFF)
             timeout = timedelta(minutes=ORCH.get("timeout_minutes", {}).get(task, 60))
             if task in GATES:
+                force = FORCE if task == "anything_new" else ""   # compare is never skipped: it is the weekly check
                 tasks[task] = ShortCircuitOperator(task_id=task, python_callable=gate, execution_timeout=timeout,
-                                                   op_kwargs={"cmd": cmd, "go": GATES[task][0], "stop": GATES[task][1]})
+                                                   op_kwargs={"cmd": cmd, "go": GATES[task][0], "stop": GATES[task][1],
+                                                              "force": force})
             else:
                 tasks[task] = BashOperator(task_id=task, bash_command=cmd, cwd=str(HERE), execution_timeout=timeout,
                                            env={"PYTHONUNBUFFERED": "1"},

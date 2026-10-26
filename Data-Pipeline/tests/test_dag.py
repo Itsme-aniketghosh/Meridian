@@ -6,7 +6,8 @@ installed (the Docker image):
     docker compose run --rm --no-deps -e CONNECTION_CHECK_MAX_COUNT=0 -w /opt/meridian/Data-Pipeline \
         airflow-scheduler python -m unittest tests.test_dag -v                        # with Airflow, no database
 """
-import importlib.util, sys, unittest
+import importlib.util, io, sys, unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
@@ -99,6 +100,15 @@ class Dag(unittest.TestCase):
             self.assertEqual(dag.max_active_runs, 1)
             for task, upstream in P.DAGS[name].items():
                 self.assertEqual(dag.get_task(task).upstream_task_ids, set(upstream), f"{name}.{task}")
+
+    def test_a_trigger_naming_a_run_skips_anything_new(self):   # a rerun after a code fix, from the UI or the API
+        import meridian_dag as M
+        self.assertIn("dag_run.conf", self.dags["update"].get_task("anything_new").op_kwargs["force"])
+        self.assertEqual(self.dags["rebuild"].get_task("compare").op_kwargs["force"], "")   # the weekly check always runs
+        with redirect_stdout(io.StringIO()):
+            self.assertTrue(M.gate("exit 1", 0, 99, force="R1"))     # forced: the command isn't even run
+            self.assertFalse(M.gate("exit 99", 0, 99))                # not forced: nothing new stops the DAG
+            self.assertTrue(M.gate("exit 0", 0, 99))
 
     def test_settings_reach_the_tasks(self):
         orch = load_settings("orchestration")

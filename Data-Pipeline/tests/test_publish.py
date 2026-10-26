@@ -182,6 +182,25 @@ class Status(Base):
         self.published(self.shas[-1])
         self.assertEqual(self.main()[0], S.NOTHING_NEW)
 
+    def test_a_push_since_the_last_collect_is_seen(self):   # the mirror is fetched first for a followed branch
+        upstream = self.tmp / "upstream"
+        upstream.mkdir()
+        git(upstream, "init", "--quiet", "--initial-branch=main")
+        commit = lambda m: git(upstream, "-c", "user.name=t", "-c", "user.email=t@x", "commit", "--quiet", "--allow-empty", "-m", m)
+        commit("c0")
+        mirror = self.tmp / "mirrors" / "o__f.git"
+        git(self.tmp, "clone", "--bare", "--quiet", str(upstream), str(mirror))
+        self.config.write_text(CONFIG.replace('{ repo = "o/gone", ref = "HEAD" }', '{ repo = "o/f", ref = "main" }'), encoding="utf-8")
+        self.block(self.tmp, shas={"o/r": self.shas[-1], "o/f": git(mirror, "rev-parse", "main").strip()})
+        self.publish("R1")
+        self.assertEqual(self.main()[0], S.NOTHING_NEW)
+        commit("c1")   # pushed upstream after the last collect: only a fetch can see it
+        st = S.status(self.config, self.tmp, self.settings)
+        self.assertEqual((st["repos"], st["new"]), ({"o/r": 0, "o/f": 1}, True))
+        self.settings.write_text(SETTINGS.replace("stale_after_hours", "fetch = false\nstale_after_hours"), encoding="utf-8")
+        commit("c2")
+        self.assertEqual(S.status(self.config, self.tmp, self.settings)["repos"]["o/f"], 1)   # not fetched: c2 unseen
+
     def test_an_old_publish_is_new_for_the_tickets(self):
         self.published(self.shas[-1], "2000-01-01T00:00:00Z")
         st = S.status(self.config, self.tmp, self.settings)

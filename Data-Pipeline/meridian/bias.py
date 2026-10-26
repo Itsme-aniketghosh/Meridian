@@ -155,6 +155,8 @@ def mapping_report(out, b):
     rows = [{"component": (json.loads(t["components"]) or ["(none)"])[0], "type": t["effective_type"],
              "year": t["created_at"][:4], "mapped": int(t["key"] in mapped)}
             for t in stream(out / "ticket.jsonl", lambda t: t["tracker"] == "jira")]
+    if not rows:   # no Jira tickets (a dataset without a tracker): nothing to slice, like owner_rule without owners
+        return {}
     df = pd.DataFrame(rows)
     report = {}
     for by in ("component", "type", "year"):

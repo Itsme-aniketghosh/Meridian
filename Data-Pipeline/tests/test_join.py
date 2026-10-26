@@ -345,6 +345,16 @@ class Units(unittest.TestCase):
         self.assertEqual(self.sites_run(hist, [], diff, {(REPO, "b.py")}), [(4, "present", "S1")])  # carried, not removed
         self.assertEqual(self.sites_run(hist, [], diff), [(3, "removed", "S1")])  # without the parse failure: removed
 
+    def test_a_site_in_an_unparsed_file_is_not_handed_another_files_identical_line(self):
+        p = J.with_occurrence([self.site(1, "b.py")])[0]   # R1: b.py's line; R2: b.py breaks, a.py gets the same line
+        hist = [self.version(p, "S1", "present", "2026-01-01T00:00:00Z")]
+        now = J.with_occurrence([self.site(1, "a.py")])
+        got = self.sites_run(hist, now, {"a.py": ("a.py", [(0, 0, 1, 1)])}, {(REPO, "b.py")})
+        self.assertEqual(len(got), 1)                       # only a.py's site is written
+        line, status, sid = got[0]
+        self.assertEqual((line, status), (1, "present"))
+        self.assertNotEqual(sid, "S1")                      # its own ID: S1 stays b.py's, present, no new version
+
     def test_settings_the_code_doesnt_do_stop(self):
         cfg = {"join": {"call_site_id": J.ID_FIELDS, "normalize_line": "strip_whitespace", "match_order": J.MATCH_ORDER,
                         "fuzzy_ticket_matching": True}}

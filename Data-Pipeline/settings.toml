@@ -60,7 +60,9 @@ data_root = "rebuild"                 # its own snapshots/ (a link to the real o
 dir = "published"                     # under the data root: <run_id>.sqlite per published run, latest.json -> the live one
 
 [status]                              # meridian.status: "data 2 days old · 14 new commits"
-mirrors = "snapshots/_cache/repos"    # under the data root: one bare <owner>__<name>.git per repo (collect's). Never fetched
+mirrors = "snapshots/_cache/repos"    # under the data root: one bare <owner>__<name>.git per repo (collect's)
+fetch = true                          # fetch the mirror of a repo that follows a branch before counting its new commits,
+                                      # so a push since the last collect is seen. Pinned repos are never fetched
 stale_after_hours = 24                # a publish older than this counts as new: ticket changes can't be seen without a pull
 
 # ───────────── alerts ─────────────
