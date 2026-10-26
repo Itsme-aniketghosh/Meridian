@@ -1,0 +1,6 @@
+# The weekly GX audit's own environment (settings.toml [gx] python), apart from the pipeline's: Great Expectations pins
+# many libraries of its own, and the pipeline (Fairlearn, Jedi, tree-sitter) must never move with them. meridian.gx
+# imports only the standard library from the pipeline, so nothing else is needed here. Exact versions, Python 3.11.
+
+great_expectations==1.24.1  # the suite and the Data Docs
+pandas==3.1.0               # what GX checks the tables in; same version as the pipeline's

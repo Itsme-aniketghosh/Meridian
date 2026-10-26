@@ -40,6 +40,7 @@ validate = 30
 bias = 20
 report = 20
 compare = 20
+gx = 20
 publish = 30                          # with [dvc] push, the upload
 
 [dags.update]                         # the "Update graph" click (a trigger, through the UI or the REST API) and daily
@@ -55,6 +56,11 @@ schedule = "0 4 * * 0"                # Sunday 04:00 UTC, after the day's update
 data_root = "rebuild"                 # its own snapshots/ (a link to the real one) and out/, under the data root
 
 # ───────────── publishing and staleness ─────────────
+
+[gx]                                  # meridian.gx: the weekly Great Expectations audit (rebuild only, never gates)
+python = "/opt/meridian-gx-venv/bin/python"   # its own environment in the image, built from requirements-gx.txt. The
+                                      # checks are [validate]'s rows, missing, formats, ranges and dates; the Data Docs
+                                      # go to [publish] dir/gx/<run_id>/
 
 [publish]
 dir = "published"                     # under the data root: <run_id>.sqlite per published run, latest.json -> the live one

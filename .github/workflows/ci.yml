@@ -21,6 +21,19 @@ jobs:
       - run: python -m unittest discover -s tests -t .
         working-directory: Data-Pipeline
 
+  gx:  # tests.test_gx in the GX audit's own environment (requirements-gx.txt), as the weekly rebuild runs it
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Data-Pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m venv /tmp/gx && /tmp/gx/bin/pip install -r requirements-gx.txt
+      - run: /tmp/gx/bin/python -m unittest tests.test_gx -v
+
   airflow:  # test_dag's last 3 tests: Airflow's own DagBag loads both DAGs, in the image the pipeline runs in
     runs-on: ubuntu-latest
     defaults:

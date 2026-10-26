@@ -459,8 +459,8 @@ stages:
       size: 16842
     - path: settings.toml
       hash: md5
-      md5: b640499fd6ba15b2b418674a97ef8490
-      size: 15596
+      md5: 7f112abbb764d6193fe6e91a31a39c47
+      size: 16033
     outs:
     - path: ../out/70dd1dabfed544b8/anomalies.json
       hash: md5
@@ -524,8 +524,8 @@ stages:
       size: 21412
     - path: settings.toml
       hash: md5
-      md5: b640499fd6ba15b2b418674a97ef8490
-      size: 15596
+      md5: 7f112abbb764d6193fe6e91a31a39c47
+      size: 16033
     outs:
     - path: ../out/70dd1dabfed544b8/bias.json
       hash: md5
