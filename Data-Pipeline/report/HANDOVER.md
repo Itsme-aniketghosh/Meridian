@@ -40,7 +40,7 @@ When the run is done:
 ## 2. Tests that only run in Docker or with team data
 
 ```
-# Airflow half of test_dag, including the new template-rendering test (never run yet)
+# Airflow half of test_dag, including the new template-rendering test (passes in CI's airflow job since 99fb73c; rerun locally if you change the DAG)
 docker compose run --rm --no-deps -e CONNECTION_CHECK_MAX_COUNT=0 -w /opt/meridian/Data-Pipeline airflow-scheduler python -m unittest tests.test_dag -v
 
 # GX audit tests, in the image's GX environment
