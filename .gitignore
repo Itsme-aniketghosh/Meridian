@@ -48,6 +48,8 @@ Data-Pipeline/logs/*
 # Exceptions: small hand-made evidence files, not data (Data-Pipeline/CSV-POLICY.md)
 !week1/pair2/merged/links_hand_check_50.csv
 !**/labels/*.csv
+# the Gantt's task timings: no personal data
+!Data-Pipeline/report/airflow_run.csv
 
 # OS / editor junk
 .DS_Store
