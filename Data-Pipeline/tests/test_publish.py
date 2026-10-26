@@ -46,12 +46,13 @@ class Base(unittest.TestCase):
         self.config.write_text(CONFIG, encoding="utf-8")
         self.settings.write_text(SETTINGS, encoding="utf-8")
 
-    def block(self, root, run_id="R1", anomalies=(), shas=None, db=b"block", status="complete"):
+    def block(self, root, run_id="R1", anomalies=(), shas=None, db=b"block", status="complete",
+              snapshot_at="2026-10-01T00:00:00Z"):
         out = root / "out" / run_id
         out.mkdir(parents=True, exist_ok=True)
         (out / "meridian.sqlite").write_bytes(db)
         (out / "anomalies.json").write_text(json.dumps(list(anomalies)), encoding="utf-8")
-        (out / "run.jsonl").write_text(json.dumps({"run_id": run_id, "snapshot_at": "2026-10-01T00:00:00Z",
+        (out / "run.jsonl").write_text(json.dumps({"run_id": run_id, "snapshot_at": snapshot_at,
                                                    "repo_shas": json.dumps(shas or {"o/r": "a" * 40}), "status": status,
                                                    "notes": "", "config_hash": self.config_hash()}) + "\n")
         return out
@@ -88,16 +89,19 @@ class Publish(Base):
         self.assertFalse((self.tmp / "published" / "R2.sqlite").exists())
 
     def test_a_rebuild_publishes_beside_the_update_never_over_it(self):
-        self.block(self.tmp)
+        (self.block(self.tmp) / "only_main.jsonl").write_text("{}\n")
         self.publish("R1")
-        self.block(self.tmp / "rebuild", db=b"rebuilt")
+        (self.block(self.tmp / "rebuild", db=b"rebuilt") / "gx_project").mkdir()
         self.publish("R1", from_root=self.tmp / "rebuild")
         pub = self.tmp / "published"
         self.assertEqual(((pub / "R1.sqlite").read_bytes(), (pub / "R1.rebuild.sqlite").read_bytes()),
                          (b"block", b"rebuilt"))
         self.assertEqual(Pub.latest(self.tmp, self.settings)["file"], "R1.rebuild.sqlite")
-        # the update's out/ was wrong: the rebuild's replaces it, for the next update's join
-        self.assertEqual((self.tmp / "out" / "R1" / "meridian.sqlite").read_bytes(), b"rebuilt")
+        # the update's out/ was wrong: the rebuild's replaces it, for the next update's join. Nothing stale survives
+        main = self.tmp / "out" / "R1"
+        self.assertEqual((main / "meridian.sqlite").read_bytes(), b"rebuilt")
+        self.assertEqual(sorted(p.name for p in main.iterdir()), ["anomalies.json", "meridian.sqlite", "run.jsonl"])
+        self.assertEqual(sorted(p.name for p in main.parent.iterdir()), ["R1"])   # no tmp left
 
     def test_a_rebuild_never_rolls_back_a_newer_run(self):
         self.block(self.tmp)
@@ -109,16 +113,47 @@ class Publish(Base):
             self.publish("R1", from_root=self.tmp / "rebuild")
         self.assertEqual(Pub.latest(self.tmp, self.settings)["run_id"], "R2")
 
+    def test_an_update_never_rolls_back_a_newer_run(self):   # an older run_id triggered, or a slow update
+        self.block(self.tmp, "R2", snapshot_at="2026-10-02T00:00:00Z")
+        self.publish("R2", prev_run="R1")
+        self.block(self.tmp, "R1")
+        with self.assertRaisesRegex(SystemExit, "R2 is live now"):
+            self.publish("R1", prev_run="R0")
+        self.assertEqual(Pub.latest(self.tmp, self.settings)["run_id"], "R2")
+        self.assertEqual(self.publish("R2", prev_run="R1")["run_id"], "R2")   # the same run again is no rollback
+
+    def test_an_update_keeps_only_the_live_and_prev_runs_data(self):   # and the frozen team run
+        old, prev, new, frozen = "0" * 16, "1" * 16, "2" * 16, "f" * 16
+        self.settings.write_text(SETTINGS + f'[pipeline]\nrun_id = "{frozen}"\n', encoding="utf-8")
+        mirror = self.tmp / "snapshots" / "_cache" / "repos" / "o__r.git"
+        mirror.mkdir(parents=True)
+        git(mirror, "init", "--quiet")
+        git(mirror, "-c", "user.name=t", "-c", "user.email=t@x", "commit", "--quiet", "--allow-empty", "-m", "c")
+        sha = git(mirror, "rev-parse", "HEAD").strip()
+        for r in (old, prev, new, frozen):
+            self.block(self.tmp, r)
+            (self.tmp / "snapshots" / r).mkdir(parents=True)
+            git(mirror, "update-ref", f"refs/runs/{r}", sha)
+        for other in ("snapshots/.staging-" + old, "out/" + old + ".tmp"):
+            (self.tmp / other).mkdir()
+        self.publish(new, prev_run=prev)
+        self.assertEqual(sorted(p.name for p in (self.tmp / "snapshots").iterdir()),
+                         [".staging-" + old, prev, new, "_cache", frozen])
+        self.assertEqual(sorted(p.name for p in (self.tmp / "out").iterdir()), [old + ".tmp", prev, new, frozen])
+        self.assertEqual(git(mirror, "for-each-ref", "--format=%(refname)", "refs/runs/").split(),
+                         [f"refs/runs/{prev}", f"refs/runs/{new}", f"refs/runs/{frozen}"])
+
     def test_a_partial_run_needs_allow_partial(self):   # a tracker down: code only
         self.block(self.tmp, status="partial")
         with self.assertRaisesRegex(SystemExit, "R1 is partial"):
             self.publish("R1")
         self.assertEqual(self.publish("R1", allow_partial=True)["run_id"], "R1")
 
-    def test_bias_json_ships_beside_the_block_and_latest_has_the_config_hash(self):
+    def test_only_the_block_ships_and_latest_has_the_config_hash(self):   # bias.json stays in out/: nothing reads it
         (self.block(self.tmp / "rebuild") / "bias.json").write_text('{"flags": []}')
         doc = self.publish("R1", from_root=self.tmp / "rebuild")
-        self.assertEqual((self.tmp / "published" / "R1.rebuild.bias.json").read_text(), '{"flags": []}')
+        self.assertEqual(sorted(p.name for p in (self.tmp / "published").iterdir()),
+                         ["R1.rebuild.sqlite", "latest.json"])
         self.assertEqual(doc["config_hash"], self.config_hash())
 
     def test_dvc_only_for_the_run_dvc_yaml_tracks(self):
@@ -265,10 +300,17 @@ class Status(Base):
         self.assertEqual((st["new_repos"], st["config_changed"], st["new"]), ([], True, True))
         self.assertRegex(self.main()[1], " · config changed$")
 
-    def test_an_old_publish_is_new_for_the_tickets(self):
+    def test_an_old_publish_is_new_for_the_tickets_once_a_repo_follows_a_branch(self):
+        self.published(self.shas[-1], "2000-01-01T00:00:00Z")
+        st = S.status(self.config, self.tmp, self.settings)   # every repo pinned: collect would make the same run
+        self.assertEqual((st["new_commits"], st["stale"], st["new"]), (0, False, False))
+        branch = git(self.repo, "branch", "--show-current").strip()
+        git(self.tmp, "clone", "--bare", "--quiet", str(self.repo), str(self.tmp / "mirrors" / "o__gone.git"))
+        self.config.write_text(CONFIG.replace('"o/gone", ref = "HEAD"', f'"o/gone", ref = "{branch}"'),
+                               encoding="utf-8")
         self.published(self.shas[-1], "2000-01-01T00:00:00Z")
         st = S.status(self.config, self.tmp, self.settings)
-        self.assertEqual((st["new_commits"], st["stale"], st["new"]), (0, True, True))
+        self.assertEqual((st["config_changed"], st["stale"], st["new"]), (False, True, True))
 
 
 class Trigger(Base):

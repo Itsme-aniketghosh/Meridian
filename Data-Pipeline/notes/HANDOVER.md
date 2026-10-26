@@ -4,16 +4,16 @@ Aniket's session wrote the report, red-teamed the pipeline and fixed what came u
 
 ## What's on the branch
 
-- `Data-Pipeline/report/`: [REPORT.md](REPORT.md), mapped point by point to the course guidelines, and Appendices A to E. Charts are in `figures/`, with the scripts that draw them (`figures_quality.py`, `figures_scenarios.py`, `gantt.py`).
+- `Data-Pipeline/report/`: [REPORT.md](../report/REPORT.md), mapped point by point to the course guidelines, and its appendices. Charts are in `figures/`, with the scripts that draw them (`figures_quality.py`, `figures_scenarios.py`, `gantt.py`).
 - `Data-Pipeline/run_demo.py`, the TA demo:
   - `short`: about 10 s, no team data, no Docker.
   - `long`: everything, with Airflow if Docker is up.
   - `download`: gets the data. Free RAM and disk are checked before each heavy step.
-- Fixes from the red team ([Appendix E](appendix-redteam.md)): knowledge-base queries, validate/writer/alert, bias, DAG and DVC, privacy, plus a code-style and housekeeping pass. The unit tests pass on Windows.
+- Fixes from the red team ([Appendix D](../report/appendix-testing.md)): knowledge-base queries, validate/writer/alert, bias, DAG and DVC, privacy, plus a code-style and housekeeping pass. The unit tests pass on Windows.
 
 ## 1. Run Airflow on your Mac (the main thing left)
 
-On Aniket's Windows laptop the run never finished. history and resolve hit their 60-minute timeout on every try, because of the slow Docker folder mount ([Appendix A](appendix-airflow.md)). On a Mac it should take about 12 minutes.
+On Aniket's Windows laptop the run never finished. history and resolve hit their 60-minute timeout on every try, because of the slow Docker folder mount ([Appendix A](../report/appendix-airflow.md)). On a Mac it should take about 12 minutes.
 
 ```
 cd Data-Pipeline
@@ -34,7 +34,7 @@ When the run is done:
    python report/gantt.py
    ```
 2. **Take screenshots** of the Graph view and the Gantt view (DAG, then the run, then Gantt). Put them in `report/figures/`.
-3. **Rewrite [Appendix A](appendix-airflow.md)** with the real wall time and the measured parallel saving. The current text is the Windows attempt. Then drop the "estimated" wording in REPORT.md row 9.
+3. **Rewrite [Appendix A](../report/appendix-airflow.md)** with the real wall time and the measured parallel saving. The current text is the Windows attempt. Then drop the "estimated" wording in REPORT.md row 9.
 4. **Run `meridian_rebuild` once.** Check that compare finds 0 differences, and screenshot the GX Data Docs page (`published/gx/<run_id>/index.html`). Both are rubric items with no evidence yet.
 
 ## 2. Tests that only run in Docker or with team data
@@ -63,7 +63,7 @@ python -m meridian.bias --run-id 70dd1dabfed544b8 --config meridian.toml
 python report/figures_quality.py ../out/70dd1dabfed544b8     # needs matplotlib
 ```
 
-Then fill in the numbers marked "rerun" in [BIAS.md](../BIAS.md) and [Appendix B](appendix-quality.md) section 5. Adopt the 730-day lookback only if the held-out interval stays above 0.
+Then fill in the numbers marked "rerun" in [BIAS.md](../BIAS.md) and [Appendix B](../report/appendix-quality.md) section 5. Adopt the 730-day lookback only if the held-out interval stays above 0.
 
 ## 4. Behaviour changes in your area: please review
 
@@ -73,7 +73,7 @@ Then fill in the numbers marked "rerun" in [BIAS.md](../BIAS.md) and [Appendix B
 | The rebuild picks its run once (in fresh, read through xcom) | `meridian_dag.py`, `pipeline_spec.py` |
 | Publish refuses to roll back the live run, and refuses a partial run unless `--allow-partial` is passed | `meridian/publish.py` |
 | When compare differs, the rebuild's `out/` overwrites main's | `publish.py` |
-| `bias.json` ships beside the block; `config_hash` is written into latest.json | `publish.py` |
+| `config_hash` is written into latest.json (the `bias.json` copy was dropped later: nothing read it) | `publish.py` |
 | DVC commit/push is skipped for any run other than `[pipeline] run_id` | `publish.py` |
 | compare depends on report only; rebuild publish depends on compare and bias | `pipeline_spec.py`, `test_dag.py` |
 | validate is never retried (data errors don't change on retry) | `settings.toml [orchestration] task_retries` |
@@ -94,7 +94,7 @@ Then fill in the numbers marked "rerun" in [BIAS.md](../BIAS.md) and [Appendix B
 
 ## Known open items
 
-These are listed in [Appendix E](appendix-redteam.md):
+These are listed in [Appendix D](../report/appendix-testing.md):
 - the bias flag rule isn't corrected for multiple comparisons
 - P1's precision on the replay is 0.36
 - `blocked_by` is empty on real data

@@ -7,7 +7,7 @@ Everything still open before graph data block v1 freezes, by owner. Team run `70
 ## Aniket · graph
 
 - [x] Rerun resolve after the Windows `array.py` fix, on Python 3.11: 2,293 edges, byte-identical to the 3.12 run before the fix (sha256 `8c6b9450d25c2fdb`)
-- [ ] Find the 5 Django edges between this 2,293 and RESOLVER.md's 2,288, with whoever wrote 2,288 (Python version and the fix are ruled out)
+- [x] Find the 5 Django edges between this 2,293 and RESOLVER.md's 2,288: Jedi's folder order differs by machine (report Appendix D, round 5)
 - [x] The full test run with `MERIDIAN_RUN_ID=70dd1dabfed544b8`: 178 of 178 OK, 0 skipped, Python 3.11, Windows (6 min)
 - [ ] Open the `aniket-graph` PR to `main`
 - [x] OK the writer change: `call_site` carries earlier runs' versions (JOIN.md, Flags). Reviewed: it allows earlier run_ids in `call_site` only, never one known after `snapshot_at`, and both cases have tests
@@ -36,7 +36,7 @@ Everything still open before graph data block v1 freezes, by owner. Team run `70
 - [ ] Real parts in the Airflow DAG (D8), schedule and rebuild check (D9), freeze v1 with the golden test in CI (D10)
 - [ ] CI: GitHub Actions on Ubuntu and Windows, Python 3.11, `python -m unittest discover -s tests -t .`
 - [ ] Cross-machine check: the same run on Windows and Mac, every `out/<run_id>/*.jsonl` sha256 equal. Never done; the `array.py` bug was Windows-only
-- [ ] GCP names `image` and `snapshot_bucket` in settings.toml
+- [ ] GCP names (the image, the snapshot bucket): into settings.toml with the code that reads them
 - [ ] 03-data updated to match the contracts once v1 is frozen
 - [ ] Outside the pipeline: missing surnames in the scoping doc, license checks, timeline against course deadlines
 

@@ -248,7 +248,12 @@ def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout, faile
     written, n = [], Counter()
     for repo in sorted(set(by_repo) | {r["repo"] for r in last.values()}):
         co, now = checkout(repo), by_repo.get(repo, [])
-        old_sha = json.loads(prev["run"]["repo_shas"])[repo] if prev else None
+        # a repo new to meridian.toml has no last SHA and no last sites: its sites are all new
+        old_sha = json.loads(prev["run"]["repo_shas"]).get(repo) if prev else None
+        if repo not in shas and any(r["repo"] == repo and r["status"] == "present" for r in last.values()):
+            # writing them removed would date a deletion that never happened, from a checkout this run doesn't have
+            raise SystemExit(f"{repo} left meridian.toml with present call sites: put it back, or run without "
+                             "--prev-run")
         # a site carried through a file that didn't parse last run has no candidate there: read its line from git
         text = lambda r: (prev["text"].get((repo, r["path"], r["line"], r["col"]))
                           or line_at(co, old_sha, r["path"], r["line"]))

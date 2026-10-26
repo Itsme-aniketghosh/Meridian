@@ -8,8 +8,8 @@ meridian_update: the "Update graph" click (a trigger, from the UI or the REST AP
 meridian_rebuild: weekly. Recomputes the last published run from scratch under its own data root, with bias, then
     compares every table with the update's (meridian.compare): same -> done; different -> alerted, and the rebuild is
     published.
-    fresh -> collect -> ... -> validate -> bias -> compare -> publish, and gx beside bias: the Great Expectations audit
-    with Data Docs, in its own environment, never gating (meridian.gx)
+    fresh -> collect -> ... -> validate -> report -> compare -> publish, and beside them, never gating: bias, and gx,
+    the Great Expectations audit with Data Docs, in its own environment (meridian.gx)
 
 Each task runs one command in the pipeline's own environment ([orchestration] python), from Data-Pipeline/. Parts are
 idempotent ("same run, same output"), so a retry just reruns the part. A task that fails after its retries sends an
@@ -38,30 +38,31 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from meridian import alert, publish                 # noqa: E402  (needs the path above)
 from meridian.common import data_root, load_config, load_settings, log   # noqa: E402
-from pipeline_spec import DAGS, GATES, command       # noqa: E402
+from pipeline_spec import DAGS, GATES, checked_run, command   # noqa: E402
 
 PIPELINE, ORCH, SPECS = load_settings("pipeline"), load_settings("orchestration"), load_settings("dags")
 GX_PYTHON = load_settings("gx").get("python") or ORCH["python"]   # the GX audit's own environment
-MAIN = data_root()
-REBUILD = MAIN / SPECS["rebuild"]["data_root"]
+MAIN = data_root().resolve()
+REBUILD = (MAIN / SPECS["rebuild"]["data_root"]).resolve()   # fresh's guard sees "../x" and links for what they are
 HANDOFF = load_config(HERE / PIPELINE["config"])["run"]["handoff_dir"]
 
 # Jinja expressions, rendered when a task runs: published(key) reads the live latest.json. The update's collect makes
 # whatever run the inputs give ('new': repos may follow a branch), and its last line, run_id=<id>, is the run after it.
 # The rebuild's fresh reads latest.json once and its last line, run_id=<id> prev_run=<id>, is the run after it: an
-# update publishing mid-rebuild can't switch the run under it
-COLLECT = "dag_run.conf.get('run_id') or 'new'"
-FRESH = ("dag_run.conf.get('run_id') or published('run_id') or params.run_id",
-         "dag_run.conf.get('prev_run') or published('prev_run') or params.prev_run")
-RUN = {"update": "dag_run.conf.get('run_id') or (ti.xcom_pull(task_ids='collect') or '').split('=')[-1]",
-       "rebuild": "(ti.xcom_pull(task_ids='fresh') or '').split(' ')[0].split('=')[-1]"}
+# update publishing mid-rebuild can't switch the run under it. checked() lets only a run_id (or '') into a command:
+# {"run_id": "../.."} would rm -rf the data root
+COLLECT = "checked(dag_run.conf.get('run_id')) or 'new'"
+FRESH = ("checked(dag_run.conf.get('run_id') or published('run_id') or params.run_id)",
+         "checked(dag_run.conf.get('prev_run') or published('prev_run') or params.prev_run)")
+RUN = {"update": "checked(dag_run.conf.get('run_id') or (ti.xcom_pull(task_ids='collect') or '').split('=')[-1])",
+       "rebuild": "checked((ti.xcom_pull(task_ids='fresh') or '').split(' ')[0].split('=')[-1])"}
 # A trigger that names a run ({"run_id": ...}) or says {"force": true} wants that run made: anything_new doesn't get a
 # say (a rerun after a code fix, or of an older run: collect replays an existing snapshot's SHAs and snapshot_at)
-FORCE = "{{ dag_run.conf.get('run_id') or ('force' if dag_run.conf.get('force') else '') }}"
+FORCE = "{{ checked(dag_run.conf.get('run_id')) or ('force' if dag_run.conf.get('force') else '') }}"
 # A rerun of the published run (forced) keeps its prev_run: matched against itself it would lose its history
-PREV = {"update": "dag_run.conf.get('prev_run') or params.prev_run or "
-                  "(published('prev_run') if published('run_id') == r else published('run_id'))",
-        "rebuild": "(ti.xcom_pull(task_ids='fresh') or '').split(' ')[-1].split('=')[-1]"}
+PREV = {"update": "checked(dag_run.conf.get('prev_run') or params.prev_run or "
+                  "(published('prev_run') if published('run_id') == r else published('run_id')))",
+        "rebuild": "checked((ti.xcom_pull(task_ids='fresh') or '').split(' ')[-1].split('=')[-1])"}
 FIRST = {("update", "collect"): (COLLECT, "''"), ("rebuild", "fresh"): FRESH}   # the tasks that name the run
 
 
@@ -103,7 +104,7 @@ def build(name, description):
         max_active_runs=1,                           # two runs would write the same out/<run_id>/ files
         max_active_tasks=ORCH.get("max_active_tasks", 4),
         params={"run_id": PIPELINE["run_id"], "prev_run": PIPELINE.get("prev_run", "")},
-        user_defined_macros={"published": lambda key: publish.latest(MAIN).get(key) or ""},
+        user_defined_macros={"published": lambda key: publish.latest(MAIN).get(key) or "", "checked": checked_run},
         default_args={
             "retries": ORCH.get("retries", 2),
             "retry_delay": timedelta(minutes=ORCH.get("retry_delay_minutes", 5)),

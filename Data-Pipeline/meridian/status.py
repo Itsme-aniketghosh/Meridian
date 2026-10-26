@@ -12,7 +12,8 @@ commits.
 
 Exit 0 = something new: nothing published yet, a new commit, a repo in meridian.toml the published run doesn't have
 (no mirror needed), a meridian.toml whose config_hash isn't the published run's, or a publish older than [status]
-stale_after_hours (ticket changes can't be seen without a pull). Exit 99 = nothing new. Anything else is an error.
+stale_after_hours (ticket changes can't be seen without a pull) while some repo follows a branch (with every repo
+pinned, collect makes the same run again). Exit 99 = nothing new. Anything else is an error.
 
     python -m meridian.status --update        # the "Update graph" click: trigger meridian_update
 
@@ -39,9 +40,14 @@ NOTHING_NEW = 99
 TIME = "%Y-%m-%dT%H:%M:%SZ"
 
 
+def follows(mirror, ref):
+    """ref is one of the mirror's branches (a followed repo), as collect's resolve tells it from a pinned SHA."""
+    return (mirror / "HEAD").exists() and rev(mirror, f"refs/heads/{ref}") is not None
+
+
 def refresh(mirror, ref):
     """Fetch the mirror if ref is one of its branches (a followed repo). True if it fetched."""
-    return (mirror / "HEAD").exists() and rev(mirror, f"refs/heads/{ref}") is not None and fetch(mirror)
+    return follows(mirror, ref) and fetch(mirror)
 
 
 def new_commits(mirror, published_sha, ref):
@@ -66,7 +72,9 @@ def status(config=CONFIG, root=None, settings=None, now=None):
     repos = {r["repo"]: new_commits(mirror(r), shas.get(r["repo"]), r["ref"]) for r in listed}
     since = lambda key: now - datetime.strptime(pub[key], TIME).replace(tzinfo=timezone.utc)
     commits = sum(n for n in repos.values() if n)
-    stale = not pub or since("published_at").total_seconds() > s.get("stale_after_hours", 24) * 3600
+    # every repo pinned: collect can only make the published run again, whatever the tickets did
+    stale = not pub or (any(follows(mirror(r), r["ref"]) for r in listed)
+                        and since("published_at").total_seconds() > s.get("stale_after_hours", 24) * 3600)
     new_repos = sorted(r["repo"] for r in listed if r["repo"] not in shas)
     config_changed = bool(pub) and pub.get("config_hash") != sha256(canon(cfg).encode())   # collect's config_hash
     return {"run_id": pub.get("run_id"), "snapshot_at": pub.get("snapshot_at"), "published_at": pub.get("published_at"),

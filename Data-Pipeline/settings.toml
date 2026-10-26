@@ -15,23 +15,17 @@ config = "meridian.toml"              # what the parts compute
 # ───────────── orchestration (Airflow) ─────────────
 
 [orchestration]                       # both DAGs (dags/meridian_dag.py); each one's id and schedule in [dags.*]
-tool = "airflow"
 retries = 2
 task_retries = { validate = 0 }       # per task, over retries: validate's errors are in the data, a retry finds them again
 retry_delay_minutes = 5
 max_active_tasks = 4                  # parts that may run at once: history next to scan and resolve
-task_runner = "bash"                  # "bash": each part is a command in the Airflow container (docker-compose.yaml).
-                                      # "cloud_run_job" on GCP, once it's set up
 python = "/opt/meridian-venv/bin/python"   # the pipeline's own environment in the image, built from requirements.txt
-image = "us-east1-docker.pkg.dev/meridian-pipeline/meridian/pipeline"   # Artifact Registry path. Placeholder until GCP is set up
-snapshot_bucket = "gs://meridian-pipeline-snapshots"                   # raw pulls and snapshots, replaces shared-snapshot/. Placeholder until GCP is set up
-alert_on = ["failed", "halted", "partial"]
 
 [orchestration.timeout_minutes]       # a task running longer than this is killed and retried
 anything_new = 5
 fresh = 5
 collect = 90                          # a new run checks out ~2.5 GB, slow on a mounted volume
-history = 60
+history = 180                         # the rebuild runs it cold (no caches): over an hour on a Mac or Windows folder mount
 scan = 20
 resolve = 60
 owners = 20

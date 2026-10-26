@@ -19,7 +19,7 @@ cd "Data-Pipeline"
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 285 tests ... OK (skipped=14)` (Windows, Python 3.11, Oct 26). 7 skipped ones need the team run, 5 need Airflow (`test_dag`'s DagBag half), 2 need Great Expectations (`test_gx.Audit`). CI runs exactly this on every push and pull request, on Linux and Windows, and runs the Airflow and GX ones in their own jobs (`.github/workflows/ci.yml`, below).
+Expect `Ran 287 tests ... OK (skipped=14)` (macOS, Python 3.11, Oct 26). 7 skipped ones need the team run, 5 need Airflow (`test_dag`'s DagBag half), 2 need Great Expectations (`test_gx.Audit`). CI runs exactly this on every push and pull request, on Linux and Windows, and runs the Airflow and GX ones in their own jobs (`.github/workflows/ci.yml`, below).
 
 ## Every test, the team run included
 
@@ -33,14 +33,14 @@ export MERIDIAN_RUN_ID=70dd1dabfed544b8                   # Mac, Linux
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 285 tests ... OK (skipped=7)`, only the Airflow and GX ones skipped. The extra 7 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`, no tracked name lost to parse failures), the packages' precision and recall, and the v1 golden files (below). The golden one checks the files on disk: on Windows, files made before the resolver fix (63851a7) fail on resolution, call_edge and blast_radius until resolve and graph are rerun with v1 code. Code from v1.2 on (schema.sql) writes other bytes by design: the next team run_id gets its own golden file.
+Expect `Ran 287 tests ... OK (skipped=7)`, only the Airflow and GX ones skipped. The extra 7 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines and 2 in `code.sample`, no tracked name lost to parse failures), the packages' precision and recall, and the v1 golden files (below). The golden one checks the files on disk: on Windows, files made before the resolver fix (63851a7) fail on resolution, call_edge and blast_radius until resolve and graph are rerun with v1 code. Code from v1.2 on (schema.sql) writes other bytes by design: the next team run_id gets its own golden file.
 
 ## Freeze v1
 
 v1 is frozen on run `70dd1dabfed544b8`: no contract change before this passes. `tests/test_golden.py`, two halves:
 
 1. **Fixture, everywhere (CI too).** The KB fixture through `graph` and the writer: the sha256 of all 25 `.jsonl` files and of every SQLite table's rows must equal `Data-Pipeline/golden/fixture.json`. Rows, not the `.sqlite` file: its header holds the SQLite version.
-2. **Team run, with `MERIDIAN_RUN_ID=70dd1dabfed544b8` and `out/70dd1dabfed544b8/` present.** The md5 and size of all 24 `.jsonl` outputs must equal `Data-Pipeline/golden/70dd1dabfed544b8.json`, which holds `dvc.lock`'s Mac values. `run.jsonl` is left out: its `image_digest` differs per machine by design. Every mismatching file is listed. It never runs in CI: the team data is private.
+2. **Team run, with `MERIDIAN_RUN_ID=70dd1dabfed544b8` and `out/70dd1dabfed544b8/` present.** The md5 and size of all 24 `.jsonl` outputs must equal `Data-Pipeline/golden/70dd1dabfed544b8.json`, which holds `dvc.lock`'s values from the pipeline image (`commit_file` was recorded again from a Docker run: git 2.39 in the image and the Mac's git 2.50 detect a few renames differently, 9 of 849,643 rows; `test_golden.py` says why). `run.jsonl` is left out: its `image_digest` differs per machine by design. Every mismatching file is listed. It never runs in CI: the team data is private.
 
 On Windows (Oct 24) 21 of 24 match; `resolution`, `call_edge` and `blast_radius` don't (the resolver's Windows gap, Data-Pipeline/notes/UPDATE-PLAN.md).
 

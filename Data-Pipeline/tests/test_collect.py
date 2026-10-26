@@ -216,6 +216,23 @@ min_share = {threshold}
         self.run_once(self.config())
         self.assertEqual([p.name for p in (self.tmp / "root" / "snapshots").glob(".staging-*")], [])
 
+    def test_checkouts_work_wherever_the_data_root_is_mounted(self):
+        """clone --shared wrote the mirror's absolute path: under Docker's /opt/meridian mount every git call in history
+        and resolve failed. The link is relative now, and collect repairs an older snapshot's absolute one."""
+        a = self.run_once(self.config())
+        co = Path("repos") / "fixture__repo"
+        alt = self.tmp / "root" / "snapshots" / a["run_id"] / co / ".git" / "objects" / "info" / "alternates"
+        self.assertFalse(Path(alt.read_text().strip()).is_absolute())
+        moved = self.tmp / "elsewhere"
+        shutil.move(self.tmp / "root", moved)   # another mount point: the old absolute path is gone
+        log = subprocess.run(["git", "-C", str(moved / "snapshots" / a["run_id"] / co), "log", "--oneline"],
+                             capture_output=True, text=True)
+        self.assertEqual((log.returncode, len(log.stdout.splitlines())), (0, 2), log.stderr)
+        alt = moved / "snapshots" / a["run_id"] / co / ".git" / "objects" / "info" / "alternates"
+        alt.write_text(str(self.tmp / "gone" / "objects") + "\n")   # a snapshot made before the fix, somewhere else
+        self.assertEqual(S.snapshot(self.config(), root=moved), a)         # same inputs, same run: and repaired
+        self.assertFalse(Path(alt.read_text().strip()).is_absolute())
+
     def test_run_id_follows_config_values_not_comments(self):
         a = self.run_once(self.config())
         self.assertEqual(a["run_id"], self.run_once(self.config(comment="# a comment"))["run_id"])

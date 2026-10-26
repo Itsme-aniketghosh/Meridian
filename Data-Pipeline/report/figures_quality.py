@@ -111,7 +111,7 @@ for ax, (key, title) in zip(axes, [(acc, "accuracy, next authors with a team (â†
     hbars(ax, names, vals, [RED if "730" in n else BLUE for n in names], fmt="{:.3f}")
     ax.set_title(title, fontsize=8, loc="left")
     ax.set_xlim(0, max(vals) * 1.3)
-fig.suptitle("Owner-rule mitigations (red: recommended, teams from 730 days)", x=0.01, ha="left")
+fig.suptitle("Owner-rule mitigations (red: teams from 730 days, best in-sample; the held-out check keeps 180 days)", x=0.01, ha="left")
 save(fig, "bias_mitigation.png")
 
 # 6. tests per file, from the -v output
