@@ -42,7 +42,7 @@ v1 is frozen on run `70dd1dabfed544b8`: no contract change before this passes. `
 1. **Fixture, everywhere (CI too).** The KB fixture through `graph` and the writer: the sha256 of all 25 `.jsonl` files and of every SQLite table's rows must equal `Data-Pipeline/golden/fixture.json`. Rows, not the `.sqlite` file: its header holds the SQLite version.
 2. **Team run, with `MERIDIAN_RUN_ID=70dd1dabfed544b8` and `out/70dd1dabfed544b8/` present.** The md5 and size of all 24 `.jsonl` outputs must equal `Data-Pipeline/golden/70dd1dabfed544b8.json`, which holds `dvc.lock`'s values from the pipeline image (`commit_file` was recorded again from a Docker run: git 2.39 in the image and the Mac's git 2.50 detect a few renames differently, 9 of 849,643 rows; `test_golden.py` says why). `run.jsonl` is left out: its `image_digest` differs per machine by design. Every mismatching file is listed. It never runs in CI: the team data is private.
 
-On Windows (Oct 24) 21 of 24 match; `resolution`, `call_edge` and `blast_radius` don't (the resolver's Windows gap, UPDATE-PLAN.md).
+On Windows (Oct 24) 21 of 24 match; `resolution`, `call_edge` and `blast_radius` don't (the resolver's Windows gap, Data-Pipeline/notes/UPDATE-PLAN.md).
 
 To change the fixture's bytes on purpose: `python -m tests.test_golden --update` (from `Data-Pipeline/`), and say why in the commit. The team-run file is never regenerated: a contract change means a new team `run_id` and a new golden file.
 

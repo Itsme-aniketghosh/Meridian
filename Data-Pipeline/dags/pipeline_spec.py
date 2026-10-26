@@ -2,6 +2,8 @@
 made of them. The Airflow DAGs (meridian_dag.py) are built from this, and tests/test_dag.py checks it without Airflow
 installed: every table a part reads is written by a part upstream of it, and publish only ever follows validate.
 """
+import os
+import re
 
 # part: (upstream parts, tables it reads, tables it writes). Order = a valid run order.
 STEPS = {
@@ -34,12 +36,20 @@ DAGS = {
                "publish": ("report",)},
     "rebuild": {"fresh": (), "collect": ("fresh",), **CORE, "bias": ("validate",), "gx": ("validate",),
                 "report": ("validate",), "compare": ("report",),
-                "publish": ("compare", "bias")},   # bias.json ships with it
+                "publish": ("compare",)},
 }
 
 # Gates stop the rest of their DAG by their command's exit code: task -> (go on, stop). Any other code fails the task.
 GATES = {"anything_new": (0, 99),   # meridian.status: 0 = something new since the last published run, 99 = nothing
          "compare": (3, 0)}         # meridian.compare: 3 = the rebuild differs (alerted): publish it; 0 = same: done
+
+
+def checked_run(v):
+    """v if it's a run_id (16 hex) or empty, else ValueError: the trigger's config goes into shell commands, rm -rf's
+    among them."""
+    if v and not re.fullmatch(r"[0-9a-f]{16}", str(v)):
+        raise ValueError(f"not a run_id: {v!r}")
+    return v or ""
 
 
 def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", rebuild="", handoff="out/{run_id}",
@@ -51,7 +61,7 @@ def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", re
     too."""
     if task == "fresh":   # from scratch: its out/<run_id> wiped; the snapshot and the previous run's out/ linked in.
         # Its last line names the run once, for the later tasks (xcom): an update publishing meanwhile can't switch it
-        if not rebuild or rebuild.rstrip("/") in ("", ".", main.rstrip("/")):   # fresh rm -rf's under it
+        if not rebuild or os.path.realpath(rebuild) in (os.path.realpath("."), os.path.realpath(main)):
             raise ValueError(f"[dags.rebuild] data_root must be a folder of its own, not {rebuild!r} "
                              f"(main is {main!r})")
         out = f"{rebuild}/{handoff.format(run_id=run_id)}"

@@ -1,6 +1,6 @@
 # Shared snapshot · temporary
 
-**Temporary.** This folder exists only until Utkarsh's GCS bucket is ready (`snapshot_bucket` in [settings.toml](../settings.toml)). Then collect uploads and downloads the raw pulls itself, and this folder gets deleted.
+**Temporary.** This folder exists only until Utkarsh's GCS bucket is ready. Then collect uploads and downloads the raw pulls itself, and this folder gets deleted.
 
 ## Why this exists
 

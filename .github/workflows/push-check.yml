@@ -94,8 +94,10 @@ jobs:
         run: |
           marker='<!-- meridian-push-check -->'   # = meridian.pushcheck.MARKER, the comment's first line
           body="$RUNNER_TEMP/comment.md"
+          # ours = posted by this job's token (github-actions[bot]): anyone can post a comment starting with the marker
           id=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
-                 --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1)
+                 --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" \
+               | head -n 1)
           if [ ! -s "$body" ]; then
             if [ -z "$id" ]; then exit 0; fi   # nothing to say, and nothing said before
             printf '%s\n**Meridian push check**: nothing to flag at %s.\n' "$marker" "$SHA" > "$body"

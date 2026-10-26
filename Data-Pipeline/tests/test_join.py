@@ -331,9 +331,9 @@ class Units(unittest.TestCase):
         self.assertEqual(n, {"dropped": 1, "not_edit_role": 1})
 
     # build_sites with git stubbed: (line, call_site_id) of the versions this run writes
-    def sites_run(self, hist, now, diff, failed=frozenset(), text=None):
-        run = {"snapshot_at": "2026-03-01T00:00:00Z", "repo_shas": json.dumps({REPO: "new"})}
-        prev = {"history": hist, "run": {"repo_shas": json.dumps({REPO: "old"})}, "text": text or {}}
+    def sites_run(self, hist, now, diff, failed=frozenset(), text=None, shas=None, prev_shas=None):
+        run = {"snapshot_at": "2026-03-01T00:00:00Z", "repo_shas": json.dumps(shas or {REPO: "new"})}
+        prev = {"history": hist, "run": {"repo_shas": json.dumps(prev_shas or {REPO: "old"})}, "text": text or {}}
         commits = [dict(repo=REPO, sha=sha, authored_at="2026-03-01T00:00:00Z", seq=i, first_parent=1)
                    for i, sha in enumerate(["s", "new"])]
         with mock.patch.object(J, "line_map", lambda *a: diff), \
@@ -378,6 +378,17 @@ class Units(unittest.TestCase):
         line, status, sid = got[0]
         self.assertEqual((line, status), (1, "present"))
         self.assertNotEqual(sid, "S1")                      # its own ID: S1 stays b.py's, present, no new version
+
+    def test_a_repo_new_to_the_config_has_only_new_sites(self):  # the last run didn't have REPO
+        now = J.with_occurrence([self.site(3)])
+        self.assertEqual(self.sites_run([], now, {}, prev_shas={"x/other": "old"}),
+                         [(3, "present", J.site_id(now[0]))])
+
+    def test_a_repo_that_left_the_config_stops(self):  # its sites aren't removed from the code, only from the run
+        p = J.with_occurrence([self.site(3)])[0]
+        hist = [self.version(p, "S1", "present", "2026-01-01T00:00:00Z")]
+        with self.assertRaisesRegex(SystemExit, f"{REPO} left meridian.toml"):
+            self.sites_run(hist, [], {}, shas={"x/other": "new"})
 
     def test_settings_the_code_doesnt_do_stop(self):
         cfg = {"join": {"call_site_id": J.ID_FIELDS, "normalize_line": "strip_whitespace", "match_order": J.MATCH_ORDER,

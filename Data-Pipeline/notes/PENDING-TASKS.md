@@ -33,7 +33,7 @@ Already in `meridian.toml` and `settings.toml`, pushed with this doc. dynamic-co
 | What | Who decides | By when |
 |---|---|---|
 | Call depth: `call_edge_depth`, `blocked_by_max_depth`, `blast_radius_max_depth` | Utkarsh + Aniket | During model training. A change then means a new `run_id` and a rerun. To look deeper than 3, raise `call_edge_depth` too: the graph can't use edges the resolver never collected |
-| GCP names: `image`, `snapshot_bucket` in [settings.toml](../settings.toml) | Utkarsh | When GCP is set up. Placeholders today, no rerun when they change |
+| GCP names: the image and the snapshot bucket, in [settings.toml](../settings.toml) once something reads them | Utkarsh | When GCP is set up. No rerun when they change |
 | The 21,787 Spark files with no owner (180-day rule): accept, and count them in the coverage report | Utkarsh | Before the join |
 | ~~GitLab usernames in `week1/cross-team/gitlab/xt_cross_team_blocks.csv`: remove~~ Done in dynamic-config (still in git history at `ebe68b8`) | Aniket | ✅ |
 
@@ -42,7 +42,7 @@ Already in `meridian.toml` and `settings.toml`, pushed with this doc. dynamic-co
 | When | Who | What | Effect on the run |
 |---|---|---|---|
 | Oct 9–10 | Utkarsh | Plan and contracts. 4 package refs left `TBD-day4` for Rachna | Planned: the first run will be `partial` |
-| Oct 13 | Utkarsh | Airflow rules. `image` and `snapshot_bucket` left `TBD` | Now in `settings.toml`, outside the `run_id` |
+| Oct 13 | Utkarsh | Airflow rules. `image` and `snapshot_bucket` left `TBD` | Moved to `settings.toml`, outside the `run_id`; dropped until GCP reads them |
 | Oct 14 | Vishwa | Collect, writer, tickets. Team run `973531f7fd4cfd5e` and the zip | First run, `partial` as planned |
 | Oct 16–17 | Rochan | Resolver on Vishwa's run, with stand-in candidates | Old run |
 | Oct 17 | Vishwa | SZZ and `file_bug_fixes` | Old run |
