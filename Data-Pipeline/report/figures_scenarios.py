@@ -98,7 +98,8 @@ def scoped(db_path, scope):
     for t, w in scope["where"].items():
         db.execute(f"CREATE TEMP VIEW {t} AS " + scope.get("views", {}).get(t, f"SELECT * FROM main.{t} WHERE {w}"))
     db.execute("CREATE TEMP TABLE asof (run_id TEXT, at TEXT, repo TEXT, symbol TEXT)")
-    db.execute("INSERT INTO asof VALUES ('70dd1dabfed544b8', ?, ?, ?)", (scope["at"], scope["repo"], scope["symbol"]))
+    # the views above scope the data; scope's repo and symbol are labels ("20 django packages"), never asof filters
+    db.execute("INSERT INTO asof VALUES ('70dd1dabfed544b8', ?, NULL, NULL)", (scope["at"],))
     return db
 
 
@@ -138,14 +139,17 @@ def run_scenarios(db_path, timeout_s=120):
 # ───────────── the same queries, with the fixture's symbol swapped for the real one ─────────────
 
 def blast_radius_real(db_path):
-    """derive_blast_radius names AuthClient.verify_token; run it per real symbol, next to graph's blast_radius rows."""
+    """derive_blast_radius per real symbol (asof names the repo and symbol), next to graph's blast_radius rows."""
     sql = next(s for n, s, _, _ in kb_blocks() if n == "derive_blast_radius")
     db, out = connect(db_path), {}
+    db.execute("CREATE TEMP TABLE asof (run_id TEXT, at TEXT, repo TEXT, symbol TEXT)")
     for repo, symbol, direct, inv, files, by_depth in db.execute(
             "SELECT repo, symbol, direct_sites, invocations, files, by_depth FROM blast_radius").fetchall():
         mine = None
-        if repo == "django/django":  # the doc's query has no repo filter: url() edges from 20 repos would mix
-            mine = {d: n for d, n in db.execute(sql.replace("'AuthClient.verify_token'", f"'{symbol}'"))}
+        if repo == "django/django":
+            db.execute("DELETE FROM asof")
+            db.execute("INSERT INTO asof VALUES ('70dd1dabfed544b8', ?, ?, ?)", (RUN_AT, repo, symbol.rsplit(".", 1)[-1]))
+            mine = {d: n for d, n in db.execute(sql)}
         out[f"{repo}:{symbol}"] = dict(direct=direct, invocations=inv, files=files, by_depth=json.loads(by_depth), kb_query=mine)
     db.close()
     return out

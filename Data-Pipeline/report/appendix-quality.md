@@ -4,7 +4,7 @@ Sources: `stats.json`, `anomalies.json`, `bias.json` and `meridian.sqlite` of te
 
 ## 1. Tests
 
-`python -m unittest discover -s tests -t .` from `Data-Pipeline/`, without team data: 287 tests, OK, 14 skipped, 0 failures, 0 errors (verbose run in `tests_light.txt`).
+`python -m unittest discover -s tests -t .` from `Data-Pipeline/`, without team data: 293 tests, OK, 14 skipped, 0 failures, 0 errors (verbose run in `tests_light.txt`).
 
 ![](figures/tests_per_file.png)
 
@@ -18,7 +18,7 @@ There is one file per pipeline part, plus files for the DAG structure, push chec
 | `test_gx.Audit.*` (suite on a block, Data Docs) | 2 | GX has its own `[gx]` environment | GX 1.24.1; CI's `gx` job | ✅ 7 of 7 in `test_gx` |
 | `test_golden.TeamRun`, `test_resolve.DjangoAnswerKey` ×2, `test_resolve.PackagesScore`, `test_scan.DjangoAnswerKey` ×3 | 7 | Need the private team data | With `MERIDIAN_RUN_ID=70dd1dabfed544b8` | ✅ below |
 
-With the team data the whole suite is 287 tests, OK, 7 skipped. The team-run tests ran on the outputs of the Airflow run (`tests_team.txt`: 62 tests, 40 s, OK):
+With the team data the whole suite is 293 tests, OK, 7 skipped. The team-run tests ran on the outputs of the Airflow run (`tests_team.txt`: 62 tests, 40 s, OK):
 
 | Test | Result |
 |---|---|
