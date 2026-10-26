@@ -3,17 +3,23 @@ data roots, a tiny git repo as the mirror; alerts are mocked.
 
     python -m unittest tests.test_publish -v      # from Data-Pipeline/
 """
-import io, json, shutil, sys, tempfile, unittest
+import io
+import json
+import shutil
+import sys
+import tempfile
+import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import meridian.collect as Col
 import meridian.compare as C
 import meridian.publish as Pub
 import meridian.status as S
 from meridian import alert
-from meridian.common import git
+from meridian.common import git, load_config
 
 CONFIG = """\
 [run]
@@ -40,14 +46,18 @@ class Base(unittest.TestCase):
         self.config.write_text(CONFIG, encoding="utf-8")
         self.settings.write_text(SETTINGS, encoding="utf-8")
 
-    def block(self, root, run_id="R1", anomalies=(), shas=None, db=b"block"):
+    def block(self, root, run_id="R1", anomalies=(), shas=None, db=b"block", status="complete"):
         out = root / "out" / run_id
         out.mkdir(parents=True, exist_ok=True)
         (out / "meridian.sqlite").write_bytes(db)
         (out / "anomalies.json").write_text(json.dumps(list(anomalies)), encoding="utf-8")
         (out / "run.jsonl").write_text(json.dumps({"run_id": run_id, "snapshot_at": "2026-10-01T00:00:00Z",
-                                                   "repo_shas": json.dumps(shas or {"o/r": "a" * 40})}) + "\n")
+                                                   "repo_shas": json.dumps(shas or {"o/r": "a" * 40}), "status": status,
+                                                   "notes": "", "config_hash": self.config_hash()}) + "\n")
         return out
+
+    def config_hash(self):
+        return Col.sha256(Col.canon(load_config(self.config)).encode())
 
     def publish(self, *a, **k):
         with redirect_stdout(io.StringIO()):
@@ -84,6 +94,40 @@ class Publish(Base):
         pub = self.tmp / "published"
         self.assertEqual(((pub / "R1.sqlite").read_bytes(), (pub / "R1.rebuild.sqlite").read_bytes()), (b"block", b"rebuilt"))
         self.assertEqual(Pub.latest(self.tmp, self.settings)["file"], "R1.rebuild.sqlite")
+        # the update's out/ was wrong: the rebuild's replaces it, for the next update's join
+        self.assertEqual((self.tmp / "out" / "R1" / "meridian.sqlite").read_bytes(), b"rebuilt")
+
+    def test_a_rebuild_never_rolls_back_a_newer_run(self):
+        self.block(self.tmp)
+        self.block(self.tmp / "rebuild")
+        self.publish("R1")
+        self.block(self.tmp, "R2")
+        self.publish("R2", prev_run="R1")
+        with self.assertRaisesRegex(SystemExit, "R2 is live now"):
+            self.publish("R1", from_root=self.tmp / "rebuild")
+        self.assertEqual(Pub.latest(self.tmp, self.settings)["run_id"], "R2")
+
+    def test_a_partial_run_needs_allow_partial(self):   # a tracker down: code only
+        self.block(self.tmp, status="partial")
+        with self.assertRaisesRegex(SystemExit, "R1 is partial"):
+            self.publish("R1")
+        self.assertEqual(self.publish("R1", allow_partial=True)["run_id"], "R1")
+
+    def test_bias_json_ships_beside_the_block_and_latest_has_the_config_hash(self):
+        (self.block(self.tmp / "rebuild") / "bias.json").write_text('{"flags": []}')
+        doc = self.publish("R1", from_root=self.tmp / "rebuild")
+        self.assertEqual((self.tmp / "published" / "R1.rebuild.bias.json").read_text(), '{"flags": []}')
+        self.assertEqual(doc["config_hash"], self.config_hash())
+
+    def test_dvc_only_for_the_run_dvc_yaml_tracks(self):
+        self.block(self.tmp)
+        self.settings.write_text(SETTINGS.replace("push = false", "push = true") + '[pipeline]\nrun_id = "R0"\n', encoding="utf-8")
+        with mock.patch("subprocess.run") as run:
+            self.publish("R1")
+            run.assert_not_called()
+            self.settings.write_text(self.settings.read_text().replace("R0", "R1"), encoding="utf-8")
+            self.publish("R1")
+        self.assertEqual([c.args[0][3] for c in run.call_args_list], ["commit", "push"])
 
 
 class Compare(Base):
@@ -127,6 +171,7 @@ class Compare(Base):
         self.assertEqual(C.where({"candidate", "resolution"}), ["scan"])
         self.assertEqual(C.where({C.REPORT}), ["report"])                    # every table right, the report wrong
         self.assertEqual(C.where({"blast_radius", C.REPORT}), ["graph"])    # the report only followed graph
+        self.assertEqual(C.PARTS["report"][0], ("validate",))               # as in the DAGs
 
     def test_a_wrong_change_report_is_caught(self):
         self.tables(self.tmp / "a", t=[1])
@@ -200,6 +245,16 @@ class Status(Base):
         self.settings.write_text(SETTINGS.replace("stale_after_hours", "fetch = false\nstale_after_hours"), encoding="utf-8")
         commit("c2")
         self.assertEqual(S.status(self.config, self.tmp, self.settings)["repos"]["o/f"], 1)   # not fetched: c2 unseen
+
+    def test_a_new_repo_or_a_config_edit_is_new(self):   # no mirror yet for the new repo: still new
+        self.published(self.shas[-1])
+        self.config.write_text(CONFIG.replace(" }]", ' }, { repo = "o/added", ref = "main" }]'), encoding="utf-8")
+        st = S.status(self.config, self.tmp, self.settings)
+        self.assertEqual((st["new_repos"], st["config_changed"], st["new"]), (["o/added"], True, True))
+        self.config.write_text(CONFIG + "[ownership]\nmin_share = 0.3\n", encoding="utf-8")
+        st = S.status(self.config, self.tmp, self.settings)
+        self.assertEqual((st["new_repos"], st["config_changed"], st["new"]), ([], True, True))
+        self.assertRegex(self.main()[1], " · config changed$")
 
     def test_an_old_publish_is_new_for_the_tickets(self):
         self.published(self.shas[-1], "2000-01-01T00:00:00Z")

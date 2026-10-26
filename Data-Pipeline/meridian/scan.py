@@ -50,7 +50,9 @@ Cache (settings.toml [cache] scan, off by default). A file's rows depend on its 
 tree-sitter's versions, the repo's symbols and [scanner], and nothing else. With all of them as before (the bytes
 by their git blob SHA), its rows are reused from snapshots/_cache/scan/<repo>.json with this run_id. Same bytes either way.
 """
-import json, os, re
+import json
+import os
+import re
 from collections import Counter
 from fnmatch import fnmatchcase
 from importlib.metadata import version

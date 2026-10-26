@@ -23,7 +23,13 @@ KNOWLEDGE-BASE.md, which tests/test_kb.py proves on its fixture) run twice, as o
 Scope (04 §10): the changed files plus every non-test file that imports one (module_import, read in reverse). Over
 [push_check] max_scope_files: skipped, said in one line. At most [push_check] max_lines findings are listed.
 """
-import argparse, json, re, shutil, sqlite3, sys, tempfile
+import argparse
+import json
+import re
+import shutil
+import sqlite3
+import sys
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 

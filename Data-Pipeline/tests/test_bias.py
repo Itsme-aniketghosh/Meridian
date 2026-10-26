@@ -3,7 +3,13 @@ small synthetic Spark-like history.
 
     python -m unittest tests.test_bias -v      # from Data-Pipeline/
 """
-import io, json, shutil, sys, tempfile, textwrap, unittest
+import io
+import json
+import shutil
+import sys
+import tempfile
+import textwrap
+import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 

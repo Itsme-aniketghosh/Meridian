@@ -4,7 +4,16 @@ commit, run R2 the last.
 
     python -m unittest tests.test_join -v      # from Data-Pipeline/
 """
-import contextlib, io, json, os, shutil, subprocess, sys, tempfile, textwrap, unittest
+import contextlib
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import textwrap
+import unittest
 from pathlib import Path
 from unittest import mock
 

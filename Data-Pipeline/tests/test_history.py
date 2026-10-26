@@ -2,7 +2,16 @@
 
     python -m unittest tests.test_history -v      # from Data-Pipeline/
 """
-import filecmp, json, os, re, shutil, sqlite3, subprocess, sys, tempfile, unittest
+import filecmp
+import json
+import os
+import re
+import shutil
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

@@ -5,7 +5,10 @@
 A part whose tables aren't in out/<run_id>/ yet is run first, with its own command. Sample rows come only from
 tables without people in them; the people tables show counts.
 """
-import json, subprocess, sys, time
+import json
+import subprocess
+import sys
+import time
 
 from meridian.common import CONFIG, data_root, handoff, load_config, parser, read_jsonl
 

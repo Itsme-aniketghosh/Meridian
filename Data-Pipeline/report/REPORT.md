@@ -89,6 +89,7 @@ Tests:
 | [B](appendix-quality.md) | Tests, schema, statistics, anomalies, bias with mitigation |
 | [C](appendix-scenarios.md) | Every product situation on the real block, with verdicts and charts |
 | [D](appendix-features.md) | Feature checklist: status, tables, evidence, reason |
+| [E](appendix-redteam.md) | Red team: what we attacked, found and fixed |
 
 ## 6. Known limits
 
@@ -111,3 +112,4 @@ Fixed while writing this report:
 - [B · Tests, data quality, bias](appendix-quality.md)
 - [C · Situations on real data](appendix-scenarios.md)
 - [D · Feature checklist and reasons](appendix-features.md)
+- [E · Red team](appendix-redteam.md)

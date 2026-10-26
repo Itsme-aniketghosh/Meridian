@@ -15,7 +15,12 @@ It never gates. meridian.validate is the gate, on every update; nothing downstre
 The checks come from [validate], the same settings validate reads: rows, missing, formats, ranges and dates. The
 domain checks stay in meridian.validate only: coverage floors, outliers, drift, sorted JSON lists.
 """
-import datetime as dt, json, re, shutil, sqlite3, sys
+import datetime as dt
+import json
+import re
+import shutil
+import sqlite3
+import sys
 from pathlib import Path
 
 from meridian import alert

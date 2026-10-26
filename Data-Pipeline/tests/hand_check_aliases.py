@@ -9,7 +9,10 @@ independent. Each answer is timed and saved at once: quit any time with q, and r
 
 Writes labels/alias_hand_check_30.csv (CSV-POLICY.md: no people, checked_by holds the checker's initials).
 """
-import csv, random, re, time
+import csv
+import random
+import re
+import time
 from pathlib import Path
 
 from meridian.common import HERE, data_root, log, parser

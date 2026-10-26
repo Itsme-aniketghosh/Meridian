@@ -19,7 +19,12 @@ then gitlab_spot_check_model.csv, a second model read of sampled pairs, wins whe
 Scrubbed: no people columns, emails -> [email], @handles -> @user, any GitLab username in the run -> user (any case,
 even when it is an English word), quotes <= 200.
 """
-import csv, gzip, hashlib, json, re, sys
+import csv
+import gzip
+import hashlib
+import json
+import re
+import sys
 from pathlib import Path
 
 GL = "gitlab-org/gitlab"

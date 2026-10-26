@@ -14,7 +14,12 @@ The header says how stale the published block is (meridian.status). Its "Update 
 served (--serve, on 127.0.0.1 only): a click triggers meridian_update through Airflow's REST API (meridian.status
 trigger), and says whether it queued a run or one was queued already.
 """
-import html, http.server, json, re, sqlite3, time
+import html
+import http.server
+import json
+import re
+import sqlite3
+import time
 from pathlib import Path
 
 import meridian.status as S

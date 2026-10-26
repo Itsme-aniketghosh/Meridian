@@ -2,7 +2,15 @@
 
     python -m unittest tests.test_szz -v      # from Data-Pipeline/
 """
-import contextlib, io, os, shutil, sqlite3, subprocess, sys, tempfile, unittest
+import contextlib
+import io
+import os
+import shutil
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

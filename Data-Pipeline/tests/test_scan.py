@@ -6,7 +6,14 @@ The Django test needs a snapshot: $MERIDIAN_RUN_ID (default: dev). It is skipped
 
     MERIDIAN_RUN_ID=973531f7fd4cfd5e python -m unittest tests.test_scan -v
 """
-import csv, json, os, sqlite3, subprocess, sys, tempfile, unittest
+import csv
+import json
+import os
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 from unittest import mock
 

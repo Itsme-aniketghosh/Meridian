@@ -31,7 +31,10 @@ Identities, as [identity] in meridian.toml says:
 git_commit has no author names, so names, Co-authored-by and .mailmap are read from the snapshot checkout at the
 pinned SHA (git's %aN / %aE apply that commit's .mailmap). The author emails must match git_commit exactly.
 """
-import hashlib, json, re, subprocess
+import hashlib
+import json
+import re
+import subprocess
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from fractions import Fraction

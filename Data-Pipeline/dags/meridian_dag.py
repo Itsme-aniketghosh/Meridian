@@ -23,7 +23,8 @@ The run: the trigger's config {"run_id": "...", "prev_run": "..."}, else whateve
 (update) or the last published run (rebuild). prev_run: the config, else [pipeline] prev_run or the last published run (update), or the
 published run's own prev_run (rebuild, to give the same bytes). Never the run itself.
 """
-import subprocess, sys
+import subprocess
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 

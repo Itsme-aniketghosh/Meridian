@@ -14,18 +14,21 @@ and to the alert.
 
 Exit 0 = the same tables, 3 = they differ (alerted). Any other code is a crash: the DAG fails the task, never publishes.
 """
-import filecmp, hashlib, json
+import filecmp
+import hashlib
+import json
 from collections import Counter
 from pathlib import Path
 
-from dags.pipeline_spec import STEPS
+from dags.pipeline_spec import DAGS, STEPS
 from meridian import alert
 from meridian.common import CONFIG, data_root, handoff, load_config, log, parser
 
 DIFFERENT = 3
 EXAMPLES = 3
 REPORT = "changes"   # changes.json
-PARTS = {**STEPS, "report": (("graph",), ("run", "git_commit", "call_site", "call_edge", "blast_radius"), (REPORT,))}
+PARTS = {**STEPS, "report": (DAGS["rebuild"]["report"], ("run", "git_commit", "call_site", "call_edge", "blast_radius"),
+                              (REPORT,))}
 # shortcut: checks the last published run's report only, not each update's since the last rebuild (each would need its
 # own rebuild); a wrong earlier report shows up here only if it left wrong tables behind
 

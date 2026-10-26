@@ -3,7 +3,13 @@ into one run. Each change must come out under the commit that caused it.
 
     python -m unittest tests.test_report -v      # from Data-Pipeline/
 """
-import contextlib, io, json, shutil, sys, tempfile, unittest
+import contextlib
+import io
+import json
+import shutil
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

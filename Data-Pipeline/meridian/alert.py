@@ -5,7 +5,10 @@ Where it goes is settings.toml [alerts]: email addresses, SMTP server, and which
 Slack webhook URL, an SMTP password) live in environment variables that [alerts] names, never in git. Nothing
 configured: the alert is only logged. A channel that fails is logged too: an alert must never break the run it reports on.
 """
-import json, os, smtplib, urllib.request
+import json
+import os
+import smtplib
+import urllib.request
 from email.message import EmailMessage
 
 from meridian.common import load_settings, log

@@ -24,7 +24,7 @@ fig, ax = plt.subplots(figsize=(10, 0.45 * len(rows) + 1.4), dpi=150)
 for i, r in enumerate(rows):
     start = (t(r["start_date"]) - t0).total_seconds()
     end = (t(r["end_date"]) - t0).total_seconds() if r["end_date"] else start
-    group = BRANCH.get(r["task_id"], "serial")
+    group = BRANCH.get(r["task_id"].split()[0], "serial")   # "history #2": one bar per attempt
     failed = r["state"] not in ("success", "skipped")
     ax.barh(i, max(end - start, 1), left=start, height=0.6, color=COLOR[group],
             hatch="//" if failed else None, edgecolor="white", linewidth=0)
@@ -40,7 +40,7 @@ ax.grid(axis="x", color="#e5e4e0", linewidth=0.6)
 ax.set_axisbelow(True)
 for s in ("top", "right", "left"):
     ax.spines[s].set_visible(False)
-ax.legend(handles=[Patch(color=c, label=g) for g, c in COLOR.items()], loc="lower right", frameon=False, fontsize=8)
+ax.legend(handles=[Patch(color=c, label=g) for g, c in COLOR.items()], loc="upper right", frameon=False, fontsize=8)
 fig.tight_layout()
 out.parent.mkdir(parents=True, exist_ok=True)
 fig.savefig(out)

@@ -12,7 +12,8 @@ url(...) call, in a file that imports url from django.conf.urls. That rule is pl
     precision  resolved rows that are real uses / resolved rows                  (bar: >= 0.98, PIPELINE-PLAN.md)
     recall     real uses that are resolved / real uses (import and call rows only)
 """
-import json, re
+import json
+import re
 from collections import defaultdict
 from pathlib import Path
 

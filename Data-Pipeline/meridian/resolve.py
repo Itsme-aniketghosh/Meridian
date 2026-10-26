@@ -63,14 +63,22 @@ walk that has one, and the walk listed folders in the filesystem's order: NTFS b
 70dd1dabfed544b8 Windows had 5 call edges macOS didn't (django's AdminField.label_tag landing on BoundField.label_tag)
 and 2 allauth rows with another resolved_to. Jedi's walk now uses APFS's order on every OS (below).
 """
-import functools, importlib.machinery, json, os, sys, sysconfig, types, unicodedata
+import functools
+import importlib.machinery
+import json
+import os
+import sys
+import sysconfig
+import types
+import unicodedata
 from collections import Counter
 from importlib.metadata import version
 from pathlib import Path
 
 import jedi
 import jedi.file_io
-import parso.cache, parso.file_io
+import parso.cache
+import parso.file_io
 from jedi.inference.compiled.subprocess import functions as jedi_functions
 
 from meridian import scan as S

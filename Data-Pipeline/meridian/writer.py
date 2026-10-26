@@ -11,7 +11,9 @@ Any bad row stops the load with its file and line: a half-right database is wors
 Every row carries the folder's run_id, except in an append-only table (call_site): it holds every version so far,
 each with the run that wrote it, so earlier run_ids are allowed there, never one known after this run's snapshot_at.
 """
-import json, sqlite3, sys
+import json
+import sqlite3
+import sys
 from pathlib import Path
 
 from meridian.common import CONFIG, SCHEMA, handoff, load_config, log, parser

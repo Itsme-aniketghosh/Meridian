@@ -4,7 +4,14 @@ great_expectations is installed (the [gx] python environment, requirements-gx.tx
     python -m unittest tests.test_gx -v                       # from Data-Pipeline/: specs and rules
     /tmp/gx/bin/python -m unittest tests.test_gx -v           # with GX: the suite on a small block, and its Data Docs
 """
-import importlib.util, io, json, shutil, sqlite3, sys, tempfile, unittest
+import importlib.util
+import io
+import json
+import shutil
+import sqlite3
+import sys
+import tempfile
+import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock

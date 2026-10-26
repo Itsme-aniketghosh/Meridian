@@ -23,7 +23,8 @@ current cut (held_out). They are proposals: applying one changes meridian.toml (
 
 Reads out/<run_id>/ tables and settings.toml [bias]. Writes out/<run_id>/bias.json. Never writes a table.
 """
-import json, re
+import json
+import re
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path

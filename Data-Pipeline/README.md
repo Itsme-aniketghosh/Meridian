@@ -56,6 +56,8 @@ Data-Pipeline/
 └── requirements.txt       every pinned dependency
 ```
 
+In the course guideline's terms: its `data/` is the repo root's `snapshots/` (inputs) and `out/` (outputs, versioned with DVC); its `scripts/` is `meridian/`.
+
 The data itself lives outside this folder, at the repo root (or under `$MERIDIAN_DATA`): `snapshots/` (inputs), `out/<run_id>/` (outputs), `published/` (the live block and `latest.json`) and `rebuild/` (the weekly rebuild's own `out/`). All are git-ignored; DVC versions `snapshots/` and `out/`.
 
 ## Settings: three places, nothing hard-coded
@@ -116,7 +118,7 @@ python -m meridian.publish --run-id 70dd1dabfed544b8 --config meridian.toml     
 
 or let DVC run what changed: `dvc repro`. Then look at the data: `python -m tests.demo --run-id 70dd1dabfed544b8 --config meridian.toml` (each part's tables in the terminal) and `python -m tests.dashboard ...` (one HTML page).
 
-**Reproducibility.** Collect's last line must say `run_id=70dd1dabfed544b8`: the same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and every part gives the same bytes for the same run (`call_site.jsonl` sha256 starts `faff6dfd75931183`). Never pass `--run-id new`: that makes a run of your own.
+**Reproducibility.** Collect's last line must say `run_id=70dd1dabfed544b8`: the same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and every part gives the same bytes for the same run (`call_site.jsonl` sha256 starts `faff6dfd75931183`), except the resolver's Windows gap: 3 of 24 files (`resolution`, `call_edge`, `blast_radius`) differ there ([TESTING.md](../TESTING.md)). Never pass `--run-id new`: that makes a run of your own.
 
 ## Data versioning (DVC)
 
@@ -142,7 +144,7 @@ On run `70dd1dabfed544b8`: 1,788,242 rows in 25 tables, 0 errors. It found 289 S
 
 ## Bias
 
-`meridian.bias` slices the pipeline's three deciding rules (owner rule, ticket mapping, resolver) by module, team, component, issue type, year and repo with Fairlearn's `MetricFrame`, flags slices more than 0.10 below overall (N ≥ 30), and scores mitigations. Findings, mitigation and trade-offs: [BIAS.md](BIAS.md).
+`meridian.bias` slices the pipeline's three deciding rules (owner rule, ticket mapping, resolver) by module, team, component, issue type, year and repo with Fairlearn's `MetricFrame`, flags slices whose 95% interval lies entirely more than 0.10 below overall (N ≥ 30), and scores mitigations. Findings, mitigation and trade-offs: [BIAS.md](BIAS.md).
 
 ## Pipeline flow
 

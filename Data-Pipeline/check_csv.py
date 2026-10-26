@@ -3,7 +3,11 @@
     python3 "Data-Pipeline/check_csv.py"            # tracked + staged CSVs
     python3 "Data-Pipeline/check_csv.py" a.csv b.csv # just these
 """
-import csv, os, re, subprocess, sys
+import csv
+import os
+import re
+import subprocess
+import sys
 
 MAX_BYTES = 5 * 1024 * 1024
 MAX_QUOTE = 200

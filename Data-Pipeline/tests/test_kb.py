@@ -9,7 +9,11 @@ yet, so their tables (call_site, ticket_map, blocked_by, chain, blast_radius) ar
 the KB can carry and answer the views, and the derive_* queries prove graph can compute its tables from the inputs.
 call_site_ids are readable names, not hashes, so the expectations read like the story.
 """
-import json, re, sqlite3, sys, unittest
+import json
+import re
+import sqlite3
+import sys
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

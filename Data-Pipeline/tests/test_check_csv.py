@@ -2,7 +2,10 @@
 
     python -m unittest tests.test_check_csv -v      # from Data-Pipeline/
 """
-import shutil, sys, tempfile, unittest
+import shutil
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

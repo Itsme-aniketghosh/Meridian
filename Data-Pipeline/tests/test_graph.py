@@ -3,7 +3,13 @@ from that fixture's inputs; then one fixture per rule (depth, owners, unknown, m
 
     python -m unittest tests.test_graph -v      # from Data-Pipeline/
 """
-import json, shutil, sqlite3, sys, tempfile, textwrap, unittest
+import json
+import shutil
+import sqlite3
+import sys
+import tempfile
+import textwrap
+import unittest
 from contextlib import closing, redirect_stdout
 from io import StringIO
 from pathlib import Path

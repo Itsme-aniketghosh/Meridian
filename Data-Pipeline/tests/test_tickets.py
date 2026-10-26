@@ -2,7 +2,13 @@
 
     python -m unittest tests.test_tickets -v      # from Data-Pipeline/
 """
-import gzip, json, re, shutil, sys, tempfile, unittest
+import gzip
+import json
+import re
+import shutil
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

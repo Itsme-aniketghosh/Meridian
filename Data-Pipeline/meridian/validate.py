@@ -21,7 +21,10 @@ stats.json and anomalies.json. Neither JSON is a table: the writer loads only *.
    drift      since --prev-run, a table of min_rows or more moved more than the limit, or a column became one value  warn
 An error exits 1, so Airflow fails the task and alerts; warnings alert and the run goes on. Both go to meridian.alert.
 """
-import json, math, re, sqlite3
+import json
+import math
+import re
+import sqlite3
 from pathlib import Path
 
 import meridian.writer as W

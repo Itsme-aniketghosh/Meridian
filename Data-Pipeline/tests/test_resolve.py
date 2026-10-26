@@ -7,7 +7,16 @@ aren't in that snapshot. To run them on the team data (the package test takes ab
 
     MERIDIAN_RUN_ID=973531f7fd4cfd5e python -m unittest tests.test_resolve -v
 """
-import contextlib, csv, io, json, os, sqlite3, subprocess, sys, tempfile, unittest
+import contextlib
+import csv
+import io
+import json
+import os
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 from unittest import mock
 

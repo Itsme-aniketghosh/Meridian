@@ -15,7 +15,9 @@ Everything is as of snapshot_at, for both trackers:
   names like SPARK-123-fix). A key that isn't a ticket in the snapshot gives no row, and is counted as dead.
 Same as week1/pair2/merged/build.py ticket_rows() and its commit_ticket, plus links over time and GitLab.
 """
-import gzip, json, re
+import gzip
+import json
+import re
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 

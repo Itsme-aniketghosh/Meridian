@@ -32,7 +32,17 @@ line printed is `run_id=<run_id>`, for the tasks after this one.
 A repo whose ref can't be resolved (TBD, or not in the repo) and a source whose pull fails are left out,
 and the run is 'partial' with the reason in run.notes. Nothing is dropped silently.
 """
-import gzip, hashlib, json, os, re, shutil, sqlite3, subprocess, sys, time, urllib.parse
+import gzip
+import hashlib
+import json
+import os
+import re
+import shutil
+import sqlite3
+import subprocess
+import sys
+import time
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -487,7 +497,10 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
         log(f"snapshots/{run_id} already exists: same inputs, same run")
     else:
         stage = snaps / f".staging-{run_id}"
-        shutil.rmtree(stage, ignore_errors=True)
+        # every killed collect's half checkout, not only this run's (2.5 GB each).
+        # shortcut: assumes one collect staging per snapshots/ at a time (max_active_runs = 1); lock it if that changes
+        for old in snaps.glob(".staging-*"):
+            shutil.rmtree(old, ignore_errors=True)
         for repo, sha in sorted(repos.items()):
             co, src = stage / "repos" / repo.replace("/", "__"), mirrors / (repo.replace("/", "__") + ".git")
             log(f"  checkout {repo} @ {sha[:10]}")

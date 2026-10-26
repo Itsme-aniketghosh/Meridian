@@ -36,7 +36,9 @@ ticket_map: every ticket gets rows, all hits kept, no fuzzy matching ([join] fuz
 
 coverage: what we missed, as counts (CONTRACTS.md rule 9). One row per metric, the note says what it means.
 """
-import hashlib, json, re
+import hashlib
+import json
+import re
 from collections import Counter, defaultdict
 from pathlib import Path
 

@@ -4,7 +4,17 @@ a local git repo and a block built from schema.sql, its call sites scanned from 
 
     python -m unittest tests.test_pushcheck -v      # from Data-Pipeline/
 """
-import contextlib, hashlib, io, json, os, sqlite3, subprocess, sys, tempfile, tomllib, unittest
+import contextlib
+import hashlib
+import io
+import json
+import os
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import tomllib
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

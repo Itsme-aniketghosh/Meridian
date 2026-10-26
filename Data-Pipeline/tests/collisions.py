@@ -12,7 +12,12 @@ Writes labels/spark_collision_pairs_50.csv: a seeded sample of 50 same-function 
 rerun keeps verdicts already filled in. verdict: 'real' when both commits change code inside that function, 'no'
 when either change sits outside it (the header named the wrong function), 'unclear'. checked_by: model or initials.
 """
-import csv, hashlib, json, re, subprocess, tempfile
+import csv
+import hashlib
+import json
+import re
+import subprocess
+import tempfile
 from datetime import date
 from pathlib import Path
 

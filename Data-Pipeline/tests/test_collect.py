@@ -2,7 +2,18 @@
 
     python -m unittest tests.test_collect -v      # from Data-Pipeline/
 """
-import gzip, io, json, os, re, shutil, subprocess, sys, tempfile, threading, unittest, urllib.parse
+import gzip
+import io
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import unittest
+import urllib.parse
 from contextlib import redirect_stdout
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -189,6 +200,12 @@ min_share = {threshold}
         self.assertEqual(git("rev-list", "--count", "HEAD"), "2")  # full history up to the pin
         run_rows = (self.tmp / "root" / "out" / a["run_id"] / "run.jsonl").read_text().splitlines()
         self.assertEqual([json.loads(r) for r in run_rows], [a])
+
+    def test_a_killed_collects_staging_is_cleaned(self):   # any run's, not only this one's
+        old = self.tmp / "root" / "snapshots" / ".staging-0123456789abcdef"
+        (old / "repos").mkdir(parents=True)
+        self.run_once(self.config())
+        self.assertEqual([p.name for p in (self.tmp / "root" / "snapshots").glob(".staging-*")], [])
 
     def test_run_id_follows_config_values_not_comments(self):
         a = self.run_once(self.config())

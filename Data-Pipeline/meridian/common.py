@@ -7,7 +7,12 @@
 - A cache (settings.toml [cache], off by default) keeps a part's results for inputs that didn't change, in
   snapshots/_cache/<part>/, never hashed into a run. On or off, a part writes the same bytes.
 """
-import argparse, hashlib, json, os, subprocess, tomllib
+import argparse
+import hashlib
+import json
+import os
+import subprocess
+import tomllib
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]  # Data-Pipeline/

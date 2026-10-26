@@ -11,8 +11,24 @@ your own), --airflow-run (trigger meridian_update and wait), --force (run a step
 Each step prints the rubric item it shows, the command it runs, the result, and one line on what you just saw.
 Everything it writes goes to a temp folder, except `download` (snapshots/) and long's Docker step.
 """
-import argparse, hashlib, importlib.util, json, os, platform, re, shutil, socket, sqlite3, subprocess, sys, tempfile
-import textwrap, time, traceback, urllib.request, zipfile
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+import platform
+import re
+import shutil
+import socket
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import textwrap
+import time
+import traceback
+import urllib.request
+import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent

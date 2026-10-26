@@ -6,7 +6,13 @@ installed (the Docker image):
     docker compose run --rm --no-deps -e CONNECTION_CHECK_MAX_COUNT=0 -w /opt/meridian/Data-Pipeline \
         airflow-scheduler python -m unittest tests.test_dag -v                        # with Airflow, no database
 """
-import importlib.util, io, shutil, subprocess, sys, tempfile, unittest
+import importlib.util
+import io
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
@@ -137,6 +143,7 @@ class Dag(unittest.TestCase):
 
     def test_templates_name_one_run_and_never_it_as_its_prev(self):
         import meridian.publish as Pub
+        import meridian_dag as M
         from types import SimpleNamespace as NS
 
         def render(dag, task, latest, conf=None, xcom=None):
