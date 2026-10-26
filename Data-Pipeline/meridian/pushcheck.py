@@ -95,10 +95,13 @@ def head_sites(repo, checkout, paths, cfg):
                 (Path(tmp) / p).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(checkout / p, Path(tmp) / p)
         cands, failures, *_ = scan_repo("push", repo, Path(tmp), tracked(cfg).get(repo, {}), cfg["scanner"])
-    # shortcut: no resolver at push time, so a look-alike the resolver would drop still counts.
-    # Upgrade: resolve the scope
-    sites = with_occurrence([c | {"normalized_line": normalized(c["text"])} for c in cands
-                             if c["role"] in cfg["scanner"]["edit_roles"]])
+    cands = [c for c in cands if c["role"] in cfg["scanner"]["edit_roles"]]
+    if cands:   # the resolver on the checkout, as join keeps sites: a look-alike (a parameter or a local) is dropped.
+        # A name it can't follow (no Django checkout in CI) is ast_unresolved and stays
+        from meridian.resolve import Repo   # Jedi: only when a push has candidates
+        r = Repo(checkout, tracked(cfg)[repo])
+        cands = [c for c in cands if r.resolve_candidate(c)[0] != "dropped"]
+    sites = with_occurrence([c | {"normalized_line": normalized(c["text"])} for c in cands])
     return {site_id(s): s for s in sites}, {f["path"] for f in failures}
 
 

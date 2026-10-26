@@ -140,7 +140,7 @@ On run `70dd1dabfed544b8`: 1,788,242 rows in 25 tables, 0 errors. It found 289 S
 ## Alerts, logging, errors
 
 - **Alerts** (`meridian/alert.py`): a failed task (after its retries), a data error or a data warning sends one message to Slack and/or email, as `settings.toml [alerts]` says (`on`, `email_to`, SMTP server; secrets from `.env`). Nothing configured: logged only. A broken channel is logged and never breaks the run.
-- **Logging:** every part logs counts as it goes to stdout; Airflow keeps each task's log (UI and `logs/`).
+- **Logging:** every part logs its counts through Python's logging; Airflow keeps each task's log (UI and `logs/`).
 - **Errors:** a part that can't go on stops with the reason and a non-zero exit (a missing input table, a snapshot not at its pinned SHA, a bad row, a setting the code doesn't support), so Airflow retries it (`[orchestration] retries`) and then alerts. Parts are idempotent, so a retry is safe.
 
 ## Bias
@@ -159,7 +159,7 @@ On run `70dd1dabfed544b8`: 1,788,242 rows in 25 tables, 0 errors. It found 289 S
 | resolve | 295 s | | validate | 165 s |
 | | | | bias | 35 s |
 
-In sequence that is about 1,130 s. In the DAG the two branches overlap (history + owners 445 s, scan + resolve 435 s), so a run takes about 700 s: **−38%**. The bottleneck is `history`'s SZZ step; it already runs one process per CPU (`[history] szz_workers`). Airflow's Gantt view (DAG → a run → Gantt) shows the same split on every run.
+In sequence that is about 1,130 s; in the DAG the two branches overlap (history + owners 445 s, scan + resolve 435 s). Measured on the Airflow Gantt of a Docker run on a Mac: 1,599 s of tasks in 1,268 s, **21% saved** (report, Appendix A; the folder mount slows Docker about 3×). The bottleneck is `history`'s SZZ step; it already runs one process per CPU (`[history] szz_workers`). Airflow's Gantt view (DAG → a run → Gantt) shows the same split on every run.
 
 Inside validate, about a minute is the writer building `meridian.sqlite` (the dashboard reuses it, not rebuilding it), the checks ~20 s, and the statistics 15–40 s on a copy of this block (Windows, little free memory). They now read each table once, in one aggregate query, with the same `stats.json`; that took as long as one query per column, because the time is in counting distinct values of long text columns (`ticket.description`, 19 s), not in reading the table.
 

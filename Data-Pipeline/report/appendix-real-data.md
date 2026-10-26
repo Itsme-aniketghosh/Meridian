@@ -58,7 +58,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 | Feature | Status | Evidence on 70dd | Gap |
 |---|---|---|---|
-| P1 · Drift | ✅ | `p1_drift`; replay of 21 real commits: 4 of 11 hits true ([§7](#7-push-check-replay)) | Precision 0.36: look-alikes count with no resolver at push time. 05-test's other bars not run |
+| P1 · Drift | ✅ | `p1_drift` with the resolver at push time; replay of 21 real commits: 4 of 4 hits true, and 2 of 2 on 9 held-out Django commits ([§7](#7-push-check-replay)) | The held-out set is small (9 commits) |
 | P2 · Legacy use | 🟡 | `p2_legacy_use`: 0 tracked sites resolve to a deprecated qualname. `ugettext` isn't deprecation-marked at the pinned SHA; the 19 Django deprecations are other functions | Scan sees tracked names only, so it misses new calls to other deprecated functions (G3) |
 | P3 · Collision | 🟡 | `p3_collision`: 0 | As S2. The path-without-repo shortcut is fixed: pushcheck sets `asof.repo` |
 | P4 · New block | 🟡 | Fixture only | Sees only a new site inside F; a new receiver needs the resolver. 0 `receiver_from` |
@@ -68,7 +68,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | P8 · Bad key | ✅ | Python in pushcheck.py; history: 3 dead keys on Spark, where 944 of the last 1,000 commits carry a key and 0 name a missing ticket | Jira only; GitLab `#123` refs not checked. Django and the packages have no Jira keys |
 | P9 · Defect risk | ✅ | `p9_defect_risk`: Spark's newest commit 633 lines × 6 files = 3,798. Flags 32% of SZZ's bug-inducing Spark commits vs 9% of the rest ([§7](#7-push-check-replay)) | No model; 05-test's time-split bar still open |
 | Push scope: changed files + importers, skip > 200 | ✅ | `push_scope_importers`: 1,282 pairs | `module_import` 20-row hand check open |
-| Alert bars: precision ≥ 0.80, median ≤ 1, p95 ≤ 5 min | 🟡 | Replay: median ≤ 1 alert per push met; P1 precision 4/11 = 0.36 ([§7](#7-push-check-replay)) | p95 on a free runner not measured |
+| Alert bars: precision ≥ 0.80, median ≤ 1, p95 ≤ 5 min | 🟡 | Replay: median ≤ 1 alert per push met; P1 precision 4/4, was 0.36 ([§7](#7-push-check-replay)) | p95 on a free runner not measured |
 | Alert outcome stored (fixed, dismissed, ignored) | ❌ | `push_alert_outcomes` on the fixture only | `push_alert` isn't in schema.sql (G1); pushcheck.py writes no row |
 
 ### Ticket tools, rules and order of work
@@ -191,7 +191,7 @@ Commit keys do most of the work (33,351). Stack traces map 4,435 tickets and pat
 
 The mapping is to paths, not call sites, so it can't feed P3, P5 or collisions. The best path-level collision rule scores 0.64 on the 50 Spark pairs (32 real; 48 of 50 have both keys mapped to the file). The labels' function-level flag (`inside`) agrees with the verdict 50/50, which is why 05-test wants function scope.
 
-The ticket check adapted to Spark (open, mapped to code, no "done when") fails all 621 of 621 open mapped tickets: Apache Jira never writes "done when", so the check can't tell tickets apart. Of the newest 500 Spark tickets, 48% have an empty description (241), 5.8% have any non-parent link (29), and 0 have `blocked_by`.
+The ticket check adapted to Spark (open, mapped to code, no "done when") fails all 621 of 621 open mapped tickets: Apache Jira never writes "done when", so the check can't tell tickets apart. We tried a check that fits Spark, written down before it was scored ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a Bug with no `{code}` or `{noformat}` block, no stack frame and no "reproduce" or "steps". On the 4,314 Spark Bugs resolved since 2020 as Fixed, Incomplete or Cannot Reproduce, it flags 58%. Of those, 8.5% end Incomplete or Cannot Reproduce, against a 13.2% base rate. Flagging the same number by shortest description gives 6.4%. So it beats description length, but both are worse than chance: a missing reproduction doesn't predict a vague Spark bug, and the check isn't adopted. Of the newest 500 Spark tickets, 48% have an empty description (241), 5.8% have any non-parent link (29), and 0 have `blocked_by`.
 
 ## 5. Fragility
 
@@ -215,6 +215,8 @@ SZZ gives 180 of 1,492 Spark files 3 or more bug fixes (max 36), with ticket key
 
 Real cross-team waits exist in GitLab, at ticket level. Of its 2,166 `blocked_by` links, 1,890 are live and 1,683 have both ends in the snapshot. The doc's cheap rule ("the two issues carry different `group::` labels") keeps 116. 95 of those are in the model-read gold set, and only 13 are a real written wait (precision 0.14). It finds 13 of the gold set's 43 waits (recall 0.30), though 34 of the 43 have a KB link. The links are there, but group labels can't tell a cross-team wait from a planned sequence. The gold set is model-read: 0 of 262 rows have a human verdict, and the 26-row spot check (21 hold) is by model too.
 
+We tried adding timing evidence of a real wait to the label rule, written down before it was scored ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): the blocker closes after the link was added, and the blocked issue closes after the blocker or is still open. Counting only `wait` against `no` and `planned` (the gold set's other verdicts left out), the label rule scores 0.27 (13 of 48) and the timed rule 0.25 (10 of 40), with recall down from 0.30 to 0.23. It misses the 0.50 bar, so it isn't adopted. Telling a wait from a planned sequence needs what people write, not when issues close.
+
 ## 7. Push check replay
 
 The next commit after each of the 21 pinned SHAs (Django's conversion and the 20 url() migrations) went through `meridian.pushcheck` against this block, once with settings.toml's limits and once with the scope limit lifted. P2–P8 stay at 0 for the reasons in the checklist. `p9_defect_risk` gives 15 lines × 3 files = 45 for `4353640ea9`, and `push_scope_importers` finds 347 Django and 167 package importer pairs.
@@ -223,7 +225,11 @@ The next commit after each of the 21 pinned SHAs (Django's conversion and the 20
 
 *How often each push check fired across the 21 real migration commits, with normal limits (blue) and the file-count limit lifted (grey): only P1 and P9 ever fire.*
 
-With the real limits, 2 of 21 pushes are skipped (Django: 129 changed + 100 importers = 229 files; django-cms: 335), 6 get one P9 note, 1 (DRF) gets a P1 and a P9, and 12 are silent. That meets 05-test's "median ≤ 1 alert per push". With the limit lifted, P1 fires 11 times. 4 are true: Django's `test_legacy_aliases` really adds 4 legacy calls. 7 are false, in DRF (`tests/test_fields.py:1832`) and django-cms (6), each `self.url = url`, a parameter named `url`. So P1 precision is 4/11 = 0.36, below 05-test's 0.80 bar.
+With the real limits, 2 of 21 pushes are skipped (Django: 129 changed + 100 importers = 229 files; django-cms: 335), 6 get one P9 note, 7 get one P9 note, and 12 are silent. That meets 05-test's "median ≤ 1 alert per push". With the limit lifted, P1 fires 4 times, all true: Django's `test_legacy_aliases` really adds 4 legacy calls.
+
+P1 used to fire 11 times here (precision 4/11 = 0.36). The 7 false hits, in DRF (`tests/test_fields.py:1832`) and django-cms (6), were each `self.url = url`, a parameter named `url`: the push check had no resolver. It now runs the pipeline's own resolver on the changed files and drops what the resolver calls a look-alike, as join does. A name the resolver can't follow, such as an import with no Django checkout in CI, is kept. The pass bars were written before the change ran ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)):
+- The 21-commit replay: precision 4/4 = 1.00 against the 0.80 bar, all 4 true hits kept.
+- Held out: the 9 Django commits after the conversion that touch a `ugettext*` line. Two add a real new use (`6eb4996672` adds a `ugettext_noop` test, `d997ab7764` a `ugettext_lazy` import and call), and P1 flags both, 4 sites. The other 7 remove uses or rewrap an import list of names already imported, and P1 stays silent. Recall 2/2, precision 4/4, against 05-test's 100% and 0.95. Nine commits is a small sample. The push there is computed as 05-test defines it, the push check's sites at the commit minus at its parent, because the block only holds the pinned commit.
 
 ![](figures/p9_vs_szz.png)
 

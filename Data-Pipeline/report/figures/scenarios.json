@@ -470,7 +470,7 @@
     "params": {
      "sha": "4353640ea9495d58fabd0357253b82de3b069408"
     },
-    "secs": 0.3,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "push_scope_importers": {
@@ -527,7 +527,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.5,
+    "secs": 0.1,
     "fixture_n": 2
    },
    "stall_upstream": {
@@ -681,7 +681,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.3,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "stall_semantics_unclear": {
@@ -767,7 +767,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.5,
+    "secs": 0.2,
     "fixture_n": 4
    },
    "stall_competing_load": {
@@ -788,11 +788,19 @@
    },
    "derive_blast_radius": {
     "status": "ran",
-    "n": 1,
+    "n": 3,
     "rows": [
      [
       1,
-      0
+      694
+     ],
+     [
+      2,
+      321
+     ],
+     [
+      3,
+      171
      ]
     ],
     "params": {},
@@ -1386,7 +1394,7 @@
     "params": {
      "sha": "d1"
     },
-    "secs": 0.2,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "push_scope_importers": {
@@ -1443,7 +1451,7 @@
      ]
     ],
     "params": {},
-    "secs": 1.7,
+    "secs": 0.1,
     "fixture_n": 2
    },
    "stall_upstream": {
@@ -1521,31 +1529,19 @@
    },
    "stall_orphaned_owner": {
     "status": "ran",
-    "n": 50,
+    "n": 49,
     "rows": [
      [
-      "pennersr/django-allauth",
-      "allauth/socialaccount/providers/facebook/urls.py",
-      "4bc22ca21ffcbd29",
-      3490
+      "cookiecutter/cookiecutter-django",
+      "{{cookiecutter.project_slug}}/config/urls.py",
+      "677d41953b90e806",
+      3097
      ],
      [
-      "pennersr/django-allauth",
-      "allauth/socialaccount/providers/oauth2/urls.py",
-      "4bc22ca21ffcbd29",
-      3490
-     ],
-     [
-      "pennersr/django-allauth",
-      "allauth/socialaccount/urls.py",
-      "4bc22ca21ffcbd29",
-      3490
-     ],
-     [
-      "pennersr/django-allauth",
-      "allauth/urls.py",
-      "4bc22ca21ffcbd29",
-      3490
+      "cookiecutter/cookiecutter-django",
+      "{{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py",
+      "677d41953b90e806",
+      3097
      ],
      [
       "django-cms/django-cms",
@@ -1566,18 +1562,6 @@
       1801
      ],
      [
-      "jazzband/django-debug-toolbar",
-      "debug_toolbar/panels/templates/panel.py",
-      "5ceefd7be9882692",
-      2322
-     ],
-     [
-      "iMerica/dj-rest-auth",
-      "demo/demo/urls.py",
-      "99662dfa684215ef",
-      1770
-     ],
-     [
       "django-extensions/django-extensions",
       "django_extensions/admin/__init__.py",
       "ba4d421b83938dd2",
@@ -1590,14 +1574,38 @@
       2250
      ],
      [
-      "graphql-python/graphene-django",
-      "examples/cookbook/cookbook/urls.py",
-      "dba4476fcc22afe4",
-      3031
+      "django-import-export/django-import-export",
+      "import_export/admin.py",
+      "1415649ab0c8db70",
+      2348
+     ],
+     [
+      "django-oscar/django-oscar",
+      "sandbox/urls.py",
+      "73f2d01e4bbe4a47",
+      2231
+     ],
+     [
+      "django-tastypie/django-tastypie",
+      "tastypie/api.py",
+      "f6c7196209a27e70",
+      1945
+     ],
+     [
+      "django-tastypie/django-tastypie",
+      "tastypie/resources.py",
+      "df4c2bcf1b9ffc12",
+      1945
+     ],
+     [
+      "encode/django-rest-framework",
+      "tests/authentication/test_authentication.py",
+      "86591bf12948db47",
+      2218
      ]
     ],
     "params": {},
-    "secs": 0.2,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "stall_semantics_unclear": {
@@ -1670,7 +1678,7 @@
      ]
     ],
     "params": {},
-    "secs": 1.0,
+    "secs": 0.0,
     "fixture_n": 4
    },
    "stall_competing_load": {
@@ -1686,16 +1694,20 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.7,
+    "secs": 0.5,
     "fixture_n": 1
    },
    "derive_blast_radius": {
     "status": "ran",
-    "n": 1,
+    "n": 2,
     "rows": [
      [
       1,
-      0
+      1010
+     ],
+     [
+      2,
+      92
      ]
     ],
     "params": {},
@@ -1830,7 +1842,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "staff_chains": {
@@ -1854,7 +1866,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.3,
     "fixture_n": 2
    },
    "staff_link_coverage": {
@@ -1870,7 +1882,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "owner_teams": {
@@ -1961,7 +1973,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "p1_drift": {
@@ -2001,7 +2013,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "p7_risky_edit": {
@@ -2027,7 +2039,7 @@
     "params": {
      "sha": "f868de6914d0e6ede86309648614bb436b2b82e6"
     },
-    "secs": 0.2,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "push_scope_importers": {
@@ -2059,7 +2071,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.2,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "stall_orphaned_owner": {
@@ -2096,51 +2108,10 @@
    },
    "stall_competing_load": {
     "status": "ran",
-    "n": 8,
-    "rows": [
-     [
-      "Build",
-      35,
-      21.75
-     ],
-     [
-      "Declarative Pipelines",
-      5,
-      6.25
-     ],
-     [
-      "Documentation",
-      1,
-      1.25
-     ],
-     [
-      "PySpark",
-      29,
-      25.5
-     ],
-     [
-      "SQL",
-      121,
-      128.75
-     ],
-     [
-      "Scheduler",
-      1,
-      0.25
-     ],
-     [
-      "Spark Core",
-      9,
-      7.25
-     ],
-     [
-      "UDF",
-      2,
-      0.25
-     ]
-    ],
+    "n": 0,
+    "rows": [],
     "params": {},
-    "secs": 1.6,
+    "secs": 0.4,
     "fixture_n": 1
    },
    "derive_blocked_by": {
@@ -2169,7 +2140,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "derive_collides": {
@@ -2255,7 +2226,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "staff_chains": {
@@ -2279,7 +2250,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.0,
     "fixture_n": 2
    },
    "staff_link_coverage": {
@@ -2295,7 +2266,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "owner_teams": {
@@ -3098,7 +3069,7 @@
     "params": {
      "sha": "4353640ea9495d58fabd0357253b82de3b069408"
     },
-    "secs": 0.2,
+    "secs": 0.0,
     "fixture_n": 1
    },
    "push_scope_importers": {
@@ -3155,7 +3126,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.4,
+    "secs": 0.1,
     "fixture_n": 2
    },
    "stall_upstream": {
@@ -3249,7 +3220,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.2,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "stall_semantics_unclear": {
@@ -3335,7 +3306,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.5,
+    "secs": 0.2,
     "fixture_n": 4
    },
    "stall_competing_load": {
@@ -3356,11 +3327,19 @@
    },
    "derive_blast_radius": {
     "status": "ran",
-    "n": 1,
+    "n": 3,
     "rows": [
      [
       1,
-      0
+      694
+     ],
+     [
+      2,
+      321
+     ],
+     [
+      3,
+      171
      ]
     ],
     "params": {},
@@ -3619,22 +3598,22 @@
    "kb_query": {
     "1": 209,
     "2": 241,
-    "3": 160
+    "3": 135
    }
   },
   "django/django:ugettext_lazy": {
    "direct": 117,
-   "invocations": 504,
-   "files": 102,
+   "invocations": 499,
+   "files": 101,
    "by_depth": {
     "1": 391,
-    "2": 73,
-    "3": 40
+    "2": 72,
+    "3": 36
    },
    "kb_query": {
     "1": 391,
-    "2": 73,
-    "3": 55
+    "2": 72,
+    "3": 36
    }
   },
   "django/django:ugettext_noop": {
@@ -3662,7 +3641,7 @@
    "kb_query": {
     "1": 44,
     "2": 44,
-    "3": 5
+    "3": 2
    }
   },
   "django/django:ungettext_lazy": {
@@ -3835,12 +3814,12 @@
    },
    "kb_cross_in_gold": 95,
    "kb_cross_in_gold_verdicts": {
-    "wait": 13,
-    "planned": 7,
+    "no_evidence": 19,
     "unclear": 16,
     "partial": 12,
+    "wait": 13,
     "no": 28,
-    "no_evidence": 19
+    "planned": 7
    },
    "gold_wait": 43,
    "gold_wait_found_by_kb": 13,
@@ -4157,25 +4136,21 @@
   "encode/django-rest-framework": {
    "default": {
     "checks": {
-     "P1": 1,
      "P9": 1
     },
     "skipped": null,
     "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 46 changed files, 0 importers",
     "sample": [
-     "- **P1 Drift**: new call site of `url` at `tests/test_fields.py:1832`",
      "- **P9 Defect risk**: 505 lines \u00d7 46 files = 23230, over 2000"
     ]
    },
    "uncapped": {
     "checks": {
-     "P1": 1,
      "P9": 1
     },
     "skipped": null,
     "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 46 changed files, 0 importers",
     "sample": [
-     "- **P1 Drift**: new call site of `url` at `tests/test_fields.py:1832`",
      "- **P9 Defect risk**: 505 lines \u00d7 46 files = 23230, over 2000"
     ]
    }
@@ -4189,18 +4164,12 @@
    },
    "uncapped": {
     "checks": {
-     "P1": 6,
      "P9": 1
     },
     "skipped": null,
     "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 309 changed files, 26 importers",
     "sample": [
-     "- **P1 Drift**: new call site of `url` at `cms/plugin_base.py:535`",
-     "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:267`",
-     "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:292`",
-     "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:395`",
-     "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:418`",
-     "- **P1 Drift**: new call site of `url` at `menus/base.py:42`"
+     "- **P9 Defect risk**: 2225 lines \u00d7 309 files = 687525, over 2000"
     ]
    }
   },
