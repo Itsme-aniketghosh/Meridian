@@ -1,6 +1,15 @@
 # Meridian data pipeline
 
-Meridian joins code, git and Jira to find every call site of a dying internal API, who owns it, how risky it is, and which teams wait on each other. This folder is the data pipeline: two Airflow DAGs from the raw sources to a validated, published SQLite block (the knowledge base every later stage reads). `meridian_update` runs on the "Update graph" click and daily; `meridian_rebuild` recomputes everything weekly and checks the updates against it ([UPDATE-PLAN.md](UPDATE-PLAN.md)).
+Meridian joins code, git and Jira to find every call site of a dying internal API, who owns it, how risky it is, and which teams wait on each other. This folder is the data pipeline: two Airflow DAGs from the raw sources to a validated, published SQLite block (the knowledge base every later stage reads). `meridian_update` runs on the "Update graph" click and daily; `meridian_rebuild` recomputes everything weekly and checks the updates against it ([UPDATE-PLAN.md](notes/UPDATE-PLAN.md)).
+
+## Demo for TAs
+
+From `Data-Pipeline/`, after `pip install -r requirements.txt`; each step names the rubric item, the command, the result and what it showed, then a pass/skip/fail table:
+
+- `python run_demo.py short`: about 1 minute, no team data, no Docker. Both DAGs and the DVC stages, the pipeline end to end on the built-in fixture, schema and statistics, four injected anomalies caught with an alert, bias slices with mitigations, KNOWLEDGE-BASE views and a P1–P9 push check.
+- `python run_demo.py long`: 10+ minutes. All of short, plus every unit test, the GX suite (if its environment exists), the data download, the team-run tests (team data only), every task's command, and Airflow in Docker (`--airflow-run` also triggers `meridian_update` and waits for it).
+- `python run_demo.py download`: only gets the data: the raw ticket pulls (already there, `dvc pull`, `--zip <team zip>`, or `--public-pull` for a run of your own), then `collect`'s repo checkouts (~2.5 GB).
+- Heavy steps check free RAM, disk, network and Docker first. If something is short, the step is skipped with the reason and the demo goes on; `--force` runs it anyway.
 
 ```
 meridian_update (click, daily)
@@ -8,8 +17,9 @@ anything_new ── collect ──┬── history ───────── 
                           │                              ├── join ── graph ── validate ── report ── publish
                           └── scan ──── resolve ─────────┘
 
-meridian_rebuild (Sunday): fresh ── collect ── … ── validate ── bias ── compare ── publish (only if they differ)
-                                                         └── gx (beside bias, never gates)
+meridian_rebuild (Sunday): fresh ── collect ── … ── validate ──┬── report ── compare ──┬── publish (only if they differ)
+                                                              ├── bias ───────────────┘
+                                                              └── gx (never gates)
 ```
 
 | Task | Does | Writes (`out/<run_id>/`) | Doc |
@@ -26,7 +36,7 @@ meridian_rebuild (Sunday): fresh ── collect ── … ── validate ─�
 | `gx` | Weekly rebuild only: `[validate]`'s generic checks (rows, missing, formats, ranges, dates) as a Great Expectations suite, in its own environment (`requirements-gx.txt`, `[gx] python`). Alerts, never gates: `validate` stays the gate | `gx.json`, Data Docs in `published/gx/<run_id>/` | `meridian/gx.py` |
 | `report` | What changed since the last published run, and which commit caused it (`meridian.report`) | | |
 | `publish` | Only after validate, and no data error: copies the block to `published/<run_id>.sqlite`, points `published/latest.json` at it; with `[dvc] push`, `dvc commit` and `dvc push` | `published/` | below |
-| `anything_new` | `meridian.status`: new commits since the published SHAs, or a publish older than a day; else the update stops | | below |
+| `anything_new` | `meridian.status`: new commits since the published SHAs, or a publish older than `[status] stale_after_hours` (20); else the update stops | | below |
 | `compare` | Rebuild only: every table byte for byte against the update's; a difference alerts and publishes the rebuild | | below |
 
 ## Folder structure
@@ -46,6 +56,8 @@ Data-Pipeline/
 ├── Dockerfile, docker-compose.yaml, .env.example     Airflow on one machine
 └── requirements.txt       every pinned dependency
 ```
+
+In the course guideline's terms: its `data/` is the repo root's `snapshots/` (inputs) and `out/` (outputs, versioned with DVC); its `scripts/` is `meridian/`.
 
 The data itself lives outside this folder, at the repo root (or under `$MERIDIAN_DATA`): `snapshots/` (inputs), `out/<run_id>/` (outputs), `published/` (the live block and `latest.json`) and `rebuild/` (the weekly rebuild's own `out/`). All are git-ignored; DVC versions `snapshots/` and `out/`.
 
@@ -107,7 +119,7 @@ python -m meridian.publish --run-id 70dd1dabfed544b8 --config meridian.toml     
 
 or let DVC run what changed: `dvc repro`. Then look at the data: `python -m tests.demo --run-id 70dd1dabfed544b8 --config meridian.toml` (each part's tables in the terminal) and `python -m tests.dashboard ...` (one HTML page).
 
-**Reproducibility.** Collect's last line must say `run_id=70dd1dabfed544b8`: the same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and every part gives the same bytes for the same run (`call_site.jsonl` sha256 starts `faff6dfd75931183`). Never pass `--run-id new`: that makes a run of your own.
+**Reproducibility.** Collect's last line must say `run_id=70dd1dabfed544b8`: the same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and every part gives the same bytes for the same run (`call_site.jsonl` sha256 starts `faff6dfd75931183`), except the resolver's Windows gap: 3 of 24 files (`resolution`, `call_edge`, `blast_radius`) differ there ([TESTING.md](../TESTING.md)). Never pass `--run-id new`: that makes a run of your own.
 
 ## Data versioning (DVC)
 
@@ -133,7 +145,7 @@ On run `70dd1dabfed544b8`: 1,788,242 rows in 25 tables, 0 errors. It found 289 S
 
 ## Bias
 
-`meridian.bias` slices the pipeline's three deciding rules (owner rule, ticket mapping, resolver) by module, team, component, issue type, year and repo with Fairlearn's `MetricFrame`, flags slices more than 0.10 below overall (N ≥ 30), and scores mitigations. Findings, mitigation and trade-offs: [BIAS.md](BIAS.md).
+`meridian.bias` slices the pipeline's three deciding rules (owner rule, ticket mapping, resolver) by module, team, component, issue type, year and repo with Fairlearn's `MetricFrame`, flags slices whose 95% interval lies entirely more than 0.10 below overall (N ≥ 30), and scores mitigations. Findings, mitigation and trade-offs: [BIAS.md](BIAS.md).
 
 ## Pipeline flow
 

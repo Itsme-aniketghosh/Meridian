@@ -15,7 +15,9 @@ Everything is as of snapshot_at, for both trackers:
   names like SPARK-123-fix). A key that isn't a ticket in the snapshot gives no row, and is counted as dead.
 Same as week1/pair2/merged/build.py ticket_rows() and its commit_ticket, plus links over time and GitLab.
 """
-import gzip, json, re
+import gzip
+import json
+import re
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
@@ -143,7 +145,8 @@ def jira(issues, snapshot_at, rules, run_id, project):
                             links.add(row, at, action)
                             if at <= snapshot_at:
                                 v = f"{REL[(row[1], int(flip))]} {row[0] if flip else row[2]}"
-                                events.append((key, at, "link", None if action > 0 else v, v if action > 0 else None, who))
+                                events.append((key, at, "link", None if action > 0 else v,
+                                               v if action > 0 else None, who))
                     continue
                 if f not in ("status", "resolution", "labels"):
                     continue
@@ -165,7 +168,8 @@ def jira(issues, snapshot_at, rules, run_id, project):
             for field, side in (("outwardIssue", "out"), ("inwardIssue", "in")):
                 if field in l:
                     t = l["type"]
-                    links.now.add(jira_link(key, t["name"], None if t["inward"] == t["outward"] else side, l[field]["key"])[0])
+                    links.now.add(jira_link(key, t["name"], None if t["inward"] == t["outward"] else side,
+                                            l[field]["key"])[0])
         if (f.get("parent") or {}).get("key"):
             links.now.add((key, "parent", f["parent"]["key"]))
 
@@ -185,7 +189,8 @@ def jira(issues, snapshot_at, rules, run_id, project):
         typ = f["issuetype"]["name"]
         tickets.append({
             "run_id": run_id, "key": key, "tracker": "jira", "type": typ,
-            "effective_type": ptype if f["issuetype"]["subtask"] and ptype and rules["subtask_takes_parent_type"] else typ,
+            "effective_type": (ptype if f["issuetype"]["subtask"] and ptype and rules["subtask_takes_parent_type"]
+                               else typ),
             "parent_key": par, "status": at_snapshot.get((key, "status"), f["status"]["name"]), "resolution": res,
             "created_at": ts(f["created"]), "resolved_at": resolved,
             "components": jlist(c["name"] for c in f.get("components") or []),
@@ -194,7 +199,8 @@ def jira(issues, snapshot_at, rules, run_id, project):
             "desc_empty": int(not (f.get("description") or "").strip()), "summary": f.get("summary") or "",
             "description": f.get("description") or ""})
 
-    # A link to a ticket of this project that isn't in the snapshot (created later) is left out, and counted. Other projects stay.
+    # A link to a ticket of this project that isn't in the snapshot (created later) is left out, and counted.
+    # Other projects stay.
     keep = lambda r: all(k in by_key or not k.startswith(project + "-") for k in (r["key"], r["other_key"]))
     rows = links.rows(run_id, snapshot_at)
     kept = [r for r in rows if keep(r)]
@@ -263,14 +269,16 @@ def gl_ref(ref, project):
 
 
 def gl_parent(n):
-    """The work-item parent, unless it's an Epic: a group epic, not an issue of the project (the epic field links it)."""
+    """The work-item parent, unless it's an Epic: a group epic, not an issue of the project (the epic field links
+    it)."""
     p = n.get("parent")
     return p if p and p["workItemType"]["name"] != "Epic" else None
 
 
 def read_gitlab(d):
     """issues.jsonl.gz, then each delta-*/ in the order pulled, as read_jira (the newest iids.json.gz for deletions).
-    shortcut: a link from a kept issue to a deleted one stays until the kept issue changes; filter links if that shows."""
+    shortcut: a link from a kept issue to a deleted one stays until the kept issue changes; filter links if that
+    shows."""
     issues, live = {}, None
     for pull in [d, *sorted(p.parent for p in d.glob("delta-*/issues.jsonl.gz"))]:  # a killed delta has none yet
         with gzip.open(pull / "issues.jsonl.gz", "rt", encoding="utf-8") as f:
@@ -343,21 +351,24 @@ def gitlab(issues, snapshot_at, ds, rules, prefix, run_id):
     for n in kept:
         closed = n["state"] == "closed" and n.get("closedAt") and ts(n["closedAt"]) <= snapshot_at
         par = gl_parent(n)
-        ptype = (by_iid[par["iid"]]["type"] if par["iid"] in by_iid else par["workItemType"]["name"].upper().replace(" ", "_")) if par else None
+        ptype = ((by_iid[par["iid"]]["type"] if par["iid"] in by_iid
+                  else par["workItemType"]["name"].upper().replace(" ", "_")) if par else None)
         labels = {l["title"] for l in n["labels"]["nodes"]}
         assignees = sorted(x["username"] for x in n["assignees"]["nodes"])
         tickets.append({
             "run_id": run_id, "key": key(n["iid"]), "tracker": "gitlab", "type": n["type"],
-            "effective_type": ptype if n["type"] == "TASK" and ptype and rules["subtask_takes_parent_type"] else n["type"],
-            "parent_key": key(par["iid"]) if par else None, "status": "closed" if closed else "opened", "resolution": None,
-            "created_at": ts(n["createdAt"]), "resolved_at": ts(n["closedAt"]) if closed else None,
+            "effective_type": (ptype if n["type"] == "TASK" and ptype and rules["subtask_takes_parent_type"]
+                               else n["type"]),
+            "parent_key": key(par["iid"]) if par else None, "status": "closed" if closed else "opened",
+            "resolution": None, "created_at": ts(n["createdAt"]), "resolved_at": ts(n["closedAt"]) if closed else None,
             "components": jlist(l for l in labels if l.startswith(prefix)),
             "assignee": assignees[0] if assignees else None, "reporter": (n.get("author") or {}).get("username"),
             "bulk_closed": int(rules["bulk_close"]["label"] in labels),
             "desc_empty": int(not (n.get("description") or "").strip()), "summary": n["title"],
             "description": n.get("description") or ""})
     events.sort(key=lambda e: (e[0], e[1]))  # stable: keeps note order within the same second
-    return tickets, numbered(events, run_id), links.rows(run_id, snapshot_at), {"dropped_titles": dropped, "relation_removed_unmatched": unmatched}
+    return (tickets, numbered(events, run_id), links.rows(run_id, snapshot_at),
+            {"dropped_titles": dropped, "relation_removed_unmatched": unmatched})
 
 
 # ───────────── commit_ticket ─────────────
@@ -387,7 +398,8 @@ def source_key(name, ds):
 
 
 def build(snap, manifest, cfg, run_id, messages_of):
-    """{table: rows} for ticket, ticket_event, ticket_link, commit_ticket. messages_of(repo) -> [(sha, subject, body)]."""
+    """{table: rows} for ticket, ticket_event, ticket_link, commit_ticket. messages_of(repo) -> [(sha, subject,
+    body)]."""
     snapshot_at, rules = manifest["snapshot_at"], cfg["tickets"]
     prefix = cfg.get("teams", {}).get("gitlab", {}).get("prefix", "group::")
     out = {"ticket": [], "ticket_event": [], "ticket_link": [], "commit_ticket": []}
@@ -406,7 +418,8 @@ def build(snap, manifest, cfg, run_id, messages_of):
             for repo in sorted(r["repo"] for r in ds.get("repos", []) if r["repo"] in manifest["repos"]):
                 rows, dead = commit_tickets(messages_of(repo), repo, key_rx, known, run_id)
                 out["commit_ticket"] += rows
-                log(f"{repo:45} {len({r['sha'] for r in rows}):>7,} commits keyed  {len(rows):>7,} keys  {dead:>3} dead keys")
+                log(f"{repo:45} {len({r['sha'] for r in rows}):>7,} commits keyed  {len(rows):>7,} keys  "
+                    f"{dead:>3} dead keys")
             extra = f"  ({counts['links_to_missing']} links to {project} tickets not in the snapshot left out, " \
                     f"{counts['changelog_cut']} changelogs cut short by Jira)"
         else:
@@ -416,5 +429,6 @@ def build(snap, manifest, cfg, run_id, messages_of):
         out["ticket"] += t
         out["ticket_event"] += e
         out["ticket_link"] += l
-        log(f"{src:45} {len(t):>7,} tickets  {len(e):>9,} events  {len(l):>7,} links  {sum(r['bulk_closed'] for r in t):>5,} bulk-closed{extra}")
+        log(f"{src:45} {len(t):>7,} tickets  {len(e):>9,} events  {len(l):>7,} links  "
+            f"{sum(r['bulk_closed'] for r in t):>5,} bulk-closed{extra}")
     return out

@@ -1,7 +1,8 @@
 """Golden tests: v1 is frozen on run 70dd1dabfed544b8. Any change to an output's bytes fails here until it is meant.
 
 1. Everywhere (CI too): the KB fixture through graph and the writer gives exactly the bytes in golden/fixture.json,
-   the sha256 of every jsonl and of every SQLite table's rows (not the .sqlite file: its header holds the SQLite version).
+   the sha256 of every jsonl and of every SQLite table's rows (not the .sqlite file: its header holds the SQLite
+   version).
 2. The team run, only with MERIDIAN_RUN_ID=70dd1dabfed544b8 and out/70dd1dabfed544b8/ present: every jsonl has the
    md5 and size in golden/70dd1dabfed544b8.json, which are dvc.lock's Mac values (run.jsonl left out: its
    image_digest differs per machine by design). Every mismatching file is listed, not just the first.
@@ -14,7 +15,14 @@ One exception, before v1 reached main: schema v1.2 added call_site.effective_sha
 changing the run_id (the run_id hashes meridian.toml, not schema.sql), so call_site and call_edge were recorded again
 from the regenerated dvc.lock. Every other file kept its hash.
 """
-import hashlib, json, os, shutil, sqlite3, sys, tempfile, unittest
+import hashlib
+import json
+import os
+import shutil
+import sqlite3
+import sys
+import tempfile
+import unittest
 from contextlib import closing, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -31,7 +39,8 @@ TEAM_RUN = "70dd1dabfed544b8"
 
 
 def fixture_hashes():
-    """{"jsonl": {file: sha256}, "sqlite": {table: sha256 of its rows as JSON, every column sorted}} for the KB fixture."""
+    """{"jsonl": {file: sha256}, "sqlite": {table: sha256 of its rows as JSON, every column sorted}} for the KB
+    fixture."""
     tmp = Path(tempfile.mkdtemp())
     try:
         (tmp / "meridian.toml").write_text(CONFIG)
@@ -52,7 +61,8 @@ def fixture_hashes():
 
 
 def mismatches(want, got):
-    return [f"{k}: want {want.get(k)}, got {got.get(k)}" for k in sorted(set(want) | set(got)) if want.get(k) != got.get(k)]
+    return [f"{k}: want {want.get(k)}, got {got.get(k)}"
+            for k in sorted(set(want) | set(got)) if want.get(k) != got.get(k)]
 
 
 class Fixture(unittest.TestCase):
@@ -82,7 +92,8 @@ class TeamRun(unittest.TestCase):
 
 if __name__ == "__main__":
     if "--update" in sys.argv:
-        (GOLDEN / "fixture.json").write_text(json.dumps(fixture_hashes(), indent=1) + "\n", encoding="utf-8", newline="\n")
+        (GOLDEN / "fixture.json").write_text(json.dumps(fixture_hashes(), indent=1) + "\n",
+                                             encoding="utf-8", newline="\n")
         print(f"wrote {GOLDEN / 'fixture.json'}")
     else:
         unittest.main()

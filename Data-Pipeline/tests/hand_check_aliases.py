@@ -1,6 +1,7 @@
 """D5 hand check: a person checks 30 of the 542 alias calls, so that answer key isn't only from our own scripts.
 
-    python -m tests.hand_check_aliases --run-id 973531f7fd4cfd5e --config meridian.toml --initials RH   # from Data-Pipeline/
+    python -m tests.hand_check_aliases --run-id 973531f7fd4cfd5e --config meridian.toml --initials RH
+    (from Data-Pipeline/)
 
 Picks 30 of the 542 calls in week1/pair1/results/alias_resolution.csv with random.seed(1), so anyone gets the
 same 30. For each one it shows the code around the call and every line in that file that gives `_` (or the alias)
@@ -9,7 +10,10 @@ independent. Each answer is timed and saved at once: quit any time with q, and r
 
 Writes labels/alias_hand_check_30.csv (CSV-POLICY.md: no people, checked_by holds the checker's initials).
 """
-import csv, random, re, time
+import csv
+import random
+import re
+import time
 from pathlib import Path
 
 from meridian.common import HERE, data_root, log, parser
@@ -26,7 +30,8 @@ def pick(key_path=KEY):
     with open(key_path, newline="", encoding="utf-8") as f:
         rows = sorted(csv.DictReader(f), key=lambda r: (r["file"], int(r["line"]), int(r["col"])))
     random.seed(SEED)
-    return [(i, r["file"], int(r["line"]), int(r["col"]), r["expected_symbol"]) for i, r in enumerate(random.sample(rows, N), 1)]
+    return [(i, r["file"], int(r["line"]), int(r["col"]), r["expected_symbol"])
+            for i, r in enumerate(random.sample(rows, N), 1)]
 
 
 def binding_lines(lines, alias):
@@ -44,7 +49,7 @@ def show(order, path, line, col, lines):
     print(f"\n  Lines in this file that give `{alias}` a meaning:")
     for n, t in binding_lines(lines, alias)[:8]:
         print(f"    {n:>5} | {t.rstrip()[:110]}")
-    print(f"\n  The call (marked >>):")
+    print("\n  The call (marked >>):")
     for n in range(max(1, line - 6), min(len(lines), line + 2) + 1):
         print(f"  {'>>' if n == line else '  '}{n:>5} | {lines[n - 1].rstrip()[:110]}")
     print(f"\n  What does `{alias}` mean on the marked line?")
@@ -102,7 +107,8 @@ def main(argv=None, ask=input):
         log(f"time: {secs / 60:.1f} min in total, {secs / N:.0f} s per call")
         for r in sorted(done.values(), key=lambda r: int(r["order"])):
             if r["agrees"] != "yes":
-                log(f"  differs: {r['path']}:{r['line']} key {r['key_symbol']}, checker {r['checker_answer']}  {r['note']}")
+                log(f"  differs: {r['path']}:{r['line']} key {r['key_symbol']}, checker {r['checker_answer']}  "
+                    f"{r['note']}")
 
 
 if __name__ == "__main__":

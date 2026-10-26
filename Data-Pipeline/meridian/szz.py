@@ -1,11 +1,12 @@
 """SZZ · step 1 · D6: bug_inducing and file_bug_fixes from a snapshot. Run by meridian.history. See CONTRACTS.md.
 
-- A fix = a first-parent, non-merge commit from [szz] fix_since on (CONTRACTS.md: "SZZ counts fix commits from 2015 on only"),
-  keyed in commit_ticket to a ticket matching [szz] fix (Bug + Fixed) that isn't bulk-closed.
+- A fix = a first-parent, non-merge commit from [szz] fix_since on (CONTRACTS.md: "SZZ counts fix commits from 2015 on
+  only"), keyed in commit_ticket to a ticket matching [szz] fix (Bug + Fixed) that isn't bulk-closed.
   First-parent only, as in week 1: a side commit and the merge that brings it in would count one fix twice.
 - SZZ: for each code file the fix changed, the lines it deleted or changed (git diff -w: whitespace-only edits don't
   count) are blamed at the fix's parent (blame -w). Blank and comment-only lines are skipped, and so are test files.
-  A fix that only adds lines has nothing to blame and gives no rows; nor does a root commit (no parent), counted in the log.
+  A fix that only adds lines has nothing to blame and gives no rows; nor does a root commit (no parent), counted in the
+  log.
 - bug_inducing: one row per (fix, file, inducing commit). path is the blamed file, at the fix's parent. key is the
   fix's Bug ticket, the smallest if it names several.
 - file_bug_fixes: per path, the fix commits that touched it in the 365 days up to snapshot_at (authored_at, start
@@ -47,7 +48,8 @@ def changed(co, parent, fix, code):
         if line.startswith("diff --git "):
             head, lines = True, None
         elif head and line.startswith("--- "):  # only in the header: a deleted "-- x" line is "--- x" too
-            old = line[6:].removesuffix("\t") if line.startswith("--- a/") else None  # git ends a path with a space in a tab
+            # git ends a path with a space in a tab
+            old = line[6:].removesuffix("\t") if line.startswith("--- a/") else None
             lines = out.setdefault(old, []) if old and code_file(old, code) else None
         elif line.startswith("@@"):
             head = False
@@ -120,10 +122,12 @@ def bug_inducing(fix_rows, co_of, run_id, code, workers=None, cache_of=None):
         by_repo[repo].append((c, keys))
     for repo, fs in sorted(by_repo.items()):
         keys = {c["sha"]: ks[0] for c, ks in fs}
-        jobs = sorted((str(co_of(repo)), c["sha"], c["parent_sha"]) for c, _ in fs if c["parent_sha"])  # a root commit has no parent to blame
+        # a root commit has no parent to blame
+        jobs = sorted((str(co_of(repo)), c["sha"], c["parent_sha"]) for c, _ in fs if c["parent_sha"])
         cache, done = cache_of and cache_of(repo), {}
         if cache:
-            base = cache_key(source_hash(__file__), code[0].pattern, sorted(code[1].items()), git(co_of(repo), "version"))
+            base = cache_key(source_hash(__file__), code[0].pattern, sorted(code[1].items()),
+                             git(co_of(repo), "version"))
             done = {fix: hit for _, fix, _ in jobs if (hit := cache.get(cache_key(base, fix))) is not None}
         with ProcessPoolExecutor(workers) as pool:
             for fix, files in pool.map(partial(_szz, code), [j for j in jobs if j[1] not in done], chunksize=8):
@@ -134,7 +138,8 @@ def bug_inducing(fix_rows, co_of, run_id, code, workers=None, cache_of=None):
             for path, shas in files.items():
                 rows += [{"run_id": run_id, "repo": repo, "fix_sha": fix, "key": keys[fix], "path": path,
                           "inducing_sha": s} for s in shas]
-        log(f"{repo:45} {len(fs):>7,} fix commits  {len({r['fix_sha'] for r in rows if r['repo'] == repo}):>7,} with lines to blame  "
+        log(f"{repo:45} {len(fs):>7,} fix commits  "
+            f"{len({r['fix_sha'] for r in rows if r['repo'] == repo}):>7,} with lines to blame  "
             f"{sum(r['repo'] == repo for r in rows):>8,} bug_inducing rows  {len(fs) - len(jobs)} root commits skipped"
             + (f"  {len(cache.hits)} reused from the cache" if cache else ""))
         if cache:

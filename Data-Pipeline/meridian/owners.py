@@ -1,7 +1,7 @@
 """Owners · step 1 · D3 + D4: person, person_alias, team_map. See CONTRACTS.md, "Chaitali · start kit".
 
-    python -m meridian.owners --run-id <run_id> --config meridian.toml          # -> out/<run_id>/person*.jsonl, team_map.jsonl
-    python -m meridian.owners --run-id <run_id> --top 20                        # also print the 20 biggest groups, to hand-check
+    python -m meridian.owners --run-id <run_id> --config meridian.toml  # -> out/<run_id>/person*.jsonl, team_map.jsonl
+    python -m meridian.owners --run-id <run_id> --top 20                # also print the 20 biggest groups to hand-check
 
 Running it again for the same run replaces its own files with the same rows.
 
@@ -11,7 +11,8 @@ D5, file_owner: one row per file at the pinned SHA, by the dataset's owner_mode.
 - author (Spark): the team with the biggest share of the file's commits in the window, following renames, no merges,
   no bots, no .git-blame-ignore-revs. Below min_share, or no team, -> unowned. No commits in the window -> basis 'none'.
 - path (Django), repo (packages): the [teams] rule decides, share = 1. Each prefix or repo used also goes in team_map.
-- top_person_id is the person with most commits in the window. last_commit_at is the file's last counted commit, any time.
+- top_person_id is the person with most commits in the window. last_commit_at is the file's last counted commit, any
+  time.
 - The window ends at snapshot_at for author, and at the pinned commit's authored_at for path and repo: Django and the
   packages are pinned years before snapshot_at, where a snapshot_at window holds no commits.
 The log ends with week 1's test, one window back: does the owner predict the next author better than the last toucher?
@@ -31,20 +32,18 @@ Identities, as [identity] in meridian.toml says:
 git_commit has no author names, so names, Co-authored-by and .mailmap are read from the snapshot checkout at the
 pinned SHA (git's %aN / %aE apply that commit's .mailmap). The author emails must match git_commit exactly.
 """
-import hashlib, json, re, subprocess
+import json
+import re
+import subprocess
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta, timezone
 from fractions import Fraction
 from pathlib import Path
 
-from meridian.common import CONFIG, data_root, git, handoff, load_config, log, parser, read_jsonl, write_jsonl
+from meridian.common import (CONFIG, data_root, days_before, git, h, handoff, load_config, log, parser, read_jsonl,
+                             repo_checkout, write_jsonl)
 
 COAUTH = re.compile(r"^Co-authored-by:\s*(.*?)\s*<([^>]+)>", re.M | re.I)
 FMT = "%x1e%H%x1f%an%x1f%ae%x1f%aN%x1f%aE%x1f%b"
-
-
-def h(*fields):
-    return hashlib.sha256("\x1f".join(fields).encode()).hexdigest()[:16]
 
 
 def norm_name(name):
@@ -61,7 +60,8 @@ def read_people(co, sha):
     rows = []
     for rec in out.split("\x1e")[1:]:
         _, _, ae, mapped_name, mapped_email, body = rec.split("\x1f", 5)
-        rows.append((ae.lower(), mapped_email.lower(), mapped_name, [(n, e.strip().lower()) for n, e in COAUTH.findall(body)]))
+        rows.append((ae.lower(), mapped_email.lower(), mapped_name,
+                     [(n, e.strip().lower()) for n, e in COAUTH.findall(body)]))
     return rows
 
 
@@ -175,7 +175,8 @@ def person_teams(commits, keys, components, pid, since, until, unassigned):
 
 def touches(commits, files, skip):
     """{path: [commit, ...] oldest first}, for one repo. A file's history follows its renames, so commits on an old
-    name count for the name it has at the pinned SHA. Merges never count; skip (.git-blame-ignore-revs) only follows renames."""
+    name count for the name it has at the pinned SHA. Merges never count; skip (.git-blame-ignore-revs) only follows
+    renames."""
     by_sha = defaultdict(list)
     for f in files:
         by_sha[f["sha"]].append(f)
@@ -237,10 +238,10 @@ def ignore_revs(co, sha, name):
 def last_toucher_test(hist, team_of, unassigned, min_share, since, cut, until, src, test):
     """Week 1's test, at the cut: does the owner predict who touches the file next, better than whoever touched it last?
 
-    hist: {path: [(authored_at, person_id)] oldest first}. Owners come from (since, cut], the next author from (cut, until].
-    Scored on source files (src and not test, the [checks] regexes) with a commit before and after the cut. Team level:
-    owner team vs the last toucher's team, against the next author's team (a next author with no team counts as a miss
-    for both). Person level: the top person, if their share passes min_share, vs the last toucher.
+    hist: {path: [(authored_at, person_id)] oldest first}. Owners come from (since, cut], the next author from (cut,
+    until]. Scored on source files (src and not test, the [checks] regexes) with a commit before and after the cut. Team
+    level: owner team vs the last toucher's team, against the next author's team (a next author with no team counts as a
+    miss for both). Person level: the top person, if their share passes min_share, vs the last toucher.
     """
     team = {"n": 0, "owner": 0, "last": 0}
     person = {"n": 0, "owner": 0, "last": 0}
@@ -282,7 +283,7 @@ def main(run_id, config=CONFIG, root=None, top=0):
 
     records, by_repo = [], {}
     for repo, sha in sorted(manifest["repos"].items()):
-        rows = read_people(snap / "repos" / repo.replace("/", "__"), sha)
+        rows = read_people(repo_checkout(snap, repo), sha)
         if (seen := {r[0] for r in rows}) != authors[repo]:
             raise SystemExit(f"{repo}: author emails differ from git_commit ({len(seen ^ authors[repo])} emails)")
         records += rows
@@ -299,8 +300,8 @@ def main(run_id, config=CONFIG, root=None, top=0):
 
     # D4: team_map for datasets whose team is the person's Jira component (Spark)
     snapshot_at = read_jsonl(out / "run.jsonl")[0]["snapshot_at"]
-    fmt, days = cfg["run"]["time_format"], timedelta(days=cfg["ownership"]["window_days"])
-    back = lambda t: (datetime.strptime(t, fmt).replace(tzinfo=timezone.utc) - days).strftime(fmt)
+    fmt, days = cfg["run"]["time_format"], cfg["ownership"]["window_days"]
+    back = lambda t: days_before(t, days, fmt)
     since = back(snapshot_at)
     keys = defaultdict(list)
     for r in read_jsonl(out / "commit_ticket.jsonl"):
@@ -316,7 +317,8 @@ def main(run_id, config=CONFIG, root=None, top=0):
         if rule["rule"] != "person_component":
             continue
         team = teams[ds] = person_teams(ds_commits(ds), keys, components, pid, since, snapshot_at, rule["unassigned"])
-        team_map += [{"dataset": ds, "subject_kind": "person", "subject": p, "team": t, "rule": rule["rule"]} for p, t in team.items()]
+        team_map += [{"dataset": ds, "subject_kind": "person", "subject": p, "team": t, "rule": rule["rule"]}
+                     for p, t in team.items()]
         n = Counter(team.values())
         active = len(team) - n[rule["unassigned"]]
         log(f"{ds:45} {len(team):>6,} people -> {active:,} with a team ({len(n) - (rule['unassigned'] in n)} teams), "
@@ -340,9 +342,10 @@ def main(run_id, config=CONFIG, root=None, top=0):
             raise SystemExit(f"{repo}: owner_mode {mode!r} in [datasets.{ds}] has no file owner rule")
         until = snapshot_at if mode == "author" else pinned_at[repo, sha]
         start = back(until)
-        co = snap / "repos" / repo.replace("/", "__")
+        co = repo_checkout(snap, repo)
         hist = {path: [(c["authored_at"], pid[c["author_email"]]) for c in cs if pid[c["author_email"]] not in bots]
-                for path, cs in touches(by_repo_commits[repo], files[repo], ignore_revs(co, sha, own["ignore_revs_file"])).items()}
+                for path, cs in touches(by_repo_commits[repo], files[repo],
+                                        ignore_revs(co, sha, own["ignore_revs_file"])).items()}
         unassigned = rule.get("unassigned", "unassigned")
         team_of = lambda p: teams[ds].get(p, unassigned)
         n = Counter()
@@ -362,24 +365,28 @@ def main(run_id, config=CONFIG, root=None, top=0):
                 rule_teams[(ds, "repo", repo)] = (owner, rule["rule"])
             n["unowned" if owner == "unowned" else "owned"] += 1
             n["active"] += bool(window)
-            file_owner.append({"repo": repo, "path": path, "owner_team": owner, "share": share, "top_person_id": top_person,
-                               "n_commits": len(window), "last_commit_at": max((x[0] for x in ts), default=None), "basis": basis})
+            file_owner.append({"repo": repo, "path": path, "owner_team": owner, "share": share,
+                               "top_person_id": top_person, "n_commits": len(window),
+                               "last_commit_at": max((x[0] for x in ts), default=None), "basis": basis})
         log(f"{repo:45} {n['owned'] + n['unowned']:>6,} files · {n['active']:>6,} touched {start[:10]}..{until[:10]} · "
             f"{n['unowned']:,} unowned · basis {basis}")
         if mode == "author":  # week 1's test: owner vs last toucher, one window back
             cut = since
             team_cut = person_teams(ds_commits(ds), keys, components, pid, back(cut), cut, unassigned)
-            t, p = last_toucher_test(hist, lambda q: team_cut.get(q, unassigned), unassigned, own["min_share"], back(cut), cut,
-                                     snapshot_at, src, test)
+            t, p = last_toucher_test(hist, lambda q: team_cut.get(q, unassigned), unassigned, own["min_share"],
+                                     back(cut), cut, snapshot_at, src, test)
             pct = lambda d, k: f"{d[k] / d['n']:.1%}" if d["n"] else "n/a"
             log(f"{'':45} next author after {cut[:10]}, on owned source files: team owner {pct(t, 'owner')} vs "
-                f"last toucher's team {pct(t, 'last')} (N={t['n']:,}) · person owner {pct(p, 'owner')} vs last toucher {pct(p, 'last')} (N={p['n']:,})")
-    team_map += [{"dataset": ds, "subject_kind": kind, "subject": s, "team": t, "rule": r} for (ds, kind, s), (t, r) in rule_teams.items()]
+                f"last toucher's team {pct(t, 'last')} (N={t['n']:,}) · person owner {pct(p, 'owner')} "
+                f"vs last toucher {pct(p, 'last')} (N={p['n']:,})")
+    team_map += [{"dataset": ds, "subject_kind": kind, "subject": s, "team": t, "rule": r}
+                 for (ds, kind, s), (t, r) in rule_teams.items()]
 
     out.mkdir(parents=True, exist_ok=True)
     write_jsonl(out / "person.jsonl", [{"run_id": run_id, **r} for r in person], ("person_id",))
     write_jsonl(out / "person_alias.jsonl", [{"run_id": run_id, **r} for r in alias], ("email",))
-    write_jsonl(out / "team_map.jsonl", [{"run_id": run_id, **r} for r in team_map], ("dataset", "subject_kind", "subject"))
+    write_jsonl(out / "team_map.jsonl", [{"run_id": run_id, **r} for r in team_map],
+                ("dataset", "subject_kind", "subject"))
     write_jsonl(out / "file_owner.jsonl", [{"run_id": run_id, **r} for r in file_owner], ("repo", "path"))
 
     if top:  # to hand-check, never in the Airflow log: these are real names
@@ -400,6 +407,7 @@ def main(run_id, config=CONFIG, root=None, top=0):
 
 if __name__ == "__main__":
     ap = parser(__doc__)
-    ap.add_argument("--top", type=int, default=0, help="print the N biggest groups to hand-check (real names: not for shared logs)")
+    ap.add_argument("--top", type=int, default=0,
+                    help="print the N biggest groups to hand-check (real names: not for shared logs)")
     a = ap.parse_args()
     main(a.run_id, a.config, top=a.top)

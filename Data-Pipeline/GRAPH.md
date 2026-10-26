@@ -1,6 +1,6 @@
 # Graph · step 1
 
-Aniket's part of the [pipeline plan](PIPELINE-PLAN.md): which call site waits on which, how far each symbol reaches, and ticket-to-ticket chains.
+Aniket's part of the [pipeline plan](notes/PIPELINE-PLAN.md): which call site waits on which, how far each symbol reaches, and ticket-to-ticket chains.
 
 ```
 python -m meridian.graph --run-id <run_id> --config meridian.toml      # from Data-Pipeline/

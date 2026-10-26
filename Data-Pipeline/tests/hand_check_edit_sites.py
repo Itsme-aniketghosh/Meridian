@@ -10,7 +10,13 @@ labels/django_edit_sites_265.csv. Type q at any prompt to stop: the next run res
 y: the line imports, calls or aliases ugettext / ugettext_lazy / ugettext_noop / ungettext / ungettext_lazy in code.
 n: a definition, a comment, a string, or none of the five names on that line.
 """
-import argparse, csv, json, shutil, subprocess, sys, time
+import argparse
+import csv
+import json
+import shutil
+import subprocess
+import sys
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]

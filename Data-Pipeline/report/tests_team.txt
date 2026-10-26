@@ -1,0 +1,33 @@
+test_same_bytes_as_golden (tests.test_golden.Fixture.test_same_bytes_as_golden) ... ok
+test_every_output_as_frozen (tests.test_golden.TeamRun.test_every_output_as_frozen) ... FAIL
+
+======================================================================
+FAIL: test_every_output_as_frozen (tests.test_golden.TeamRun.test_every_output_as_frozen)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\github\Meridian\Data-Pipeline\tests\test_golden.py", line 80, in test_every_output_as_frozen
+    self.assertEqual(mismatches(want, got), [])
+AssertionError: Lists differ: ["blast_radius.jsonl: want {'md5': '9a49fb[555 chars]44}"] != []
+
+First list contains 4 additional elements.
+First extra element 0:
+"blast_radius.jsonl: want {'md5': '9a49fb0ed5b5f12c933e6162631cadf2', 'size': 4626}, got {'md5': '64eb72b76d5318f6a6cc881caaab1d15', 'size': 4626}"
+
+Diff is 643 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.921s
+
+FAILED (failures=1)
+
+=== tests.test_scan tests.test_resolve, MERIDIAN_RUN_ID=70dd1dabfed544b8, 2026-10-25 ===
+test_265_of_265_and_0_false (tests.test_scan.DjangoAnswerKey.test_265_of_265_and_0_false) ... ok
+test_2_lines_outside_py (tests.test_scan.DjangoAnswerKey.test_2_lines_outside_py) ... ok
+test_no_tracked_name_lost_to_parse_failures (tests.test_scan.DjangoAnswerKey.test_no_tracked_name_lost_to_parse_failures) ... ok
+test_542_of_542 (tests.test_resolve.DjangoAnswerKey.test_542_of_542) ... ok
+test_every_edit_line_resolves (tests.test_resolve.DjangoAnswerKey.test_every_edit_line_resolves) ... ok
+test_precision_and_recall (tests.test_resolve.PackagesScore.test_precision_and_recall) ... ok
+----------------------------------------------------------------------
+Ran 60 tests in 254.374s
+
+OK

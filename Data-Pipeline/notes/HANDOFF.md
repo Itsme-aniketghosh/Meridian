@@ -1,6 +1,6 @@
 # Handoff · graph data block v1 → stall rules, Jev, views
 
-What step 1 hands to stage 5 (rules), 6 (Jev and the LLM agents) and 8 (views). One SQLite file per run, built by `meridian.writer` from `out/<run_id>/*.jsonl` against [schema.sql](schema.sql). Team run `70dd1dabfed544b8`, snapshot 2026-10-01T01:23:03Z. Every query a stage needs is already written and tested in [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md): start there, not from the tables.
+What step 1 hands to stage 5 (rules), 6 (Jev and the LLM agents) and 8 (views). One SQLite file per run, built by `meridian.writer` from `out/<run_id>/*.jsonl` against [schema.sql](../schema.sql). Team run `70dd1dabfed544b8`, snapshot 2026-10-01T01:23:03Z. Every query a stage needs is already written and tested in [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md): start there, not from the tables.
 
 ## Read it like this
 
@@ -60,6 +60,6 @@ No single dataset fills every table (KB gap G7). Screens say which dataset a num
 ## Known limits
 
 - `call_edge` holds only callers above tracked symbols (G3): no fan-in signals for the radar yet.
-- Graph's code-level chains need a ticket on a call site; this run has none. Collisions were checked on Spark instead: `tests/collisions.py`, [labels/spark_collision_pairs_50.csv](labels/spark_collision_pairs_50.csv).
-- `call_edge` is 2,293 here and 2,288 in RESOLVER.md: 5 Django edges, cause open ([OPEN-POINTS](../OPEN-POINTS.md)).
+- Graph's code-level chains need a ticket on a call site; this run has none. Collisions were checked on Spark instead: `tests/collisions.py`, [labels/spark_collision_pairs_50.csv](../labels/spark_collision_pairs_50.csv).
+- `call_edge` is 2,293 here and 2,288 in RESOLVER.md: 5 Django edges, cause open ([OPEN-POINTS](../../OPEN-POINTS.md)).
 - 21,810 of 27,495 Spark files are `unowned`: 2,785 of 3,048 people have no keyed commit with a component in 180 days.

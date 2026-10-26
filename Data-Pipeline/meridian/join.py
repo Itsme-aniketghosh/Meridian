@@ -1,7 +1,7 @@
 """Join · step 1 · stage 2: call_site, ticket_map, coverage. See 04-architecture §3 and CONTRACTS.md.
 
-    python -m meridian.join --run-id <run_id> --config meridian.toml                       # first run: every site is new
-    python -m meridian.join --run-id <run_id> --config meridian.toml --prev-run <run_id>   # match to the last run
+    python -m meridian.join --run-id <run_id> --config meridian.toml                     # first run: every site is new
+    python -m meridian.join --run-id <run_id> --config meridian.toml --prev-run <run_id> # match to the last run
 
 Reads out/<run_id>/ (candidate, resolution, file_owner, file_bug_fixes, ticket, commit_ticket, commit_file, git_commit,
 run, parse_failure), the snapshot checkouts, and with --prev-run that run's out/<prev>/call_site.jsonl and run.jsonl.
@@ -36,11 +36,13 @@ ticket_map: every ticket gets rows, all hits kept, no fuzzy matching ([join] fuz
 
 coverage: what we missed, as counts (CONTRACTS.md rule 9). One row per metric, the note says what it means.
 """
-import hashlib, json, re
+import json
+import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from meridian.common import CONFIG, data_root, git, handoff, load_config, log, parser, read_jsonl, write_jsonl
+from meridian.common import (CONFIG, data_root, git, h, handoff, load_config, log, parser, read_jsonl, repo_checkout,
+                             write_jsonl)
 from meridian.scan import files as scan_files
 
 KEYS = {
@@ -56,10 +58,6 @@ VERSIONED = ("repo", "path", "line", "col", "scope", "symbol", "role", "detectio
 JAVA_FRAME = re.compile(r"\bat\s+((?:[\w$]+\.)+)[\w$<>]+\(([\w$]+\.(?:java|scala)):(\d+)\)")
 PY_FRAME = re.compile(r'File "([^"\n]+\.py)", line (\d+)')
 PATH_TOKEN = re.compile(r"[\w./-]+\.\w+")
-
-
-def h(*fields):
-    return hashlib.sha256("\x1f".join(fields).encode()).hexdigest()[:16]
 
 
 def normalized(text):
@@ -84,7 +82,8 @@ def current_sites(cands, res, edit_roles):
     for c in cands:
         r = by_key.get((c["repo"], c["path"], c["line"], c["col"]))
         if r is None:
-            raise SystemExit(f"no resolution row for candidate {c['repo']}:{c['path']}:{c['line']}:{c['col']}: rerun meridian.resolve")
+            raise SystemExit(f"no resolution row for candidate {c['repo']}:{c['path']}:{c['line']}:{c['col']}: "
+                             "rerun meridian.resolve")
         if c["role"] not in edit_roles:
             n["not_edit_role"] += 1
             continue
@@ -187,15 +186,16 @@ def porcelain_shas(text):
 def blame(co, rev, path, lines, reverse=False):
     """{line: sha}: the first-parent commit that made each line as it is at rev (or, reverse, the last that had it)."""
     ranges = [a for n in sorted(set(lines)) for a in ("-L", f"{n},{n}")]
-    args = ["blame", "--porcelain", "--first-parent", "-w", *(["--reverse"] if reverse else []), *ranges, rev, "--", path]
+    args = ["blame", "--porcelain", "--first-parent", "-w", *(["--reverse"] if reverse else []), *ranges,
+            rev, "--", path]
     return porcelain_shas(git(co, *args))
 
 
 def match(prev, now, diff, unparsed=frozenset()):
-    """prev: last run's present sites (with call_site_id); now: this run's sites; unparsed: this repo's paths that failed
-    to parse this run. -> ({index in now: id}, unmatched prev, [(prev site, where the line map puts it)] in an unparsed
-    file). A site in an unparsed file has no candidate to match: it is set aside before step 2, which would otherwise
-    hand it any same-text site in another file (an import line, most often)."""
+    """prev: last run's present sites (with call_site_id); now: this run's sites; unparsed: this repo's paths that
+    failed to parse this run. -> ({index in now: id}, unmatched prev, [(prev site, where the line map puts it)] in an
+    unparsed file). A site in an unparsed file has no candidate to match: it is set aside before step 2, which would
+    otherwise hand it any same-text site in another file (an import line, most often)."""
     taken, ids = set(), {}
     at = {(s["path"], s["line"], s["col"], s["symbol"]): i for i, s in enumerate(now)}
     left, stuck = [], []
@@ -234,7 +234,8 @@ def newest(history):
 
 
 def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout, failed=frozenset()):
-    """-> (every call_site version so far, plus this run's), stats. failed: {(repo, path)} that didn't parse this run."""
+    """-> (every call_site version so far, plus this run's), stats. failed: {(repo, path)} that didn't parse this
+    run."""
     snapshot_at, shas = run["snapshot_at"], json.loads(run["repo_shas"])
     history = prev["history"] if prev else []
     last = newest(history)
@@ -249,7 +250,8 @@ def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout, faile
         co, now = checkout(repo), by_repo.get(repo, [])
         old_sha = json.loads(prev["run"]["repo_shas"])[repo] if prev else None
         # a site carried through a file that didn't parse last run has no candidate there: read its line from git
-        text = lambda r: prev["text"].get((repo, r["path"], r["line"], r["col"])) or line_at(co, old_sha, r["path"], r["line"])
+        text = lambda r: (prev["text"].get((repo, r["path"], r["line"], r["col"]))
+                          or line_at(co, old_sha, r["path"], r["line"]))
         was = [r | {"normalized_line": normalized(text(r))}
                for r in last.values() if r["repo"] == repo and r["status"] == "present"]
         ids, gone, stuck = {}, [], []
@@ -290,11 +292,13 @@ def build_sites(run_id, run, prev, sites, owner, fixes, commits, checkout, faile
         for p, to in stuck:  # carried to this SHA's line, so the next run's line map starts from the right place
             n["kept_unparsed"] += 1
             if not to or to == (p["path"], p["line"]):
-                continue  # shortcut: a line edited inside the broken file keeps its old line until the file parses again
+                # shortcut: a line edited inside the broken file keeps its old line until the file parses again
+                continue
             sha = blame(co, shas[repo], to[0], [to[1]])[to[1]]
-            written.append({**{k: p[k] for k in VERSIONED}, "path": to[0], "line": to[1], "call_site_id": p["call_site_id"],
-                            "run_id": run_id, "known_at": snapshot_at, "owner_team": owner.get((repo, to[0]), "unowned"),
-                            "bug_fixes": fixes.get((repo, to[0]), 0), "effective_date": date[(repo, sha)], "effective_sha": sha})
+            written.append({**{k: p[k] for k in VERSIONED}, "path": to[0], "line": to[1],
+                            "call_site_id": p["call_site_id"], "run_id": run_id, "known_at": snapshot_at,
+                            "owner_team": owner.get((repo, to[0]), "unowned"), "bug_fixes": fixes.get((repo, to[0]), 0),
+                            "effective_date": date[(repo, sha)], "effective_sha": sha})
         if gone:
             for path in sorted({p["path"] for p in gone}):
                 ps = [p for p in gone if p["path"] == path]
@@ -320,7 +324,8 @@ def suffix_index(paths):
 
 
 def frames(text, by_name):
-    """Stack frames in a ticket's text -> [(path, line)] that name exactly one file. Also the count of ambiguous ones."""
+    """Stack frames in a ticket's text -> [(path, line)] that name exactly one file. Also the count of ambiguous
+    ones."""
     hits, unsure = [], 0
     for pkg, name, ln in JAVA_FRAME.findall(text):
         tail = "/".join(pkg.rstrip(".").split(".")[:-1] + [name])  # pkg.Class. -> pkg/File.scala
@@ -367,7 +372,8 @@ def build_ticket_map(run_id, cfg, tickets, commit_ticket, commit_file, head_path
                 n["commit_paths_gone"] += 1
     index = {repo: suffix_index(paths) for repo, paths in head_paths.items()}
     site_at = {(s["repo"], s["path"], s["line"]): s["call_site_id"] for s in sites_now}
-    symbols = {ds: [(f"{s['module']}.{s['name']}", s["name"]) for s in d.get("symbols", [])] for ds, d in datasets.items()}
+    symbols = {ds: [(f"{s['module']}.{s['name']}", s["name"]) for s in d.get("symbols", [])]
+               for ds, d in datasets.items()}
     for t in tickets:
         ds = dataset(t)
         text = f"{t['summary']}\n{t['description']}"
@@ -396,7 +402,8 @@ def build_ticket_map(run_id, cfg, tickets, commit_ticket, commit_file, head_path
 
 # ───────────── coverage ─────────────
 
-def build_coverage(run_id, sites_now, site_stats, cands, failures, n_files, owners, tickets, tmap, tmap_stats, match_stats, prev_run):
+def build_coverage(run_id, sites_now, site_stats, cands, failures, n_files, owners, tickets, tmap, tmap_stats,
+                   match_stats, prev_run):
     by_tracker = Counter(t["tracker"] for t in tickets)
     mapped = {r["key"] for r in tmap if r["target_kind"] != "unmapped"}
     tracker_of = {t["key"]: t["tracker"] for t in tickets}
@@ -425,8 +432,10 @@ def build_coverage(run_id, sites_now, site_stats, cands, failures, n_files, owne
         ("call_sites_removed", match_stats["removed"], match_stats["prev_present"], "last run's present sites gone"),
     ]
     for tracker in sorted(by_tracker):
-        note = "GitLab is Ruby: no code in the snapshot" if tracker == "gitlab" else f"{tracker} tickets with a code target"
-        rows.append((f"tickets_mapped_{tracker}", sum(tracker_of[k] == tracker for k in mapped), by_tracker[tracker], note))
+        note = ("GitLab is Ruby: no code in the snapshot" if tracker == "gitlab"
+                else f"{tracker} tickets with a code target")
+        rows.append((f"tickets_mapped_{tracker}", sum(tracker_of[k] == tracker for k in mapped),
+                     by_tracker[tracker], note))
     return [{"run_id": run_id, "metric": m, "numerator": a, "denominator": b, "note": note} for m, a, b, note in rows]
 
 
@@ -442,7 +451,8 @@ def main(run_id, config=CONFIG, root=None, prev_run=None):
     need = ["run", "candidate", "resolution", "parse_failure", "file_owner", "file_bug_fixes", "ticket",
             "commit_ticket", "commit_file", "git_commit"]
     if missing := [t for t in need if not (out / f"{t}.jsonl").exists()]:
-        raise SystemExit(f"missing in {out}: {', '.join(missing)}. Run collect, history, scan, resolve and owners first")
+        raise SystemExit(f"missing in {out}: {', '.join(missing)}. "
+                         "Run collect, history, scan, resolve and owners first")
     t = {name: read_jsonl(out / f"{name}.jsonl") for name in need}
     run = t["run"][0]
     prev = None
@@ -451,11 +461,12 @@ def main(run_id, config=CONFIG, root=None, prev_run=None):
         if not (pout / "call_site.jsonl").exists():
             raise SystemExit(f"no {pout / 'call_site.jsonl'}: join the previous run first")
         prev = {"run": read_jsonl(pout / "run.jsonl")[0], "history": read_jsonl(pout / "call_site.jsonl"),
-                "text": {(c["repo"], c["path"], c["line"], c["col"]): c["text"] for c in read_jsonl(pout / "candidate.jsonl")}}
+                "text": {(c["repo"], c["path"], c["line"], c["col"]): c["text"]
+                         for c in read_jsonl(pout / "candidate.jsonl")}}
         if prev["run"]["snapshot_at"] >= run["snapshot_at"]:
             raise SystemExit(f"--prev-run {prev_run} is not before {run_id} (snapshot_at)")
 
-    checkout = lambda repo: snap / "repos" / repo.replace("/", "__")
+    checkout = lambda repo: repo_checkout(snap, repo)
     sites, site_stats = current_sites(t["candidate"], t["resolution"], cfg["scanner"]["edit_roles"])
     sites = with_occurrence(sites)
     owner = {(o["repo"], o["path"]): o["owner_team"] for o in t["file_owner"]}
@@ -485,7 +496,8 @@ def main(run_id, config=CONFIG, root=None, prev_run=None):
         log(f"{repo:45} {by_repo[repo]:>6,} call sites")
     log(f"{'call_site':45} {len(now):,} present · versions written this run: " +
         ", ".join(f"{v:,} {k}" for k, v in sorted(match_stats.items()) if k not in ("matched", "prev_present")) +
-        (f" · matched {match_stats['matched']:,} of {match_stats['prev_present']:,} from {prev_run}" if prev_run else " · first run"))
+        (f" · matched {match_stats['matched']:,} of {match_stats['prev_present']:,} from {prev_run}" if prev_run
+         else " · first run"))
     log(f"{'ticket_map':45} {len(tmap):,} rows · " +
         ", ".join(f"{v:,} {k}" for k, v in sorted(Counter(r['method'] for r in tmap).items())))
     for c in coverage:

@@ -3,14 +3,20 @@
     python3 "Data-Pipeline/check_csv.py"            # tracked + staged CSVs
     python3 "Data-Pipeline/check_csv.py" a.csv b.csv # just these
 """
-import csv, os, re, subprocess, sys
+import csv
+import os
+import re
+import subprocess
+import sys
 
 MAX_BYTES = 5 * 1024 * 1024
 MAX_QUOTE = 200
-PEOPLE = re.compile(r"(^|_)(author|email|e_mail|username|user_name|login|name|by|assignee|reporter|committer|person|people)s?(_|$)")
+PEOPLE = re.compile(r"(^|_)(author|email|e_mail|username|user_name|login|name|by|assignee|reporter|committer|person"
+                    r"|people)s?(_|$)")
 OK_COLUMNS = {"checked_by", "ended_by", "changed_by_commit", "symbol_name", "method_name"}   # not people
 EMAIL = re.compile(r"[\w.+-]+@([\w-]+\.[\w.-]+)")
-RESERVED = re.compile(r"(^|\.)(example\.(com|org|net)|[\w-]+\.(test|example|invalid|localhost))$", re.I)  # RFC 2606: not real people
+# RFC 2606: not real people
+RESERVED = re.compile(r"(^|\.)(example\.(com|org|net)|[\w-]+\.(test|example|invalid|localhost))$", re.I)
 HANDLE = re.compile(r"(?<![\w@])@(?!user\b)[A-Za-z0-9_][\w.-]*")
 QUOTE_COLS = re.compile(r"(quote|evidence_text|snippet|comment)", re.I)
 
@@ -19,8 +25,10 @@ csv.field_size_limit(MAX_BYTES)
 
 def git_csvs():
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
-    out = subprocess.run(["git", "-C", root, "ls-files", "--cached", "--", "*.csv"], capture_output=True, text=True).stdout
-    return [os.path.join(root, p) for p in sorted(set(out.splitlines()))]  # lines, not words: "Data-Pipeline/" has a space
+    out = subprocess.run(["git", "-C", root, "ls-files", "--cached", "--", "*.csv"], capture_output=True,
+                         text=True).stdout
+    # lines, not words: "Data-Pipeline/" has a space
+    return [os.path.join(root, p) for p in sorted(set(out.splitlines()))]
 
 
 def words(col):
@@ -32,7 +40,8 @@ def check(path):
     problems = []
     if os.path.getsize(path) > MAX_BYTES:
         problems.append(f"over 5 MB ({os.path.getsize(path):,} bytes): this is data, put it in GCS")
-    with open(path, newline="", encoding="utf-8-sig", errors="replace") as f:  # -sig: Excel's BOM would hide the first column
+    # -sig: Excel's BOM would hide the first column
+    with open(path, newline="", encoding="utf-8-sig", errors="replace") as f:
         rows = list(csv.reader(f))
     if not rows:
         return problems

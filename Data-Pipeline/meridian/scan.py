@@ -48,9 +48,12 @@ Same run, same bytes: files and rows in a fixed order, no clock, nothing random.
 
 Cache (settings.toml [cache] scan, off by default). A file's rows depend on its bytes, path and kind, this code,
 tree-sitter's versions, the repo's symbols and [scanner], and nothing else. With all of them as before (the bytes
-by their git blob SHA), its rows are reused from snapshots/_cache/scan/<repo>.json with this run_id. Same bytes either way.
+by their git blob SHA), its rows are reused from snapshots/_cache/scan/<repo>.json with this run_id. Same bytes either
+way.
 """
-import json, os, re
+import json
+import os
+import re
 from collections import Counter
 from fnmatch import fnmatchcase
 from importlib.metadata import version
@@ -59,8 +62,8 @@ from pathlib import Path
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser
 
-from meridian.common import (Cache, blob_sha, cache_key, cache_on, data_root, git, handoff, load_config, load_settings, log, parser,
-                             source_hash, write_jsonl)
+from meridian.common import (Cache, blob_sha, cache_key, cache_on, data_root, git, handoff, load_config, log, parser,
+                             repo_checkout, source_hash, write_jsonl)
 
 PY = Parser(Language(tspython.language()))
 COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "role", "scope", "text", "junk", "file_kind", "in_except"]
@@ -170,7 +173,8 @@ def name_only(node):
         return True
     if parent.type in ("parameters", "lambda_parameters"):
         return True
-    if parent.type in ("default_parameter", "typed_default_parameter") and same(parent.child_by_field_name("name"), node):
+    if (parent.type in ("default_parameter", "typed_default_parameter")
+            and same(parent.child_by_field_name("name"), node)):
         return True
     if parent.type == "typed_parameter" and parent.children and same(parent.children[0], node):
         return True
@@ -250,14 +254,16 @@ def imports(path, nodes):
         line = node.start_point[0] + 1
         if node.type == "import_statement":
             for item in node.children_by_field_name("name"):
-                found.add((line, dotted(item.child_by_field_name("name") if item.type == "aliased_import" else item), ""))
+                found.add((line,
+                           dotted(item.child_by_field_name("name") if item.type == "aliased_import" else item), ""))
         elif node.type in ("import_from_statement", "future_import_statement"):
             module = node.child_by_field_name("module_name")
             if module is None:
                 module = "__future__"
             elif module.type == "relative_import":
                 dots = module.children[0].text.count(b".")
-                if dots > len(package):  # climbs above the repo root: kept as written ("..a"), never a made-up top-level name
+                # climbs above the repo root: kept as written ("..a"), never a made-up top-level name
+                if dots > len(package):
                     module = text(module)
                 else:
                     module = ".".join(package[:len(package) - dots + 1]
@@ -265,7 +271,8 @@ def imports(path, nodes):
             else:
                 module = dotted(module)
             for item in node.children_by_field_name("name"):
-                found.add((line, module, dotted(item.child_by_field_name("name") if item.type == "aliased_import" else item)))
+                found.add((line, module,
+                           dotted(item.child_by_field_name("name") if item.type == "aliased_import" else item)))
             if any(c.type == "wildcard_import" for c in node.children):
                 found.add((line, module, "*"))
     return found
@@ -280,7 +287,8 @@ def matched(s, patterns, whole):
 
 
 def module_of(path):
-    """'django/utils/translation/__init__.py' -> 'django.utils.translation', 'a/b.py' -> 'a.b': the name Jedi reports."""
+    """'django/utils/translation/__init__.py' -> 'django.utils.translation', 'a/b.py' -> 'a.b': the name Jedi
+    reports."""
     parts = path[:-3].split("/") if path.endswith(".py") else path.split("/")
     return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
 
@@ -309,10 +317,12 @@ def deprecations(nodes, patterns):
     found = {}
     for node in nodes:
         marker = target = None
-        if node.type == "call" and node.child_by_field_name("function").text in (b"warn", b"warnings.warn") and direct(node):
+        if (node.type == "call" and node.child_by_field_name("function").text in (b"warn", b"warnings.warn")
+                and direct(node)):
             args = node.child_by_field_name("arguments").named_children
             pos = [a for a in args if a.type not in ("keyword_argument", "comment")]
-            kw = {a.child_by_field_name("name").text: a.child_by_field_name("value") for a in args if a.type == "keyword_argument"}
+            kw = {a.child_by_field_name("name").text: a.child_by_field_name("value")
+                  for a in args if a.type == "keyword_argument"}
             category = kw.get(b"category", pos[1] if len(pos) > 1 else None)
             message = kw.get(b"message", pos[0] if pos else None)
             marker = (category is not None and matched(text(category).rsplit(".", 1)[-1], patterns, True)) or \
@@ -374,7 +384,8 @@ def scan_repo(run_id, repo, repo_dir, symbols, scanner, cache=None):
             got, n = {t: [{"run_id": run_id, **r} for r in rs] for t, rs in hit["rows"].items()}, Counter(hit["counts"])
         else:
             got, n = scan_file(run_id, repo, rel, kind, source, symbols, scanner)
-            cache.put(key, {"rows": {t: [{k: v for k, v in r.items() if k != "run_id"} for r in rs] for t, rs in got.items()},
+            cache.put(key, {"rows": {t: [{k: v for k, v in r.items() if k != "run_id"} for r in rs]
+                                     for t, rs in got.items()},
                             "counts": n})
         for t in KEYS:
             tables[t] += got[t]
@@ -405,7 +416,7 @@ def run(run_id, cfg, root=None):
     for repo, sha in sorted(manifest["repos"].items()):
         if repo not in wanted:
             continue
-        repo_dir = snap / "repos" / repo.replace("/", "__")
+        repo_dir = repo_checkout(snap, repo)
         if head(repo_dir) != sha:
             raise SystemExit(f"{repo}: checkout is at {head(repo_dir)!r}, the manifest says {sha}")
         cache = Cache("scan", repo, root) if cached else None
@@ -415,7 +426,8 @@ def run(run_id, cfg, root=None):
             log(f"  cache: {len(cache.hits)} of {counts['files']} files reused")
         log(f"{repo}: {len(got)} candidates in {counts['files']} files · "
             f"roles {dict(sorted(Counter(r['role'] for r in got).items()))} · "
-            f"junk {dict(sorted(Counter(r['junk'] for r in got).items()))} · {sum(r['in_except'] for r in got)} in except")
+            f"junk {dict(sorted(Counter(r['junk'] for r in got).items()))} · "
+            f"{sum(r['in_except'] for r in got)} in except")
         log(f"  {len(failed)} parse failures (holding {counts['names_in_failed_files']} tracked names, excluded) · "
             f"{counts['name_only']} keyword-argument/parameter names "
             f"({'kept as reference' if scanner['keep_name_only'] else 'not emitted'})")

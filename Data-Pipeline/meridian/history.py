@@ -20,7 +20,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from meridian import szz, tickets
-from meridian.common import CONFIG, Cache, cache_on, data_root, git, handoff, load_config, load_infra, log, parser, write_jsonl
+from meridian.common import (CONFIG, Cache, cache_on, data_root, git, handoff, load_config, load_infra, log, parser,
+                             repo_checkout, write_jsonl)
 
 FMT = "%x1e%H%x1f%P%x1f%at%x1f%ae%x1f%ce%x1f%s"
 
@@ -86,7 +87,8 @@ def messages(co, sha):
 
 
 def keyed(commits, commit_ticket, last):
-    """Week 1's check: share of the last [checks] keyed_last_commits first-parent commits with a key, from the subject, and counting the body."""
+    """Week 1's check: share of the last [checks] keyed_last_commits first-parent commits with a key, from the subject,
+    and counting the body."""
     chain = sorted((c for c in commits if c["first_parent"]), key=lambda c: c["seq"])[-last:]
     src = defaultdict(set)
     for r in commit_ticket:
@@ -102,7 +104,7 @@ def main(run_id, config=CONFIG, root=None):
         raise SystemExit(f"no snapshot {snap}: run meridian.collect first")
     manifest = json.loads((snap / "manifest.json").read_text())
     commits, files = [], []
-    co = lambda repo: snap / "repos" / repo.replace("/", "__")
+    co = lambda repo: repo_checkout(snap, repo)
     for repo, sha in sorted(manifest["repos"].items()):
         c, f = read_repo(co(repo), repo, sha, run_id)
         log(f"{repo:45} {sum(r['first_parent'] for r in c):>7,} first-parent  {len(c):>7,} commits  {len(f):>9,} files")
@@ -115,16 +117,19 @@ def main(run_id, config=CONFIG, root=None):
 
     d4 = tickets.build(snap, manifest, cfg, run_id, lambda repo: messages(co(repo), manifest["repos"][repo]))
     for repo in sorted({r["repo"] for r in d4["commit_ticket"]}):
-        subj, any_, n = keyed([c for c in commits if c["repo"] == repo], [r for r in d4["commit_ticket"] if r["repo"] == repo],
+        subj, any_, n = keyed([c for c in commits if c["repo"] == repo],
+                              [r for r in d4["commit_ticket"] if r["repo"] == repo],
                               cfg["checks"]["keyed_last_commits"])
-        log(f"{repo:45} last {n:,} first-parent commits keyed: {subj:.1%} from the subject, {any_:.1%} counting the body")
+        log(f"{repo:45} last {n:,} first-parent commits keyed: {subj:.1%} from the subject, "
+            f"{any_:.1%} counting the body")
     write_jsonl(out / "ticket.jsonl", d4["ticket"], ("key",))
     write_jsonl(out / "ticket_event.jsonl", d4["ticket_event"], ("key", "at", "seq"))
     write_jsonl(out / "ticket_link.jsonl", d4["ticket_link"], ("key", "link_type", "other_key"))
     write_jsonl(out / "commit_ticket.jsonl", d4["commit_ticket"], ("repo", "sha", "key"))
 
     cache_of = (lambda repo: Cache("szz", repo, root)) if cache_on("szz") else None
-    d6 = szz.build(commits, files, d4, manifest, cfg, run_id, co, load_infra("history").get("szz_workers") or None,  # 0: one per CPU
+    # szz_workers 0: one per CPU
+    d6 = szz.build(commits, files, d4, manifest, cfg, run_id, co, load_infra("history").get("szz_workers") or None,
                    cache_of)
     write_jsonl(out / "bug_inducing.jsonl", d6["bug_inducing"], ("repo", "fix_sha", "path", "inducing_sha"))
     write_jsonl(out / "file_bug_fixes.jsonl", d6["file_bug_fixes"], ("repo", "path"))

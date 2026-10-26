@@ -3,8 +3,8 @@
     python -m meridian.validate --run-id <run_id> --config meridian.toml                       # first run
     python -m meridian.validate --run-id <run_id> --config meridian.toml --prev-run <run_id>   # and drift from the last
 
-Reads out/<run_id>/*.jsonl and settings.toml [validate]. Writes out/<run_id>/meridian.sqlite (the block, by meridian.writer),
-stats.json and anomalies.json. Neither JSON is a table: the writer loads only *.jsonl.
+Reads out/<run_id>/*.jsonl and settings.toml [validate]. Writes out/<run_id>/meridian.sqlite (the block, by
+meridian.writer), stats.json and anomalies.json. Neither JSON is a table: the writer loads only *.jsonl.
 
 1. Schema. The block loads with meridian.writer against schema.sql: column names, types, NOT NULL, enums, one run_id,
    no duplicate key. Any violation is an error, and nothing else is checked.
@@ -16,12 +16,15 @@ stats.json and anomalies.json. Neither JSON is a table: the writer loads only *.
    ranges     a number outside its allowed range (share in 0..1, line >= 1, ...)                                error
    coverage   a coverage metric below its floor                           error
    missing    a column's share of NULL or '' above its limit              warn
-   dates      a time before the earliest plausible date, or after the run's snapshot_at              warn
+   dates      a time before the earliest plausible date, or after the run's snapshot_at, above its allowance  warn
    outliers   a number column's share of values beyond Q1 - k*IQR or Q3 + k*IQR above the limit               warn
-   drift      a table's row count moved more than the limit since --prev-run                                   warn
+   drift      since --prev-run, a table of min_rows or more moved past the limit, or a column became one value  warn
 An error exits 1, so Airflow fails the task and alerts; warnings alert and the run goes on. Both go to meridian.alert.
 """
-import json, math, re, sqlite3
+import json
+import math
+import re
+import sqlite3
 from pathlib import Path
 
 import meridian.writer as W
@@ -38,7 +41,8 @@ def column_stats(db, table, cols, top_n):
     exprs = ["count(*)"]
     for name, typ, *_ in cols:
         q = f'"{name}"'
-        exprs += [f"sum({q} IS NULL OR {q} = '')", f"count(DISTINCT {q})"] + ([f"min({q})", f"max({q})", f"avg({q})"] if typ in NUMERIC else [])
+        exprs += ([f"sum({q} IS NULL OR {q} = '')", f"count(DISTINCT {q})"]
+                  + ([f"min({q})", f"max({q})", f"avg({q})"] if typ in NUMERIC else []))
     got = iter(db.execute(f'SELECT {", ".join(exprs)} FROM "{table}"').fetchone())
     rows, out = next(got), {}
     for name, typ, *_ in cols:
@@ -93,7 +97,8 @@ def check(db, spec, stats, exp, prev):
         if table in stats and stats[table]["rows"] < need:
             add("error", "rows", table, f"{stats[table]['rows']:,} rows, expected at least {need:,}")
 
-    db.create_function("REGEXP", 2, lambda p, v: v is not None and re.fullmatch(p, str(v)) is not None, deterministic=True)
+    db.create_function("REGEXP", 2, lambda p, v: v is not None and re.fullmatch(p, str(v)) is not None,
+                       deterministic=True)
     db.create_function("SORTED_LIST", 1, sorted_json_list, deterministic=True)
     for table, cols in sorted(spec.items()):
         names = [c[0] for c in cols]
@@ -103,24 +108,28 @@ def check(db, spec, stats, exp, prev):
                     continue
                 test = "NOT SORTED_LIST(\"{0}\")" if rule["pattern"] == "sorted_json_list" else "NOT \"{0}\" REGEXP ?"
                 args = () if rule["pattern"] == "sorted_json_list" else (rule["pattern"],)
-                bad = db.execute(f'SELECT count(*), min("{col}") FROM "{table}" WHERE "{col}" IS NOT NULL AND "{col}" != \'\' '
+                bad = db.execute(f'SELECT count(*), min("{col}") FROM "{table}" '
+                                 f'WHERE "{col}" IS NOT NULL AND "{col}" != \'\' '
                                  f'AND {test.format(col)}', args).fetchone()
                 if bad[0]:
-                    add("error", "formats", f"{table}.{col}", f"{bad[0]:,} values aren't {rule['name']}, e.g. {str(bad[1])[:60]!r}")
+                    add("error", "formats", f"{table}.{col}",
+                        f"{bad[0]:,} values aren't {rule['name']}, e.g. {str(bad[1])[:60]!r}")
             for where, (lo, hi) in exp.get("ranges", {}).items():
                 t, c = where.split(".")
                 if (t, c) == (table, col) or (t == "*" and c == col):
-                    bad = db.execute(f'SELECT count(*) FROM "{table}" WHERE "{col}" < ? OR "{col}" > ?', (lo, hi)).fetchone()[0]
+                    bad = db.execute(f'SELECT count(*) FROM "{table}" WHERE "{col}" < ? OR "{col}" > ?',
+                                     (lo, hi)).fetchone()[0]
                     if bad:
                         add("error", "ranges", f"{table}.{col}", f"{bad:,} values outside {lo}..{hi}")
 
     dates = exp.get("dates", {})
+    allow = dates.get("allow", {})  # bad dates the source itself has: warn only above this many, so an alert stays news
     if dates and (now := db.execute("SELECT snapshot_at FROM run").fetchone()):
         for table, cols in sorted(spec.items()):
             for col in [c[0] for c in cols if re.fullmatch(dates["columns"], c[0])]:
                 bad = db.execute(f'SELECT count(*), min("{col}"), max("{col}") FROM "{table}" WHERE "{col}" != \'\' '
                                  f'AND ("{col}" < ? OR "{col}" > ?)', (dates["earliest"], now[0])).fetchone()
-                if bad[0]:
+                if bad[0] > allow.get(f"{table}.{col}", 0):
                     add("warn", "dates", f"{table}.{col}", f"{bad[0]:,} dates before {dates['earliest'][:10]} or after "
                         f"snapshot_at, from {bad[1]} to {bad[2]}")
 
@@ -134,7 +143,8 @@ def check(db, spec, stats, exp, prev):
         for col, cs in sorted(s["columns"].items()):
             limit = limits.get(f"{table}.{col}", limits.get(f"*.{col}", limits.get("default", 1.0)))
             if s["rows"] and cs["missing"] / s["rows"] > limit:
-                add("warn", "missing", f"{table}.{col}", f"{cs['missing']:,} of {s['rows']:,} missing, limit {limit:.0%}")
+                add("warn", "missing", f"{table}.{col}",
+                    f"{cs['missing']:,} of {s['rows']:,} missing, limit {limit:.0%}")
 
     o = exp.get("outliers", {})
     for target in o.get("columns", []):
@@ -143,14 +153,21 @@ def check(db, spec, stats, exp, prev):
             share, lo, hi = got
             stats[table]["columns"][col]["outlier_share"] = round(share, 4)
             if share > o.get("max_share", 0.05):
-                add("warn", "outliers", target, f"{share:.1%} of values outside {lo:.4g}..{hi:.4g} (IQR fences, k = {o.get('iqr_k', 3.0)})")
+                add("warn", "outliers", target,
+                    f"{share:.1%} of values outside {lo:.4g}..{hi:.4g} (IQR fences, k = {o.get('iqr_k', 3.0)})")
 
     if prev:
-        limit = exp.get("drift", {}).get("max_row_change", 0.2)
+        limit, least = exp.get("drift", {}).get("max_row_change", 0.2), exp.get("drift", {}).get("min_rows", 100)
         for table, s in sorted(stats.items()):
             before = prev.get(table, {}).get("rows")
-            if before and abs(s["rows"] - before) / before > limit:
+            if not before or before < least:  # a small table's swings are noise
+                continue
+            if abs(s["rows"] - before) / before > limit:
                 add("warn", "drift", table, f"{before:,} -> {s['rows']:,} rows since the last run, limit {limit:.0%}")
+            for col, cs in sorted(s["columns"].items()):
+                was = prev[table].get("columns", {}).get(col, {}).get("distinct", 0)
+                if was > 1 and cs["distinct"] == 1 and s["rows"] > 1:
+                    add("warn", "drift", f"{table}.{col}", f"one value in every row, {was:,} distinct last run")
     return found
 
 
@@ -158,13 +175,20 @@ def main(run_id, config=CONFIG, root=None, prev_run=None, settings=None):
     cfg = load_config(config)
     out = handoff(cfg, run_id, Path(root or data_root()))
     exp = load_settings("validate", settings)
+    # publish reads them: an earlier run's must never outlive a crash here
+    for name in ("anomalies.json", "stats.json"):
+        (out / name).unlink(missing_ok=True)
     try:
-        W.write(out)  # the schema check: the writer refuses any row schema.sql doesn't allow
+        # the schema check: the writer refuses any row schema.sql doesn't allow, or a missing table
+        W.write(out, complete=True)
     except (W.BadRow, OSError) as e:
-        found = [["error", "schema", "", str(e)]]
-        (out / "anomalies.json").write_text(json.dumps(found, indent=1) + "\n", encoding="utf-8", newline="\n")
-        alert.send(f"meridian {run_id}: the block breaks schema.sql", [str(e)], "error", settings)
-        raise SystemExit(f"schema: {e}")
+        kind, why = (("schema", "the block breaks schema.sql") if isinstance(e, W.BadRow)
+                     else ("write", f"could not write the block: {e}"))
+        # first: a full disk may refuse anomalies.json too
+        alert.send(f"meridian {run_id}: {why}", [str(e)], "error", settings)
+        (out / "anomalies.json").write_text(json.dumps([["error", kind, "", str(e)]], indent=1) + "\n",
+                                            encoding="utf-8", newline="\n")
+        raise SystemExit(f"{kind}: {e}")
 
     spec = W.tables(W.SCHEMA.read_text(encoding="utf-8"))
     with sqlite3.connect(out / "meridian.sqlite") as db:
@@ -191,7 +215,8 @@ def main(run_id, config=CONFIG, root=None, prev_run=None, settings=None):
         f"{len(found) - len(errors)} warnings -> {out / 'stats.json'}, {out / 'anomalies.json'}")
     if found:
         alert.send(f"meridian {run_id}: {len(errors)} errors, {len(found) - len(errors)} warnings in the data",
-                   [f"{sev} {kind} {where}: {msg}" for sev, kind, where, msg in found], "error" if errors else "warn", settings)
+                   [f"{sev} {kind} {where}: {msg}" for sev, kind, where, msg in found],
+                   "error" if errors else "warn", settings)
     if errors:
         raise SystemExit(f"{len(errors)} data errors: see {out / 'anomalies.json'}")
     return stats, found

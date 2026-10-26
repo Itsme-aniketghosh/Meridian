@@ -1,7 +1,7 @@
-"""Change report · what changed since the last run, and which commit caused it. UPDATE-PLAN.md #5 and #17.
+"""Change report · what changed since the last run, and which commit caused it. notes/UPDATE-PLAN.md #5 and #17.
 
-    python -m meridian.report --run-id <run_id> --config meridian.toml                       # first run: everything is added
-    python -m meridian.report --run-id <run_id> --config meridian.toml --prev-run <run_id>   # changes since that run
+    python -m meridian.report --run-id <run_id> --config meridian.toml                     # first run: all added
+    python -m meridian.report --run-id <run_id> --config meridian.toml --prev-run <run_id> # changes since that run
 
 Reads out/<run_id>/ run, git_commit, call_site, call_edge, blast_radius, and with --prev-run that run's call_site,
 call_edge, blast_radius. Writes out/<run_id>/changes.json, not a table. Running it again writes the same bytes.
@@ -28,7 +28,8 @@ from meridian.join import VERSIONED, newest
 SITE = ("call_site_id", "path", "line", "col", "scope", "symbol", "role")
 EDGE = ("caller_path", "caller_scope", "line", "col", "callee_repo", "callee_path", "callee_scope")
 BLAST = ("direct_sites", "invocations", "files", "by_depth")
-NEED, NEED_PREV = ["run", "git_commit", "call_site", "call_edge", "blast_radius"], ["call_site", "call_edge", "blast_radius"]
+NEED = ["run", "git_commit", "call_site", "call_edge", "blast_radius"]
+NEED_PREV = ["call_site", "call_edge", "blast_radius"]
 
 
 def site_changes(before, now):
@@ -61,9 +62,11 @@ def edge_changes(before, now):
 
 def build(run, prev_run, commits, sites, edges, blast, prev):
     """-> the changes.json document. prev: {table: rows} of the previous run, {} on a first run."""
-    groups = defaultdict(lambda: {"call_sites": {"added": [], "removed": [], "changed": []}, "call_edges": {"added": []}})
+    groups = defaultdict(lambda: {"call_sites": {"added": [], "removed": [], "changed": []},
+                                  "call_edges": {"added": []}})
     for kind, s, was in site_changes(newest(prev.get("call_site", [])), newest(sites)):
-        groups[(s["repo"], s["effective_sha"])]["call_sites"][kind].append({k: s[k] for k in SITE} | ({"was": was} if was else {}))
+        row = {k: s[k] for k in SITE} | ({"was": was} if was else {})
+        groups[(s["repo"], s["effective_sha"])]["call_sites"][kind].append(row)
     added, removed = edge_changes(prev.get("call_edge", []), edges)
     for e in added:
         groups[(e["repo"], e["introduced_sha"])]["call_edges"]["added"].append({k: e[k] for k in EDGE})
@@ -79,12 +82,15 @@ def build(run, prev_run, commits, sites, edges, blast, prev):
     by_commit.sort(key=lambda c: (c["repo"], c["authored_at"], c["sha"]))
     pick = lambda r: r and {k: json.loads(r[k]) if k == "by_depth" else r[k] for k in BLAST}
     was, now = ({(r["repo"], r["symbol"]): r for r in rows} for rows in (prev.get("blast_radius", []), blast))
-    totals = {f"call_sites_{k}": sum(len(c["call_sites"][k]) for c in by_commit) for k in ("added", "removed", "changed")}
+    totals = {f"call_sites_{k}": sum(len(c["call_sites"][k]) for c in by_commit)
+              for k in ("added", "removed", "changed")}
     return {"run_id": run["run_id"], "prev_run": prev_run, "snapshot_at": run["snapshot_at"],
-            "totals": totals | {"call_edges_added": len(added), "call_edges_removed": len(removed), "commits": len(by_commit)},
+            "totals": totals | {"call_edges_added": len(added), "call_edges_removed": len(removed),
+                                "commits": len(by_commit)},
             "commits": by_commit,
             "call_edges_removed": [{k: e[k] for k in ("repo", *EDGE, "introduced_sha")} for e in removed],
-            "blast_radius": [{"repo": repo, "symbol": sym, "before": pick(was.get((repo, sym))), "after": pick(now.get((repo, sym)))}
+            "blast_radius": [{"repo": repo, "symbol": sym, "before": pick(was.get((repo, sym))),
+                              "after": pick(now.get((repo, sym)))}
                              for repo, sym in sorted(set(was) | set(now))]}
 
 
@@ -104,7 +110,8 @@ def main(run_id, config=CONFIG, root=None, prev_run=None):
     (out / "changes.json").write_text(json.dumps(doc, indent=1, sort_keys=True, ensure_ascii=False) + "\n",
                                       encoding="utf-8", newline="\n")
 
-    log(f"changes in {run_id} since {prev_run or 'nothing (first run)'}: " + ", ".join(f"{v:,} {k}" for k, v in doc["totals"].items()))
+    log(f"changes in {run_id} since {prev_run or 'nothing (first run)'}: "
+        + ", ".join(f"{v:,} {k}" for k, v in doc["totals"].items()))
     for c in doc["commits"]:
         s, e = c["call_sites"], c["call_edges"]
         log(f"  {c['repo']} {c['sha'][:10]} {c['authored_at']}  sites +{len(s['added'])} -{len(s['removed'])} "
@@ -121,6 +128,7 @@ def main(run_id, config=CONFIG, root=None, prev_run=None):
 
 if __name__ == "__main__":
     ap = parser(__doc__)
-    ap.add_argument("--prev-run", default=None, help="the last reported run, to compare with (none: first run, all added)")
+    ap.add_argument("--prev-run", default=None,
+                    help="the last reported run, to compare with (none: first run, all added)")
     a = ap.parse_args()
     main(a.run_id, a.config, prev_run=a.prev_run)

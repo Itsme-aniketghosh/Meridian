@@ -2,7 +2,10 @@
 
     python -m unittest tests.test_check_csv -v      # from Data-Pipeline/
 """
-import shutil, sys, tempfile, unittest
+import shutil
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -20,7 +23,8 @@ class Check(unittest.TestCase):
         return check_csv.check(p)
 
     def test_people_columns(self):
-        for col in ("author", "authors", "authorEmail", "commit author", "commit-author", "AuthorName", "added_by", "e_mail", "userName"):
+        for col in ("author", "authors", "authorEmail", "commit author", "commit-author", "AuthorName", "added_by",
+                    "e_mail", "userName"):
             self.assertEqual(self.check(f"id,{col}\n1,x\n"), [f"people column '{col}'"], col)
 
     def test_ok_columns(self):
@@ -35,7 +39,8 @@ class Check(unittest.TestCase):
         self.assertEqual(self.check("id,note\n1,ann@example.com or bo@x.test\n"), [])  # RFC 2606: nobody
 
     def test_handles(self):
-        self.assertEqual(self.check("id,evidence_quote\n1,\"@jdoe said no\"\n"), ["line 2: @handle '@jdoe' (write @user)"])
+        self.assertEqual(self.check("id,evidence_quote\n1,\"@jdoe said no\"\n"),
+                         ["line 2: @handle '@jdoe' (write @user)"])
         self.assertEqual(self.check("id,evidence_quote\n1,\"@user said no, ann@example.com\"\n"), [])
 
     def test_quote_length(self):

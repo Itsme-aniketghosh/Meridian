@@ -9,7 +9,11 @@ yet, so their tables (call_site, ticket_map, blocked_by, chain, blast_radius) ar
 the KB can carry and answer the views, and the derive_* queries prove graph can compute its tables from the inputs.
 call_site_ids are readable names, not hashes, so the expectations read like the story.
 """
-import json, re, sqlite3, sys, unittest
+import json
+import re
+import sqlite3
+import sys
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -57,11 +61,14 @@ def ticket(key, team, status, summary, description="", resolution=None, typ="Tas
 
 
 TICKETS = [
-    ticket("PLAT-2291", "platform", "Open", "Migrate shared client off verify_token", "Done when no caller of verify_token is left."),
+    ticket("PLAT-2291", "platform", "Open", "Migrate shared client off verify_token",
+           "Done when no caller of verify_token is left."),
     ticket("CHK-311", "checkout", "Open", "Fix auth stuff in checkout"),
-    ticket("CHK-298", "checkout", "In Progress", "Migrate cart pricing tail", "Done when pricing.py:250 shows removed."),
+    ticket("CHK-298", "checkout", "In Progress", "Migrate cart pricing tail",
+           "Done when pricing.py:250 shows removed."),
     ticket("FUL-7", "fulfillment", "Open", "Fulfillment auth migration", "Waiting on the platform client."),
-    ticket("PAY-10", "payments", "Closed", "Payments auth migration", "Done when charge.py is clean.", resolution="Fixed"),
+    ticket("PAY-10", "payments", "Closed", "Payments auth migration", "Done when charge.py is clean.",
+           resolution="Fixed"),
     ticket("PAY-12", "payments", "Open", "Pricing check for payments", "Done when pricing.py:214 is removed."),
     ticket("OPS-1", "ops", "Open", "Rotate keys", "Done when rotated."),
 ]
@@ -72,13 +79,16 @@ FILES = {"shared/client.py": ("platform", "p_pat", 1), "cart/pricing.py": ("chec
          "cart/totals.py": ("checkout", "p_bob", 0), "ship/label.py": ("fulfillment", "p_fay", 0),
          "pay/charge.py": ("payments", "p_pia", 0), "pay/refund.py": ("payments", "p_pia", 0),
          "billing/invoice.py": ("billing", "p_bea", 0), "search/q.py": ("search", "p_sam", 0)}
-PEOPLE = {"p_pat": ("pat@acme.test", "platform"), "p_ann": ("ann@acme.test", "checkout"), "p_bob": ("bob@acme.test", "checkout"),
+PEOPLE = {"p_pat": ("pat@acme.test", "platform"), "p_ann": ("ann@acme.test", "checkout"),
+          "p_bob": ("bob@acme.test", "checkout"),
           "p_fay": ("fay@acme.test", "fulfillment"), "p_pia": ("pia@acme.test", "payments"),
           "p_bea": ("bea@acme.test", "billing"), "p_sam": ("sam@acme.test", "search")}
 COMMITS = (  # (sha, author, authored_at, [(path, added, deleted)])
     [("a1", "p_ann", "2026-07-01T10:00:00Z", [("cart/pricing.py", 5, 1)])]                       # Ann, then silent
-    + [(f"b{i}", "p_bob", f"2026-08-{2 + i * 3:02d}T10:00:00Z", [("cart/ui.py", 3, 1)]) for i in range(8)]  # usual: 8 in 56 days
-    + [(f"c{i}", "p_bob", f"2026-09-{18 + i * 3:02d}T10:00:00Z", [("cart/ui.py", 3, 1)]) for i in range(4)]  # last 14 days: 4
+    # usual: 8 in 56 days
+    + [(f"b{i}", "p_bob", f"2026-08-{2 + i * 3:02d}T10:00:00Z", [("cart/ui.py", 3, 1)]) for i in range(8)]
+    # last 14 days: 4
+    + [(f"c{i}", "p_bob", f"2026-09-{18 + i * 3:02d}T10:00:00Z", [("cart/ui.py", 3, 1)]) for i in range(4)]
     + [("d1", "p_pia", "2026-09-28T10:00:00Z", [("pay/charge.py", 30, 0), ("pay/api.py", 10, 0)])]
 )
 EDGES = [  # (caller_path, caller_scope, line, callee_path, callee_scope): depth 1 = calls of the symbol itself
@@ -114,56 +124,70 @@ def build():
         if name.startswith("schema_"):  # tables the doc proposes and schema.sql doesn't have yet
             db.executescript(sql)
     ins = lambda t, rows: rows and db.executemany(
-        f"INSERT INTO {t} ({', '.join(rows[0])}) VALUES ({', '.join('?' * len(rows[0]))})", [list(r.values()) for r in rows])
+        f"INSERT INTO {t} ({', '.join(rows[0])}) VALUES ({', '.join('?' * len(rows[0]))})",
+        [list(r.values()) for r in rows])
     ins("run", [dict(run_id=r, snapshot_at=at, repo_shas="{}", source_hashes="{}", config_hash="x", image_digest="x",
                      status="complete") for r, at in (R1, R2)])
     ins("call_site", SITES)
     ins("ticket", TICKETS)
-    ins("ticket_map", [dict(run_id="R2", key=k, target_kind="call_site", target=s, method="symbol") for k, s in TICKET_MAP]
+    ins("ticket_map",
+        [dict(run_id="R2", key=k, target_kind="call_site", target=s, method="symbol") for k, s in TICKET_MAP]
         + [dict(run_id="R2", key="OPS-1", target_kind="unmapped", target="", method="none")])
     ins("file_owner", [dict(run_id="R2", repo=REPO, path=p, owner_team=t, share=1.0, top_person_id=who, n_commits=3,
                             last_commit_at=None, basis="author") for p, (t, who, _) in FILES.items()])
-    ins("file_bug_fixes", [dict(run_id="R2", repo=REPO, path=p, bug_fixes=n, fix_keys=json.dumps([f"BUG-{i}" for i in range(n)]),
-                                window_start="2025-10-01T00:00:00Z", window_end=R2[1]) for p, (_, _, n) in FILES.items() if n])
+    ins("file_bug_fixes",
+        [dict(run_id="R2", repo=REPO, path=p, bug_fixes=n, fix_keys=json.dumps([f"BUG-{i}" for i in range(n)]),
+              window_start="2025-10-01T00:00:00Z", window_end=R2[1]) for p, (_, _, n) in FILES.items() if n])
     ins("person", [dict(run_id="R2", person_id=p, name=p[2:].title(), is_bot=0) for p in PEOPLE])
     ins("person_alias", [dict(run_id="R2", email=e, person_id=p, name=p[2:].title(), generic=0, source="single")
                          for p, (e, _) in PEOPLE.items()])
-    ins("team_map", [dict(run_id="R2", dataset="shop", subject_kind="person", subject=p, team=t, rule="person_component")
-                     for p, (_, t) in PEOPLE.items()])
-    ins("git_commit", [dict(run_id="R2", repo=REPO, sha=sha, parent_sha=None, seq=i, first_parent=1, is_merge=0, authored_at=at,
-                            author_email=PEOPLE[who][0], committer_email=PEOPLE[who][0], subject=f"change {sha}")
-                       for i, (sha, who, at, _) in enumerate(COMMITS)])
+    ins("team_map",
+        [dict(run_id="R2", dataset="shop", subject_kind="person", subject=p, team=t, rule="person_component")
+         for p, (_, t) in PEOPLE.items()])
+    ins("git_commit",
+        [dict(run_id="R2", repo=REPO, sha=sha, parent_sha=None, seq=i, first_parent=1, is_merge=0, authored_at=at,
+              author_email=PEOPLE[who][0], committer_email=PEOPLE[who][0], subject=f"change {sha}")
+         for i, (sha, who, at, _) in enumerate(COMMITS)])
     ins("commit_file", [dict(run_id="R2", repo=REPO, sha=sha, path=p, old_path=None, added=a, deleted=d)
                         for sha, _, _, fs in COMMITS for p, a, d in fs])
     ins("resolution", [dict(run_id="R2", repo=REPO, path=s["path"], line=s["line"], col=s["col"], symbol=SYMBOL,
                             detection="ast_resolved", via="direct", resolved_to="auth.client.AuthClient.verify_token",
                             resolver="jedi==0.19.2",
-                            receiver_from=f"{REPO}:shared/client.py:get_client" if s["call_site_id"] == "S_f1" else None)
+                            receiver_from=(f"{REPO}:shared/client.py:get_client" if s["call_site_id"] == "S_f1"
+                                           else None))
                        for s in SITES if s["run_id"] == "R1" or s["call_site_id"] == "S_new"])
     ins("call_edge", [dict(run_id="R2", repo=REPO, caller_path=cp, caller_scope=cs, line=ln, col=4, callee_path=ep,
                            callee_repo=REPO, callee_scope=es, introduced_sha="e" * 40) for cp, cs, ln, ep, es in EDGES])
-    ins("module_import", [dict(run_id="R2", repo=REPO, path="tests/test_totals.py", line=1, module="cart.totals", name="total", is_test=1),
-                          dict(run_id="R2", repo=REPO, path="checkout/api.py", line=1, module="cart.pricing", name="price", is_test=0),
+    ins("module_import", [dict(run_id="R2", repo=REPO, path="tests/test_totals.py", line=1, module="cart.totals",
+                               name="total", is_test=1),
+                          dict(run_id="R2", repo=REPO, path="checkout/api.py", line=1, module="cart.pricing",
+                               name="price", is_test=0),
                           # `from shared import client` / `from ship import label`: the module is parent + name
-                          dict(run_id="R2", repo=REPO, path="ship/label.py", line=2, module="shared", name="client", is_test=0),
-                          dict(run_id="R2", repo=REPO, path="tests/test_ship.py", line=1, module="ship", name="label", is_test=1)])
+                          dict(run_id="R2", repo=REPO, path="ship/label.py", line=2, module="shared",
+                               name="client", is_test=0),
+                          dict(run_id="R2", repo=REPO, path="tests/test_ship.py", line=1, module="ship",
+                               name="label", is_test=1)])
     ins("deprecation", [dict(run_id="R2", repo=REPO, path="auth/client.py", line=88, scope="AuthClient.verify_token",
                              qualname="auth.client.AuthClient.verify_token", marker="DeprecationWarning")])
-    ins("blocked_by", [dict(run_id="R2", call_site_id="S_f1", blocker_id="S_shared", via_function=f"{REPO}:shared/client.py:get_client",
+    ins("blocked_by", [dict(run_id="R2", call_site_id="S_f1", blocker_id="S_shared",
+                            via_function=f"{REPO}:shared/client.py:get_client",
                             depth=1, status="resolved")])
-    ins("chain", [dict(run_id="R2", from_key=a, to_key=b, type=t, evidence=json.dumps(ev), in_cycle=0) for a, b, t, ev in [
-        ("FUL-7", "PLAT-2291", "depends_on", ["S_f1>S_shared"]), ("CHK-311", "PAY-12", "duplicates", ["S_c1"]),
-        ("CHK-298", "CHK-311", "collides", [f"{REPO}:cart/pricing.py:price"]),
-        ("CHK-298", "PAY-12", "collides", [f"{REPO}:cart/pricing.py:price"]),
-        ("billing", "", "untracked", ["S_b1"]), ("checkout", "", "untracked", ["S_c3"]), ("payments", "", "untracked", ["S_new"])]])
+    ins("chain",
+        [dict(run_id="R2", from_key=a, to_key=b, type=t, evidence=json.dumps(ev), in_cycle=0) for a, b, t, ev in [
+            ("FUL-7", "PLAT-2291", "depends_on", ["S_f1>S_shared"]), ("CHK-311", "PAY-12", "duplicates", ["S_c1"]),
+            ("CHK-298", "CHK-311", "collides", [f"{REPO}:cart/pricing.py:price"]),
+            ("CHK-298", "PAY-12", "collides", [f"{REPO}:cart/pricing.py:price"]),
+            ("billing", "", "untracked", ["S_b1"]), ("checkout", "", "untracked", ["S_c3"]),
+            ("payments", "", "untracked", ["S_new"])]])
     ins("blast_radius", [dict(run_id="R2", repo=REPO, symbol=SYMBOL, direct_sites=8, invocations=12, files=8,
                               by_depth=json.dumps({"1": 8, "2": 3, "3": 1}))])
     ins("coverage", [dict(run_id="R2", metric="tickets_mapped", numerator=6, denominator=7, note="OPS-1 unmapped")])
     ins("suggestion", [dict(run_id="R1", suggestion_id=i, kind=k, target_kind=tk, target=t, owner_team=team,
                             source="codemod" if k == "diff" else "template", body="", facts_hash="x", offered_at=R1[1])
                        for i, k, tk, t, team, *_ in SUGGESTIONS])
-    ins("outcome", [dict(suggestion_id=i, decided_run_id="R2", outcome=o, decided_at=at, latency_days=lat, rule="fixture",
-                         evidence="[]") for i, _, _, _, _, o, at, lat in SUGGESTIONS])
+    ins("outcome",
+        [dict(suggestion_id=i, decided_run_id="R2", outcome=o, decided_at=at, latency_days=lat, rule="fixture",
+              evidence="[]") for i, _, _, _, _, o, at, lat in SUGGESTIONS])
     ins("push_alert", [dict(push_sha="d1", base_run_id="R1", check_id="P1", target="pay/charge.py:30", evidence="[]",
                             outcome="ignored", decided_at="2026-09-28T00:00:00Z"),
                        dict(push_sha="e1", base_run_id="R1", check_id="P1", target="pay/charge.py:31", evidence="[]",
@@ -203,17 +227,43 @@ class KnowledgeBase(unittest.TestCase):
                 got = [list(r) for r in db.execute(sql, params).fetchall()]
                 self.assertEqual(got, expect, f"{name}: the doc's expect line is wrong, or the KB can't answer it")
 
-
     def test_file_module_view_names_modules_like_the_scanner(self):
         """The doc's path -> module rule and scan.module_of must agree, or imports and deprecations stop joining."""
         from meridian.scan import module_of
         db = build()
         paths = ["django/utils/translation/__init__.py", "django/utils/translation/trans_real.py", "setup.py"]
-        db.executemany("INSERT INTO call_site VALUES (?, 'R2', 'acme/shop', ?, 1, 0, '<module>', 's', 'call', 'ast_resolved', "
-                       "'none', 0, 't', 0, 'present', ?, ?, ?)", [(f"X{i}", p, R2[1], "e" * 40, R2[1]) for i, p in enumerate(paths)])
+        db.executemany("INSERT INTO call_site VALUES (?, 'R2', 'acme/shop', ?, 1, 0, '<module>', 'verify_token', "
+                       "'call', 'ast_resolved', 'none', 0, 't', 0, 'present', ?, ?, ?)",
+                       [(f"X{i}", p, R2[1], "e" * 40, R2[1]) for i, p in enumerate(paths)])
         db.executescript(next(sql for name, sql, _, _ in blocks() if name == "setup"))
-        got = dict(db.execute(f"SELECT path, module FROM file_module WHERE path IN ({', '.join('?' * len(paths))})", paths))
+        got = dict(db.execute(f"SELECT path, module FROM file_module WHERE path IN ({', '.join('?' * len(paths))})",
+                              paths))
         self.assertEqual(got, {p: module_of(p) for p in paths})
+
+    def test_scope_done_case_and_blast_depth(self):
+        """A block holds many symbols and trackers: another symbol's site must not leak into the asof one, GitLab's
+        lowercase 'closed' is done, and derive_blast_radius counts each edge once, as graph does, through a
+        self-call."""
+        import meridian.graph as G
+        db, q = build(), {name: sql for name, sql, _, _ in blocks()}
+        db.execute("INSERT INTO call_site VALUES ('S_x', 'R2', ?, 'cart/totals.py', 60, 4, 'total', 'other', 'call', "
+                   "'ast_resolved', 'none', 0, 'checkout', 0, 'present', ?, ?, ?)", (REPO, R2[1], "e" * 40, R2[1]))
+        db.execute("INSERT INTO ticket VALUES ('R2', 'shop#1', 'gitlab', 'Task', 'Task', NULL, 'closed', NULL, ?, "
+                   "NULL, '[\"checkout\"]', NULL, NULL, 0, 0, 'Remove totals call', 'Done when totals.py is clean.')",
+                   (R2[1],))
+        db.execute("INSERT INTO ticket_map VALUES ('R2', 'shop#1', 'call_site', 'S_c3', 'symbol')")
+        db.execute("INSERT INTO call_edge VALUES ('R2', ?, 'cart/pricing.py', 'price', 300, 4, 'cart/pricing.py', ?, "
+                   "'price', ?)", (REPO, REPO, "e" * 40))
+        db.executescript(q["setup"])
+        self.assertEqual(db.execute(q["staff_headline"]).fetchall(), [(8, 5)])  # not S_x, not shop#1
+        self.assertIn(("checkout", "shop#1", "S_c3"), db.execute(q["stall_ticket_mismatch"]).fetchall())
+        db.row_factory = sqlite3.Row
+        res, edges = (list(map(dict, db.execute(f"SELECT * FROM {t}"))) for t in ("resolution", "call_edge"))
+        row = next(r for r in G.build_blast_radius("R2", [], res, edges, 3) if r["symbol"] == SYMBOL)
+        db.row_factory = None
+        self.assertEqual({str(d): n for d, n in db.execute(q["derive_blast_radius"])}, json.loads(row["by_depth"]))
+        db.execute("UPDATE asof SET symbol = NULL")  # NULL: every symbol
+        self.assertEqual(db.execute(q["staff_headline"]).fetchall(), [(9, 5)])
 
 
 if __name__ == "__main__":

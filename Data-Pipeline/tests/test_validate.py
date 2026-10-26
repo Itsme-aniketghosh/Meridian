@@ -3,7 +3,14 @@ The block is the KB fixture after graph (tests/test_dashboard.py's fixture_block
 
     python -m unittest tests.test_validate -v      # from Data-Pipeline/
 """
-import io, json, shutil, sqlite3, sys, tempfile, textwrap, unittest
+import io
+import json
+import shutil
+import sqlite3
+import sys
+import tempfile
+import textwrap
+import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
@@ -39,12 +46,14 @@ IDS = """\
 
 
 def per_column_stats(db, table, cols, top_n):
-    """validate.column_stats as it was, one or two queries per column: the reference the one-query version must equal."""
+    """validate.column_stats as it was, one or two queries per column: the reference the one-query version must
+    equal."""
     rows = db.execute(f'SELECT count(*) FROM "{table}"').fetchone()[0]
     out = {}
     for name, typ, *_ in cols:
         q = f'"{name}"'
-        missing, distinct = db.execute(f"SELECT sum({q} IS NULL OR {q} = ''), count(DISTINCT {q}) FROM \"{table}\"").fetchone()
+        missing, distinct = db.execute(f"SELECT sum({q} IS NULL OR {q} = ''), count(DISTINCT {q}) "
+                                       f"FROM \"{table}\"").fetchone()
         s = {"missing": missing or 0, "distinct": distinct}
         if typ in V.NUMERIC:
             lo, hi, mean = db.execute(f'SELECT min({q}), max({q}), avg({q}) FROM "{table}"').fetchone()
@@ -103,7 +112,8 @@ class Validate(unittest.TestCase):
 
     def test_a_schema_violation_stops_before_anything_else(self):
         with open(self.out / "ticket_map.jsonl", "a", encoding="utf-8") as f:
-            f.write(json.dumps({"run_id": "R2", "key": "X-1", "target_kind": "fuzzy", "target": "", "method": "none"}) + "\n")
+            f.write(json.dumps({"run_id": "R2", "key": "X-1", "target_kind": "fuzzy", "target": "",
+                                "method": "none"}) + "\n")
         failed, found, _ = self.run_it()
         self.assertTrue(failed.startswith("schema"))
         self.assertEqual([f[:2] for f in found], [["error", "schema"]])
@@ -122,10 +132,67 @@ class Validate(unittest.TestCase):
     def test_drift_from_the_previous_run_warns(self):
         prev = self.tmp / "out" / "R1"
         prev.mkdir(parents=True)
-        (prev / "stats.json").write_text(json.dumps({"run_id": "R1", "tables": {"call_site": {"rows": 5}}}))
+        (prev / "stats.json").write_text(json.dumps({"run_id": "R1", "tables": {
+            "call_site": {"rows": 500, "columns": {"repo": {"distinct": 3}}},   # 17 rows now, one repo
+            "ticket": {"rows": 5, "columns": {"key": {"distinct": 5}}}}}))       # under min_rows: noise, never drift
         failed, found, _ = self.run_it(prev_run="R1")
         self.assertIsNone(failed)
-        self.assertIn(["warn", "drift", "call_site"], [f[:3] for f in found])
+        self.assertEqual([f[:3] for f in found if f[1] == "drift"],
+                         [["warn", "drift", "call_site"], ["warn", "drift", "call_site.repo"]])
+
+    def test_an_earlier_runs_results_never_outlive_a_crash(self):   # publish would read them and go live
+        self.assertIsNone(self.run_it()[0])
+        with redirect_stdout(io.StringIO()), mock.patch.object(V.W, "write",
+                                                               side_effect=MemoryError), self.assertRaises(MemoryError):
+            V.main("R2", self.tmp / "meridian.toml", self.tmp, None, self.tmp / "settings.toml")
+        self.assertFalse((self.out / "anomalies.json").exists())
+        self.assertFalse((self.out / "stats.json").exists())
+
+    def test_a_write_failure_is_said_as_one_and_alerts_before_anomalies_json(self):
+        self.run_it()
+        # a full disk may refuse it
+        sent = mock.Mock(side_effect=lambda *a: self.assertFalse((self.out / "anomalies.json").exists()))
+        with redirect_stdout(io.StringIO()), mock.patch.object(V.W, "write",
+                                                               side_effect=OSError("No space left on device")), \
+                mock.patch.object(alert, "send", sent), self.assertRaisesRegex(SystemExit, "^write: No space left"):
+            V.main("R2", self.tmp / "meridian.toml", self.tmp, None, self.tmp / "settings.toml")
+        self.assertEqual(json.loads((self.out / "anomalies.json").read_text()),
+                         [["error", "write", "", "No space left on device"]])
+        self.assertIn("could not write the block", sent.call_args[0][0])
+
+    def test_a_missing_table_or_run_folder_is_refused(self):
+        (self.out / "blocked_by.jsonl").unlink()   # a part that never ran is not an empty table
+        failed, found, _ = self.run_it()
+        self.assertIn("no blocked_by.jsonl", failed)
+        self.assertEqual([f[:2] for f in found], [["error", "schema"]])
+        with self.assertRaisesRegex(SystemExit, "run meridian.collect"):
+            V.main("R9", self.tmp / "meridian.toml", self.tmp, None, self.tmp / "settings.toml")
+
+
+class Settings(unittest.TestCase):
+    """settings.toml's own [validate] rules: what they let through and what they stop."""
+    exp = V.load_settings("validate")
+
+    def fits(self, name, value):
+        rule = next(r for r in self.exp["formats"] if r["name"].startswith(name))
+        return V.re.fullmatch(rule["pattern"], value) is not None
+
+    def test_formats(self):
+        self.assertTrue(self.fits("UTC times", "2025-12-31T23:59:59Z"))
+        self.assertFalse(self.fits("UTC times", "2025-13-45T99:99:99Z"))
+        for p in ["a/b.py", "a/..b/c.py", "..b"]:
+            self.assertTrue(self.fits("repo-relative", p), p)
+        for p in ["../../etc/passwd", "a/../b", "a/..", "..", "/etc/passwd", "a\\b"]:
+            self.assertFalse(self.fits("repo-relative", p), p)
+        for k in ["SPARK-1", "SPARK_X-12", "gitlab-org/gitlab#5", "gitlab-org/quality/x#5", "gitlab-org&15944"]:
+            self.assertTrue(self.fits("ticket keys", k), k)
+        for k in ["spark-1", "SPARK-", "gitlab #5", "x#5", "'; DROP TABLE"]:
+            self.assertFalse(self.fits("ticket keys", k), k)
+
+    def test_bug_fixes_range_and_every_table_that_cant_be_empty_has_a_minimum(self):
+        self.assertEqual(self.exp["ranges"]["*.bug_fixes"], [0, 10000])
+        empty_ok = {"blocked_by", "parse_failure", "deprecation", "chain"}
+        self.assertEqual(set(V.W.tables(V.W.SCHEMA.read_text(encoding="utf-8"))) - set(self.exp["rows"]), empty_ok)
 
 
 class Outliers(unittest.TestCase):
@@ -151,6 +218,10 @@ class Dates(unittest.TestCase):
         found = V.check(db, {"run": [], "ticket": [("created_at", "TEXT", 0, 0, 0)]}, {}, exp, None)
         self.assertEqual([f[:3] for f in found], [["warn", "dates", "ticket.created_at"]])
         self.assertIn("2 dates", found[0][3])
+        exp["dates"]["allow"] = {"ticket.created_at": 2}   # the known bad ones: no alert every day
+        self.assertEqual(V.check(db, {"run": [], "ticket": [("created_at", "TEXT", 0, 0, 0)]}, {}, exp, None), [])
+        db.execute("INSERT INTO ticket VALUES ('1999-01-01T00:00:00Z')")   # one more than allowed: news again
+        self.assertEqual(len(V.check(db, {"run": [], "ticket": [("created_at", "TEXT", 0, 0, 0)]}, {}, exp, None)), 1)
 
 
 class Alert(unittest.TestCase):
@@ -174,14 +245,25 @@ class Alert(unittest.TestCase):
             slack_webhook_env = "HOOK"
             timeout_s = 2
             """)
-        with redirect_stdout(io.StringIO()) as log, mock.patch.dict("os.environ", {"HOOK": "http://127.0.0.1:9/x"}, clear=True):
+        with redirect_stdout(io.StringIO()) as log, mock.patch.dict("os.environ",
+                                                                    {"HOOK": "http://127.0.0.1:9/x"}, clear=True):
             self.assertEqual(alert.send("subject", [], "error", broken), [])
         self.assertIn("Slack failed", log.getvalue())
         self.assertIn("email failed", log.getvalue())
 
+    def test_a_malformed_webhook_url_is_logged_and_email_is_still_tried(self):
+        s = self.settings('[alerts]\non = ["failure"]\nslack_webhook_env = "HOOK"\nemail_to = ["team@example.com"]\n')
+        with redirect_stdout(io.StringIO()) as log, mock.patch.dict("os.environ",
+                                                                    {"HOOK": "hooks.example/no-scheme"}, clear=True), \
+                mock.patch("smtplib.SMTP") as smtp:
+            self.assertEqual(alert.send("task failed", [], "failure", s), ["email"])
+        self.assertIn("Slack failed: unknown url type", log.getvalue())
+        smtp.return_value.__enter__.return_value.send_message.assert_called_once()
+
     def test_slack_gets_the_text_only_for_events_it_is_on_for(self):
         s = self.settings('[alerts]\non = ["error"]\nslack_webhook_env = "HOOK"\nmax_lines = 1\n')
-        with redirect_stdout(io.StringIO()), mock.patch.dict("os.environ", {"HOOK": "https://hooks.example/x"}, clear=True), \
+        with redirect_stdout(io.StringIO()), mock.patch.dict("os.environ",
+                                                             {"HOOK": "https://hooks.example/x"}, clear=True), \
                 mock.patch("urllib.request.urlopen") as post:
             self.assertEqual(alert.send("subject", ["a", "b"], "error", s), ["slack"])
             self.assertEqual(alert.send("subject", ["a"], "warn", s), [])        # warn isn't in on: logged only

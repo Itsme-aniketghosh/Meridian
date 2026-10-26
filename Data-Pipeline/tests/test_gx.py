@@ -4,7 +4,14 @@ great_expectations is installed (the [gx] python environment, requirements-gx.tx
     python -m unittest tests.test_gx -v                       # from Data-Pipeline/: specs and rules
     /tmp/gx/bin/python -m unittest tests.test_gx -v           # with GX: the suite on a small block, and its Data Docs
 """
-import importlib.util, io, json, shutil, sqlite3, sys, tempfile, unittest
+import importlib.util
+import io
+import json
+import shutil
+import sqlite3
+import sys
+import tempfile
+import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
@@ -55,7 +62,8 @@ GOOD = [("a", None, 0, "2026-01-01T00:00:00Z"), ("b", "a", 1, "2026-02-01T00:00:
 
 class Specs(unittest.TestCase):
     def test_checks_come_from_validate_settings(self):
-        got = G.specs(EXP, "git_commit", ["sha", "parent_sha", "seq", "authored_at", "components"], "2026-10-01T00:00:00Z")
+        got = G.specs(EXP, "git_commit", ["sha", "parent_sha", "seq", "authored_at", "components"],
+                      "2026-10-01T00:00:00Z")
         kinds = {(s["kind"], s.get("column")) for s in got}
         self.assertIn(("rows", None), kinds)
         self.assertIn(("not_null", "sha"), kinds)                                  # default 0.0: no NULL or ''
@@ -66,7 +74,8 @@ class Specs(unittest.TestCase):
         self.assertEqual(next(s for s in got if s.get("column") == "parent_sha")["mostly"], 0.5)
         self.assertEqual(next(s for s in got if s["kind"] == "dates")["max"], "2026-10-01T00:00:00Z")
 
-    def test_year_0010_survives_as_a_datetime(self):   # pandas timestamps stop at 1677; the 289 Jira dates are year 0010
+    # pandas timestamps stop at 1677; the 289 Jira dates are year 0010
+    def test_year_0010_survives_as_a_datetime(self):
         self.assertEqual(G.as_datetime("0010-04-03T23:04:00Z").year, 10)
         self.assertIsNone(G.as_datetime(""))
         self.assertIsNone(G.as_datetime("2026-01-01 00:00:00"))   # not a UTC time: the format check reports it
@@ -89,11 +98,14 @@ class Specs(unittest.TestCase):
         failed = [{"severity": "warn", "check": "dates", "where": "t.c", "unexpected": 1, "of": 2, "examples": []}]
         broken = [{"check": "dates", "where": "t.c"}]
         run = lambda f, b: G.main("R", tmp / "meridian.toml", tmp, settings=tmp / "settings.toml")
-        with mock.patch.object(G, "audit", return_value=(5, failed, [], site)), mock.patch.object(G.alert, "send") as send, \
+        with mock.patch.object(G, "audit", return_value=(5, failed, [], site)), mock.patch.object(G.alert,
+                                                                                                  "send") as send, \
              redirect_stdout(io.StringIO()):
-            self.assertEqual(run(failed, []), 0)                                       # a failure alerts, the task succeeds
+            # a failure alerts, the task succeeds
+            self.assertEqual(run(failed, []), 0)
             self.assertEqual(send.call_args.args[2], "warn")
-        with mock.patch.object(G, "audit", return_value=(5, [], broken, site)), mock.patch.object(G.alert, "send") as send, \
+        with mock.patch.object(G, "audit", return_value=(5, [], broken, site)), mock.patch.object(G.alert,
+                                                                                                  "send") as send, \
              redirect_stdout(io.StringIO()):
             self.assertEqual(run([], broken), 1)                                       # a broken audit is never "clean"
             self.assertEqual(send.call_args.args[2], "error")
@@ -108,7 +120,8 @@ class Specs(unittest.TestCase):
             G.main("R", tmp / "meridian.toml", tmp)
 
 
-@unittest.skipUnless(importlib.util.find_spec("great_expectations"), "GX isn't installed here: run it in the [gx] environment")
+@unittest.skipUnless(importlib.util.find_spec("great_expectations"),
+                     "GX isn't installed here: run it in the [gx] environment")
 class Audit(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())

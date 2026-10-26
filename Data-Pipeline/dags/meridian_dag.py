@@ -20,10 +20,12 @@ A trigger whose config names a run_id, or has "force": true, skips anything_new:
 new (a rerun after a code fix). For a run whose snapshot exists, collect replays its SHAs and snapshot_at.
 
 The run: the trigger's config {"run_id": "...", "prev_run": "..."}, else whatever run collect makes from the inputs
-(update) or the last published run (rebuild). prev_run: the config, else [pipeline] prev_run or the last published run (update), or the
-published run's own prev_run (rebuild, to give the same bytes). Never the run itself.
+(update) or the last published run (rebuild). prev_run: the config, else [pipeline] prev_run or the last published run
+(update; a forced rerun of the published run uses its own prev_run), or the published run's own prev_run (rebuild, to
+give the same bytes). Never the run itself.
 """
-import subprocess, sys
+import subprocess
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -35,7 +37,7 @@ HERE = Path(__file__).resolve().parents[1]          # Data-Pipeline/
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from meridian import alert, publish                 # noqa: E402  (needs the path above)
-from meridian.common import data_root, load_config, load_settings   # noqa: E402
+from meridian.common import data_root, load_config, load_settings, log   # noqa: E402
 from pipeline_spec import DAGS, GATES, command       # noqa: E402
 
 PIPELINE, ORCH, SPECS = load_settings("pipeline"), load_settings("orchestration"), load_settings("dags")
@@ -45,15 +47,22 @@ REBUILD = MAIN / SPECS["rebuild"]["data_root"]
 HANDOFF = load_config(HERE / PIPELINE["config"])["run"]["handoff_dir"]
 
 # Jinja expressions, rendered when a task runs: published(key) reads the live latest.json. The update's collect makes
-# whatever run the inputs give ('new': repos may follow a branch), and its last line, run_id=<id>, is the run after it
+# whatever run the inputs give ('new': repos may follow a branch), and its last line, run_id=<id>, is the run after it.
+# The rebuild's fresh reads latest.json once and its last line, run_id=<id> prev_run=<id>, is the run after it: an
+# update publishing mid-rebuild can't switch the run under it
 COLLECT = "dag_run.conf.get('run_id') or 'new'"
+FRESH = ("dag_run.conf.get('run_id') or published('run_id') or params.run_id",
+         "dag_run.conf.get('prev_run') or published('prev_run') or params.prev_run")
 RUN = {"update": "dag_run.conf.get('run_id') or (ti.xcom_pull(task_ids='collect') or '').split('=')[-1]",
-       "rebuild": "dag_run.conf.get('run_id') or published('run_id') or params.run_id"}
+       "rebuild": "(ti.xcom_pull(task_ids='fresh') or '').split(' ')[0].split('=')[-1]"}
 # A trigger that names a run ({"run_id": ...}) or says {"force": true} wants that run made: anything_new doesn't get a
 # say (a rerun after a code fix, or of an older run: collect replays an existing snapshot's SHAs and snapshot_at)
 FORCE = "{{ dag_run.conf.get('run_id') or ('force' if dag_run.conf.get('force') else '') }}"
-PREV = {"update": "dag_run.conf.get('prev_run') or params.prev_run or published('run_id')",
-        "rebuild": "dag_run.conf.get('prev_run') or published('prev_run') or params.prev_run"}
+# A rerun of the published run (forced) keeps its prev_run: matched against itself it would lose its history
+PREV = {"update": "dag_run.conf.get('prev_run') or params.prev_run or "
+                  "(published('prev_run') if published('run_id') == r else published('run_id'))",
+        "rebuild": "(ti.xcom_pull(task_ids='fresh') or '').split(' ')[-1].split('=')[-1]"}
+FIRST = {("update", "collect"): (COLLECT, "''"), ("rebuild", "fresh"): FRESH}   # the tasks that name the run
 
 
 def on_failure(context):
@@ -67,19 +76,24 @@ def gate(cmd, go, stop, force=""):
     """Run a gate's command: go on at exit code go, skip the rest of the DAG at stop, fail at anything else.
     force (rendered from the trigger's config): go on without asking, for a run someone asked for by name."""
     if force:
-        print(f"forced by the trigger's config ({force}): not asking {cmd}", flush=True)
+        log(f"forced by the trigger's config ({force}): not asking {cmd}")
         return True
     p = subprocess.run(cmd, shell=True, cwd=HERE, capture_output=True, text=True)
-    print(p.stdout, p.stderr, sep="\n", flush=True)
+    log(f"{p.stdout}\n{p.stderr}")
     if p.returncode not in (go, stop):
         raise RuntimeError(f"exit {p.returncode}: {cmd}")
     return p.returncode == go
 
 
+def templates(run, prev):
+    """(run, '--prev-run <p>' or '', p or '') as templates; never the run itself as its prev."""
+    sets = f"{{% set r = {run} %}}{{% set p = {prev} %}}"
+    return (f"{{{{ {run} }}}}", sets + "{{ '--prev-run ' ~ p if p and p != r else '' }}",
+            sets + "{{ p if p and p != r else '' }}")
+
+
 def build(name, description):
-    spec, sets = SPECS[name], f"{{% set r = {RUN[name]} %}}{{% set p = {PREV[name]} %}}"
-    run, prev = f"{{{{ {RUN[name]} }}}}", sets + "{{ p if p and p != r else '' }}"
-    prev_arg = sets + "{{ '--prev-run ' ~ p if p and p != r else '' }}"
+    spec = SPECS[name]
     with DAG(
         dag_id=spec["dag_id"],
         description=description,
@@ -99,16 +113,21 @@ def build(name, description):
     ) as dag:
         tasks = {}
         for task, upstream in DAGS[name].items():
-            cmd = command(name, task, f"{{{{ {COLLECT} }}}}" if (name, task) == ("update", "collect") else run, PIPELINE["config"], ORCH["python"], prev_arg, prev, MAIN.as_posix(),
+            run, prev_arg, prev = templates(*FIRST.get((name, task), (RUN[name], PREV[name])))
+            cmd = command(name, task, run, PIPELINE["config"], ORCH["python"], prev_arg, prev, MAIN.as_posix(),
                           REBUILD.as_posix(), HANDOFF, GX_PYTHON)
             timeout = timedelta(minutes=ORCH.get("timeout_minutes", {}).get(task, 60))
+            # validate: 0, its errors are data
+            retries = ORCH.get("task_retries", {}).get(task, ORCH.get("retries", 2))
             if task in GATES:
                 force = FORCE if task == "anything_new" else ""   # compare is never skipped: it is the weekly check
                 tasks[task] = ShortCircuitOperator(task_id=task, python_callable=gate, execution_timeout=timeout,
+                                                   retries=retries,
                                                    op_kwargs={"cmd": cmd, "go": GATES[task][0], "stop": GATES[task][1],
                                                               "force": force})
             else:
                 tasks[task] = BashOperator(task_id=task, bash_command=cmd, cwd=str(HERE), execution_timeout=timeout,
+                                           retries=retries,
                                            env={"PYTHONUNBUFFERED": "1"},
                                            append_env=True)   # keep MERIDIAN_DATA, the alert secrets, PATH
             for up in upstream:

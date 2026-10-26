@@ -14,7 +14,12 @@ The header says how stale the published block is (meridian.status). Its "Update 
 served (--serve, on 127.0.0.1 only): a click triggers meridian_update through Airflow's REST API (meridian.status
 trigger), and says whether it queued a run or one was queued already.
 """
-import html, http.server, json, re, sqlite3, time
+import html
+import http.server
+import json
+import re
+import sqlite3
+import time
 from pathlib import Path
 
 import meridian.status as S
@@ -57,8 +62,10 @@ def picks(db, run):
     top = "SELECT {} FROM site_now WHERE status = 'present' GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 1"
     path = one(top.format("path"))
     return {"team": one(top.format("owner_team")), "path": path, "t": run["snapshot_at"], "base": run["snapshot_at"],
-            "scope": one(f"SELECT scope FROM site_now WHERE path = {sql_str(path)} GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 1"),
-            "key": one("SELECT key FROM ticket_map WHERE target_kind != 'unmapped' GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 1"),
+            "scope": one(f"SELECT scope FROM site_now WHERE path = {sql_str(path)} "
+                         "GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 1"),
+            "key": one("SELECT key FROM ticket_map WHERE target_kind != 'unmapped' "
+                       "GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 1"),
             "sha": one("SELECT sha FROM git_commit ORDER BY authored_at DESC, sha LIMIT 1")}
 
 
@@ -75,21 +82,27 @@ def esc(v):
 def table(head, rows, bars=()):
     """rows of cells; columns in bars get a bar scaled to that column's max."""
     top = {i: max([r[i] for r in rows if isinstance(r[i], (int, float))] or [0]) or 1 for i in bars}
-    cell = lambda i, v: (f'<td class="num"><span class="bar" style="width:{120 * v / top[i]:.0f}px" title="{esc(v)}"></span>{esc(v)}</td>'
-                         if i in bars else f'<td class="num">{esc(v)}</td>' if isinstance(v, (int, float)) else f"<td>{esc(v)}</td>")
+    cell = lambda i, v: (f'<td class="num"><span class="bar" style="width:{120 * v / top[i]:.0f}px" '
+                         f'title="{esc(v)}"></span>{esc(v)}</td>'
+                         if i in bars else f'<td class="num">{esc(v)}</td>' if isinstance(v, (int, float))
+                         else f"<td>{esc(v)}</td>")
     body = "".join("<tr>" + "".join(cell(i, v) for i, v in enumerate(r)) + "</tr>" for r in rows)
-    return f'<div class="scroll"><table><thead><tr>{"".join(f"<th>{esc(h)}</th>" for h in head)}</tr></thead><tbody>{body}</tbody></table></div>'
+    return (f'<div class="scroll"><table><thead><tr>{"".join(f"<th>{esc(h)}</th>" for h in head)}</tr></thead>'
+            f'<tbody>{body}</tbody></table></div>')
 
 
 def depth_bar(by_depth):
     total = sum(by_depth.values()) or 1
-    segs = "".join(f'<span class="seg d{min(int(d), 3)}" style="width:{100 * n / total:.1f}%" title="depth {d}: {n:,}"></span>'
-                   for d, n in sorted(by_depth.items(), key=lambda x: int(x[0])) if n)  # shortcut: depth 4+ shares depth 3's step
+    segs = "".join(f'<span class="seg d{min(int(d), 3)}" style="width:{100 * n / total:.1f}%" '
+                   f'title="depth {d}: {n:,}"></span>'
+                   # shortcut: depth 4+ shares depth 3's step
+                   for d, n in sorted(by_depth.items(), key=lambda x: int(x[0])) if n)
     return f'<span class="stack">{segs}</span>'
 
 
 def tile(label, value, note=""):
-    return f'<div class="tile"><div class="label">{esc(label)}</div><div class="value">{esc(value)}</div><div class="note">{esc(note)}</div></div>'
+    return (f'<div class="tile"><div class="label">{esc(label)}</div><div class="value">{esc(value)}</div>'
+            f'<div class="note">{esc(note)}</div></div>')
 
 
 STATUS = {"rows": ("good", "✓", "has rows"), "empty": ("warning", "○", "no rows"), "error": ("critical", "✕", "error")}
@@ -128,7 +141,7 @@ code,.mono{{font:12px ui-monospace,Consolas,monospace}}details summary{{cursor:p
 <p>snapshot_at {esc(run["snapshot_at"])} · status {esc(run["status"])} · built from <code>out/{esc(run["run_id"])}/</code>, local only</p>
 <p>{esc(stale)} · <button onclick="fetch('/update',{{method:'POST',headers:{{'X-Meridian':'1'}}}}).then(r=>r.text())
 .catch(()=>'serve the page (--serve) to use the button').then(t=>this.nextElementSibling.textContent=t)">Update graph</button>
-<span class="note"></span></p><nav>{nav}</nav></header>{body}</body></html>"""
+<span class="note"></span></p><nav>{nav}</nav></header>{body}</body></html>"""  # noqa: E501
 
 
 # ───────────── sections ─────────────
@@ -136,70 +149,97 @@ code,.mono{{font:12px ui-monospace,Consolas,monospace}}details summary{{cursor:p
 def build(db, run, queries, stale=""):
     q = lambda sql: db.execute(sql).fetchall()
     sections = []
+    scope = " · ".join(map(str, db.execute("SELECT repo, symbol FROM asof").fetchone()))
+    # the planned queries ran on one repo and symbol; the rest is the whole block
+    db.execute("UPDATE asof SET repo = NULL, symbol = NULL")
 
     counts = [(t, db.execute(f"SELECT count(*) FROM {t}").fetchone()[0])
               for (t,) in q("""SELECT name FROM sqlite_master WHERE type = 'table'
-                               UNION SELECT name FROM temp.sqlite_master WHERE type = 'table' AND name != 'asof' ORDER BY name""")]
+                               UNION SELECT name FROM temp.sqlite_master WHERE type = 'table' AND name != 'asof' ORDER BY name""")]  # noqa: E501
     present = q("SELECT count(*) FROM site_now WHERE status = 'present'")[0][0]
     blocked = q("SELECT count(*) FROM blocked_by")[0][0]
     tiles = (tile("present call sites", present) + tile("call edges", dict(counts)["call_edge"])
-             + tile("blocked_by", blocked, f"{q('SELECT count(*) FROM blocked_by WHERE status = ' + sql_str('unknown'))[0][0]:,} unknown")
+             + tile("blocked_by", blocked,
+                    f"{q('SELECT count(*) FROM blocked_by WHERE status = ' + sql_str('unknown'))[0][0]:,} unknown")
              + tile("chains", dict(counts)["chain"]) + tile("tickets", dict(counts)["ticket"])
-             + tile("receivers", q("SELECT count(*) FROM resolution WHERE receiver_from IS NOT NULL")[0][0], "resolution.receiver_from set")
+             + tile("receivers", q("SELECT count(*) FROM resolution WHERE receiver_from IS NOT NULL")[0][0],
+                    "resolution.receiver_from set")
              + tile("suggestions tracked", dict(counts)["suggestion"], "proposed tables; stage 6 writes them"))
-    sections.append(("Overview", f'<div class="tiles">{tiles}</div><h3>Rows per table</h3>' + table(["table", "rows"], counts, bars=[1])))
+    sections.append(("Overview", f'<div class="tiles">{tiles}</div><h3>Rows per table</h3>'
+                     + table(["table", "rows"], counts, bars=[1])))
 
-    cov = q("SELECT metric, numerator, denominator, round(100.0 * numerator / max(denominator, 1), 1), note FROM coverage ORDER BY metric")
+    cov = q("SELECT metric, numerator, denominator, round(100.0 * numerator / max(denominator, 1), 1), note "
+            "FROM coverage ORDER BY metric")
     sections.append(("Coverage", table(["metric", "of", "out of", "%", "what it counts"], cov, bars=[3])))
 
-    by = lambda col: q(f"SELECT {col}, sum(status = 'present'), sum(status = 'removed') FROM site_now GROUP BY 1 ORDER BY 2 DESC, 1")
+    by = lambda col: q(f"SELECT {col}, sum(status = 'present'), sum(status = 'removed') FROM site_now "
+                       "GROUP BY 1 ORDER BY 2 DESC, 1")
     sections.append(("Call sites", "<h3>By repo</h3>" + table(["repo", "present", "removed"], by("repo"), bars=[1])
-                     + "<h3>By owner team (top 30)</h3>" + table(["owner_team", "present", "removed"], by("owner_team")[:30], bars=[1])
-                     + "<h3>By role and detection</h3>" + table(["role · detection", "present", "removed"], by("role || ' · ' || detection"), bars=[1])
-                     + "<h3>Inside except (no LLM diff, stall reason #5)</h3>" + table(["in_except", "present", "removed"], by("in_except"))))
+                     + "<h3>By owner team (top 30)</h3>" + table(["owner_team", "present", "removed"],
+                                                                 by("owner_team")[:30], bars=[1])
+                     + "<h3>By role and detection</h3>" + table(["role · detection", "present", "removed"],
+                                                                by("role || ' · ' || detection"), bars=[1])
+                     + "<h3>Inside except (no LLM diff, stall reason #5)</h3>"
+                     + table(["in_except", "present", "removed"], by("in_except"))))
 
     graph = ("<h3>blocked_by by depth and status</h3>"
-             + table(["depth", "status", "rows"], q("SELECT depth, status, count(*) FROM blocked_by GROUP BY 1, 2 ORDER BY 1, 2"), bars=[2])
+             + table(["depth", "status", "rows"],
+                     q("SELECT depth, status, count(*) FROM blocked_by GROUP BY 1, 2 ORDER BY 1, 2"), bars=[2])
              + "<h3>Cross-team pairs (waiting team → blocking team)</h3>"
              + table(["waiting", "blocking", "rows"], q("""SELECT a.owner_team, k.owner_team, count(*) FROM blocked_by b
                      JOIN site_now a ON a.call_site_id = b.call_site_id JOIN site_now k ON k.call_site_id = b.blocker_id
                      GROUP BY 1, 2 ORDER BY 3 DESC, 1, 2 LIMIT 30"""), bars=[2])
              + "<h3>blocked_by rows (first 50)</h3>"
-             + table(["waiting site", "blocker site", "via function", "depth", "status"], q("""SELECT a.path || ':' || a.line || ' (' || a.owner_team || ')',
+             + table(["waiting site", "blocker site", "via function", "depth", "status"],
+                     q("""SELECT a.path || ':' || a.line || ' (' || a.owner_team || ')',
                      k.path || ':' || k.line || ' (' || k.owner_team || ')', b.via_function, b.depth, b.status FROM blocked_by b
                      JOIN site_now a ON a.call_site_id = b.call_site_id JOIN site_now k ON k.call_site_id = b.blocker_id
-                     ORDER BY b.depth, a.path, a.line LIMIT 50""")))
-    blast = q("SELECT repo, symbol, direct_sites, invocations, files, by_depth FROM blast_radius ORDER BY invocations DESC, repo, symbol")
-    rows = "".join(f'<tr><td>{esc(r)}</td><td><code>{esc(s)}</code></td><td class="num">{esc(d)}</td><td class="num">{esc(i)}</td>'
-                   f'<td class="num">{esc(f)}</td><td>{depth_bar(json.loads(b))} <span class="note">{esc(b)}</span></td></tr>'
+                     ORDER BY b.depth, a.path, a.line LIMIT 50""")))  # noqa: E501
+    blast = q("SELECT repo, symbol, direct_sites, invocations, files, by_depth FROM blast_radius "
+              "ORDER BY invocations DESC, repo, symbol")
+    rows = "".join(f'<tr><td>{esc(r)}</td><td><code>{esc(s)}</code></td><td class="num">{esc(d)}</td>'
+                   f'<td class="num">{esc(i)}</td><td class="num">{esc(f)}</td>'
+                   f'<td>{depth_bar(json.loads(b))} <span class="note">{esc(b)}</span></td></tr>'
                    for r, s, d, i, f, b in blast)
-    graph += ('<h3>Blast radius per repo and symbol</h3><div class="legend">invocations by depth<i class="d1"></i>1 direct'
-              '<i class="d2"></i>2<i class="d3"></i>3</div><div class="scroll"><table><thead><tr><th>repo</th><th>symbol</th>'
-              f'<th>direct sites</th><th>invocations</th><th>files</th><th>by depth</th></tr></thead><tbody>{rows}</tbody></table></div>')
+    graph += ('<h3>Blast radius per repo and symbol</h3><div class="legend">invocations by depth'
+              '<i class="d1"></i>1 direct<i class="d2"></i>2<i class="d3"></i>3</div>'
+              '<div class="scroll"><table><thead><tr><th>repo</th><th>symbol</th>'
+              '<th>direct sites</th><th>invocations</th><th>files</th><th>by depth</th></tr></thead>'
+              f'<tbody>{rows}</tbody></table></div>')
     chain = q("SELECT type, count(*), sum(in_cycle), sum(json_array_length(evidence)) FROM chain GROUP BY 1 ORDER BY 1")
     graph += ("<h3>Chains by type</h3>" + table(["type", "rows", "in a cycle", "evidence items"], chain, bars=[1])
               + "<h3>Untracked work per team (no ticket maps to these sites)</h3>"
-              + table(["team", "sites"], q("SELECT from_key, json_array_length(evidence) FROM chain WHERE type = 'untracked' ORDER BY 2 DESC, 1 LIMIT 30"), bars=[1])
+              + table(["team", "sites"],
+                      q("SELECT from_key, json_array_length(evidence) FROM chain WHERE type = 'untracked' "
+                        "ORDER BY 2 DESC, 1 LIMIT 30"), bars=[1])
               + "<h3>Ticket chains (first 50)</h3>"
-              + table(["from", "to", "type", "in cycle", "evidence"], q("""SELECT from_key, to_key, type, in_cycle, evidence FROM chain
+              + table(["from", "to", "type", "in cycle", "evidence"],
+                      q("""SELECT from_key, to_key, type, in_cycle, evidence FROM chain
                       WHERE type != 'untracked' ORDER BY type, from_key, to_key LIMIT 50""")))
     sections.append(("Graph", graph))
 
     sections.append(("Tickets → code", table(["method", "target kind", "rows", "tickets"], q(
-        "SELECT method, target_kind, count(*), count(DISTINCT key) FROM ticket_map GROUP BY 1, 2 ORDER BY 3 DESC"), bars=[2])))
+        "SELECT method, target_kind, count(*), count(DISTINCT key) FROM ticket_map GROUP BY 1, 2 ORDER BY 3 DESC"),
+                                             bars=[2])))
 
     rows, state = [], lambda got, err: "error" if err else "rows" if got else "empty"
     for section, name, sql, params, cols, got, err in queries:
         cls, icon, word = STATUS[state(got, err)]
-        preview = "" if err or not got else (f"<details><summary>first {min(PREVIEW, len(got))} of {len(got):,}</summary>"
+        preview = "" if err or not got else (f"<details><summary>first {min(PREVIEW, len(got))} of "
+                                             f"{len(got):,}</summary>"
                                              + table(cols, [list(r) for r in got[:PREVIEW]]) + "</details>")
-        rows.append(f'<tr><td>{esc(section)}</td><td><code>{esc(name)}</code></td><td class="st {cls}"><b>{icon}</b>{word}</td>'
-                    f'<td class="num">{esc(len(got))}</td><td><span class="note">{esc(err or (json.dumps(params) if params else ""))}</span>{preview}</td></tr>')
+        rows.append(f'<tr><td>{esc(section)}</td><td><code>{esc(name)}</code></td>'
+                    f'<td class="st {cls}"><b>{icon}</b>{word}</td><td class="num">{esc(len(got))}</td>'
+                    f'<td><span class="note">{esc(err or (json.dumps(params) if params else ""))}</span>'
+                    f'{preview}</td></tr>')
     n = {s: sum(state(got, err) == s for *_, got, err in queries) for s in STATUS}
-    legend = " · ".join(f'<span class="st {STATUS[s][0]}"><b>{STATUS[s][1]}</b>{STATUS[s][2]}</span> {n[s]}' for s in STATUS)
-    sections.append(("Planned features", f'<p class="note">Every named query in KNOWLEDGE-BASE.md, run on this block. '
-                     f'Empty can be right (no chains without tickets on call sites), and rows can be hollow: with no suggestion '
-                     f'rows, the tracking queries only show the control group.</p><p>{legend}</p>'
+    legend = " · ".join(f'<span class="st {STATUS[s][0]}"><b>{STATUS[s][1]}</b>{STATUS[s][2]}</span> {n[s]}'
+                        for s in STATUS)
+    sections.append(("Planned features",
+                     f'<p class="note">Every named query in KNOWLEDGE-BASE.md, run on the biggest repo and symbol '
+                     f'({esc(scope)}). Empty can be right (no chains without tickets on call sites), and rows can be '
+                     f'hollow: with no suggestion rows, the tracking queries only show the control group.</p>'
+                     f'<p>{legend}</p>'
                      '<div class="scroll"><table><thead><tr><th>section</th><th>query</th><th>status</th><th>rows</th>'
                      f'<th>params · error · preview</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>'))
     return page(run, sections, stale)
@@ -212,8 +252,10 @@ def main(run_id, config, root=None):
     fresh = block.exists() and all(block.stat().st_mtime > p.stat().st_mtime for p in [*out.glob("*.jsonl"), W.SCHEMA])
     loaded = None if fresh else W.write(out)
     db = sqlite3.connect(block.resolve().as_uri() + "?mode=ro", uri=True)  # the block stays as validate wrote it
-    run = dict(zip(("run_id", "snapshot_at", "status"), db.execute("SELECT run_id, snapshot_at, status FROM run").fetchone()))
-    top = db.execute("""SELECT repo, symbol FROM call_site GROUP BY 1, 2 ORDER BY count(*) DESC, 1, 2 LIMIT 1""").fetchone() or ("", "")
+    run = dict(zip(("run_id", "snapshot_at", "status"),
+                   db.execute("SELECT run_id, snapshot_at, status FROM run").fetchone()))
+    top = db.execute("""SELECT repo, symbol FROM call_site GROUP BY 1, 2 ORDER BY count(*) DESC, 1, 2 LIMIT 1"""
+                     ).fetchone() or ("", "")
     db.execute("CREATE TEMP TABLE asof (run_id TEXT, at TEXT, repo TEXT, symbol TEXT)")
     db.execute("INSERT INTO asof VALUES (?, ?, ?, ?)", (run_id, run["snapshot_at"], *top))
     results, pick = [], None
@@ -234,7 +276,8 @@ def main(run_id, config, root=None):
     finally:
         db.close()
     state = lambda r: "error" if r[6] else "rows" if r[5] else "empty"
-    log((f"{sum(loaded.values()):,} rows loaded" if loaded else f"reused {block.name}") + f" · {len(results)} planned queries: "
+    log((f"{sum(loaded.values()):,} rows loaded" if loaded else f"reused {block.name}")
+        + f" · {len(results)} planned queries: "
         + ", ".join(f"{sum(state(r) == s for r in results)} {s}" for s in STATUS) + f" -> {path}")
     return path
 
@@ -266,7 +309,8 @@ def serve(path, port):
 
 if __name__ == "__main__":
     ap = parser(__doc__)
-    ap.add_argument("--serve", type=int, metavar="PORT", help="serve the page on 127.0.0.1:PORT, with the Update graph button")
+    ap.add_argument("--serve", type=int, metavar="PORT",
+                    help="serve the page on 127.0.0.1:PORT, with the Update graph button")
     a = ap.parse_args()
     path = main(a.run_id, a.config)
     if a.serve:

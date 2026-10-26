@@ -7,9 +7,11 @@ of its snapshot_at, and, per repo in meridian.toml, the commits between its publ
 the repo's local mirror ([status] mirrors: collect's bare clones). A repo that follows a branch has its mirror fetched
 first ([status] fetch), so a push made since the last collect counts: without it the "Update graph" click and the daily
 run saw nothing until stale_after_hours passed. A pinned repo is never fetched. A fetch that fails (offline) leaves the
-mirror as the last collect did. A repo whose mirror, ref or published SHA isn't there is unknown, and never counts as new.
+mirror as the last collect did. A repo whose mirror or ref isn't there is unknown, and never counts as new by its
+commits.
 
-Exit 0 = something new: nothing published yet, a new commit or repo, or a publish older than [status]
+Exit 0 = something new: nothing published yet, a new commit, a repo in meridian.toml the published run doesn't have
+(no mirror needed), a meridian.toml whose config_hash isn't the published run's, or a publish older than [status]
 stale_after_hours (ticket changes can't be seen without a pull). Exit 99 = nothing new. Anything else is an error.
 
     python -m meridian.status --update        # the "Update graph" click: trigger meridian_update
@@ -19,12 +21,18 @@ variables it names, else Data-Pipeline/.env), unless a run is already queued: th
 takes every push up to its start, so a second click adds nothing. One run at a time (max_active_runs = 1), and its
 anything_new step skips the run when nothing changed.
 """
-import argparse, base64, json, os, subprocess, sys, urllib.request
+import argparse
+import base64
+import json
+import os
+import subprocess
+import sys
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
 from meridian import publish
-from meridian.collect import fetch, rev
+from meridian.collect import canon, fetch, rev, sha256
 from meridian.common import CONFIG, HERE, data_root, git, load_config, load_settings, log
 
 NOTHING_NEW = 99
@@ -59,9 +67,12 @@ def status(config=CONFIG, root=None, settings=None, now=None):
     since = lambda key: now - datetime.strptime(pub[key], TIME).replace(tzinfo=timezone.utc)
     commits = sum(n for n in repos.values() if n)
     stale = not pub or since("published_at").total_seconds() > s.get("stale_after_hours", 24) * 3600
+    new_repos = sorted(r["repo"] for r in listed if r["repo"] not in shas)
+    config_changed = bool(pub) and pub.get("config_hash") != sha256(canon(cfg).encode())   # collect's config_hash
     return {"run_id": pub.get("run_id"), "snapshot_at": pub.get("snapshot_at"), "published_at": pub.get("published_at"),
             "age_days": since("snapshot_at").days if pub else None, "new_commits": commits, "repos": repos,
-            "stale": stale, "new": stale or commits > 0}
+            "new_repos": new_repos, "config_changed": config_changed, "stale": stale,
+            "new": stale or commits > 0 or bool(new_repos) or config_changed}
 
 
 def line(st):
@@ -69,7 +80,9 @@ def line(st):
         return "nothing published yet"
     unknown = sum(n is None for n in st["repos"].values())
     return (f"data {st['age_days']} day{'s' * (st['age_days'] != 1)} old · {st['new_commits']} new commits · "
-            f"run {st['run_id']}" + (f" · {unknown} repos unknown" if unknown else ""))
+            f"run {st['run_id']}" + (f" · {unknown} repos unknown" if unknown else "")
+            + (f" · {len(st['new_repos'])} new repos" if st["new_repos"] else "")
+            + (" · config changed" if st["config_changed"] else ""))
 
 
 def trigger(settings=None, env_file=HERE / ".env"):
@@ -80,7 +93,8 @@ def trigger(settings=None, env_file=HERE / ".env"):
     login = base64.b64encode(f"{env.get(d['api_user_env'], '')}:{env.get(d['api_password_env'], '')}".encode()).decode()
 
     def call(path, body=None):
-        req = urllib.request.Request(f"{d['api']}/dags/{d['dag_id']}/dagRuns{path}", None if body is None else json.dumps(body).encode(),
+        req = urllib.request.Request(f"{d['api']}/dags/{d['dag_id']}/dagRuns{path}",
+                                     None if body is None else json.dumps(body).encode(),
                                      {"Authorization": f"Basic {login}", "Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as r:
             return json.load(r)

@@ -6,6 +6,7 @@ repos/
 results/
 out/
 /published/
+Data-Pipeline/published/
 /rebuild/
 # snapshots/: everything but DVC's pointers to the raw ticket pulls (snapshots/_cache/{jira,gitlab}.dvc) and the
 # ignore file DVC keeps next to them. The repo mirrors in _cache/repos aren't tracked: collect clones them again
@@ -53,6 +54,7 @@ Data-Pipeline/logs/*
 Thumbs.db
 .vscode/
 .idea/
+.claude/
 
 # Python
 __pycache__/

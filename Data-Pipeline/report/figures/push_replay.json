@@ -1,0 +1,375 @@
+{
+ "django/django": {
+  "default": {
+   "checks": {},
+   "skipped": "Skipped: 229 files in scope, over 200.",
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 129 changed files, 100 importers",
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {
+    "P1": 4,
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 129 changed files, 100 importers",
+   "sample": [
+    "- **P1 Drift**: new call site of `ugettext` at `tests/i18n/tests.py:60`",
+    "- **P1 Drift**: new call site of `ugettext_lazy` at `tests/i18n/tests.py:61`",
+    "- **P1 Drift**: new call site of `ungettext` at `tests/i18n/tests.py:62`",
+    "- **P1 Drift**: new call site of `ungettext_lazy` at `tests/i18n/tests.py:64`",
+    "- **P9 Defect risk**: 717 lines \u00d7 129 files = 92493, over 2000"
+   ]
+  }
+ },
+ "django-oscar/django-oscar": {
+  "default": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 30 changed files, 0 importers",
+   "sample": [
+    "- **P9 Defect risk**: 719 lines \u00d7 30 files = 21570, over 2000"
+   ]
+  },
+  "uncapped": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 30 changed files, 0 importers",
+   "sample": [
+    "- **P9 Defect risk**: 719 lines \u00d7 30 files = 21570, over 2000"
+   ]
+  }
+ },
+ "wagtail/wagtail": {
+  "default": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 50 changed files, 5 importers",
+   "sample": [
+    "- **P9 Defect risk**: 563 lines \u00d7 50 files = 28150, over 2000"
+   ]
+  },
+  "uncapped": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 50 changed files, 5 importers",
+   "sample": [
+    "- **P9 Defect risk**: 563 lines \u00d7 50 files = 28150, over 2000"
+   ]
+  }
+ },
+ "encode/django-rest-framework": {
+  "default": {
+   "checks": {
+    "P1": 1,
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 46 changed files, 0 importers",
+   "sample": [
+    "- **P1 Drift**: new call site of `url` at `tests/test_fields.py:1832`",
+    "- **P9 Defect risk**: 505 lines \u00d7 46 files = 23230, over 2000"
+   ]
+  },
+  "uncapped": {
+   "checks": {
+    "P1": 1,
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 46 changed files, 0 importers",
+   "sample": [
+    "- **P1 Drift**: new call site of `url` at `tests/test_fields.py:1832`",
+    "- **P9 Defect risk**: 505 lines \u00d7 46 files = 23230, over 2000"
+   ]
+  }
+ },
+ "django-cms/django-cms": {
+  "default": {
+   "checks": {},
+   "skipped": "Skipped: 335 files in scope, over 200.",
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 309 changed files, 26 importers",
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {
+    "P1": 6,
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 309 changed files, 26 importers",
+   "sample": [
+    "- **P1 Drift**: new call site of `url` at `cms/plugin_base.py:535`",
+    "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:267`",
+    "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:292`",
+    "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:395`",
+    "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:418`",
+    "- **P1 Drift**: new call site of `url` at `menus/base.py:42`"
+   ]
+  }
+ },
+ "pennersr/django-allauth": {
+  "default": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 20 changed files, 85 importers",
+   "sample": [
+    "- **P9 Defect risk**: 191 lines \u00d7 20 files = 3820, over 2000"
+   ]
+  },
+  "uncapped": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 20 changed files, 85 importers",
+   "sample": [
+    "- **P9 Defect risk**: 191 lines \u00d7 20 files = 3820, over 2000"
+   ]
+  }
+ },
+ "jazzband/django-two-factor-auth": {
+  "default": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 16 changed files, 1 importers",
+   "sample": [
+    "- **P9 Defect risk**: 278 lines \u00d7 16 files = 4448, over 2000"
+   ]
+  },
+  "uncapped": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 16 changed files, 1 importers",
+   "sample": [
+    "- **P9 Defect risk**: 278 lines \u00d7 16 files = 4448, over 2000"
+   ]
+  }
+ },
+ "jazzband/django-debug-toolbar": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "django-guardian/django-guardian": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "django/channels": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "cookiecutter/cookiecutter-django": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "django-extensions/django-extensions": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "django-haystack/django-haystack": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "graphql-python/graphene-django": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "carltongibson/django-filter": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "django-import-export/django-import-export": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "django-tenants/django-tenants": {
+  "default": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 18 changed files, 9 importers",
+   "sample": [
+    "- **P9 Defect risk**: 519 lines \u00d7 18 files = 9342, over 2000"
+   ]
+  },
+  "uncapped": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 18 changed files, 9 importers",
+   "sample": [
+    "- **P9 Defect risk**: 519 lines \u00d7 18 files = 9342, over 2000"
+   ]
+  }
+ },
+ "yourlabs/django-autocomplete-light": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "iMerica/dj-rest-auth": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "jazzband/django-silk": {
+  "default": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  },
+  "uncapped": {
+   "checks": {},
+   "skipped": null,
+   "scope": null,
+   "sample": []
+  }
+ },
+ "django-tastypie/django-tastypie": {
+  "default": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 32 changed files, 12 importers",
+   "sample": [
+    "- **P9 Defect risk**: 476 lines \u00d7 32 files = 15232, over 2000"
+   ]
+  },
+  "uncapped": {
+   "checks": {
+    "P9": 1
+   },
+   "skipped": null,
+   "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 32 changed files, 12 importers",
+   "sample": [
+    "- **P9 Defect risk**: 476 lines \u00d7 32 files = 15232, over 2000"
+   ]
+  }
+ }
+}

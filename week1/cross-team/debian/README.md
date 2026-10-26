@@ -22,7 +22,7 @@ Debian removed Python 2 in 2019–2021. Its Python team filed one bug per affect
 | Package → package links | 30+ | **8,575** | ✅ |
 | Links that cross teams (different maintainer) | most | **5,917 (69%)**. 8% both Debian Python Team, 8% same maintainer, 15% maintainer unknown | ✅ |
 | Distinct teams | many | **793** maintainers across 3,237 packages | ✅ |
-| Links added by hand, one at a time | most | **0 of 20** sampled. All 20 by `morph@debian.org`, 19 in two batches (15 on 2019-10-21, 4 on 2019-10-23), median 20 blockers per command | 🔴 |
+| Links added by hand, one at a time | most | **0 of 20** sampled. All 20 by one Debian developer, 19 in two batches (15 on 2019-10-21, 4 on 2019-10-23), median 20 blockers per command | 🔴 |
 | Links point the way Meridian's do | yes | **No.** The library's bug is blocked by its users' bugs (see below) | 🔴 |
 | Circular links (A ← B and B ← A) | 0 | **97** | 🔴 |
 | Sampled package bugs that say someone waited | a real share | **0 of 13**. The only hits were in the python-defaults meta bug | 🔴 |
@@ -56,28 +56,28 @@ That's Meridian's **API owner burndown** ("can't delete `verify_token` until all
 
 | Blocked bug (package) | Blocked by (package) | Added by | Added | Blockers in same command | Wait language |
 |---|---|---|---|---|---|
-| 937482 pymongo | 937065 mongodb | morph | 2019-10-21 | 3 | — |
-| 936709 html5lib | 937614 python-bleach | morph | 2019-10-21 | 15 | — |
-| 937695 python-defaults | 942969 cmake-extras | morph | 2019-10-23 | 20 | meta bug |
-| 937695 python-defaults | 938251 python-vobject | morph | 2019-10-21 | 20 | meta bug |
-| 937695 python-defaults | 937585 python-asteval | morph | 2019-10-21 | 20 | meta bug |
-| 937569 python2.7 | 936936 libvmdk | morph | 2019-10-21 | 20 | — |
-| 937448 pygobject | 943093 gexiv2 | morph | 2019-10-23 | 14 | — |
-| 937405 pychess | 945632 debian-games | morph | 2019-11-27 | 1 | — |
-| 938275 python-xlib | 936572 fusil | morph | 2019-10-21 | 10 | — |
-| 936772 jupyter-client | 937117 nbconvert | morph | 2019-10-21 | 4 | — |
-| 936761 jcc | 937473 pylucene | morph | 2019-10-21 | 1 | — |
-| 937446 pygments | 937063 moin | morph | 2019-10-21 | 20 | — |
-| 937695 python-defaults | 937468 pylibmc | morph | 2019-10-21 | 20 | meta bug |
-| 937695 python-defaults | 937849 python-jedi | morph | 2019-10-21 | 20 | meta bug |
-| 942941 dbus-python | 938884 zeitgeist | morph | 2019-10-23 | 20 | — |
-| 936742 ipykernel-py2 | 937117 nbconvert | morph | 2019-10-21 | 5 | — |
-| 937695 python-defaults | 936977 macsyfinder | morph | 2019-10-21 | 20 | meta bug |
-| 938249 python-virtualenv | 942910 automake-1.15 | morph | 2019-10-23 | 6 | — |
-| 937695 python-defaults | 937505 pypdf2 | morph | 2019-10-21 | 20 | meta bug |
-| 938492 six | 937276 pg8000 | morph | 2019-10-21 | 20 | — |
+| 937482 pymongo | 937065 mongodb | dev A | 2019-10-21 | 3 | — |
+| 936709 html5lib | 937614 python-bleach | dev A | 2019-10-21 | 15 | — |
+| 937695 python-defaults | 942969 cmake-extras | dev A | 2019-10-23 | 20 | meta bug |
+| 937695 python-defaults | 938251 python-vobject | dev A | 2019-10-21 | 20 | meta bug |
+| 937695 python-defaults | 937585 python-asteval | dev A | 2019-10-21 | 20 | meta bug |
+| 937569 python2.7 | 936936 libvmdk | dev A | 2019-10-21 | 20 | — |
+| 937448 pygobject | 943093 gexiv2 | dev A | 2019-10-23 | 14 | — |
+| 937405 pychess | 945632 debian-games | dev A | 2019-11-27 | 1 | — |
+| 938275 python-xlib | 936572 fusil | dev A | 2019-10-21 | 10 | — |
+| 936772 jupyter-client | 937117 nbconvert | dev A | 2019-10-21 | 4 | — |
+| 936761 jcc | 937473 pylucene | dev A | 2019-10-21 | 1 | — |
+| 937446 pygments | 937063 moin | dev A | 2019-10-21 | 20 | — |
+| 937695 python-defaults | 937468 pylibmc | dev A | 2019-10-21 | 20 | meta bug |
+| 937695 python-defaults | 937849 python-jedi | dev A | 2019-10-21 | 20 | meta bug |
+| 942941 dbus-python | 938884 zeitgeist | dev A | 2019-10-23 | 20 | — |
+| 936742 ipykernel-py2 | 937117 nbconvert | dev A | 2019-10-21 | 5 | — |
+| 937695 python-defaults | 936977 macsyfinder | dev A | 2019-10-21 | 20 | meta bug |
+| 938249 python-virtualenv | 942910 automake-1.15 | dev A | 2019-10-23 | 6 | — |
+| 937695 python-defaults | 937505 pypdf2 | dev A | 2019-10-21 | 20 | meta bug |
+| 938492 six | 937276 pg8000 | dev A | 2019-10-21 | 20 | — |
 
-`morph` = `morph@debian.org`. "Meta bug" = python-defaults 937695, the bug for removing Python 2 itself. Its thread has "waiting for" and "once it migrates", but about the whole campaign, not one package.
+"dev A" = one Debian developer. "Meta bug" = python-defaults 937695, the bug for removing Python 2 itself. Its thread has "waiting for" and "once it migrates", but about the whole campaign, not one package.
 
 ## What to do with it
 

@@ -1,6 +1,6 @@
 # Fixes · dynamic-config
 
-This branch fixes the problems the audit found (20 numbered, plus 16 smaller ones), moves every hard-coded setting into config, adds 5 columns and tables to the knowledge base (schema v1.1), and adds the KB proof test ([tests/test_kb.py](tests/test_kb.py)). Tests: 145, 0 failures, 6 skipped because no snapshot is local (the Django and package answer keys read `snapshots/$MERIDIAN_RUN_ID/`). Before: 60 tests, 2 failures and 12 errors on Windows. `meridian.toml` changed, so collect gives a new `run_id` and every part must rerun on it. The numbers in [SCANNER.md](SCANNER.md) and [RESOLVER.md](RESOLVER.md) (2,908 candidates, 2,054 call edges, on `973531f7fd4cfd5e`) hold until that rerun.
+This branch fixes the problems the audit found (20 numbered, plus 16 smaller ones), moves every hard-coded setting into config, adds 5 columns and tables to the knowledge base (schema v1.1), and adds the KB proof test ([tests/test_kb.py](../tests/test_kb.py)). Tests: 145, 0 failures, 6 skipped because no snapshot is local (the Django and package answer keys read `snapshots/$MERIDIAN_RUN_ID/`). Before: 60 tests, 2 failures and 12 errors on Windows. `meridian.toml` changed, so collect gives a new `run_id` and every part must rerun on it. The numbers in [SCANNER.md](../SCANNER.md) and [RESOLVER.md](../RESOLVER.md) (2,908 candidates, 2,054 call edges, on `973531f7fd4cfd5e`) hold until that rerun.
 
 ```
 python -m unittest discover -s tests -t .       # from Data-Pipeline/
@@ -15,7 +15,7 @@ Numbered as in the audit.
 | 1 | git read each person's global and system git config (`diff.algorithm`, `blame.ignoreRevsFile`, `log.showRoot`, `core.autocrlf`), so two machines could write different rows | every part (`collect`, `history`, `szz`, `owners`, `scan`, `resolve`, `score_packages`) | one `common.git`, run with `GIT_CONFIG_GLOBAL=devnull` and `GIT_CONFIG_NOSYSTEM=1`. Checkouts also keep the committed LF on every OS | `test_resolve` `test_changed_lines_ignore_user_git_config`; `test_history` `Keyed`, `test_szz` `test_code_rules_from_config` (each part's `git` is `common.git`) | ✅ |
 | 2 | `fnmatch` ignores case on Windows: `app/Test_Case.py` was junk `test` on Windows only | `meridian/scan.py` | `fnmatchcase` on every OS | `test_scan` `test_junk` | ✅ |
 | 3 | A killed write left a `.tmp` file holding emails and names, and git didn't ignore it | `.gitignore`, `meridian/common.py` | `.gitignore` adds `out/` and `*.tmp`. `write_jsonl` removes its tmp on failure | none | ✅ |
-| 4 | `check_csv.py` with no arguments crashed: it split `git ls-files` on the space in `DATA PIPELINE/` (the folder's old name). `xt_cross_team_blocks.csv` had an `added_by` column of usernames and 40+ `@handles` | `check_csv.py`, `week1/cross-team/gitlab/xt_cross_team_blocks.csv` | `splitlines()`. `added_by` dropped, handles → `@user`. The old file is still in git history at `ebe68b8` (not rewritten) | [tests/test_check_csv.py](tests/test_check_csv.py) | ✅ |
+| 4 | `check_csv.py` with no arguments crashed: it split `git ls-files` on the space in `DATA PIPELINE/` (the folder's old name). `xt_cross_team_blocks.csv` had an `added_by` column of usernames and 40+ `@handles` | `check_csv.py`, `week1/cross-team/gitlab/xt_cross_team_blocks.csv` | `splitlines()`. `added_by` dropped, handles → `@user`. The old file is still in git history at `ebe68b8` (not rewritten) | [tests/test_check_csv.py](../tests/test_check_csv.py) | ✅ |
 | 5 | `scope` counted defaults, decorators, bases and a def's own name as inside the def. Every caller of Django's `get_text_list` got a bogus edge: its default `ugettext_lazy('or')` runs in the module | `meridian/scan.py`, `meridian/resolve.py` | only def/class bodies count (`scan.scopes`). One rule, shared by scan and resolve | `test_scan` `test_scope`; `test_resolve` `test_exact_edges` | ✅ |
 | 6 | A call to a class never counted as a call of its `__init__`: `make()` → `F()` gave no edge | `meridian/resolve.py` | a call Jedi lands on the class counts for `F.__init__` | `test_resolve` `test_exact_edges` | ✅ |
 | 7 | A ticket Fixed at `snapshot_at` and reopened after it lost `resolved_at` (Jira clears `resolutiondate` on reopen) | `meridian/tickets.py` | no date, or a date after `snapshot_at` → the last resolution in the changelog up to `snapshot_at` | `test_tickets` `test_rolled_back_to_snapshot` | ✅ |
@@ -23,7 +23,7 @@ Numbered as in the audit.
 | 9 | The SZZ diff parser took a deleted line `-- x` (printed `--- x`) as a file header. A path with a space kept git's trailing tab | `meridian/szz.py` | `--- ` is read only between `diff --git` and the first `@@`. The tab is stripped | `test_szz` `test_file_headers_only_in_the_header` | ✅ |
 | 10 | Windows text: config and GitLab `.work/` files read as cp1252, jsonl written with CRLF. 6 collect tests and 1 resolve test failed on Windows | `collect`, `common`, `history`, `scan`, `resolve`, `writer`, the hand checks | every open says `encoding="utf-8"`, every write `newline="\n"`. Test fixtures write paths as POSIX in TOML | `test_collect`; `test_scan` `test_hand_check_saves_utf8`; `test_resolve` `test_alias_hand_check_saves_utf8` | ✅ |
 | 11 | The writer tests failed on any SQLite other than the pinned 3.50.4 | `meridian/writer.py` | `check_sqlite` runs only in the command. `write()` and its tests use the machine's SQLite | `test_history` `test_sqlite_version_is_pinned`, `test_history_then_writer` | ✅ |
-| 12 | The gold-set scrubber let through usernames found in `/usr/share/dict/words` (on Mac, not Windows: different output per OS), matched case-sensitively, and without the raw dump scrubbed less, silently | `labels/build_gitlab_gold.py` | every username of 4+ characters, English words too, `re.I`. No raw dump → error. One username left in `labels/gitlab_stall_reasons.csv` scrubbed by hand. The labels CSVs should still be regenerated once someone has the raw dump | [tests/test_gold.py](tests/test_gold.py) | ✅ |
+| 12 | The gold-set scrubber let through usernames found in `/usr/share/dict/words` (on Mac, not Windows: different output per OS), matched case-sensitively, and without the raw dump scrubbed less, silently | `labels/build_gitlab_gold.py` | every username of 4+ characters, English words too, `re.I`. No raw dump → error. One username left in `labels/gitlab_stall_reasons.csv` scrubbed by hand. The labels CSVs should still be regenerated once someone has the raw dump | [tests/test_gold.py](../tests/test_gold.py) | ✅ |
 | 13 | The gold set marked a pair `both` when the same list had it twice | `labels/build_gitlab_gold.py` (`put`) | `both` only when both lists have the pair. The committed `labels/gitlab_cross_team_blocks.csv` may still carry a wrong `both` until regenerated | `test_gold` `test_put_keeps_one_source_unless_both_lists_have_the_pair` | ⬜ |
 | 14 | The resolver crashed loading a candidate with U+2028 in its line: `splitlines()` splits there | `meridian/resolve.py`, `tests/score_packages.py` | `common.read_jsonl` splits on `\n` only | `test_resolve` `Command` (`app/sep.py` through the one command) | ✅ |
 | 15 | Jedi calls in `imported_from` and `one_hop` had no `try`: one Jedi crash stopped resolve | `meridian/resolve.py` | one `try` in `Repo.goto`: a crash is no answer, logged. Failures counted in the per-repo log line | `test_resolve` `test_jedi_failure_is_no_answer_and_counted` | ✅ |
@@ -109,11 +109,11 @@ Numbered as in the audit.
 
 **`common.FIXED`** lists the `meridian.toml` settings the code follows but can't switch: `[run] id_hash`, `id_length`; `[identity] use_mailmap`, `merge_on`, `lowercase_emails`, `use_author_not_committer`, `coauthors_count`; `[ownership] skip_merges`, `owner`, `tie_break`; `[tickets] key_must_exist`, `key_sources`, `fields_as_of_snapshot`; `[szz] blame_at`, `skip_whitespace`, `skip_comments`; `[scanner] tree_sitter_python`; `[resolver] tool`, `env`; `[graph] imports_count_as_edges`. Changing one stops the run, instead of being silently ignored.
 
-`[rules]` (stage 5) and `[outcomes]` (stage 6+) are new. They're read by stages not built yet; [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md)'s queries use their values today.
+`[rules]` (stage 5) and `[outcomes]` (stage 6+) are new. They're read by stages not built yet; [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md)'s queries use their values today.
 
 ## Knowledge base v1.1
 
-`schema.sql` v1 → v1.1: 23 tables → 25. Each addition is there because a planned feature had nothing to read. Full check and proof: [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md).
+`schema.sql` v1 → v1.1: 23 tables → 25. Each addition is there because a planned feature had nothing to read. Full check and proof: [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md).
 
 | Added | Written by | Needed by |
 |---|---|---|
@@ -122,7 +122,7 @@ Numbered as in the audit.
 | `module_import` (table) | scan | stall reason #7 (no test imports the module) and the push check's scope (changed files plus their importers). `call_edge` excludes imports by rule |
 | `deprecation` (table) | scan | push check P2 (new call to a deprecation-marked symbol) and the legacy radar |
 | `resolution.receiver_from` | resolve | `blocked_by`: for `x.f()`, which function made `x` |
-| `blocked_by.depth`: `CHECK (depth BETWEEN 1 AND 3)` → `CHECK (depth >= 1)` | graph | depth is `[graph] blocked_by_max_depth`, a setting, not a schema rule. [RESOLVER.md](RESOLVER.md): `blocked_by` may need depth 5 |
+| `blocked_by.depth`: `CHECK (depth BETWEEN 1 AND 3)` → `CHECK (depth >= 1)` | graph | depth is `[graph] blocked_by_max_depth`, a setting, not a schema rule. [RESOLVER.md](../RESOLVER.md): `blocked_by` may need depth 5 |
 
 ## Rerun on the new run_id
 
@@ -143,4 +143,4 @@ After this branch merges. Settle any other `meridian.toml` change first (the 315
    ```
    Any difference is a bug: fix it before the join.
 
-Then update the numbers in [SCANNER.md](SCANNER.md) and [RESOLVER.md](RESOLVER.md).
+Then update the numbers in [SCANNER.md](../SCANNER.md) and [RESOLVER.md](../RESOLVER.md).

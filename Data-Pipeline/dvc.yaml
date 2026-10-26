@@ -8,7 +8,9 @@
 #   dvc dag                   # the stages, as Airflow runs them
 #   dvc push / dvc pull       # to and from the remote in .dvc/config (README, "Data versioning")
 #
-# The run comes from settings.toml [pipeline] run_id. The repo checkouts (snapshots/<run_id>/repos, 2.5 GB) aren't
+# The run comes from settings.toml [pipeline] run_id: publish skips dvc for any other run until this is parameterised.
+# A part that reads run.jsonl or the checkouts depends on the snapshot's manifest.json instead (it pins both, and
+# run.jsonl's image_digest differs by machine). The repo checkouts (snapshots/<run_id>/repos, 2.5 GB) aren't
 # tracked: collect rebuilds them byte for byte from the pinned SHAs. The raw ticket pulls are (snapshots/_cache/*.dvc).
 
 vars:
@@ -65,8 +67,10 @@ stages:
     deps:
       - meridian/resolve.py
       - meridian/scan.py
+      - meridian/join.py                                 # its blame
       - meridian/common.py
       - ${pipeline.config}
+      - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
       - ../out/${pipeline.run_id}/candidate.jsonl
     outs:
       - ../out/${pipeline.run_id}/resolution.jsonl
@@ -78,6 +82,7 @@ stages:
       - meridian/owners.py
       - meridian/common.py
       - ${pipeline.config}
+      - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
       - ../out/${pipeline.run_id}/git_commit.jsonl
       - ../out/${pipeline.run_id}/commit_file.jsonl
       - ../out/${pipeline.run_id}/ticket.jsonl
@@ -89,12 +94,15 @@ stages:
       - ../out/${pipeline.run_id}/file_owner.jsonl
 
   join:
+    # Airflow adds --prev-run <the last published run> (and out/<prev>/ is then an input); here it joins as a first run:
+    # [pipeline] prev_run can be "", and an empty --prev-run doesn't parse
     cmd: python -m meridian.join --run-id ${pipeline.run_id} --config ${pipeline.config}
     deps:
       - meridian/join.py
       - meridian/scan.py
       - meridian/common.py
       - ${pipeline.config}
+      - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
       - ../out/${pipeline.run_id}/candidate.jsonl
       - ../out/${pipeline.run_id}/resolution.jsonl
       - ../out/${pipeline.run_id}/parse_failure.jsonl
@@ -132,6 +140,8 @@ stages:
       - meridian/validate.py
       - meridian/writer.py
       - meridian/alert.py
+      - meridian/common.py
+      - ${pipeline.config}
       - schema.sql
       - settings.toml
       - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
@@ -170,6 +180,8 @@ stages:
     deps:
       - meridian/bias.py
       - meridian/owners.py
+      - meridian/common.py
+      - ${pipeline.config}
       - settings.toml
       - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
       - ../out/${pipeline.run_id}/git_commit.jsonl

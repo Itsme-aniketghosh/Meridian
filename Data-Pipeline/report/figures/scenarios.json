@@ -1,0 +1,4808 @@
+{
+ "scenarios": {
+  "django": {
+   "staff_headline": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      289,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "staff_chains": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      "untracked",
+      23,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 4
+   },
+   "staff_untracked": {
+    "status": "ran",
+    "n": 289,
+    "rows": [
+     [
+      "013521cd0c844353",
+      "contrib.postgres"
+     ],
+     [
+      "02f926fba0ebb101",
+      "tests"
+     ],
+     [
+      "031000d6944dfefc",
+      "template"
+     ],
+     [
+      "0351724e210b9b9d",
+      "forms"
+     ],
+     [
+      "03956fa799ff9e71",
+      "utils"
+     ],
+     [
+      "03a0018f5076e1f3",
+      "contrib.auth"
+     ],
+     [
+      "074a2ecfca23284b",
+      "template"
+     ],
+     [
+      "0857e8e82ec1c960",
+      "contrib.admin"
+     ],
+     [
+      "0895f0485c949716",
+      "contrib.flatpages"
+     ],
+     [
+      "0da643b132487f36",
+      "contrib.admin"
+     ],
+     [
+      "0e67891e6d1774da",
+      "tests"
+     ],
+     [
+      "0e6cf4855f80fbc9",
+      "views"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "staff_vague": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "staff_link_coverage": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      0,
+      "tickets_mapped",
+      36138,
+      74015
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "owner_teams": {
+    "status": "ran",
+    "n": 23,
+    "rows": [
+     [
+      "contrib.admin",
+      43,
+      0,
+      3647,
+      "stalled"
+     ],
+     [
+      "contrib.admindocs",
+      2,
+      0,
+      4652,
+      "stalled"
+     ],
+     [
+      "contrib.auth",
+      18,
+      0,
+      3564,
+      "stalled"
+     ],
+     [
+      "contrib.contenttypes",
+      3,
+      0,
+      4263,
+      "stalled"
+     ],
+     [
+      "contrib.flatpages",
+      7,
+      0,
+      4263,
+      "stalled"
+     ],
+     [
+      "contrib.gis",
+      4,
+      0,
+      4263,
+      "stalled"
+     ],
+     [
+      "contrib.humanize",
+      31,
+      0,
+      4263,
+      "stalled"
+     ],
+     [
+      "contrib.messages",
+      1,
+      0,
+      4652,
+      "stalled"
+     ],
+     [
+      "contrib.postgres",
+      12,
+      0,
+      3956,
+      "stalled"
+     ],
+     [
+      "contrib.redirects",
+      2,
+      0,
+      4263,
+      "stalled"
+     ],
+     [
+      "contrib.sessions",
+      2,
+      0,
+      4520,
+      "stalled"
+     ],
+     [
+      "contrib.sitemaps",
+      1,
+      0,
+      4652,
+      "stalled"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 6
+   },
+   "owner_done": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      289
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "owner_eta": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      289,
+      0,
+      null
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_files": {
+    "status": "ran",
+    "n": 13,
+    "rows": [
+     [
+      "django/contrib/admin/actions.py",
+      3,
+      0
+     ],
+     [
+      "django/contrib/admin/apps.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/filters.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/forms.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/helpers.py",
+      4,
+      0
+     ],
+     [
+      "django/contrib/admin/models.py",
+      16,
+      0
+     ],
+     [
+      "django/contrib/admin/options.py",
+      4,
+      0
+     ],
+     [
+      "django/contrib/admin/sites.py",
+      5,
+      0
+     ],
+     [
+      "django/contrib/admin/templatetags/admin_list.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/tests.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/utils.py",
+      2,
+      0
+     ],
+     [
+      "django/contrib/admin/views/main.py",
+      3,
+      0
+     ]
+    ],
+    "params": {
+     "team": "contrib.admin"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "consumer_blocked": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "contrib.admin"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_blocking": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "utils"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "manager_facts": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "key": "CHK-311"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "maker_drafts": {
+    "status": "ran",
+    "n": 23,
+    "rows": [
+     [
+      "contrib.admin",
+      43,
+      "django/contrib/admin/actions.py:12, django/contrib/admin/actions.py:12, django/contrib/admin/actions.py:87, django/contrib/admin/apps.py:4, django/contrib/admin/filters.py:18, django/contrib/admin/forms.py:3, django/contrib/admin/helpers.py:16, django/contrib/admin/helpers.py:16, django/contrib/admin/helpers.py:293, django/contrib/admin/helpers.py:296, django/contrib/admin/models.py:11, django/contrib/admin/models.py:11, django/contrib/admin/models.py:71, django/contrib/admin/models.py:73, django/contrib/admin/models.py:78, django/contrib/admin/models.py:80, django/contrib/admin/models.py:105, django/contrib/admin/models.py:106, django/contrib/admin/models.py:108, django/contrib/admin/models.py:112, django/contrib/admin/models.py:115, django/contrib/admin/models.py:116, django/contrib/admin/models.py:120, django/contrib/admin/models.py:123, django/contrib/admin/models.py:124, django/contrib/admin/models.py:127, django/contrib/admin/options.py:46, django/contrib/admin/options.py:46, django/contrib/admin/options.py:1612, django/contrib/admin/options.py:1644, django/contrib/admin/sites.py:13, django/contrib/admin/sites.py:13, django/contrib/admin/sites.py:39, django/contrib/admin/sites.py:42, django/contrib/admin/sites.py:45, django/contrib/admin/templatetags/admin_list.py:22, django/contrib/admin/tests.py:5, django/contrib/admin/utils.py:18, django/contrib/admin/utils.py:274, django/contrib/admin/views/main.py:21, django/contrib/admin/views/main.py:79, django/contrib/admin/views/main.py:81, django/contrib/admin/widgets.py:14"
+     ],
+     [
+      "contrib.admindocs",
+      2,
+      "django/contrib/admindocs/apps.py:2, django/contrib/admindocs/views.py:23"
+     ],
+     [
+      "contrib.auth",
+      18,
+      "django/contrib/auth/admin.py:19, django/contrib/auth/admin.py:19, django/contrib/auth/admin.py:147, django/contrib/auth/apps.py:4, django/contrib/auth/base_user.py:14, django/contrib/auth/forms.py:18, django/contrib/auth/forms.py:18, django/contrib/auth/forms.py:30, django/contrib/auth/forms.py:35, django/contrib/auth/forms.py:38, django/contrib/auth/hashers.py:18, django/contrib/auth/models.py:10, django/contrib/auth/password_validation.py:15, django/contrib/auth/password_validation.py:15, django/contrib/auth/password_validation.py:102, django/contrib/auth/password_validation.py:112, django/contrib/auth/validators.py:5, django/contrib/auth/views.py:24"
+     ],
+     [
+      "contrib.contenttypes",
+      3,
+      "django/contrib/contenttypes/apps.py:5, django/contrib/contenttypes/models.py:6, django/contrib/contenttypes/views.py:6"
+     ],
+     [
+      "contrib.flatpages",
+      7,
+      "django/contrib/flatpages/admin.py:4, django/contrib/flatpages/apps.py:2, django/contrib/flatpages/forms.py:4, django/contrib/flatpages/forms.py:4, django/contrib/flatpages/forms.py:29, django/contrib/flatpages/forms.py:36, django/contrib/flatpages/models.py:5"
+     ],
+     [
+      "contrib.gis",
+      4,
+      "django/contrib/gis/apps.py:3, django/contrib/gis/db/models/fields.py:13, django/contrib/gis/forms/fields.py:3, django/contrib/gis/views.py:2"
+     ],
+     [
+      "contrib.humanize",
+      31,
+      "django/contrib/humanize/apps.py:2, django/contrib/humanize/templatetags/humanize.py:12, django/contrib/humanize/templatetags/humanize.py:12, django/contrib/humanize/templatetags/humanize.py:59, django/contrib/humanize/templatetags/humanize.py:60, django/contrib/humanize/templatetags/humanize.py:63, django/contrib/humanize/templatetags/humanize.py:64, django/contrib/humanize/templatetags/humanize.py:67, django/contrib/humanize/templatetags/humanize.py:68, django/contrib/humanize/templatetags/humanize.py:71, django/contrib/humanize/templatetags/humanize.py:72, django/contrib/humanize/templatetags/humanize.py:75, django/contrib/humanize/templatetags/humanize.py:76, django/contrib/humanize/templatetags/humanize.py:79, django/contrib/humanize/templatetags/humanize.py:80, django/contrib/humanize/templatetags/humanize.py:83, django/contrib/humanize/templatetags/humanize.py:84, django/contrib/humanize/templatetags/humanize.py:87, django/contrib/humanize/templatetags/humanize.py:88, django/contrib/humanize/templatetags/humanize.py:91, django/contrib/humanize/templatetags/humanize.py:92, django/contrib/humanize/templatetags/humanize.py:95, django/contrib/humanize/templatetags/humanize.py:96, django/contrib/humanize/templatetags/humanize.py:99, django/contrib/humanize/templatetags/humanize.py:100, django/contrib/humanize/templatetags/humanize.py:205, django/contrib/humanize/templatetags/humanize.py:212, django/contrib/humanize/templatetags/humanize.py:219, django/contrib/humanize/templatetags/humanize.py:233, django/contrib/humanize/templatetags/humanize.py:240, django/contrib/humanize/templatetags/humanize.py:247"
+     ],
+     [
+      "contrib.messages",
+      1,
+      "django/contrib/messages/apps.py:2"
+     ],
+     [
+      "contrib.postgres",
+      12,
+      "django/contrib/postgres/apps.py:5, django/contrib/postgres/fields/array.py:9, django/contrib/postgres/fields/hstore.py:8, django/contrib/postgres/fields/jsonb.py:10, django/contrib/postgres/forms/array.py:10, django/contrib/postgres/forms/hstore.py:5, django/contrib/postgres/forms/jsonb.py:4, django/contrib/postgres/forms/ranges.py:6, django/contrib/postgres/validators.py:9, django/contrib/postgres/validators.py:9, django/contrib/postgres/validators.py:13, django/contrib/postgres/validators.py:20"
+     ],
+     [
+      "contrib.redirects",
+      2,
+      "django/contrib/redirects/apps.py:2, django/contrib/redirects/models.py:3"
+     ],
+     [
+      "contrib.sessions",
+      2,
+      "django/contrib/sessions/apps.py:2, django/contrib/sessions/base_session.py:6"
+     ],
+     [
+      "contrib.sitemaps",
+      1,
+      "django/contrib/sitemaps/apps.py:2"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "check_wrong_owner": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p1_drift": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2026-10-01T01:23:03Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p2_legacy_use": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2026-10-01T01:23:03Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p3_collision": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "django/contrib/admin/actions.py",
+     "scope": "delete_selected",
+     "team": "forms"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "p5_ticket_can_move": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p7_risky_edit": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "django/contrib/admin/actions.py"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p9_defect_risk": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      15,
+      3,
+      45
+     ]
+    ],
+    "params": {
+     "sha": "4353640ea9495d58fabd0357253b82de3b069408"
+    },
+    "secs": 0.3,
+    "fixture_n": 1
+   },
+   "push_scope_importers": {
+    "status": "ran",
+    "n": 347,
+    "rows": [
+     [
+      "django/contrib/admin/actions.py",
+      "django/contrib/admin/sites.py"
+     ],
+     [
+      "django/contrib/admin/filters.py",
+      "django/contrib/admin/__init__.py"
+     ],
+     [
+      "django/contrib/admin/filters.py",
+      "django/contrib/admin/options.py"
+     ],
+     [
+      "django/contrib/admin/forms.py",
+      "django/contrib/admin/sites.py"
+     ],
+     [
+      "django/contrib/admin/helpers.py",
+      "django/contrib/admin/__init__.py"
+     ],
+     [
+      "django/contrib/admin/helpers.py",
+      "django/contrib/admin/actions.py"
+     ],
+     [
+      "django/contrib/admin/helpers.py",
+      "django/contrib/admin/options.py"
+     ],
+     [
+      "django/contrib/admin/models.py",
+      "django/contrib/admin/migrations/0001_initial.py"
+     ],
+     [
+      "django/contrib/admin/models.py",
+      "django/contrib/admin/options.py"
+     ],
+     [
+      "django/contrib/admin/models.py",
+      "django/contrib/admin/templatetags/log.py"
+     ],
+     [
+      "django/contrib/admin/options.py",
+      "django/contrib/admin/__init__.py"
+     ],
+     [
+      "django/contrib/admin/options.py",
+      "django/contrib/admin/checks.py"
+     ]
+    ],
+    "params": {},
+    "secs": 0.5,
+    "fixture_n": 2
+   },
+   "stall_upstream": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_never_notified": {
+    "status": "ran",
+    "n": 23,
+    "rows": [
+     [
+      "contrib.admin",
+      43
+     ],
+     [
+      "contrib.admindocs",
+      2
+     ],
+     [
+      "contrib.auth",
+      18
+     ],
+     [
+      "contrib.contenttypes",
+      3
+     ],
+     [
+      "contrib.flatpages",
+      7
+     ],
+     [
+      "contrib.gis",
+      4
+     ],
+     [
+      "contrib.humanize",
+      31
+     ],
+     [
+      "contrib.messages",
+      1
+     ],
+     [
+      "contrib.postgres",
+      12
+     ],
+     [
+      "contrib.redirects",
+      2
+     ],
+     [
+      "contrib.sessions",
+      2
+     ],
+     [
+      "contrib.sitemaps",
+      1
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_ticket_mismatch": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_orphaned_owner": {
+    "status": "ran",
+    "n": 91,
+    "rows": [
+     [
+      "contrib.admin",
+      "django/contrib/admin/actions.py",
+      "0ae045874b9f16c5",
+      3523
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/apps.py",
+      "d21d6b67417a6f64",
+      3534
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/filters.py",
+      "661b41da846a7bee",
+      3533
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/forms.py",
+      "0ae045874b9f16c5",
+      3523
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/helpers.py",
+      "0ae045874b9f16c5",
+      3523
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/models.py",
+      "0ae045874b9f16c5",
+      3523
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/options.py",
+      "0ae045874b9f16c5",
+      3523
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/sites.py",
+      "661b41da846a7bee",
+      3533
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/templatetags/admin_list.py",
+      "57ac4b1db5b7d673",
+      3525
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/tests.py",
+      "661b41da846a7bee",
+      3533
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/utils.py",
+      "0ae045874b9f16c5",
+      3523
+     ],
+     [
+      "contrib.admin",
+      "django/contrib/admin/views/main.py",
+      "661b41da846a7bee",
+      3533
+     ]
+    ],
+    "params": {},
+    "secs": 0.3,
+    "fixture_n": 1
+   },
+   "stall_semantics_unclear": {
+    "status": "ran",
+    "n": 2,
+    "rows": [
+     [
+      "contrib.auth",
+      "4475995208c1db39",
+      "django/contrib/auth/forms.py",
+      35
+     ],
+     [
+      "template",
+      "7c6eb829dce56cde",
+      "django/template/defaultfilters.py",
+      849
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_fragility_freeze": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 0
+   },
+   "stall_test_gap": {
+    "status": "ran",
+    "n": 57,
+    "rows": [
+     [
+      "contrib.admin",
+      "django.contrib.admin.actions"
+     ],
+     [
+      "contrib.admin",
+      "django.contrib.admin.apps"
+     ],
+     [
+      "contrib.admin",
+      "django.contrib.admin.filters"
+     ],
+     [
+      "contrib.admindocs",
+      "django.contrib.admindocs.apps"
+     ],
+     [
+      "contrib.auth",
+      "django.contrib.auth.apps"
+     ],
+     [
+      "contrib.contenttypes",
+      "django.contrib.contenttypes.apps"
+     ],
+     [
+      "contrib.flatpages",
+      "django.contrib.flatpages.admin"
+     ],
+     [
+      "contrib.flatpages",
+      "django.contrib.flatpages.apps"
+     ],
+     [
+      "contrib.gis",
+      "django.contrib.gis.forms.fields"
+     ],
+     [
+      "contrib.gis",
+      "django.contrib.gis.apps"
+     ],
+     [
+      "contrib.humanize",
+      "django.contrib.humanize.apps"
+     ],
+     [
+      "contrib.messages",
+      "django.contrib.messages.apps"
+     ]
+    ],
+    "params": {},
+    "secs": 0.5,
+    "fixture_n": 4
+   },
+   "stall_competing_load": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_blocked_by": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_blast_radius": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      1,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "derive_duplicates": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_collides": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "derive_depends_on": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "order_of_work": {
+    "status": "ran",
+    "n": 289,
+    "rows": [
+     [
+      "013521cd0c844353"
+     ],
+     [
+      "02f926fba0ebb101"
+     ],
+     [
+      "031000d6944dfefc"
+     ],
+     [
+      "0351724e210b9b9d"
+     ],
+     [
+      "03956fa799ff9e71"
+     ],
+     [
+      "03a0018f5076e1f3"
+     ],
+     [
+      "074a2ecfca23284b"
+     ],
+     [
+      "0857e8e82ec1c960"
+     ],
+     [
+      "0895f0485c949716"
+     ],
+     [
+      "0da643b132487f36"
+     ],
+     [
+      "0e67891e6d1774da"
+     ],
+     [
+      "0e6cf4855f80fbc9"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 8
+   },
+   "radar_deprecated_with_callers": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "replay_as_of": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      null,
+      null
+     ]
+    ],
+    "params": {
+     "t": "2017-02-03T16:11:39Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "outcome_precision": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "auto_apply_gate": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "outcome_before_after": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "outcome_effect": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "push_alert_outcomes": {
+    "status": "no table",
+    "note": "push_alert not in schema.sql (G1)"
+   },
+   "outcome_week8": {
+    "status": "no table",
+    "note": "outcome not in schema.sql (G1)"
+   }
+  },
+  "packages": {
+   "staff_headline": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      1237,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "staff_chains": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      "untracked",
+      20,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 4
+   },
+   "staff_untracked": {
+    "status": "ran",
+    "n": 1237,
+    "rows": [
+     [
+      "0032575cbc476551",
+      "wagtail/wagtail"
+     ],
+     [
+      "00346b0ba2b1cac1",
+      "encode/django-rest-framework"
+     ],
+     [
+      "005739ded005d516",
+      "jazzband/django-debug-toolbar"
+     ],
+     [
+      "007a6444d0bdc889",
+      "wagtail/wagtail"
+     ],
+     [
+      "009523ed959ba075",
+      "wagtail/wagtail"
+     ],
+     [
+      "00cd226835db7e3b",
+      "django-oscar/django-oscar"
+     ],
+     [
+      "00fb28f9109985bb",
+      "django-oscar/django-oscar"
+     ],
+     [
+      "01ec2ed5ced73455",
+      "yourlabs/django-autocomplete-light"
+     ],
+     [
+      "0242105e74b03f6d",
+      "django-oscar/django-oscar"
+     ],
+     [
+      "025bf7fae5f28544",
+      "wagtail/wagtail"
+     ],
+     [
+      "028a94ec93066102",
+      "django-oscar/django-oscar"
+     ],
+     [
+      "0290aa0566131465",
+      "encode/django-rest-framework"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "staff_vague": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "staff_link_coverage": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      0,
+      "tickets_mapped",
+      36138,
+      74015
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "owner_teams": {
+    "status": "ran",
+    "n": 20,
+    "rows": [
+     [
+      "carltongibson/django-filter",
+      7,
+      0,
+      3424,
+      "stalled"
+     ],
+     [
+      "cookiecutter/cookiecutter-django",
+      16,
+      0,
+      3097,
+      "stalled"
+     ],
+     [
+      "django-cms/django-cms",
+      160,
+      0,
+      2949,
+      "stalled"
+     ],
+     [
+      "django-extensions/django-extensions",
+      10,
+      0,
+      2765,
+      "stalled"
+     ],
+     [
+      "django-guardian/django-guardian",
+      25,
+      0,
+      2941,
+      "stalled"
+     ],
+     [
+      "django-haystack/django-haystack",
+      13,
+      0,
+      3026,
+      "stalled"
+     ],
+     [
+      "django-import-export/django-import-export",
+      7,
+      0,
+      2886,
+      "stalled"
+     ],
+     [
+      "django-oscar/django-oscar",
+      247,
+      0,
+      2479,
+      "stalled"
+     ],
+     [
+      "django-tastypie/django-tastypie",
+      31,
+      0,
+      3367,
+      "stalled"
+     ],
+     [
+      "django-tenants/django-tenants",
+      6,
+      0,
+      3792,
+      "stalled"
+     ],
+     [
+      "django/channels",
+      18,
+      0,
+      2956,
+      "stalled"
+     ],
+     [
+      "encode/django-rest-framework",
+      182,
+      0,
+      2365,
+      "stalled"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 6
+   },
+   "owner_done": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      1237
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "owner_eta": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      1237,
+      0,
+      null
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_files": {
+    "status": "ran",
+    "n": 44,
+    "rows": [
+     [
+      "wagtail/admin/api/urls.py",
+      2,
+      0
+     ],
+     [
+      "wagtail/admin/urls/__init__.py",
+      33,
+      0
+     ],
+     [
+      "wagtail/admin/urls/collections.py",
+      6,
+      0
+     ],
+     [
+      "wagtail/admin/urls/pages.py",
+      27,
+      0
+     ],
+     [
+      "wagtail/admin/urls/password_reset.py",
+      5,
+      0
+     ],
+     [
+      "wagtail/admin/urls/reports.py",
+      2,
+      0
+     ],
+     [
+      "wagtail/admin/viewsets/__init__.py",
+      2,
+      0
+     ],
+     [
+      "wagtail/admin/viewsets/model.py",
+      5,
+      0
+     ],
+     [
+      "wagtail/api/v2/router.py",
+      2,
+      0
+     ],
+     [
+      "wagtail/api/v2/views.py",
+      4,
+      0
+     ],
+     [
+      "wagtail/contrib/forms/urls.py",
+      4,
+      0
+     ],
+     [
+      "wagtail/contrib/forms/wagtail_hooks.py",
+      2,
+      0
+     ]
+    ],
+    "params": {
+     "team": "wagtail/wagtail"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "consumer_blocked": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "wagtail/wagtail"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_blocking": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "django/django"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "manager_facts": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "key": "CHK-311"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "maker_drafts": {
+    "status": "ran",
+    "n": 20,
+    "rows": [
+     [
+      "carltongibson/django-filter",
+      7,
+      "tests/rest_framework/test_integration.py:4, tests/rest_framework/test_integration.py:114, tests/rest_framework/test_integration.py:115, tests/rest_framework/test_integration.py:116, tests/urls.py:1, tests/urls.py:13, tests/urls.py:14"
+     ],
+     [
+      "cookiecutter/cookiecutter-django",
+      16,
+      "{{cookiecutter.project_slug}}/config/urls.py:2, {{cookiecutter.project_slug}}/config/urls.py:9, {{cookiecutter.project_slug}}/config/urls.py:10, {{cookiecutter.project_slug}}/config/urls.py:16, {{cookiecutter.project_slug}}/config/urls.py:18, {{cookiecutter.project_slug}}/config/urls.py:22, {{cookiecutter.project_slug}}/config/urls.py:32, {{cookiecutter.project_slug}}/config/urls.py:37, {{cookiecutter.project_slug}}/config/urls.py:42, {{cookiecutter.project_slug}}/config/urls.py:47, {{cookiecutter.project_slug}}/config/urls.py:52, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:1, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:7, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:8, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:9, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:10"
+     ],
+     [
+      "django-cms/django-cms",
+      160,
+      "cms/admin/pageadmin.py:9, cms/admin/pageadmin.py:168, cms/admin/pageadmin.py:868, cms/admin/placeholderadmin.py:6, cms/admin/placeholderadmin.py:92, cms/admin/placeholderadmin.py:204, cms/admin/settingsadmin.py:6, cms/admin/settingsadmin.py:37, cms/admin/settingsadmin.py:40, cms/admin/settingsadmin.py:43, cms/admin/settingsadmin.py:46, cms/cms_plugins.py:10, cms/cms_plugins.py:69, cms/plugin_pool.py:5, cms/plugin_pool.py:205, cms/test_utils/project/cms_urls_for_apphook_tests.py:4, cms/test_utils/project/cms_urls_for_apphook_tests.py:7, cms/test_utils/project/cms_urls_for_apphook_tests.py:9, cms/test_utils/project/cms_urls_for_apphook_tests.py:13, cms/test_utils/project/fourth_cms_urls_for_apphook_tests.py:4, cms/test_utils/project/fourth_cms_urls_for_apphook_tests.py:7, cms/test_utils/project/fourth_cms_urls_for_apphook_tests.py:9, cms/test_utils/project/fourth_cms_urls_for_apphook_tests.py:13, cms/test_utils/project/fourth_urls_for_apphook_tests.py:6, cms/test_utils/project/fourth_urls_for_apphook_tests.py:13, cms/test_utils/project/fourth_urls_for_apphook_tests.py:14, cms/test_utils/project/fourth_urls_for_apphook_tests.py:16, cms/test_utils/project/fourth_urls_for_apphook_tests.py:18, cms/test_utils/project/fourth_urls_for_apphook_tests.py:22, cms/test_utils/project/noadmin_urls.py:6, cms/test_utils/project/noadmin_urls.py:10, cms/test_utils/project/noadmin_urls.py:12, cms/test_utils/project/noadmin_urls.py:14, cms/test_utils/project/noadmin_urls.py:15, cms/test_utils/project/nonroot_urls.py:7, cms/test_utils/project/nonroot_urls.py:14, cms/test_utils/project/nonroot_urls.py:16, cms/test_utils/project/nonroot_urls.py:18, cms/test_utils/project/nonroot_urls.py:22, cms/test_utils/project/nonroot_urls.py:23, cms/test_utils/project/nonroot_urls.py:24, cms/test_utils/project/placeholder_relation_field_app/urls.py:1, cms/test_utils/project/placeholder_relation_field_app/urls.py:7, cms/test_utils/project/placeholderapp/urls.py:1, cms/test_utils/project/placeholderapp/urls.py:7, cms/test_utils/project/placeholderapp/urls.py:8, cms/test_utils/project/placeholderapp/urls.py:9, cms/test_utils/project/placeholderapp/urls.py:10, cms/test_utils/project/placeholderapp_urls.py:7, cms/test_utils/project/placeholderapp_urls.py:14, cms/test_utils/project/placeholderapp_urls.py:15, cms/test_utils/project/placeholderapp_urls.py:17, cms/test_utils/project/placeholderapp_urls.py:19, cms/test_utils/project/placeholderapp_urls.py:23, cms/test_utils/project/placeholderapp_urls.py:24, cms/test_utils/project/placeholderapp_urls.py:25, cms/test_utils/project/sampleapp/cms_apps.py:1, cms/test_utils/project/sampleapp/cms_apps.py:80, cms/test_utils/project/sampleapp/ns_urls.py:1, cms/test_utils/project/sampleapp/ns_urls.py:7, cms/test_utils/project/sampleapp/ns_urls.py:8, cms/test_utils/project/sampleapp/urls.py:1, cms/test_utils/project/sampleapp/urls.py:10, cms/test_utils/project/sampleapp/urls.py:11, cms/test_utils/project/sampleapp/urls.py:12, cms/test_utils/project/sampleapp/urls.py:13, cms/test_utils/project/sampleapp/urls.py:14, cms/test_utils/project/sampleapp/urls.py:15, cms/test_utils/project/sampleapp/urls.py:16, cms/test_utils/project/sampleapp/urls.py:17, cms/test_utils/project/sampleapp/urls.py:18, cms/test_utils/project/sampleapp/urls.py:19, cms/test_utils/project/sampleapp/urls.py:20, cms/test_utils/project/sampleapp/urls.py:21, cms/test_utils/project/sampleapp/urls2.py:1, cms/test_utils/project/sampleapp/urls2.py:6, cms/test_utils/project/sampleapp/urls_childapp.py:1, cms/test_utils/project/sampleapp/urls_childapp.py:6, cms/test_utils/project/sampleapp/urls_example.py:2, cms/test_utils/project/sampleapp/urls_example.py:9, cms/test_utils/project/sampleapp/urls_excluded.py:1, cms/test_utils/project/sampleapp/urls_excluded.py:4, cms/test_utils/project/sampleapp/urls_excluded.py:6, cms/test_utils/project/sampleapp/urls_extra.py:1, cms/test_utils/project/sampleapp/urls_extra.py:6, cms/test_utils/project/sampleapp/urls_parentapp.py:1, cms/test_utils/project/sampleapp/urls_parentapp.py:6, cms/test_utils/project/sampleapp/urls_sample_config.py:1, cms/test_utils/project/sampleapp/urls_sample_config.py:7, cms/test_utils/project/second_cms_urls_for_apphook_tests.py:1, cms/test_utils/project/second_cms_urls_for_apphook_tests.py:8, cms/test_utils/project/second_cms_urls_for_apphook_tests.py:10, cms/test_utils/project/second_cms_urls_for_apphook_tests.py:14, cms/test_utils/project/second_cms_urls_for_apphook_tests.py:16, cms/test_utils/project/second_cms_urls_for_apphook_tests.py:18, cms/test_utils/project/second_urls_for_apphook_tests.py:6, cms/test_utils/project/second_urls_for_apphook_tests.py:13, cms/test_utils/project/second_urls_for_apphook_tests.py:14, cms/test_utils/project/second_urls_for_apphook_tests.py:16, cms/test_utils/project/second_urls_for_apphook_tests.py:18, cms/test_utils/project/second_urls_for_apphook_tests.py:23, cms/test_utils/project/third_cms_urls_for_apphook_tests.py:4, cms/test_utils/project/third_cms_urls_for_apphook_tests.py:7, cms/test_utils/project/third_cms_urls_for_apphook_tests.py:9, cms/test_utils/project/third_cms_urls_for_apphook_tests.py:13, cms/test_utils/project/third_urls_for_apphook_tests.py:6, cms/test_utils/project/third_urls_for_apphook_tests.py:13, cms/test_utils/project/third_urls_for_apphook_tests.py:14, cms/test_utils/project/third_urls_for_apphook_tests.py:16, cms/test_utils/project/third_urls_for_apphook_tests.py:18, cms/test_utils/project/third_urls_for_apphook_tests.py:22, cms/test_utils/project/urls.py:3, cms/test_utils/project/urls.py:20, cms/test_utils/project/urls.py:22, cms/test_utils/project/urls.py:24, cms/test_utils/project/urls.py:31, cms/test_utils/project/urls.py:33, cms/test_utils/project/urls.py:35, cms/test_utils/project/urls.py:37, cms/test_utils/project/urls.py:38, cms/test_utils/project/urls.py:39, cms/test_utils/project/urls.py:40, cms/test_utils/project/urls.py:41, cms/test_utils/project/urls.py:43, cms/test_utils/project/urls_2.py:3, cms/test_utils/project/urls_2.py:16, cms/test_utils/project/urls_2.py:18, cms/test_utils/project/urls_2.py:20, cms/test_utils/project/urls_2.py:27, cms/test_utils/project/urls_2.py:28, cms/test_utils/project/urls_2.py:29, cms/test_utils/project/urls_3.py:5, cms/test_utils/project/urls_3.py:17, cms/test_utils/project/urls_3.py:19, cms/test_utils/project/urls_3.py:21, cms/test_utils/project/urls_3.py:28, cms/test_utils/project/urls_3.py:29, cms/test_utils/project/urls_3.py:30, cms/test_utils/project/urls_for_apphook_tests.py:6, cms/test_utils/project/urls_for_apphook_tests.py:13, cms/test_utils/project/urls_for_apphook_tests.py:14, cms/test_utils/project/urls_for_apphook_tests.py:16, cms/test_utils/project/urls_for_apphook_tests.py:18, cms/test_utils/project/urls_for_apphook_tests.py:22, cms/test_utils/project/urls_no18n.py:2, cms/test_utils/project/urls_no18n.py:14, cms/test_utils/project/urls_no18n.py:16, cms/test_utils/project/urls_no18n.py:18, cms/test_utils/project/urls_no18n.py:24, cms/test_utils/project/urls_no18n.py:25, cms/test_utils/project/urls_no18n.py:26, cms/tests/test_plugins.py:11, cms/tests/test_plugins.py:87, cms/urls.py:3, cms/urls.py:25, cms/urls.py:26, cms/urls.py:27, cms/urls.py:28, cms/wizards/urls.py:3, cms/wizards/urls.py:9"
+     ],
+     [
+      "django-extensions/django-extensions",
+      10,
+      "django_extensions/admin/__init__.py:55, django_extensions/admin/__init__.py:63, tests/management/commands/test_show_urls.py:3, tests/management/commands/test_show_urls.py:26, tests/management/commands/test_show_urls.py:27, tests/management/commands/test_show_urls.py:28, tests/testapp/urls.py:19, tests/testapp/urls.py:27, tests/testapp/urls.py:28, tests/testapp/urls.py:29"
+     ],
+     [
+      "django-guardian/django-guardian",
+      25,
+      "example_project/articles/urls.py:1, example_project/articles/urls.py:7, example_project/articles/urls.py:9, example_project/articles/urls.py:11, example_project/articles/urls.py:13, example_project/articles/urls.py:15, example_project/posts/urls.py:1, example_project/posts/urls.py:6, example_project/posts/urls.py:7, example_project/urls.py:1, example_project/urls.py:12, example_project/urls.py:13, example_project/urls.py:14, example_project/urls.py:15, example_project/urls.py:19, example_project/urls.py:22, guardian/admin.py:12, guardian/admin.py:93, guardian/admin.py:97, guardian/admin.py:101, guardian/compat.py:2, guardian/testapp/tests/urls.py:2, guardian/testapp/tests/urls.py:15, guardian/testapp/tests/urls.py:16, guardian/testapp/tests/urls.py:17"
+     ],
+     [
+      "django-haystack/django-haystack",
+      13,
+      "haystack/urls.py:2, haystack/urls.py:6, test_haystack/core/urls.py:2, test_haystack/core/urls.py:13, test_haystack/core/urls.py:14, test_haystack/core/urls.py:15, test_haystack/core/urls.py:23, test_haystack/core/urls.py:27, test_haystack/results_per_page_urls.py:2, test_haystack/results_per_page_urls.py:12, test_haystack/results_per_page_urls.py:13, test_haystack/test_app_without_models/urls.py:2, test_haystack/test_app_without_models/urls.py:6"
+     ],
+     [
+      "django-import-export/django-import-export",
+      7,
+      "import_export/admin.py:6, import_export/admin.py:93, import_export/admin.py:96, import_export/admin.py:368, tests/urls.py:3, tests/urls.py:12, tests/urls.py:13"
+     ],
+     [
+      "django-oscar/django-oscar",
+      247,
+      "sandbox/urls.py:4, sandbox/urls.py:18, sandbox/urls.py:21, sandbox/urls.py:24, sandbox/urls.py:26, sandbox/urls.py:33, sandbox/urls.py:43, sandbox/urls.py:44, sandbox/urls.py:45, sandbox/urls.py:46, src/oscar/apps/basket/apps.py:1, src/oscar/apps/basket/apps.py:25, src/oscar/apps/basket/apps.py:26, src/oscar/apps/basket/apps.py:27, src/oscar/apps/basket/apps.py:29, src/oscar/apps/basket/apps.py:31, src/oscar/apps/catalogue/apps.py:2, src/oscar/apps/catalogue/apps.py:29, src/oscar/apps/catalogue/apps.py:30, src/oscar/apps/catalogue/apps.py:32, src/oscar/apps/catalogue/apps.py:34, src/oscar/apps/catalogue/apps.py:55, src/oscar/apps/catalogue/reviews/apps.py:1, src/oscar/apps/catalogue/reviews/apps.py:24, src/oscar/apps/catalogue/reviews/apps.py:26, src/oscar/apps/catalogue/reviews/apps.py:28, src/oscar/apps/catalogue/reviews/apps.py:31, src/oscar/apps/checkout/apps.py:2, src/oscar/apps/checkout/apps.py:31, src/oscar/apps/checkout/apps.py:34, src/oscar/apps/checkout/apps.py:36, src/oscar/apps/checkout/apps.py:39, src/oscar/apps/checkout/apps.py:44, src/oscar/apps/checkout/apps.py:48, src/oscar/apps/checkout/apps.py:50, src/oscar/apps/checkout/apps.py:54, src/oscar/apps/checkout/apps.py:57, src/oscar/apps/communication/app.py:1, src/oscar/apps/communication/app.py:35, src/oscar/apps/communication/app.py:38, src/oscar/apps/communication/app.py:41, src/oscar/apps/communication/app.py:44, src/oscar/apps/communication/app.py:47, src/oscar/apps/communication/app.py:53, src/oscar/apps/communication/app.py:55, src/oscar/apps/communication/app.py:58, src/oscar/apps/communication/app.py:61, src/oscar/apps/communication/app.py:64, src/oscar/apps/customer/apps.py:1, src/oscar/apps/customer/apps.py:85, src/oscar/apps/customer/apps.py:86, src/oscar/apps/customer/apps.py:87, src/oscar/apps/customer/apps.py:88, src/oscar/apps/customer/apps.py:90, src/oscar/apps/customer/apps.py:95, src/oscar/apps/customer/apps.py:98, src/oscar/apps/customer/apps.py:101, src/oscar/apps/customer/apps.py:106, src/oscar/apps/customer/apps.py:109, src/oscar/apps/customer/apps.py:111, src/oscar/apps/customer/apps.py:114, src/oscar/apps/customer/apps.py:119, src/oscar/apps/customer/apps.py:122, src/oscar/apps/customer/apps.py:125, src/oscar/apps/customer/apps.py:128, src/oscar/apps/customer/apps.py:131, src/oscar/apps/customer/apps.py:137, src/oscar/apps/customer/apps.py:140, src/oscar/apps/customer/apps.py:146, src/oscar/apps/customer/apps.py:148, src/oscar/apps/customer/apps.py:151, src/oscar/apps/customer/apps.py:154, src/oscar/apps/customer/apps.py:157, src/oscar/apps/customer/apps.py:164, src/oscar/apps/customer/apps.py:167, src/oscar/apps/customer/apps.py:170, src/oscar/apps/customer/apps.py:173, src/oscar/apps/customer/apps.py:176, src/oscar/apps/customer/apps.py:181, src/oscar/apps/customer/apps.py:184, src/oscar/apps/customer/apps.py:187, src/oscar/apps/customer/apps.py:190, src/oscar/apps/customer/apps.py:193, src/oscar/apps/customer/apps.py:197, src/oscar/apps/customer/apps.py:199, src/oscar/apps/customer/apps.py:202, src/oscar/apps/customer/apps.py:205, src/oscar/apps/customer/apps.py:208, src/oscar/apps/customer/apps.py:212, src/oscar/apps/dashboard/apps.py:2, src/oscar/apps/dashboard/apps.py:40, src/oscar/apps/dashboard/apps.py:41, src/oscar/apps/dashboard/apps.py:42, src/oscar/apps/dashboard/apps.py:43, src/oscar/apps/dashboard/apps.py:44, src/oscar/apps/dashboard/apps.py:45, src/oscar/apps/dashboard/apps.py:46, src/oscar/apps/dashboard/apps.py:47, src/oscar/apps/dashboard/apps.py:48, src/oscar/apps/dashboard/apps.py:49, src/oscar/apps/dashboard/apps.py:50, src/oscar/apps/dashboard/apps.py:51, src/oscar/apps/dashboard/apps.py:52, src/oscar/apps/dashboard/apps.py:54, src/oscar/apps/dashboard/apps.py:58, src/oscar/apps/dashboard/catalogue/apps.py:1, src/oscar/apps/dashboard/catalogue/apps.py:76, src/oscar/apps/dashboard/catalogue/apps.py:79, src/oscar/apps/dashboard/catalogue/apps.py:82, src/oscar/apps/dashboard/catalogue/apps.py:85, src/oscar/apps/dashboard/catalogue/apps.py:88, src/oscar/apps/dashboard/catalogue/apps.py:91, src/oscar/apps/dashboard/catalogue/apps.py:93, src/oscar/apps/dashboard/catalogue/apps.py:95, src/oscar/apps/dashboard/catalogue/apps.py:97, src/oscar/apps/dashboard/catalogue/apps.py:99, src/oscar/apps/dashboard/catalogue/apps.py:102, src/oscar/apps/dashboard/catalogue/apps.py:104, src/oscar/apps/dashboard/catalogue/apps.py:107, src/oscar/apps/dashboard/catalogue/apps.py:110, src/oscar/apps/dashboard/catalogue/apps.py:113, src/oscar/apps/dashboard/catalogue/apps.py:116, src/oscar/apps/dashboard/catalogue/apps.py:119, src/oscar/apps/dashboard/catalogue/apps.py:122, src/oscar/apps/dashboard/catalogue/apps.py:125, src/oscar/apps/dashboard/catalogue/apps.py:128, src/oscar/apps/dashboard/catalogue/apps.py:133, src/oscar/apps/dashboard/catalogue/apps.py:138, src/oscar/apps/dashboard/catalogue/apps.py:141, src/oscar/apps/dashboard/catalogue/apps.py:144, src/oscar/apps/dashboard/catalogue/apps.py:147, src/oscar/apps/dashboard/catalogue/apps.py:150, src/oscar/apps/dashboard/communications/apps.py:1, src/oscar/apps/dashboard/communications/apps.py:21, src/oscar/apps/dashboard/communications/apps.py:22, src/oscar/apps/dashboard/offers/apps.py:1, src/oscar/apps/dashboard/offers/apps.py:27, src/oscar/apps/dashboard/offers/apps.py:29, src/oscar/apps/dashboard/offers/apps.py:31, src/oscar/apps/dashboard/offers/apps.py:33, src/oscar/apps/dashboard/offers/apps.py:35, src/oscar/apps/dashboard/offers/apps.py:38, src/oscar/apps/dashboard/offers/apps.py:41, src/oscar/apps/dashboard/offers/apps.py:44, src/oscar/apps/dashboard/offers/apps.py:47, src/oscar/apps/dashboard/offers/apps.py:51, src/oscar/apps/dashboard/offers/apps.py:54, src/oscar/apps/dashboard/orders/apps.py:1, src/oscar/apps/dashboard/orders/apps.py:33, src/oscar/apps/dashboard/orders/apps.py:34, src/oscar/apps/dashboard/orders/apps.py:36, src/oscar/apps/dashboard/orders/apps.py:38, src/oscar/apps/dashboard/orders/apps.py:40, src/oscar/apps/dashboard/orders/apps.py:42, src/oscar/apps/dashboard/pages/apps.py:1, src/oscar/apps/dashboard/pages/apps.py:26, src/oscar/apps/dashboard/pages/apps.py:27, src/oscar/apps/dashboard/pages/apps.py:28, src/oscar/apps/dashboard/pages/apps.py:30, src/oscar/apps/dashboard/partners/apps.py:1, src/oscar/apps/dashboard/partners/apps.py:34, src/oscar/apps/dashboard/partners/apps.py:35, src/oscar/apps/dashboard/partners/apps.py:37, src/oscar/apps/dashboard/partners/apps.py:39, src/oscar/apps/dashboard/partners/apps.py:42, src/oscar/apps/dashboard/partners/apps.py:45, src/oscar/apps/dashboard/partners/apps.py:48, src/oscar/apps/dashboard/partners/apps.py:50, src/oscar/apps/dashboard/partners/apps.py:52, src/oscar/apps/dashboard/ranges/apps.py:1, src/oscar/apps/dashboard/ranges/apps.py:25, src/oscar/apps/dashboard/ranges/apps.py:26, src/oscar/apps/dashboard/ranges/apps.py:27, src/oscar/apps/dashboard/ranges/apps.py:29, src/oscar/apps/dashboard/ranges/apps.py:31, src/oscar/apps/dashboard/ranges/apps.py:33, src/oscar/apps/dashboard/reports/apps.py:1, src/oscar/apps/dashboard/reports/apps.py:20, src/oscar/apps/dashboard/reviews/apps.py:1, src/oscar/apps/dashboard/reviews/apps.py:22, src/oscar/apps/dashboard/reviews/apps.py:23, src/oscar/apps/dashboard/reviews/apps.py:25, src/oscar/apps/dashboard/shipping/apps.py:1, src/oscar/apps/dashboard/shipping/apps.py:34, src/oscar/apps/dashboard/shipping/apps.py:36, src/oscar/apps/dashboard/shipping/apps.py:39, src/oscar/apps/dashboard/shipping/apps.py:42, src/oscar/apps/dashboard/shipping/apps.py:45, src/oscar/apps/dashboard/shipping/apps.py:48, src/oscar/apps/dashboard/shipping/apps.py:51, src/oscar/apps/dashboard/users/apps.py:1, src/oscar/apps/dashboard/users/apps.py:29, src/oscar/apps/dashboard/users/apps.py:30, src/oscar/apps/dashboard/users/apps.py:32, src/oscar/apps/dashboard/users/apps.py:37, src/oscar/apps/dashboard/users/apps.py:40, src/oscar/apps/dashboard/users/apps.py:43, src/oscar/apps/dashboard/vouchers/apps.py:1, src/oscar/apps/dashboard/vouchers/apps.py:35, src/oscar/apps/dashboard/vouchers/apps.py:36, src/oscar/apps/dashboard/vouchers/apps.py:38, src/oscar/apps/dashboard/vouchers/apps.py:40, src/oscar/apps/dashboard/vouchers/apps.py:42, src/oscar/apps/dashboard/vouchers/apps.py:45, src/oscar/apps/dashboard/vouchers/apps.py:47, src/oscar/apps/dashboard/vouchers/apps.py:49, src/oscar/apps/dashboard/vouchers/apps.py:51, src/oscar/apps/dashboard/vouchers/apps.py:53, src/oscar/apps/offer/apps.py:1, src/oscar/apps/offer/apps.py:23, src/oscar/apps/offer/apps.py:24, src/oscar/apps/search/apps.py:1, src/oscar/apps/search/apps.py:26, src/oscar/config.py:5, src/oscar/config.py:36, src/oscar/config.py:37, src/oscar/config.py:38, src/oscar/config.py:39, src/oscar/config.py:40, src/oscar/config.py:41, src/oscar/config.py:42, src/oscar/config.py:43, src/oscar/config.py:48, src/oscar/config.py:57, src/oscar/config.py:62, src/oscar/config.py:71, src/oscar/test/factories/urls.py:1, src/oscar/test/factories/urls.py:6, src/oscar/test/factories/urls.py:7, src/oscar/test/factories/urls.py:10, src/oscar/test/factories/urls.py:13, src/oscar/test/factories/urls.py:17, tests/_site/apps/catalogue/apps.py:1, tests/_site/apps/catalogue/apps.py:14, tests/_site/urls.py:2, tests/_site/urls.py:12, tests/_site/urls.py:13, tests/_site/urls.py:14, tests/_site/urls.py:18, tests/unit/core/test_application.py:4, tests/unit/core/test_application.py:28, tests/unit/core/test_application.py:39, tests/unit/dashboard/test_nav.py:5, tests/unit/dashboard/test_nav.py:21, tests/unit/dashboard/test_nav.py:22, tests/unit/dashboard/test_nav.py:23, tests/unit/dashboard/test_nav.py:24"
+     ],
+     [
+      "django-tastypie/django-tastypie",
+      31,
+      "tastypie/api.py:3, tastypie/api.py:112, tastypie/resources.py:13, tastypie/resources.py:341, tastypie/resources.py:342, tastypie/resources.py:343, tastypie/resources.py:344, tests/alphanumeric/urls.py:1, tests/alphanumeric/urls.py:5, tests/authorization/urls.py:1, tests/authorization/urls.py:15, tests/basic/urls.py:1, tests/basic/urls.py:5, tests/content_gfk/urls.py:1, tests/content_gfk/urls.py:5, tests/core/tests/api_urls.py:1, tests/core/tests/api_urls.py:11, tests/core/tests/manual_urls.py:1, tests/core/tests/manual_urls.py:8, tests/core/tests/resource_urls.py:1, tests/core/tests/resource_urls.py:36, tests/gis/urls.py:1, tests/gis/urls.py:5, tests/namespaced/api/urls.py:2, tests/namespaced/api/urls.py:17, tests/profilingtests/urls.py:1, tests/profilingtests/urls.py:13, tests/slashless/api/urls.py:1, tests/slashless/api/urls.py:11, tests/validation/api/urls.py:1, tests/validation/api/urls.py:15"
+     ],
+     [
+      "django-tenants/django-tenants",
+      6,
+      "examples/tenant_tutorial/tenant_tutorial/urls_public.py:1, examples/tenant_tutorial/tenant_tutorial/urls_public.py:5, examples/tenant_tutorial/tenant_tutorial/urls_public.py:6, examples/tenant_tutorial/tenant_tutorial/urls_tenants.py:2, examples/tenant_tutorial/tenant_tutorial/urls_tenants.py:6, examples/tenant_tutorial/tenant_tutorial/urls_tenants.py:8"
+     ],
+     [
+      "django/channels",
+      18,
+      "tests/test_routing.py:4, tests/test_routing.py:62, tests/test_routing.py:63, tests/test_routing.py:64, tests/test_routing.py:65, tests/test_routing.py:66, tests/test_routing.py:67, tests/test_routing.py:110, tests/test_routing.py:111, tests/test_routing.py:116, tests/test_routing.py:117, tests/test_routing.py:218, tests/test_routing.py:221, tests/test_routing.py:221, tests/test_routing.py:223, tests/test_routing.py:235, tests/test_testing.py:5, tests/test_testing.py:101"
+     ],
+     [
+      "encode/django-rest-framework",
+      182,
+      "tests/authentication/test_authentication.py:5, tests/authentication/test_authentication.py:50, tests/authentication/test_authentication.py:54, tests/authentication/test_authentication.py:58, tests/authentication/test_authentication.py:62, tests/authentication/test_authentication.py:66, tests/authentication/test_authentication.py:70, tests/authentication/test_authentication.py:76, tests/authentication/test_authentication.py:77, tests/browsable_api/auth_urls.py:1, tests/browsable_api/auth_urls.py:6, tests/browsable_api/auth_urls.py:7, tests/browsable_api/no_auth_urls.py:1, tests/browsable_api/no_auth_urls.py:6, tests/browsable_api/test_browsable_nested_api.py:1, tests/browsable_api/test_browsable_nested_api.py:26, tests/schemas/test_coreapi.py:4, tests/schemas/test_coreapi.py:148, tests/schemas/test_coreapi.py:149, tests/schemas/test_coreapi.py:410, tests/schemas/test_coreapi.py:411, tests/schemas/test_coreapi.py:412, tests/schemas/test_coreapi.py:516, tests/schemas/test_coreapi.py:517, tests/schemas/test_coreapi.py:518, tests/schemas/test_coreapi.py:572, tests/schemas/test_coreapi.py:638, tests/schemas/test_coreapi.py:639, tests/schemas/test_coreapi.py:682, tests/schemas/test_coreapi.py:728, tests/schemas/test_coreapi.py:1044, tests/schemas/test_coreapi.py:1045, tests/schemas/test_coreapi.py:1046, tests/schemas/test_coreapi.py:1139, tests/schemas/test_coreapi.py:1140, tests/schemas/test_coreapi.py:1176, tests/schemas/test_coreapi.py:1177, tests/schemas/test_coreapi.py:1178, tests/schemas/test_coreapi.py:1181, tests/schemas/test_coreapi.py:1182, tests/schemas/test_coreapi.py:1183, tests/schemas/test_coreapi.py:1199, tests/schemas/test_coreapi.py:1231, tests/schemas/test_coreapi.py:1232, tests/schemas/test_coreapi.py:1248, tests/schemas/test_coreapi.py:1249, tests/schemas/test_managementcommand.py:6, tests/schemas/test_managementcommand.py:23, tests/schemas/test_openapi.py:5, tests/schemas/test_openapi.py:722, tests/schemas/test_openapi.py:723, tests/schemas/test_openapi.py:877, tests/schemas/test_openapi.py:914, tests/schemas/test_openapi.py:915, tests/schemas/test_openapi.py:933, tests/schemas/test_openapi.py:949, tests/schemas/test_openapi.py:950, tests/schemas/test_openapi.py:962, tests/schemas/test_openapi.py:963, tests/schemas/test_openapi.py:976, tests/schemas/test_openapi.py:998, tests/schemas/test_openapi.py:1012, tests/schemas/test_openapi.py:1025, tests/schemas/test_openapi.py:1041, tests/schemas/test_openapi.py:1068, tests/schemas/test_openapi.py:1083, tests/schemas/test_openapi.py:1084, tests/schemas/test_openapi.py:1107, tests/test_api_client.py:5, tests/test_api_client.py:181, tests/test_api_client.py:182, tests/test_api_client.py:183, tests/test_api_client.py:184, tests/test_api_client.py:185, tests/test_api_client.py:186, tests/test_api_client.py:187, tests/test_atomic_requests.py:3, tests/test_atomic_requests.py:47, tests/test_htmlrenderer.py:3, tests/test_htmlrenderer.py:38, tests/test_htmlrenderer.py:39, tests/test_htmlrenderer.py:40, tests/test_lazy_hyperlinks.py:1, tests/test_lazy_hyperlinks.py:32, tests/test_middleware.py:1, tests/test_middleware.py:20, tests/test_middleware.py:21, tests/test_relations.py:5, tests/test_relations.py:149, tests/test_relations_hyperlink.py:1, tests/test_relations_hyperlink.py:20, tests/test_relations_hyperlink.py:21, tests/test_relations_hyperlink.py:22, tests/test_relations_hyperlink.py:23, tests/test_relations_hyperlink.py:24, tests/test_relations_hyperlink.py:25, tests/test_relations_hyperlink.py:26, tests/test_relations_hyperlink.py:27, tests/test_renderers.py:6, tests/test_renderers.py:114, tests/test_renderers.py:115, tests/test_renderers.py:116, tests/test_renderers.py:117, tests/test_renderers.py:118, tests/test_renderers.py:119, tests/test_renderers.py:120, tests/test_renderers.py:121, tests/test_renderers.py:640, tests/test_request.py:8, tests/test_request.py:156, tests/test_request.py:157, tests/test_request.py:158, tests/test_requests_client.py:3, tests/test_requests_client.py:93, tests/test_requests_client.py:94, tests/test_requests_client.py:95, tests/test_requests_client.py:96, tests/test_response.py:1, tests/test_response.py:120, tests/test_response.py:121, tests/test_response.py:122, tests/test_response.py:123, tests/test_response.py:124, tests/test_response.py:125, tests/test_response.py:126, tests/test_response.py:127, tests/test_response.py:128, tests/test_reverse.py:1, tests/test_reverse.py:16, tests/test_routers.py:4, tests/test_routers.py:121, tests/test_routers.py:166, tests/test_routers.py:167, tests/test_routers.py:184, tests/test_routers.py:185, tests/test_routers.py:241, tests/test_routers.py:242, tests/test_routers.py:429, tests/test_routers.py:446, tests/test_routers.py:465, tests/test_testing.py:3, tests/test_testing.py:50, tests/test_testing.py:51, tests/test_testing.py:52, tests/test_testing.py:53, tests/test_testing.py:287, tests/test_urlpatterns.py:3, tests/test_urlpatterns.py:64, tests/test_urlpatterns.py:84, tests/test_urlpatterns.py:119, tests/test_urlpatterns.py:139, tests/test_urlpatterns.py:142, tests/test_urlpatterns.py:160, tests/test_urlpatterns.py:167, tests/test_urlpatterns.py:170, tests/test_urlpatterns.py:207, tests/test_utils.py:3, tests/test_utils.py:67, tests/test_utils.py:68, tests/test_utils.py:69, tests/test_utils.py:70, tests/test_utils.py:71, tests/test_utils.py:72, tests/test_versioning.py:2, tests/test_versioning.py:147, tests/test_versioning.py:148, tests/test_versioning.py:152, tests/test_versioning.py:153, tests/test_versioning.py:154, tests/test_versioning.py:313, tests/test_versioning.py:317, tests/test_versioning.py:318, tests/test_versioning.py:345, tests/test_versioning.py:348, tests/test_versioning.py:349, tests/test_versioning.py:353, tests/test_versioning.py:354, tests/test_versioning.py:355, tests/test_viewsets.py:5, tests/test_viewsets.py:127, tests/urls.py:6, tests/urls.py:13"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "check_wrong_owner": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p1_drift": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2026-10-01T01:23:03Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p2_legacy_use": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2026-10-01T01:23:03Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p3_collision": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "cart/pricing.py",
+     "scope": "price",
+     "team": "payments"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "p5_ticket_can_move": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p7_risky_edit": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "cart/pricing.py"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p9_defect_risk": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      null,
+      0,
+      null
+     ]
+    ],
+    "params": {
+     "sha": "d1"
+    },
+    "secs": 0.2,
+    "fixture_n": 1
+   },
+   "push_scope_importers": {
+    "status": "ran",
+    "n": 167,
+    "rows": [
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/bitbucket/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/bitbucket_oauth2/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/box/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/dropbox/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/evernote/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/fivehundredpx/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/flickr/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/linkedin/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/openstreetmap/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/spotify/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/trello/urls.py"
+     ],
+     [
+      "allauth/socialaccount/providers/oauth/urls.py",
+      "allauth/socialaccount/providers/tumblr/urls.py"
+     ]
+    ],
+    "params": {},
+    "secs": 1.7,
+    "fixture_n": 2
+   },
+   "stall_upstream": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_never_notified": {
+    "status": "ran",
+    "n": 20,
+    "rows": [
+     [
+      "carltongibson/django-filter",
+      7
+     ],
+     [
+      "cookiecutter/cookiecutter-django",
+      16
+     ],
+     [
+      "django-cms/django-cms",
+      160
+     ],
+     [
+      "django-extensions/django-extensions",
+      10
+     ],
+     [
+      "django-guardian/django-guardian",
+      25
+     ],
+     [
+      "django-haystack/django-haystack",
+      13
+     ],
+     [
+      "django-import-export/django-import-export",
+      7
+     ],
+     [
+      "django-oscar/django-oscar",
+      247
+     ],
+     [
+      "django-tastypie/django-tastypie",
+      31
+     ],
+     [
+      "django-tenants/django-tenants",
+      6
+     ],
+     [
+      "django/channels",
+      18
+     ],
+     [
+      "encode/django-rest-framework",
+      182
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_ticket_mismatch": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_orphaned_owner": {
+    "status": "ran",
+    "n": 50,
+    "rows": [
+     [
+      "pennersr/django-allauth",
+      "allauth/socialaccount/providers/facebook/urls.py",
+      "4bc22ca21ffcbd29",
+      3490
+     ],
+     [
+      "pennersr/django-allauth",
+      "allauth/socialaccount/providers/oauth2/urls.py",
+      "4bc22ca21ffcbd29",
+      3490
+     ],
+     [
+      "pennersr/django-allauth",
+      "allauth/socialaccount/urls.py",
+      "4bc22ca21ffcbd29",
+      3490
+     ],
+     [
+      "pennersr/django-allauth",
+      "allauth/urls.py",
+      "4bc22ca21ffcbd29",
+      3490
+     ],
+     [
+      "django-cms/django-cms",
+      "cms/admin/placeholderadmin.py",
+      "36075c73ce7d0de0",
+      1801
+     ],
+     [
+      "django-cms/django-cms",
+      "cms/admin/settingsadmin.py",
+      "36075c73ce7d0de0",
+      1801
+     ],
+     [
+      "django-cms/django-cms",
+      "cms/plugin_pool.py",
+      "36075c73ce7d0de0",
+      1801
+     ],
+     [
+      "jazzband/django-debug-toolbar",
+      "debug_toolbar/panels/templates/panel.py",
+      "5ceefd7be9882692",
+      2322
+     ],
+     [
+      "iMerica/dj-rest-auth",
+      "demo/demo/urls.py",
+      "99662dfa684215ef",
+      1770
+     ],
+     [
+      "django-extensions/django-extensions",
+      "django_extensions/admin/__init__.py",
+      "ba4d421b83938dd2",
+      2321
+     ],
+     [
+      "django-guardian/django-guardian",
+      "example_project/articles/urls.py",
+      "85a2db49079df567",
+      2250
+     ],
+     [
+      "graphql-python/graphene-django",
+      "examples/cookbook/cookbook/urls.py",
+      "dba4476fcc22afe4",
+      3031
+     ]
+    ],
+    "params": {},
+    "secs": 0.2,
+    "fixture_n": 1
+   },
+   "stall_semantics_unclear": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_fragility_freeze": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 0
+   },
+   "stall_test_gap": {
+    "status": "ran",
+    "n": 196,
+    "rows": [
+     [
+      "carltongibson/django-filter",
+      "tests.rest_framework.test_integration"
+     ],
+     [
+      "cookiecutter/cookiecutter-django",
+      "{{cookiecutter.project_slug}}.config.urls"
+     ],
+     [
+      "cookiecutter/cookiecutter-django",
+      "{{cookiecutter.project_slug}}.{{cookiecutter.project_slug}}.users.urls"
+     ],
+     [
+      "django-cms/django-cms",
+      "cms.test_utils.project.urls_3"
+     ],
+     [
+      "django-cms/django-cms",
+      "cms.test_utils.project.sampleapp.urls"
+     ],
+     [
+      "django-cms/django-cms",
+      "cms.cms_plugins"
+     ],
+     [
+      "django-cms/django-cms",
+      "cms.test_utils.project.third_urls_for_apphook_tests"
+     ],
+     [
+      "django-cms/django-cms",
+      "cms.test_utils.project.placeholderapp.urls"
+     ],
+     [
+      "django-cms/django-cms",
+      "cms.test_utils.project.urls"
+     ],
+     [
+      "django-cms/django-cms",
+      "cms.test_utils.project.urls_for_apphook_tests"
+     ],
+     [
+      "django-cms/django-cms",
+      "cms.test_utils.project.fourth_cms_urls_for_apphook_tests"
+     ],
+     [
+      "django-cms/django-cms",
+      "cms.admin.placeholderadmin"
+     ]
+    ],
+    "params": {},
+    "secs": 1.0,
+    "fixture_n": 4
+   },
+   "stall_competing_load": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_blocked_by": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.7,
+    "fixture_n": 1
+   },
+   "derive_blast_radius": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      1,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "derive_duplicates": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_collides": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "derive_depends_on": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "order_of_work": {
+    "status": "ran",
+    "n": 1237,
+    "rows": [
+     [
+      "0032575cbc476551"
+     ],
+     [
+      "00346b0ba2b1cac1"
+     ],
+     [
+      "005739ded005d516"
+     ],
+     [
+      "007a6444d0bdc889"
+     ],
+     [
+      "009523ed959ba075"
+     ],
+     [
+      "00cd226835db7e3b"
+     ],
+     [
+      "00fb28f9109985bb"
+     ],
+     [
+      "01ec2ed5ced73455"
+     ],
+     [
+      "0242105e74b03f6d"
+     ],
+     [
+      "025bf7fae5f28544"
+     ],
+     [
+      "028a94ec93066102"
+     ],
+     [
+      "0290aa0566131465"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 8
+   },
+   "radar_deprecated_with_callers": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "replay_as_of": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      1237,
+      0
+     ]
+    ],
+    "params": {
+     "t": "2026-10-01T01:23:03Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "outcome_precision": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "auto_apply_gate": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "outcome_before_after": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "outcome_effect": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "push_alert_outcomes": {
+    "status": "no table",
+    "note": "push_alert not in schema.sql (G1)"
+   },
+   "outcome_week8": {
+    "status": "no table",
+    "note": "outcome not in schema.sql (G1)"
+   }
+  },
+  "spark": {
+   "staff_headline": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.1,
+    "fixture_n": 1
+   },
+   "staff_chains": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 4
+   },
+   "staff_untracked": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "staff_vague": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.1,
+    "fixture_n": 2
+   },
+   "staff_link_coverage": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      36138,
+      59491,
+      "tickets_mapped",
+      36138,
+      74015
+     ]
+    ],
+    "params": {},
+    "secs": 0.1,
+    "fixture_n": 1
+   },
+   "owner_teams": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 6
+   },
+   "owner_done": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      null,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "owner_eta": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      0,
+      null
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_files": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "checkout"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "consumer_blocked": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "fulfillment"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_blocking": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "platform"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "manager_facts": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "key": "CHK-311"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "maker_drafts": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "check_wrong_owner": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.1,
+    "fixture_n": 1
+   },
+   "p1_drift": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2026-09-01T00:00:00Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p2_legacy_use": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2026-09-01T00:00:00Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p3_collision": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "cart/pricing.py",
+     "scope": "price",
+     "team": "payments"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "p5_ticket_can_move": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.1,
+    "fixture_n": 1
+   },
+   "p7_risky_edit": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "sql/core/src/main/scala/org/apache/spark/sql/Dataset.scala"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p9_defect_risk": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      633,
+      6,
+      3798
+     ]
+    ],
+    "params": {
+     "sha": "f868de6914d0e6ede86309648614bb436b2b82e6"
+    },
+    "secs": 0.2,
+    "fixture_n": 1
+   },
+   "push_scope_importers": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "stall_upstream": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_never_notified": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_ticket_mismatch": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.2,
+    "fixture_n": 1
+   },
+   "stall_orphaned_owner": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_semantics_unclear": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_fragility_freeze": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 0
+   },
+   "stall_test_gap": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 4
+   },
+   "stall_competing_load": {
+    "status": "ran",
+    "n": 8,
+    "rows": [
+     [
+      "Build",
+      35,
+      21.75
+     ],
+     [
+      "Declarative Pipelines",
+      5,
+      6.25
+     ],
+     [
+      "Documentation",
+      1,
+      1.25
+     ],
+     [
+      "PySpark",
+      29,
+      25.5
+     ],
+     [
+      "SQL",
+      121,
+      128.75
+     ],
+     [
+      "Scheduler",
+      1,
+      0.25
+     ],
+     [
+      "Spark Core",
+      9,
+      7.25
+     ],
+     [
+      "UDF",
+      2,
+      0.25
+     ]
+    ],
+    "params": {},
+    "secs": 1.6,
+    "fixture_n": 1
+   },
+   "derive_blocked_by": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_blast_radius": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      1,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "derive_duplicates": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.1,
+    "fixture_n": 1
+   },
+   "derive_collides": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "derive_depends_on": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "order_of_work": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 8
+   },
+   "radar_deprecated_with_callers": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "replay_as_of": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      null,
+      null
+     ]
+    ],
+    "params": {
+     "t": "2026-09-01T00:00:00Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "outcome_precision": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "auto_apply_gate": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "outcome_before_after": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "outcome_effect": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "push_alert_outcomes": {
+    "status": "no table",
+    "note": "push_alert not in schema.sql (G1)"
+   },
+   "outcome_week8": {
+    "status": "no table",
+    "note": "outcome not in schema.sql (G1)"
+   }
+  },
+  "gitlab": {
+   "staff_headline": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.1,
+    "fixture_n": 1
+   },
+   "staff_chains": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 4
+   },
+   "staff_untracked": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "staff_vague": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.1,
+    "fixture_n": 2
+   },
+   "staff_link_coverage": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      14524,
+      "tickets_mapped",
+      36138,
+      74015
+     ]
+    ],
+    "params": {},
+    "secs": 0.1,
+    "fixture_n": 1
+   },
+   "owner_teams": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 6
+   },
+   "owner_done": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      null,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "owner_eta": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      0,
+      null
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_files": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "checkout"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "consumer_blocked": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "fulfillment"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_blocking": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "platform"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "manager_facts": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "key": "CHK-311"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "maker_drafts": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "check_wrong_owner": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p1_drift": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2026-09-01T00:00:00Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p2_legacy_use": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2026-09-01T00:00:00Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p3_collision": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "cart/pricing.py",
+     "scope": "price",
+     "team": "payments"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "p5_ticket_can_move": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p7_risky_edit": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "cart/pricing.py"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p9_defect_risk": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      null,
+      0,
+      null
+     ]
+    ],
+    "params": {
+     "sha": "d1"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "push_scope_importers": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "stall_upstream": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_never_notified": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_ticket_mismatch": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_orphaned_owner": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_semantics_unclear": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_fragility_freeze": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 0
+   },
+   "stall_test_gap": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 4
+   },
+   "stall_competing_load": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_blocked_by": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_blast_radius": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      1,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "derive_duplicates": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_collides": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "derive_depends_on": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "order_of_work": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 8
+   },
+   "radar_deprecated_with_callers": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "replay_as_of": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      null,
+      null
+     ]
+    ],
+    "params": {
+     "t": "2026-09-01T00:00:00Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "outcome_precision": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "auto_apply_gate": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "outcome_before_after": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "outcome_effect": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "push_alert_outcomes": {
+    "status": "no table",
+    "note": "push_alert not in schema.sql (G1)"
+   },
+   "outcome_week8": {
+    "status": "no table",
+    "note": "outcome not in schema.sql (G1)"
+   }
+  },
+  "django@pin": {
+   "staff_headline": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      289,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "staff_chains": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      "untracked",
+      23,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 4
+   },
+   "staff_untracked": {
+    "status": "ran",
+    "n": 289,
+    "rows": [
+     [
+      "013521cd0c844353",
+      "contrib.postgres"
+     ],
+     [
+      "02f926fba0ebb101",
+      "tests"
+     ],
+     [
+      "031000d6944dfefc",
+      "template"
+     ],
+     [
+      "0351724e210b9b9d",
+      "forms"
+     ],
+     [
+      "03956fa799ff9e71",
+      "utils"
+     ],
+     [
+      "03a0018f5076e1f3",
+      "contrib.auth"
+     ],
+     [
+      "074a2ecfca23284b",
+      "template"
+     ],
+     [
+      "0857e8e82ec1c960",
+      "contrib.admin"
+     ],
+     [
+      "0895f0485c949716",
+      "contrib.flatpages"
+     ],
+     [
+      "0da643b132487f36",
+      "contrib.admin"
+     ],
+     [
+      "0e67891e6d1774da",
+      "tests"
+     ],
+     [
+      "0e6cf4855f80fbc9",
+      "views"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "staff_vague": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "staff_link_coverage": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      0,
+      "tickets_mapped",
+      36138,
+      74015
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "owner_teams": {
+    "status": "ran",
+    "n": 23,
+    "rows": [
+     [
+      "contrib.admin",
+      43,
+      0,
+      121,
+      "stalled"
+     ],
+     [
+      "contrib.admindocs",
+      2,
+      0,
+      1125,
+      "stalled"
+     ],
+     [
+      "contrib.auth",
+      18,
+      0,
+      37,
+      "stalled"
+     ],
+     [
+      "contrib.contenttypes",
+      3,
+      0,
+      737,
+      "stalled"
+     ],
+     [
+      "contrib.flatpages",
+      7,
+      0,
+      737,
+      "stalled"
+     ],
+     [
+      "contrib.gis",
+      4,
+      0,
+      737,
+      "stalled"
+     ],
+     [
+      "contrib.humanize",
+      31,
+      0,
+      737,
+      "stalled"
+     ],
+     [
+      "contrib.messages",
+      1,
+      0,
+      1125,
+      "stalled"
+     ],
+     [
+      "contrib.postgres",
+      12,
+      0,
+      429,
+      "stalled"
+     ],
+     [
+      "contrib.redirects",
+      2,
+      0,
+      737,
+      "stalled"
+     ],
+     [
+      "contrib.sessions",
+      2,
+      0,
+      993,
+      "stalled"
+     ],
+     [
+      "contrib.sitemaps",
+      1,
+      0,
+      1125,
+      "stalled"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 6
+   },
+   "owner_done": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      0,
+      289
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "owner_eta": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      289,
+      0,
+      null
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_files": {
+    "status": "ran",
+    "n": 13,
+    "rows": [
+     [
+      "django/contrib/admin/actions.py",
+      3,
+      0
+     ],
+     [
+      "django/contrib/admin/apps.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/filters.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/forms.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/helpers.py",
+      4,
+      0
+     ],
+     [
+      "django/contrib/admin/models.py",
+      16,
+      0
+     ],
+     [
+      "django/contrib/admin/options.py",
+      4,
+      0
+     ],
+     [
+      "django/contrib/admin/sites.py",
+      5,
+      0
+     ],
+     [
+      "django/contrib/admin/templatetags/admin_list.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/tests.py",
+      1,
+      0
+     ],
+     [
+      "django/contrib/admin/utils.py",
+      2,
+      0
+     ],
+     [
+      "django/contrib/admin/views/main.py",
+      3,
+      0
+     ]
+    ],
+    "params": {
+     "team": "contrib.admin"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "consumer_blocked": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "contrib.admin"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "consumer_blocking": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "team": "utils"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "manager_facts": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "key": "CHK-311"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "maker_drafts": {
+    "status": "ran",
+    "n": 23,
+    "rows": [
+     [
+      "contrib.admin",
+      43,
+      "django/contrib/admin/actions.py:12, django/contrib/admin/actions.py:12, django/contrib/admin/actions.py:87, django/contrib/admin/apps.py:4, django/contrib/admin/filters.py:18, django/contrib/admin/forms.py:3, django/contrib/admin/helpers.py:16, django/contrib/admin/helpers.py:16, django/contrib/admin/helpers.py:293, django/contrib/admin/helpers.py:296, django/contrib/admin/models.py:11, django/contrib/admin/models.py:11, django/contrib/admin/models.py:71, django/contrib/admin/models.py:73, django/contrib/admin/models.py:78, django/contrib/admin/models.py:80, django/contrib/admin/models.py:105, django/contrib/admin/models.py:106, django/contrib/admin/models.py:108, django/contrib/admin/models.py:112, django/contrib/admin/models.py:115, django/contrib/admin/models.py:116, django/contrib/admin/models.py:120, django/contrib/admin/models.py:123, django/contrib/admin/models.py:124, django/contrib/admin/models.py:127, django/contrib/admin/options.py:46, django/contrib/admin/options.py:46, django/contrib/admin/options.py:1612, django/contrib/admin/options.py:1644, django/contrib/admin/sites.py:13, django/contrib/admin/sites.py:13, django/contrib/admin/sites.py:39, django/contrib/admin/sites.py:42, django/contrib/admin/sites.py:45, django/contrib/admin/templatetags/admin_list.py:22, django/contrib/admin/tests.py:5, django/contrib/admin/utils.py:18, django/contrib/admin/utils.py:274, django/contrib/admin/views/main.py:21, django/contrib/admin/views/main.py:79, django/contrib/admin/views/main.py:81, django/contrib/admin/widgets.py:14"
+     ],
+     [
+      "contrib.admindocs",
+      2,
+      "django/contrib/admindocs/apps.py:2, django/contrib/admindocs/views.py:23"
+     ],
+     [
+      "contrib.auth",
+      18,
+      "django/contrib/auth/admin.py:19, django/contrib/auth/admin.py:19, django/contrib/auth/admin.py:147, django/contrib/auth/apps.py:4, django/contrib/auth/base_user.py:14, django/contrib/auth/forms.py:18, django/contrib/auth/forms.py:18, django/contrib/auth/forms.py:30, django/contrib/auth/forms.py:35, django/contrib/auth/forms.py:38, django/contrib/auth/hashers.py:18, django/contrib/auth/models.py:10, django/contrib/auth/password_validation.py:15, django/contrib/auth/password_validation.py:15, django/contrib/auth/password_validation.py:102, django/contrib/auth/password_validation.py:112, django/contrib/auth/validators.py:5, django/contrib/auth/views.py:24"
+     ],
+     [
+      "contrib.contenttypes",
+      3,
+      "django/contrib/contenttypes/apps.py:5, django/contrib/contenttypes/models.py:6, django/contrib/contenttypes/views.py:6"
+     ],
+     [
+      "contrib.flatpages",
+      7,
+      "django/contrib/flatpages/admin.py:4, django/contrib/flatpages/apps.py:2, django/contrib/flatpages/forms.py:4, django/contrib/flatpages/forms.py:4, django/contrib/flatpages/forms.py:29, django/contrib/flatpages/forms.py:36, django/contrib/flatpages/models.py:5"
+     ],
+     [
+      "contrib.gis",
+      4,
+      "django/contrib/gis/apps.py:3, django/contrib/gis/db/models/fields.py:13, django/contrib/gis/forms/fields.py:3, django/contrib/gis/views.py:2"
+     ],
+     [
+      "contrib.humanize",
+      31,
+      "django/contrib/humanize/apps.py:2, django/contrib/humanize/templatetags/humanize.py:12, django/contrib/humanize/templatetags/humanize.py:12, django/contrib/humanize/templatetags/humanize.py:59, django/contrib/humanize/templatetags/humanize.py:60, django/contrib/humanize/templatetags/humanize.py:63, django/contrib/humanize/templatetags/humanize.py:64, django/contrib/humanize/templatetags/humanize.py:67, django/contrib/humanize/templatetags/humanize.py:68, django/contrib/humanize/templatetags/humanize.py:71, django/contrib/humanize/templatetags/humanize.py:72, django/contrib/humanize/templatetags/humanize.py:75, django/contrib/humanize/templatetags/humanize.py:76, django/contrib/humanize/templatetags/humanize.py:79, django/contrib/humanize/templatetags/humanize.py:80, django/contrib/humanize/templatetags/humanize.py:83, django/contrib/humanize/templatetags/humanize.py:84, django/contrib/humanize/templatetags/humanize.py:87, django/contrib/humanize/templatetags/humanize.py:88, django/contrib/humanize/templatetags/humanize.py:91, django/contrib/humanize/templatetags/humanize.py:92, django/contrib/humanize/templatetags/humanize.py:95, django/contrib/humanize/templatetags/humanize.py:96, django/contrib/humanize/templatetags/humanize.py:99, django/contrib/humanize/templatetags/humanize.py:100, django/contrib/humanize/templatetags/humanize.py:205, django/contrib/humanize/templatetags/humanize.py:212, django/contrib/humanize/templatetags/humanize.py:219, django/contrib/humanize/templatetags/humanize.py:233, django/contrib/humanize/templatetags/humanize.py:240, django/contrib/humanize/templatetags/humanize.py:247"
+     ],
+     [
+      "contrib.messages",
+      1,
+      "django/contrib/messages/apps.py:2"
+     ],
+     [
+      "contrib.postgres",
+      12,
+      "django/contrib/postgres/apps.py:5, django/contrib/postgres/fields/array.py:9, django/contrib/postgres/fields/hstore.py:8, django/contrib/postgres/fields/jsonb.py:10, django/contrib/postgres/forms/array.py:10, django/contrib/postgres/forms/hstore.py:5, django/contrib/postgres/forms/jsonb.py:4, django/contrib/postgres/forms/ranges.py:6, django/contrib/postgres/validators.py:9, django/contrib/postgres/validators.py:9, django/contrib/postgres/validators.py:13, django/contrib/postgres/validators.py:20"
+     ],
+     [
+      "contrib.redirects",
+      2,
+      "django/contrib/redirects/apps.py:2, django/contrib/redirects/models.py:3"
+     ],
+     [
+      "contrib.sessions",
+      2,
+      "django/contrib/sessions/apps.py:2, django/contrib/sessions/base_session.py:6"
+     ],
+     [
+      "contrib.sitemaps",
+      1,
+      "django/contrib/sitemaps/apps.py:2"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "check_wrong_owner": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p1_drift": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2017-02-03T16:11:39Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p2_legacy_use": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "base": "2017-02-03T16:11:39Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p3_collision": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "django/contrib/admin/actions.py",
+     "scope": "delete_selected",
+     "team": "forms"
+    },
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "p5_ticket_can_move": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p7_risky_edit": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {
+     "path": "django/contrib/admin/actions.py"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "p9_defect_risk": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      15,
+      3,
+      45
+     ]
+    ],
+    "params": {
+     "sha": "4353640ea9495d58fabd0357253b82de3b069408"
+    },
+    "secs": 0.2,
+    "fixture_n": 1
+   },
+   "push_scope_importers": {
+    "status": "ran",
+    "n": 347,
+    "rows": [
+     [
+      "django/contrib/admin/actions.py",
+      "django/contrib/admin/sites.py"
+     ],
+     [
+      "django/contrib/admin/filters.py",
+      "django/contrib/admin/__init__.py"
+     ],
+     [
+      "django/contrib/admin/filters.py",
+      "django/contrib/admin/options.py"
+     ],
+     [
+      "django/contrib/admin/forms.py",
+      "django/contrib/admin/sites.py"
+     ],
+     [
+      "django/contrib/admin/helpers.py",
+      "django/contrib/admin/__init__.py"
+     ],
+     [
+      "django/contrib/admin/helpers.py",
+      "django/contrib/admin/actions.py"
+     ],
+     [
+      "django/contrib/admin/helpers.py",
+      "django/contrib/admin/options.py"
+     ],
+     [
+      "django/contrib/admin/models.py",
+      "django/contrib/admin/migrations/0001_initial.py"
+     ],
+     [
+      "django/contrib/admin/models.py",
+      "django/contrib/admin/options.py"
+     ],
+     [
+      "django/contrib/admin/models.py",
+      "django/contrib/admin/templatetags/log.py"
+     ],
+     [
+      "django/contrib/admin/options.py",
+      "django/contrib/admin/__init__.py"
+     ],
+     [
+      "django/contrib/admin/options.py",
+      "django/contrib/admin/checks.py"
+     ]
+    ],
+    "params": {},
+    "secs": 0.4,
+    "fixture_n": 2
+   },
+   "stall_upstream": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_never_notified": {
+    "status": "ran",
+    "n": 23,
+    "rows": [
+     [
+      "contrib.admin",
+      43
+     ],
+     [
+      "contrib.admindocs",
+      2
+     ],
+     [
+      "contrib.auth",
+      18
+     ],
+     [
+      "contrib.contenttypes",
+      3
+     ],
+     [
+      "contrib.flatpages",
+      7
+     ],
+     [
+      "contrib.gis",
+      4
+     ],
+     [
+      "contrib.humanize",
+      31
+     ],
+     [
+      "contrib.messages",
+      1
+     ],
+     [
+      "contrib.postgres",
+      12
+     ],
+     [
+      "contrib.redirects",
+      2
+     ],
+     [
+      "contrib.sessions",
+      2
+     ],
+     [
+      "contrib.sitemaps",
+      1
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_ticket_mismatch": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_orphaned_owner": {
+    "status": "ran",
+    "n": 2,
+    "rows": [
+     [
+      "contrib.auth",
+      "django/contrib/auth/forms.py",
+      "91478a6ef6469ee7",
+      132
+     ],
+     [
+      "tests",
+      "tests/i18n/urls_default_unprefixed.py",
+      "b42e24eaad727ff7",
+      90
+     ]
+    ],
+    "params": {},
+    "secs": 0.2,
+    "fixture_n": 1
+   },
+   "stall_semantics_unclear": {
+    "status": "ran",
+    "n": 2,
+    "rows": [
+     [
+      "contrib.auth",
+      "4475995208c1db39",
+      "django/contrib/auth/forms.py",
+      35
+     ],
+     [
+      "template",
+      "7c6eb829dce56cde",
+      "django/template/defaultfilters.py",
+      849
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "stall_fragility_freeze": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 0
+   },
+   "stall_test_gap": {
+    "status": "ran",
+    "n": 57,
+    "rows": [
+     [
+      "contrib.admin",
+      "django.contrib.admin.actions"
+     ],
+     [
+      "contrib.admin",
+      "django.contrib.admin.apps"
+     ],
+     [
+      "contrib.admin",
+      "django.contrib.admin.filters"
+     ],
+     [
+      "contrib.admindocs",
+      "django.contrib.admindocs.apps"
+     ],
+     [
+      "contrib.auth",
+      "django.contrib.auth.apps"
+     ],
+     [
+      "contrib.contenttypes",
+      "django.contrib.contenttypes.apps"
+     ],
+     [
+      "contrib.flatpages",
+      "django.contrib.flatpages.admin"
+     ],
+     [
+      "contrib.flatpages",
+      "django.contrib.flatpages.apps"
+     ],
+     [
+      "contrib.gis",
+      "django.contrib.gis.forms.fields"
+     ],
+     [
+      "contrib.gis",
+      "django.contrib.gis.apps"
+     ],
+     [
+      "contrib.humanize",
+      "django.contrib.humanize.apps"
+     ],
+     [
+      "contrib.messages",
+      "django.contrib.messages.apps"
+     ]
+    ],
+    "params": {},
+    "secs": 0.5,
+    "fixture_n": 4
+   },
+   "stall_competing_load": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_blocked_by": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_blast_radius": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      1,
+      0
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 3
+   },
+   "derive_duplicates": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "derive_collides": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 2
+   },
+   "derive_depends_on": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "order_of_work": {
+    "status": "ran",
+    "n": 289,
+    "rows": [
+     [
+      "013521cd0c844353"
+     ],
+     [
+      "02f926fba0ebb101"
+     ],
+     [
+      "031000d6944dfefc"
+     ],
+     [
+      "0351724e210b9b9d"
+     ],
+     [
+      "03956fa799ff9e71"
+     ],
+     [
+      "03a0018f5076e1f3"
+     ],
+     [
+      "074a2ecfca23284b"
+     ],
+     [
+      "0857e8e82ec1c960"
+     ],
+     [
+      "0895f0485c949716"
+     ],
+     [
+      "0da643b132487f36"
+     ],
+     [
+      "0e67891e6d1774da"
+     ],
+     [
+      "0e6cf4855f80fbc9"
+     ]
+    ],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 8
+   },
+   "radar_deprecated_with_callers": {
+    "status": "ran",
+    "n": 0,
+    "rows": [],
+    "params": {},
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "replay_as_of": {
+    "status": "ran",
+    "n": 1,
+    "rows": [
+     [
+      289,
+      0
+     ]
+    ],
+    "params": {
+     "t": "2017-02-03T16:11:39Z"
+    },
+    "secs": 0.0,
+    "fixture_n": 1
+   },
+   "outcome_precision": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "auto_apply_gate": {
+    "status": "no table",
+    "note": "outcome, suggestion not in schema.sql (G1)"
+   },
+   "outcome_before_after": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "outcome_effect": {
+    "status": "no table",
+    "note": "suggestion not in schema.sql (G1)"
+   },
+   "push_alert_outcomes": {
+    "status": "no table",
+    "note": "push_alert not in schema.sql (G1)"
+   },
+   "outcome_week8": {
+    "status": "no table",
+    "note": "outcome not in schema.sql (G1)"
+   }
+  }
+ },
+ "blast": {
+  "carltongibson/django-filter:url": {
+   "direct": 7,
+   "invocations": 5,
+   "files": 2,
+   "by_depth": {
+    "1": 5,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "cookiecutter/cookiecutter-django:url": {
+   "direct": 16,
+   "invocations": 14,
+   "files": 2,
+   "by_depth": {
+    "1": 14,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django-cms/django-cms:url": {
+   "direct": 160,
+   "invocations": 126,
+   "files": 35,
+   "by_depth": {
+    "1": 125,
+    "2": 1,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django-extensions/django-extensions:url": {
+   "direct": 10,
+   "invocations": 7,
+   "files": 3,
+   "by_depth": {
+    "1": 7,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django-guardian/django-guardian:url": {
+   "direct": 25,
+   "invocations": 19,
+   "files": 5,
+   "by_depth": {
+    "1": 19,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django-haystack/django-haystack:url": {
+   "direct": 13,
+   "invocations": 9,
+   "files": 4,
+   "by_depth": {
+    "1": 9,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django-import-export/django-import-export:url": {
+   "direct": 7,
+   "invocations": 5,
+   "files": 2,
+   "by_depth": {
+    "1": 5,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django-oscar/django-oscar:url": {
+   "direct": 247,
+   "invocations": 219,
+   "files": 28,
+   "by_depth": {
+    "1": 219,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django-tastypie/django-tastypie:url": {
+   "direct": 31,
+   "invocations": 18,
+   "files": 14,
+   "by_depth": {
+    "1": 17,
+    "2": 1,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django-tenants/django-tenants:url": {
+   "direct": 6,
+   "invocations": 4,
+   "files": 2,
+   "by_depth": {
+    "1": 4,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django/channels:url": {
+   "direct": 18,
+   "invocations": 16,
+   "files": 2,
+   "by_depth": {
+    "1": 16,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "django/django:ugettext": {
+   "direct": 93,
+   "invocations": 585,
+   "files": 78,
+   "by_depth": {
+    "1": 209,
+    "2": 241,
+    "3": 135
+   },
+   "kb_query": {
+    "1": 209,
+    "2": 241,
+    "3": 160
+   }
+  },
+  "django/django:ugettext_lazy": {
+   "direct": 117,
+   "invocations": 504,
+   "files": 102,
+   "by_depth": {
+    "1": 391,
+    "2": 73,
+    "3": 40
+   },
+   "kb_query": {
+    "1": 391,
+    "2": 73,
+    "3": 55
+   }
+  },
+  "django/django:ugettext_noop": {
+   "direct": 1,
+   "invocations": 29,
+   "files": 1,
+   "by_depth": {
+    "1": 29,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": {
+    "1": 29
+   }
+  },
+  "django/django:ungettext": {
+   "direct": 52,
+   "invocations": 90,
+   "files": 14,
+   "by_depth": {
+    "1": 44,
+    "2": 44,
+    "3": 2
+   },
+   "kb_query": {
+    "1": 44,
+    "2": 44,
+    "3": 5
+   }
+  },
+  "django/django:ungettext_lazy": {
+   "direct": 26,
+   "invocations": 21,
+   "files": 5,
+   "by_depth": {
+    "1": 21,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": {
+    "1": 21
+   }
+  },
+  "encode/django-rest-framework:url": {
+   "direct": 182,
+   "invocations": 156,
+   "files": 26,
+   "by_depth": {
+    "1": 156,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "graphql-python/graphene-django:url": {
+   "direct": 13,
+   "invocations": 8,
+   "files": 5,
+   "by_depth": {
+    "1": 8,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "iMerica/dj-rest-auth:url": {
+   "direct": 51,
+   "invocations": 48,
+   "files": 3,
+   "by_depth": {
+    "1": 48,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "jazzband/django-debug-toolbar:url": {
+   "direct": 29,
+   "invocations": 24,
+   "files": 5,
+   "by_depth": {
+    "1": 23,
+    "2": 1,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "jazzband/django-silk:url": {
+   "direct": 28,
+   "invocations": 24,
+   "files": 4,
+   "by_depth": {
+    "1": 24,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "jazzband/django-two-factor-auth:url": {
+   "direct": 37,
+   "invocations": 31,
+   "files": 6,
+   "by_depth": {
+    "1": 31,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "pennersr/django-allauth:url": {
+   "direct": 50,
+   "invocations": 124,
+   "files": 97,
+   "by_depth": {
+    "1": 38,
+    "2": 86,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "wagtail/wagtail:url": {
+   "direct": 240,
+   "invocations": 199,
+   "files": 45,
+   "by_depth": {
+    "1": 196,
+    "2": 3,
+    "3": 0
+   },
+   "kb_query": null
+  },
+  "yourlabs/django-autocomplete-light:url": {
+   "direct": 67,
+   "invocations": 46,
+   "files": 21,
+   "by_depth": {
+    "1": 46,
+    "2": 0,
+    "3": 0
+   },
+   "kb_query": null
+  }
+ },
+ "labels": {
+  "django_265": {
+   "gold": 265,
+   "kb_lines": 267,
+   "kb_py_lines": 265,
+   "tp": 265,
+   "fp": [],
+   "fn": [],
+   "outside_py": [
+    [
+     "tests/i18n/commands/code.sample",
+     1
+    ],
+    [
+     "tests/i18n/commands/code.sample",
+     4
+    ]
+   ],
+   "sites": 289,
+   "roles": {
+    "alias": 1,
+    "call": 151,
+    "import": 113
+   }
+  },
+  "django_alias": {
+   "calls": 542,
+   "lines": 485,
+   "files": 96,
+   "hand_check": {
+    "n": 30,
+    "agree": 30
+   }
+  },
+  "spark_collisions": {
+   "n": 50,
+   "real": 32,
+   "both_mapped_to_path": 48,
+   "inside_agrees": 50,
+   "human_checked": 0
+  },
+  "gitlab_blocks": {
+   "links": 2166,
+   "live": 1890,
+   "other_in_snapshot": 1683,
+   "kb_cross_team": 116,
+   "gold_rows": 262,
+   "gold_verdicts": {
+    "unclear": 63,
+    "no": 97,
+    "planned": 9,
+    "no_evidence": 29,
+    "wait": 43,
+    "partial": 21
+   },
+   "kb_cross_in_gold": 95,
+   "kb_cross_in_gold_verdicts": {
+    "wait": 13,
+    "planned": 7,
+    "unclear": 16,
+    "partial": 12,
+    "no": 28,
+    "no_evidence": 19
+   },
+   "gold_wait": 43,
+   "gold_wait_found_by_kb": 13,
+   "gold_wait_any_kb_link": 34,
+   "spot_check": {
+    "n": 26,
+    "holds": 21
+   },
+   "human_checked": 0
+  },
+  "gitlab_stalls": {
+   "n": 57,
+   "reasons": {
+    "other": 6,
+    "unknown": 7,
+    "upstream": 41,
+    "owner": 2,
+    "risk": 1
+   },
+   "in_kb": 57,
+   "any_kb_link": 34,
+   "upstream_with_kb_link": 33,
+   "cross_team": 5
+  },
+  "gitlab_open_by_doc_rule": [
+   14524,
+   3680,
+   14524
+  ]
+ },
+ "conversion": {
+  "django/django": {
+   "parent": "4353640ea9",
+   "child": "c651331b34",
+   "site_lines": 267,
+   "edited_by_child": 267,
+   "py_lines_edited": 285,
+   "date": "2017-01-26T20:58:33+01:00"
+  },
+  "django-oscar/django-oscar": {
+   "parent": "10dce286b^1",
+   "child": "10dce286b",
+   "site_lines": 247,
+   "edited_by_child": 247,
+   "py_lines_edited": 395,
+   "date": "2020-07-24T14:25:52+03:00"
+  },
+  "wagtail/wagtail": {
+   "parent": "4076b9ef5e^1",
+   "child": "4076b9ef5e",
+   "site_lines": 240,
+   "edited_by_child": 240,
+   "py_lines_edited": 264,
+   "date": "2020-02-17T17:26:32Z"
+  },
+  "encode/django-rest-framework": {
+   "parent": "410575da^1",
+   "child": "410575da",
+   "site_lines": 182,
+   "edited_by_child": 182,
+   "py_lines_edited": 231,
+   "date": "2020-09-08T15:32:27+01:00"
+  },
+  "django-cms/django-cms": {
+   "parent": "fb0d4f235^1",
+   "child": "fb0d4f235",
+   "site_lines": 160,
+   "edited_by_child": 160,
+   "py_lines_edited": 1393,
+   "date": "2021-11-08T15:15:12Z"
+  },
+  "pennersr/django-allauth": {
+   "parent": "c4d7b410^1",
+   "child": "c4d7b410",
+   "site_lines": 50,
+   "edited_by_child": 50,
+   "py_lines_edited": 95,
+   "date": "2019-12-09T15:36:17Z"
+  },
+  "jazzband/django-two-factor-auth": {
+   "parent": "fe57c40^1",
+   "child": "fe57c40",
+   "site_lines": 37,
+   "edited_by_child": 37,
+   "py_lines_edited": 139,
+   "date": "2020-08-03T11:38:37+01:00"
+  },
+  "jazzband/django-debug-toolbar": {
+   "parent": "47d6b5e9^1",
+   "child": "47d6b5e9",
+   "site_lines": 29,
+   "edited_by_child": 28,
+   "py_lines_edited": 30,
+   "date": "2020-05-23T08:34:57-07:00"
+  },
+  "django-guardian/django-guardian": {
+   "parent": "5a97f63^1",
+   "child": "5a97f63",
+   "site_lines": 25,
+   "edited_by_child": 25,
+   "py_lines_edited": 41,
+   "date": "2019-09-08T17:04:49+02:00"
+  },
+  "django/channels": {
+   "parent": "a12800e^1",
+   "child": "a12800e",
+   "site_lines": 17,
+   "edited_by_child": 17,
+   "py_lines_edited": 17,
+   "date": "2020-10-05T19:36:52+01:00"
+  },
+  "cookiecutter/cookiecutter-django": {
+   "parent": "6d4be405^1",
+   "child": "6d4be405",
+   "site_lines": 16,
+   "edited_by_child": 16,
+   "py_lines_edited": 25,
+   "date": "2018-05-14T09:09:24+02:00"
+  },
+  "django-extensions/django-extensions": {
+   "parent": "b32f98e8^1",
+   "child": "b32f98e8",
+   "site_lines": 10,
+   "edited_by_child": 2,
+   "py_lines_edited": 2,
+   "date": "2020-05-24T12:21:40+02:00"
+  },
+  "django-haystack/django-haystack": {
+   "parent": "6fc7e8b^1",
+   "child": "6fc7e8b",
+   "site_lines": 13,
+   "edited_by_child": 10,
+   "py_lines_edited": 12,
+   "date": "2021-04-12T09:52:56+08:00"
+  },
+  "graphql-python/graphene-django": {
+   "parent": "19ef9a0^1",
+   "child": "19ef9a0",
+   "site_lines": 13,
+   "edited_by_child": 3,
+   "py_lines_edited": 27,
+   "date": "2018-10-18T11:33:53-07:00"
+  },
+  "carltongibson/django-filter": {
+   "parent": "52eece7^1",
+   "child": "52eece7",
+   "site_lines": 7,
+   "edited_by_child": 7,
+   "py_lines_edited": 8,
+   "date": "2020-07-21T05:56:33+01:00"
+  },
+  "django-import-export/django-import-export": {
+   "parent": "f6864ff^1",
+   "child": "f6864ff",
+   "site_lines": 7,
+   "edited_by_child": 3,
+   "py_lines_edited": 6,
+   "date": "2020-05-06T16:58:18+01:00"
+  },
+  "django-tenants/django-tenants": {
+   "parent": "6735fca^1",
+   "child": "6735fca",
+   "site_lines": 6,
+   "edited_by_child": 5,
+   "py_lines_edited": 331,
+   "date": "2017-12-07T22:43:12Z"
+  },
+  "yourlabs/django-autocomplete-light": {
+   "parent": "1f500ad4^1",
+   "child": "1f500ad4",
+   "site_lines": 67,
+   "edited_by_child": 20,
+   "py_lines_edited": 22,
+   "date": "2021-11-23T09:51:49+01:00"
+  },
+  "iMerica/dj-rest-auth": {
+   "parent": "ea14056^1",
+   "child": "ea14056",
+   "site_lines": 51,
+   "edited_by_child": 51,
+   "py_lines_edited": 60,
+   "date": "2021-12-20T10:19:06-06:00"
+  },
+  "jazzband/django-silk": {
+   "parent": "8d9b48b^1",
+   "child": "8d9b48b",
+   "site_lines": 28,
+   "edited_by_child": 26,
+   "py_lines_edited": 83,
+   "date": "2021-01-29T13:59:33+01:00"
+  },
+  "django-tastypie/django-tastypie": {
+   "parent": "6d06e29^1",
+   "child": "6d06e29",
+   "site_lines": 31,
+   "edited_by_child": 31,
+   "py_lines_edited": 50,
+   "date": "2022-01-03T16:56:01-08:00"
+  }
+ },
+ "spark_full": {
+  "keyed_last_1000": 944,
+  "p8_dead_keys_last_1000": [],
+  "map_by_method": {
+   "commit_key": 33351,
+   "none": 23353,
+   "path": 777,
+   "stack_trace": 4435
+  },
+  "mapped_any": 36138,
+  "tickets": 59491,
+  "open": 6046,
+  "open_mapped": 621,
+  "open_mapped_no_done_when": 621,
+  "newest_500": {
+   "any_link": 29,
+   "blocked_by": 0,
+   "desc_empty": 241
+  },
+  "ever_blocked_by": 584,
+  "call_sites_with_bug_fixes": 0,
+  "p9": {
+   "commits": 41056,
+   "threshold": 2000,
+   "flagged": 5911,
+   "inducing": 9004,
+   "flagged_inducing": 2912
+  },
+  "file_bug_fixes_n": 1492,
+  "file_bug_fixes_risky": 180
+ },
+ "mapping": {
+  "Spark (Jira)": {
+   "commit key": 33351,
+   "stack trace": 2524,
+   "path in text": 263,
+   "unmapped": 23353
+  },
+  "GitLab": {
+   "commit key": 0,
+   "stack trace": 0,
+   "path in text": 0,
+   "unmapped": 14524
+  }
+ },
+ "push_replay": {
+  "django/django": {
+   "default": {
+    "checks": {},
+    "skipped": "Skipped: 229 files in scope, over 200.",
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 129 changed files, 100 importers",
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {
+     "P1": 4,
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 129 changed files, 100 importers",
+    "sample": [
+     "- **P1 Drift**: new call site of `ugettext` at `tests/i18n/tests.py:60`",
+     "- **P1 Drift**: new call site of `ugettext_lazy` at `tests/i18n/tests.py:61`",
+     "- **P1 Drift**: new call site of `ungettext` at `tests/i18n/tests.py:62`",
+     "- **P1 Drift**: new call site of `ungettext_lazy` at `tests/i18n/tests.py:64`",
+     "- **P9 Defect risk**: 717 lines \u00d7 129 files = 92493, over 2000"
+    ]
+   }
+  },
+  "django-oscar/django-oscar": {
+   "default": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 30 changed files, 0 importers",
+    "sample": [
+     "- **P9 Defect risk**: 719 lines \u00d7 30 files = 21570, over 2000"
+    ]
+   },
+   "uncapped": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 30 changed files, 0 importers",
+    "sample": [
+     "- **P9 Defect risk**: 719 lines \u00d7 30 files = 21570, over 2000"
+    ]
+   }
+  },
+  "wagtail/wagtail": {
+   "default": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 50 changed files, 5 importers",
+    "sample": [
+     "- **P9 Defect risk**: 563 lines \u00d7 50 files = 28150, over 2000"
+    ]
+   },
+   "uncapped": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 50 changed files, 5 importers",
+    "sample": [
+     "- **P9 Defect risk**: 563 lines \u00d7 50 files = 28150, over 2000"
+    ]
+   }
+  },
+  "encode/django-rest-framework": {
+   "default": {
+    "checks": {
+     "P1": 1,
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 46 changed files, 0 importers",
+    "sample": [
+     "- **P1 Drift**: new call site of `url` at `tests/test_fields.py:1832`",
+     "- **P9 Defect risk**: 505 lines \u00d7 46 files = 23230, over 2000"
+    ]
+   },
+   "uncapped": {
+    "checks": {
+     "P1": 1,
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 46 changed files, 0 importers",
+    "sample": [
+     "- **P1 Drift**: new call site of `url` at `tests/test_fields.py:1832`",
+     "- **P9 Defect risk**: 505 lines \u00d7 46 files = 23230, over 2000"
+    ]
+   }
+  },
+  "django-cms/django-cms": {
+   "default": {
+    "checks": {},
+    "skipped": "Skipped: 335 files in scope, over 200.",
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 309 changed files, 26 importers",
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {
+     "P1": 6,
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 309 changed files, 26 importers",
+    "sample": [
+     "- **P1 Drift**: new call site of `url` at `cms/plugin_base.py:535`",
+     "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:267`",
+     "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:292`",
+     "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:395`",
+     "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:418`",
+     "- **P1 Drift**: new call site of `url` at `menus/base.py:42`"
+    ]
+   }
+  },
+  "pennersr/django-allauth": {
+   "default": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 20 changed files, 85 importers",
+    "sample": [
+     "- **P9 Defect risk**: 191 lines \u00d7 20 files = 3820, over 2000"
+    ]
+   },
+   "uncapped": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 20 changed files, 85 importers",
+    "sample": [
+     "- **P9 Defect risk**: 191 lines \u00d7 20 files = 3820, over 2000"
+    ]
+   }
+  },
+  "jazzband/django-two-factor-auth": {
+   "default": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 16 changed files, 1 importers",
+    "sample": [
+     "- **P9 Defect risk**: 278 lines \u00d7 16 files = 4448, over 2000"
+    ]
+   },
+   "uncapped": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 16 changed files, 1 importers",
+    "sample": [
+     "- **P9 Defect risk**: 278 lines \u00d7 16 files = 4448, over 2000"
+    ]
+   }
+  },
+  "jazzband/django-debug-toolbar": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "django-guardian/django-guardian": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "django/channels": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "cookiecutter/cookiecutter-django": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "django-extensions/django-extensions": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "django-haystack/django-haystack": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "graphql-python/graphene-django": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "carltongibson/django-filter": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "django-import-export/django-import-export": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "django-tenants/django-tenants": {
+   "default": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 18 changed files, 9 importers",
+    "sample": [
+     "- **P9 Defect risk**: 519 lines \u00d7 18 files = 9342, over 2000"
+    ]
+   },
+   "uncapped": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 18 changed files, 9 importers",
+    "sample": [
+     "- **P9 Defect risk**: 519 lines \u00d7 18 files = 9342, over 2000"
+    ]
+   }
+  },
+  "yourlabs/django-autocomplete-light": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "iMerica/dj-rest-auth": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "jazzband/django-silk": {
+   "default": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   },
+   "uncapped": {
+    "checks": {},
+    "skipped": null,
+    "scope": null,
+    "sample": []
+   }
+  },
+  "django-tastypie/django-tastypie": {
+   "default": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 32 changed files, 12 importers",
+    "sample": [
+     "- **P9 Defect risk**: 476 lines \u00d7 32 files = 15232, over 2000"
+    ]
+   },
+   "uncapped": {
+    "checks": {
+     "P9": 1
+    },
+    "skipped": null,
+    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 32 changed files, 12 importers",
+    "sample": [
+     "- **P9 Defect risk**: 476 lines \u00d7 32 files = 15232, over 2000"
+    ]
+   }
+  }
+ },
+ "django_site_dates": [
+  "2015-01-28T12:35:27Z",
+  "2009-04-06T20:23:33Z",
+  "2014-01-04T21:49:35Z",
+  "2015-01-28T12:35:27Z",
+  "2014-02-02T22:16:07Z",
+  "2015-11-23T10:46:19Z",
+  "2015-11-23T10:46:19Z",
+  "2015-11-23T10:46:19Z",
+  "2012-11-17T18:16:30Z",
+  "2012-11-17T18:16:30Z",
+  "2012-11-17T18:16:30Z",
+  "2012-11-17T18:16:30Z",
+  "2012-11-17T18:16:30Z",
+  "2015-12-26T18:51:22Z",
+  "2015-12-26T18:51:22Z",
+  "2015-12-26T18:51:22Z",
+  "2015-12-26T18:51:22Z",
+  "2015-12-26T18:51:22Z",
+  "2015-12-26T18:51:22Z",
+  "2015-12-26T18:51:22Z",
+  "2015-12-26T18:51:22Z",
+  "2015-12-26T18:51:22Z",
+  "2015-12-26T18:51:22Z",
+  "2016-10-05T12:02:33Z",
+  "2016-03-28T22:33:29Z",
+  "2016-03-28T22:33:29Z",
+  "2015-01-28T12:35:27Z",
+  "2013-09-07T06:05:21Z",
+  "2013-09-07T06:05:21Z",
+  "2013-09-07T06:05:21Z",
+  "2009-12-22T17:58:49Z",
+  "2011-12-22T08:33:58Z",
+  "2016-10-05T12:02:33Z",
+  "2009-03-25T01:31:57Z",
+  "2015-03-12T13:40:03Z",
+  "2011-05-03T10:44:23Z",
+  "2011-05-03T10:44:23Z",
+  "2008-07-18T23:54:34Z",
+  "2014-01-04T21:49:35Z",
+  "2007-07-04T12:11:04Z",
+  "2008-07-18T23:54:34Z",
+  "2008-08-10T09:43:48Z",
+  "2014-01-04T21:49:35Z",
+  "2015-04-02T16:52:45Z",
+  "2011-12-24T19:38:37Z",
+  "2016-12-27T22:00:56Z",
+  "2016-12-27T22:00:56Z",
+  "2016-12-27T22:00:56Z",
+  "2011-12-24T19:38:37Z",
+  "2015-01-28T12:35:27Z",
+  "2015-10-10T13:12:55Z",
+  "2015-10-10T13:12:55Z",
+  "2015-10-10T13:12:55Z",
+  "2016-04-22T17:39:13Z",
+  "2013-04-09T21:31:58Z",
+  "2014-01-04T21:49:35Z",
+  "2015-01-28T12:35:27Z",
+  "2012-02-04T21:01:11Z",
+  "2008-07-18T23:54:34Z",
+  "2014-01-04T21:49:35Z",
+  "2012-01-28T20:27:23Z",
+  "2013-06-05T18:55:05Z",
+  "2013-06-05T18:55:05Z",
+  "2015-01-28T12:35:27Z",
+  "2014-01-04T21:49:35Z",
+  "2015-01-28T12:35:27Z",
+  "2008-08-05T18:13:06Z",
+  "2012-02-04T21:01:11Z",
+  "2014-01-04T21:49:35Z",
+  "2015-01-28T12:35:27Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-09-23T16:45:40Z",
+  "2011-05-17T10:16:12Z",
+  "2011-05-17T10:16:12Z",
+  "2011-05-17T10:16:12Z",
+  "2011-05-17T10:16:12Z",
+  "2011-05-17T10:16:12Z",
+  "2011-05-17T10:16:12Z",
+  "2014-01-04T21:49:35Z",
+  "2014-03-14T17:34:49Z",
+  "2015-12-01T22:59:58Z",
+  "2014-03-14T17:34:49Z",
+  "2015-05-30T21:13:58Z",
+  "2015-12-01T22:59:58Z",
+  "2014-03-14T17:34:49Z",
+  "2015-05-30T21:13:58Z",
+  "2015-01-10T16:14:20Z",
+  "2015-01-28T12:35:27Z",
+  "2014-03-26T16:44:21Z",
+  "2014-03-26T16:44:21Z",
+  "2014-01-04T21:49:35Z",
+  "2015-01-28T12:35:27Z",
+  "2014-01-04T21:49:35Z",
+  "2014-05-16T16:18:34Z",
+  "2014-01-04T21:49:35Z",
+  "2014-01-04T21:49:35Z",
+  "2014-02-26T21:48:20Z",
+  "2014-01-04T21:49:35Z",
+  "2014-01-04T21:49:35Z",
+  "2016-12-01T13:39:48Z",
+  "2015-01-28T12:35:27Z",
+  "2013-01-30T20:29:39Z",
+  "2013-01-30T20:29:39Z",
+  "2015-04-14T22:11:12Z",
+  "2015-04-14T22:11:12Z",
+  "2015-04-14T22:11:12Z",
+  "2014-02-26T21:48:20Z",
+  "2015-06-15T18:07:31Z",
+  "2015-01-28T12:35:27Z",
+  "2013-04-15T13:54:37Z",
+  "2015-09-09T13:09:59Z",
+  "2013-01-30T20:29:39Z",
+  "2013-01-30T20:29:39Z",
+  "2013-01-26T18:57:10Z",
+  "2015-01-28T12:35:27Z",
+  "2013-05-04T08:08:38Z",
+  "2013-05-24T06:02:07Z",
+  "2015-01-28T12:35:27Z",
+  "2009-05-07T12:17:52Z",
+  "2016-03-28T22:33:29Z",
+  "2016-03-28T22:33:29Z",
+  "2009-05-07T12:17:52Z",
+  "2011-11-18T13:01:06Z",
+  "2015-01-26T03:28:57Z",
+  "2016-12-27T22:00:56Z",
+  "2010-10-01T02:02:58Z",
+  "2010-10-01T02:02:58Z",
+  "2016-03-28T22:33:29Z",
+  "2012-06-07T16:08:47Z",
+  "2016-03-28T22:33:29Z",
+  "2015-01-28T12:35:27Z",
+  "2015-04-15T21:01:11Z",
+  "2010-08-03T15:42:39Z",
+  "2007-07-04T12:11:04Z",
+  "2013-05-18T11:58:45Z",
+  "2015-10-25T23:05:03Z",
+  "2015-10-25T23:05:03Z",
+  "2015-10-25T23:05:03Z",
+  "2015-10-25T23:05:03Z",
+  "2015-10-25T23:05:03Z",
+  "2015-10-25T23:05:03Z",
+  "2007-07-04T12:11:04Z",
+  "2007-10-20T12:29:56Z",
+  "2007-10-20T12:29:56Z",
+  "2015-05-31T14:20:19Z",
+  "2015-01-28T12:35:27Z",
+  "2015-01-28T12:35:27Z",
+  "2015-01-28T12:35:27Z",
+  "2015-01-28T12:35:27Z",
+  "2012-06-07T16:08:47Z",
+  "2013-02-01T20:22:20Z",
+  "2015-03-04T19:24:30Z",
+  "2015-03-04T19:24:30Z",
+  "2015-03-04T19:24:30Z",
+  "2015-03-04T19:24:30Z",
+  "2015-03-04T19:24:30Z",
+  "2015-03-04T19:24:30Z",
+  "2013-05-18T11:58:45Z",
+  "2013-05-18T11:58:45Z",
+  "2015-05-31T14:20:19Z",
+  "2013-11-02T08:30:39Z",
+  "2014-05-19T06:58:18Z",
+  "2011-02-14T13:05:31Z",
+  "2011-02-14T13:05:31Z",
+  "2011-02-14T13:05:31Z",
+  "2013-11-04T21:50:21Z",
+  "2013-11-04T21:50:21Z",
+  "2015-12-26T18:51:22Z",
+  "2012-03-26T20:22:02Z",
+  "2015-02-10T14:17:08Z",
+  "2012-03-13T03:48:20Z",
+  "2012-03-13T03:48:20Z",
+  "2012-06-07T16:08:47Z",
+  "2016-09-09T12:55:29Z",
+  "2016-09-09T12:55:29Z",
+  "2016-09-09T12:55:29Z",
+  "2016-09-09T12:55:29Z",
+  "2015-01-28T12:35:27Z",
+  "2016-04-08T02:04:45Z",
+  "2014-12-23T15:51:36Z",
+  "2012-07-19T21:02:22Z",
+  "2013-06-22T21:39:14Z",
+  "2015-12-02T23:55:50Z",
+  "2012-07-18T16:34:13Z",
+  "2012-07-18T16:34:13Z",
+  "2014-03-24T13:03:06Z",
+  "2007-10-04T01:55:51Z",
+  "2011-06-15T17:29:10Z",
+  "2011-06-15T17:29:10Z",
+  "2011-06-15T17:29:10Z",
+  "2011-06-15T17:29:10Z",
+  "2013-11-30T09:53:08Z",
+  "2013-11-30T09:53:08Z",
+  "2013-11-30T09:53:08Z",
+  "2015-01-28T12:35:27Z",
+  "2017-01-24T11:22:42Z",
+  "2017-01-24T11:22:42Z",
+  "2017-01-24T11:22:42Z",
+  "2017-01-24T11:22:42Z",
+  "2017-01-20T09:20:53Z",
+  "2017-01-20T09:20:53Z",
+  "2015-03-20T18:45:53Z",
+  "2015-03-20T18:45:53Z",
+  "2015-03-20T18:45:53Z",
+  "2015-03-20T18:45:53Z",
+  "2009-12-22T17:58:49Z",
+  "2009-12-22T17:58:49Z",
+  "2009-12-22T17:58:49Z",
+  "2010-04-19T12:40:46Z",
+  "2013-02-02T09:56:41Z",
+  "2013-02-02T09:56:41Z",
+  "2013-02-02T09:56:41Z",
+  "2015-09-11T23:33:12Z",
+  "2015-10-19T19:46:55Z",
+  "2015-10-19T19:46:55Z",
+  "2016-02-12T01:12:54Z",
+  "2015-02-27T19:17:04Z",
+  "2015-02-27T19:17:04Z",
+  "2015-02-27T19:17:04Z",
+  "2015-02-27T19:17:04Z",
+  "2010-02-16T12:17:17Z",
+  "2011-02-07T18:48:40Z",
+  "2016-01-06T17:33:29Z",
+  "2015-12-18T16:00:53Z",
+  "2016-06-07T13:02:42Z",
+  "2013-02-28T12:45:21Z",
+  "2016-02-29T08:24:19Z",
+  "2010-10-11T15:11:55Z",
+  "2015-09-11T23:33:12Z",
+  "2010-10-11T22:27:45Z",
+  "2010-10-11T22:27:45Z",
+  "2015-02-25T21:17:15Z",
+  "2012-03-03T19:02:49Z",
+  "2012-06-07T16:08:47Z",
+  "2011-10-22T23:39:09Z",
+  "2009-12-09T16:57:23Z",
+  "2013-08-31T19:11:37Z",
+  "2010-03-27T15:54:31Z",
+  "2015-09-26T18:15:26Z",
+  "2015-09-26T18:15:26Z",
+  "2015-09-26T18:15:26Z",
+  "2012-09-18T18:58:40Z",
+  "2012-09-18T18:58:40Z",
+  "2012-09-18T18:58:40Z",
+  "2016-08-24T16:18:17Z",
+  "2016-08-24T16:18:17Z",
+  "2015-03-12T08:32:29Z"
+ ],
+ "django_teams": {
+  "contrib.admin": {
+   "none": 43
+  },
+  "contrib.admindocs": {
+   "none": 2
+  },
+  "contrib.auth": {
+   "none": 18
+  },
+  "contrib.contenttypes": {
+   "none": 3
+  },
+  "contrib.flatpages": {
+   "none": 7
+  },
+  "contrib.gis": {
+   "none": 4
+  },
+  "contrib.humanize": {
+   "none": 31
+  },
+  "contrib.messages": {
+   "none": 1
+  },
+  "contrib.postgres": {
+   "none": 12
+  },
+  "contrib.redirects": {
+   "none": 2
+  },
+  "contrib.sessions": {
+   "none": 2
+  },
+  "contrib.sitemaps": {
+   "none": 1
+  },
+  "contrib.sites": {
+   "none": 2
+  },
+  "contrib.staticfiles": {
+   "none": 1
+  },
+  "contrib.syndication": {
+   "none": 1
+  },
+  "core": {
+   "none": 8
+  },
+  "db": {
+   "none": 4
+  },
+  "forms": {
+   "none": 23
+  },
+  "template": {
+   "none": 12
+  },
+  "templatetags": {
+   "none": 4
+  },
+  "tests": {
+   "test": 83
+  },
+  "utils": {
+   "none": 17
+  },
+  "views": {
+   "none": 8
+  }
+ },
+ "graph_counts": {
+  "untracked": 43,
+  "blocked_by": 0
+ }
+}

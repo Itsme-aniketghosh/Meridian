@@ -1,10 +1,11 @@
 """Collect · step 1 · D2: freeze one snapshot and write its `run` row. See CONTRACTS.md, "Snapshot".
 
-    python -m meridian.collect --run-id new --config meridian.toml               # every dataset in meridian.toml
-    python -m meridian.collect --run-id <run_id> --config meridian.toml          # again: must give the same run.
-                                                                                 # snapshots/<run_id>/ exists: replays its SHAs and snapshot_at
-    python -m meridian.collect --run-id new --datasets spark                     # just these
-    python -m meridian.collect --run-id new --refresh jira/SPARK                 # pull a source again instead of reusing it
+    python -m meridian.collect --run-id new --config meridian.toml           # every dataset in meridian.toml
+    python -m meridian.collect --run-id <run_id> --config meridian.toml      # again: must give the same run.
+                                                                             # snapshots/<run_id>/ exists: replays its
+                                                                             # SHAs and snapshot_at
+    python -m meridian.collect --run-id new --datasets spark                 # just these
+    python -m meridian.collect --run-id new --refresh jira/SPARK             # pull a source again instead of reusing it
 
 The run_id comes out of the inputs, so it can't be chosen up front: 'new' makes whatever run the inputs give.
 A run_id instead checks the inputs still give that run, and fails if anything changed. Either way the last
@@ -32,11 +33,22 @@ line printed is `run_id=<run_id>`, for the tasks after this one.
 A repo whose ref can't be resolved (TBD, or not in the repo) and a source whose pull fails are left out,
 and the run is 'partial' with the reason in run.notes. Nothing is dropped silently.
 """
-import gzip, hashlib, json, os, re, shutil, sqlite3, subprocess, sys, time, urllib.parse
+import gzip
+import hashlib
+import json
+import os
+import re
+import shutil
+import sqlite3
+import subprocess
+import sys
+import time
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from meridian.common import CONFIG, data_root, git, handoff, load_config, load_infra, log, parser, write_jsonl
+from meridian.common import (CONFIG, atomic_write, data_root, git, handoff, load_config, load_infra, log, parser,
+                             repo_checkout, write_jsonl)
 
 
 def canon(obj):
@@ -53,12 +65,7 @@ def now():
 
 
 def write_atomic(path, data):
-    tmp = path.with_name(path.name + ".tmp")
-    try:
-        tmp.write_bytes(data)
-        tmp.replace(path)
-    finally:
-        tmp.unlink(missing_ok=True)
+    atomic_write(path, lambda tmp: tmp.write_bytes(data))
 
 
 def gz(data):
@@ -204,7 +211,8 @@ def pull_jira(dest, jira, stop_after=None, since=None):
             meta.setdefault("total", data["total"])
             want = min(page, meta["total"] - start)
             if len(data["issues"]) != want:  # Jira caps maxResults silently; stepping by `page` would skip tickets
-                raise RuntimeError(f"Jira returned {len(data['issues'])} issues at startAt={start}, expected {want}. Lower `page`")
+                raise RuntimeError(f"Jira returned {len(data['issues'])} issues at startAt={start}, expected {want}. "
+                                   "Lower `page`")
             write_atomic(p, gz(body))
             save_meta(dest, meta)
             fetched += 1
@@ -250,7 +258,7 @@ ISSUES_Q = """query($after:String){ project(fullPath:"%s"){
     pageInfo{ hasNextPage endCursor }
     nodes{ iid title description state type createdAt updatedAt closedAt webUrl hasParent
       epic{ iid group{ fullPath } } movedTo{ iid } author{ username } assignees{ nodes{ username } } labels(first:100){ nodes{ title } }
-      blockedByIssues{ nodes{ iid webUrl state closedAt labels(first:100){ nodes{ title } } } } } } } }"""
+      blockedByIssues{ nodes{ iid webUrl state closedAt labels(first:100){ nodes{ title } } } } } } } }"""  # noqa: E501
 NOTE = "nodes{ body createdAt system author{ username } }"
 NOTES_Q = """query($iids:[String!]){ project(fullPath:"%s"){ issues(iids:$iids, first:20){ nodes{ iid
   notes(first:100, filter:ONLY_ACTIVITY){ pageInfo{ hasNextPage endCursor } """ + NOTE + """ } } } } }"""
@@ -281,7 +289,8 @@ def pull_gitlab(dest, ds, since=None):
         after = (cur.read_text(encoding="utf-8").strip() or None) if cur.exists() else None
         with open(work / "issues.jsonl", "a", encoding="utf-8", newline="\n") as f:
             while True:
-                page = gql(url, ISSUES_Q % (proj, frm, to, f', updatedAfter:"{since}"' if since else ""), {"after": after})["project"]["issues"]
+                page = gql(url, ISSUES_Q % (proj, frm, to, f', updatedAfter:"{since}"' if since else ""),
+                           {"after": after})["project"]["issues"]
                 for n in page["nodes"]:
                     f.write(json.dumps(n, ensure_ascii=False) + "\n")
                 f.flush()
@@ -328,7 +337,8 @@ def pull_gitlab(dest, ds, since=None):
             for n in gql(url, NOTES_Q % proj, {"iids": batch})["project"]["issues"]["nodes"]:
                 notes, info = n["notes"]["nodes"], n["notes"]["pageInfo"]
                 while info["hasNextPage"]:
-                    more = gql(url, NOTES_MORE_Q % proj, {"iid": n["iid"], "after": info["endCursor"]})["project"]["issue"]["notes"]
+                    more = gql(url, NOTES_MORE_Q % proj,
+                               {"iid": n["iid"], "after": info["endCursor"]})["project"]["issue"]["notes"]
                     notes, info = notes + more["nodes"], more["pageInfo"]
                 got[n["iid"]] = notes
             for iid in batch:  # an issue the API no longer returns keeps notes: null, and is counted
@@ -343,7 +353,8 @@ def pull_gitlab(dest, ds, since=None):
         notes[n["iid"]] = n["notes"]
     lines = []
     for iid in sorted(issues, key=int):
-        lines.append(json.dumps({**issues[iid], "parent": parents.get(iid), "notes": notes.get(iid)}, sort_keys=True, ensure_ascii=False))
+        lines.append(json.dumps({**issues[iid], "parent": parents.get(iid), "notes": notes.get(iid)}, sort_keys=True,
+                                ensure_ascii=False))
     write_atomic(dest / "issues.jsonl.gz", gz(("\n".join(lines) + "\n").encode()))
     if since:
         meta["iids"] = list_gitlab_iids(dest, ds)
@@ -406,7 +417,8 @@ def pull_source(d, pull, snapshot_at):
 def image_digest():
     """No container or lockfile yet (step 1), so: the tool versions plus this script."""
     return sha256(canon({"python": sys.version.split()[0], "sqlite": sqlite3.sqlite_version,
-                         "git": git(".", "--version").strip(), "collect": sha256(Path(__file__).read_bytes())}).encode())
+                         "git": git(".", "--version").strip(),
+                         "collect": sha256(Path(__file__).read_bytes())}).encode())
 
 
 def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=None, pins=None):
@@ -487,12 +499,17 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
         log(f"snapshots/{run_id} already exists: same inputs, same run")
     else:
         stage = snaps / f".staging-{run_id}"
-        shutil.rmtree(stage, ignore_errors=True)
+        # every killed collect's half checkout, not only this run's (2.5 GB each).
+        # shortcut: assumes one collect staging per snapshots/ at a time (max_active_runs = 1); lock it if that changes
+        for old in snaps.glob(".staging-*"):
+            shutil.rmtree(old, ignore_errors=True)
         for repo, sha in sorted(repos.items()):
-            co, src = stage / "repos" / repo.replace("/", "__"), mirrors / (repo.replace("/", "__") + ".git")
+            co, src = repo_checkout(stage, repo), mirrors / (repo.replace("/", "__") + ".git")
             log(f"  checkout {repo} @ {sha[:10]}")
-            git(src, "update-ref", f"refs/runs/{run_id}", sha)  # the checkout borrows the mirror's objects: gc keeps them
-            git(".", "-c", "core.longpaths=true", "-c", "core.symlinks=false", "clone", "--shared", "--no-checkout", "--quiet",
+            # the checkout borrows the mirror's objects: gc keeps them
+            git(src, "update-ref", f"refs/runs/{run_id}", sha)
+            git(".", "-c", "core.longpaths=true", "-c", "core.symlinks=false", "clone", "--shared",
+                "--no-checkout", "--quiet",
                 str(src), str(co))
             git(co, "config", "core.longpaths", "true")
             git(co, "config", "core.symlinks", "false")  # a symlink is its target text on every OS, never followed
@@ -505,12 +522,14 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
                 except OSError:
                     shutil.copy2(p, stage / key / rel)
         stage.mkdir(parents=True, exist_ok=True)
-        (stage / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
+        (stage / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                                             encoding="utf-8", newline="\n")
         stage.rename(dest)
 
     notes = sorted(gaps) + sorted(pulls)
     if sources:
-        notes.append("ticket status, resolution and resolved_at are as of snapshot_at; other ticket fields are as of the pull")
+        notes.append("ticket status, resolution and resolved_at are as of snapshot_at; "
+                     "other ticket fields are as of the pull")
     row = {"run_id": run_id, "snapshot_at": snapshot_at, "repo_shas": canon(repos), "source_hashes": canon(sources),
            "config_hash": manifest["config_hash"], "image_digest": image_digest(), "model_versions": "{}",
            "status": "partial" if gaps else "complete", "notes": " | ".join(notes)}
@@ -523,9 +542,11 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
 def main(argv=None):
     ap = parser(__doc__, "'new' for whatever run the inputs give, or a run_id the inputs must still give")
     ap.add_argument("--datasets", help="comma-separated, default all")
-    ap.add_argument("--refresh", default="", help="comma-separated sources to pull again in full, deltas dropped, e.g. jira/SPARK,gitlab")
-    ap.add_argument("--snapshot-at", help="wins over the config and the pull time: when the chosen datasets don't declare "
-                                          "exactly one, or to make a branch-following run again from the same pulls")
+    ap.add_argument("--refresh", default="",
+                    help="comma-separated sources to pull again in full, deltas dropped, e.g. jira/SPARK,gitlab")
+    ap.add_argument("--snapshot-at",
+                    help="wins over the config and the pull time: when the chosen datasets don't declare "
+                         "exactly one, or to make a branch-following run again from the same pulls")
     a = ap.parse_args(argv)
     snapshot_at, pins = a.snapshot_at, None
     made = data_root() / "snapshots" / a.run_id / "manifest.json"
@@ -542,7 +563,8 @@ def main(argv=None):
     for n in filter(None, row["notes"].split(" | ")):
         log(f"  {n}")
     if a.run_id != "new" and row["run_id"] != a.run_id:
-        raise SystemExit(f"asked for run {a.run_id}, but the inputs now give {row['run_id']}: config, a ref or a source changed")
+        raise SystemExit(f"asked for run {a.run_id}, but the inputs now give {row['run_id']}: "
+                         "config, a ref or a source changed")
     log(f"run_id={row['run_id']}")
     return row
 

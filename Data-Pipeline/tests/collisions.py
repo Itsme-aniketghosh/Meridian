@@ -5,14 +5,19 @@
 Week 1's check (week1/pair2/spark/collisions.py) on the team run: a pair is two first-parent Spark commits since
 SINCE, keyed to different Bug+Fixed tickets ([szz] fix), within WINDOW days, that edit the same function. A function
 is (path, the name in git's hunk header), Scala named by a funcname driver passed on the command line: nothing is
-written into the snapshot. Dropped first (PIPELINE-PLAN.md): generic names, and a name defined more than once in its
-file, where the header can't say which one was edited.
+written into the snapshot. Dropped first (notes/PIPELINE-PLAN.md): generic names, and a name defined more than once
+in its file, where the header can't say which one was edited.
 
 Writes labels/spark_collision_pairs_50.csv: a seeded sample of 50 same-function pairs, hash(run_id, pair) order. A
 rerun keeps verdicts already filled in. verdict: 'real' when both commits change code inside that function, 'no'
 when either change sits outside it (the header named the wrong function), 'unclear'. checked_by: model or initials.
 """
-import csv, hashlib, json, re, subprocess, tempfile
+import csv
+import hashlib
+import json
+import re
+import subprocess
+import tempfile
 from datetime import date
 from pathlib import Path
 
@@ -22,11 +27,13 @@ REPO = "apache/spark"
 SINCE, WINDOW, MAX_FILES, SAMPLE = "2024-01-01", 30, 50, 50   # week 1's, so the numbers compare
 SKIP = re.compile(r"(^|/)(tests?|test-data|benchmarks?)/|Suite\.scala$|_pb2\.pyi?$|/generated/|\.(md|txt|json)$")
 REGISTRY = re.compile(r"SQLConf\.scala$")  # one giant config object: hunk headers there name the wrong thing
-GENERIC = {"apply", "unapply", "__hash__", "__eq__", "__init__", "__repr__", "__str__", "hashCode", "equals", "toString"}
+GENERIC = {"apply", "unapply", "__hash__", "__eq__", "__init__", "__repr__", "__str__", "hashCode",
+           "equals", "toString"}
 ATTR = "*.scala diff=scala\n*.java diff=java\n*.py diff=python\n"
 SCALA_FN = (r"^[ \t]*((private|protected|override|final|implicit|lazy|\[[^]]*\]|[ \t])*"
             r"(def|class|object|trait|case class)[ \t]+[A-Za-z_][A-Za-z0-9_]*.*)$")
-DEF = r"(?:\b(?:def|class|object|trait)\s+{0}\b|\b{0}\s*\([^;{{}}]*\)\s*(?:throws [\w., ]+)?\{{)"   # scala, python, java
+# scala, python, java
+DEF = r"(?:\b(?:def|class|object|trait)\s+{0}\b|\b{0}\s*\([^;{{}}]*\)\s*(?:throws [\w., ]+)?\{{)"
 HERE = Path(__file__).resolve().parents[1]
 OUT = HERE / "labels" / "spark_collision_pairs_50.csv"
 COLUMNS = ["key_a", "key_b", "path", "function", "sha_a", "sha_b", "date_a", "date_b", "both_open", "inside",
@@ -106,7 +113,8 @@ def main(run_id, config):
     co = data_root() / "snapshots" / run_id / "repos" / REPO.replace("/", "__")
     fix = cfg["szz"]["fix"]
     tix = {t["key"]: (t["created_at"], t["resolved_at"]) for t in stream(out / "ticket.jsonl")
-           if t["tracker"] == "jira" and t["effective_type"] == fix["effective_type"] and t["resolution"] == fix["resolution"]}
+           if t["tracker"] == "jira" and t["effective_type"] == fix["effective_type"]
+           and t["resolution"] == fix["resolution"]}
     keys = {}
     for c in stream(out / "commit_ticket.jsonl"):
         if c["repo"] == REPO and c["key"] in tix:
@@ -118,7 +126,8 @@ def main(run_id, config):
         found = functions(co, Path(tmp) / "attributes", sorted(when))
     fixes = sorted(({"sha": s, "date": when[s], "key": min(keys[s]), **found[s]} for s in found
                     if found[s]["files"] and len(found[s]["files"]) <= MAX_FILES), key=lambda c: (c["date"], c["sha"]))
-    log(f"{len(when):,} Bug+Fixed keyed first-parent commits since {SINCE} Â· {len(fixes):,} touching 1 to {MAX_FILES} source files")
+    log(f"{len(when):,} Bug+Fixed keyed first-parent commits since {SINCE} Â· "
+        f"{len(fixes):,} touching 1 to {MAX_FILES} source files")
 
     day = date.fromisoformat
     same_file, pairs = set(), {}
@@ -146,7 +155,8 @@ def main(run_id, config):
     inside = lambda k, v: all(edits_inside(co, c["sha"], k[2], k[3], c["hunks"][(k[2], k[3])], sides) for c in v)
     real = {k[:2] for k, v in kept.items() if inside(k, v)}
     log(f"pairs within {WINDOW} days: same file {len(same_file):,} Â· same function {len({k[:2] for k in pairs}):,} Â· "
-        f"after dropping generic and ambiguous names {len(by_pair):,} ({sum(both(*p) for p in by_pair):,} both open) Â· "
+        f"after dropping generic and ambiguous names {len(by_pair):,} "
+        f"({sum(both(*p) for p in by_pair):,} both open) Â· "
         f"both edits inside the function {len(real):,} ({sum(both(*p) for p in real):,} both open)")
 
     seed = lambda p: hashlib.sha256("\x1f".join((run_id, "collision", *p)).encode()).hexdigest()
@@ -160,7 +170,8 @@ def main(run_id, config):
         (ka, kb, path, fn), (a, b) = by_pair[p]
         a, b = (a, b) if a["key"] == ka else (b, a)
         old = done.get((ka, kb, path, fn), {})
-        rows.append({"key_a": ka, "key_b": kb, "path": path, "function": fn, "sha_a": a["sha"][:12], "sha_b": b["sha"][:12],
+        rows.append({"key_a": ka, "key_b": kb, "path": path, "function": fn, "sha_a": a["sha"][:12],
+                     "sha_b": b["sha"][:12],
                      "date_a": a["date"], "date_b": b["date"], "both_open": int(both(ka, kb)),
                      "inside": int(inside((ka, kb, path, fn), (a, b))),
                      "evidence_url_a": f"https://github.com/apache/spark/commit/{a['sha']}",
@@ -176,7 +187,8 @@ def main(run_id, config):
             hit = [v for v, ins in judged if ins]
             log(f"{who}, N={len(judged)}: hunk headers {sum(v == 'real' for v, _ in judged)} real Â· precision "
                 f"{sum(v == 'real' for v, _ in judged) / len(judged):.2f} | inside rule keeps {len(hit)}: precision "
-                f"{hit.count('real') / max(len(hit), 1):.2f}, recall {hit.count('real') / max(sum(v == 'real' for v, _ in judged), 1):.2f}")
+                f"{hit.count('real') / max(len(hit), 1):.2f}, "
+                f"recall {hit.count('real') / max(sum(v == 'real' for v, _ in judged), 1):.2f}")
     log(f"{len(rows)} sampled -> {OUT}")
 
 

@@ -2,7 +2,12 @@
 
     python -m unittest tests.test_dashboard -v      # from Data-Pipeline/
 """
-import os, shutil, sqlite3, sys, tempfile, unittest
+import os
+import shutil
+import sqlite3
+import sys
+import tempfile
+import unittest
 from contextlib import closing, redirect_stdout
 from io import StringIO
 from pathlib import Path

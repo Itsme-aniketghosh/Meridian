@@ -1,4 +1,4 @@
-"""Compare · the weekly rebuild against the updates: every table, byte for byte (UPDATE-PLAN.md, DAGs).
+"""Compare · the weekly rebuild against the updates: every table, byte for byte (notes/UPDATE-PLAN.md, DAGs).
 
     python -m meridian.compare --run-id <run_id> --config meridian.toml --against-root <other data root>
 
@@ -7,25 +7,28 @@ and changes.json, the run's change report (meridian.report). The rebuild is the 
 was wrong. run.jsonl is left out: its image_digest is the machine's fingerprint. A file on one side only differs.
 
 When files differ it says where it went wrong: the parts (dags/pipeline_spec.py STEPS, and report) whose inputs are
-the same on both sides but whose outputs aren't. Those are where the difference started; the parts after them differ only because
-their inputs do. Rerun such a part on both roots, with its [cache] switch on and off, to find the bug. Per table: the
-rows only the update has, only the rebuild has, and a few of each. All of it goes to out/<run_id>/compare.json here,
-and to the alert.
+the same on both sides but whose outputs aren't. Those are where the difference started; the parts after them differ
+only because their inputs do. Rerun such a part on both roots, with its [cache] switch on and off, to find the bug. Per
+table: the rows only the update has, only the rebuild has, and a few of each. All of it goes to
+out/<run_id>/compare.json here, and to the alert.
 
 Exit 0 = the same tables, 3 = they differ (alerted). Any other code is a crash: the DAG fails the task, never publishes.
 """
-import filecmp, hashlib, json
+import filecmp
+import hashlib
+import json
 from collections import Counter
 from pathlib import Path
 
-from dags.pipeline_spec import STEPS
+from dags.pipeline_spec import DAGS, STEPS
 from meridian import alert
 from meridian.common import CONFIG, data_root, handoff, load_config, log, parser
 
 DIFFERENT = 3
 EXAMPLES = 3
 REPORT = "changes"   # changes.json
-PARTS = {**STEPS, "report": (("graph",), ("run", "git_commit", "call_site", "call_edge", "blast_radius"), (REPORT,))}
+PARTS = {**STEPS, "report": (DAGS["rebuild"]["report"], ("run", "git_commit", "call_site", "call_edge", "blast_radius"),
+                             (REPORT,))}
 # shortcut: checks the last published run's report only, not each update's since the last rebuild (each would need its
 # own rebuild); a wrong earlier report shows up here only if it left wrong tables behind
 
@@ -89,7 +92,8 @@ def main(run_id, against, config=CONFIG, root=None, settings=None):
         f = f"{t}.json" if t == REPORT else f"{t}.jsonl"
         only_rebuild, only_update, ex_rebuild, ex_update = row_diff(a / f, b / f)
         report["tables"].append({"table": t, "rows_rebuild": na, "rows_update": nb, "only_rebuild": only_rebuild,
-                                 "only_update": only_update, "examples_rebuild": ex_rebuild, "examples_update": ex_update})
+                                 "only_update": only_update, "examples_rebuild": ex_rebuild,
+                                 "examples_update": ex_update})
         lines.append(f"{t}: {na} rows in the rebuild, {nb} in the update; {only_rebuild} only in the rebuild, "
                      f"{only_update} only in the update")
     (a / "compare.json").write_text(json.dumps(report, indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")

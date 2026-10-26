@@ -1,7 +1,8 @@
 """GX · the weekly audit: settings.toml [validate]'s generic checks as a Great Expectations suite, with Data Docs.
 
     python -m meridian.gx --run-id <run_id> --config meridian.toml                       # docs under this data root
-    python -m meridian.gx --run-id <run_id> --config meridian.toml --publish-root <root>  # the rebuild: docs where views read
+    python -m meridian.gx --run-id <run_id> --config meridian.toml --publish-root <root>  # the rebuild: docs where
+    views read
 
 Runs in its own Python environment ([gx] python: great_expectations and pandas from requirements-gx.txt), in the weekly
 rebuild only, next to bias. Reads out/<run_id>/meridian.sqlite, which validate builds. Writes out/<run_id>/gx.json and
@@ -15,7 +16,12 @@ It never gates. meridian.validate is the gate, on every update; nothing downstre
 The checks come from [validate], the same settings validate reads: rows, missing, formats, ranges and dates. The
 domain checks stay in meridian.validate only: coverage floors, outliers, drift, sorted JSON lists.
 """
-import datetime as dt, json, re, shutil, sqlite3, sys
+import datetime as dt
+import json
+import re
+import shutil
+import sqlite3
+import sys
 from pathlib import Path
 
 from meridian import alert
@@ -34,7 +40,8 @@ def specs(exp, table, cols, snapshot_at):
     for c in cols:
         limit = limits.get(f"{table}.{c}", limits.get(f"*.{c}", limits.get("default", 1.0)))
         if limit < 1.0:
-            out.append({"kind": "not_null", "column": c, "mostly": round(1 - limit, 6), "severity": "warn", "check": "missing"})
+            out.append({"kind": "not_null", "column": c, "mostly": round(1 - limit, 6), "severity": "warn",
+                        "check": "missing"})
         for rule in exp.get("formats", []):
             if rule["pattern"] == "sorted_json_list" or not re.fullmatch(rule["columns"], c):
                 continue   # sorted JSON lists stay in validate: GX has no such check
@@ -44,9 +51,11 @@ def specs(exp, table, cols, snapshot_at):
         for where, (lo, hi) in exp.get("ranges", {}).items():
             t, col = where.split(".")
             if col == c and t in (table, "*"):
-                out.append({"kind": "between", "column": c, "min": lo, "max": hi, "severity": "error", "check": "ranges"})
+                out.append({"kind": "between", "column": c, "min": lo, "max": hi, "severity": "error",
+                            "check": "ranges"})
         if (d := exp.get("dates")) and re.fullmatch(d["columns"], c) and snapshot_at:
-            out.append({"kind": "dates", "column": c, "min": d["earliest"], "max": snapshot_at, "severity": "warn", "check": "dates"})
+            out.append({"kind": "dates", "column": c, "min": d["earliest"], "max": snapshot_at, "severity": "warn",
+                        "check": "dates"})
     return out
 
 
@@ -68,9 +77,11 @@ def expectation(gx, s):
     if s["kind"] == "not_null":   # validate's "missing" counts NULL and '': '' is turned into NULL first (prepare)
         return E.ExpectColumnValuesToNotBeNull(column=s["column"], mostly=s["mostly"] or 1.0, meta=meta), s["column"]
     if s["kind"] == "regex":
-        return E.ExpectColumnValuesToMatchRegex(column=s["column"], regex=s["regex"], meta=meta | {"name": s["name"]}), s["column"]
+        return E.ExpectColumnValuesToMatchRegex(column=s["column"], regex=s["regex"],
+                                                meta=meta | {"name": s["name"]}), s["column"]
     if s["kind"] == "between":
-        return E.ExpectColumnValuesToBeBetween(column=s["column"], min_value=s["min"], max_value=s["max"], meta=meta), s["column"]
+        return E.ExpectColumnValuesToBeBetween(column=s["column"], min_value=s["min"], max_value=s["max"],
+                                               meta=meta), s["column"]
     col = f"{s['column']}__datetime"
     return E.ExpectColumnValuesToBeBetween(column=col, min_value=as_datetime(s["min"]), max_value=as_datetime(s["max"]),
                                            meta=meta), col
@@ -89,7 +100,8 @@ def prepare(df, table_specs):
 def crashed(r):
     """True when GX couldn't evaluate the expectation: its result says failed, with an exception and no counts."""
     info = r.exception_info or {}
-    return bool(info.get("raised_exception")) or any(isinstance(v, dict) and v.get("raised_exception") for v in info.values())
+    return bool(info.get("raised_exception")) or any(isinstance(v, dict) and v.get("raised_exception")
+                                                     for v in info.values())
 
 
 def audit(block, exp, project):
@@ -117,14 +129,15 @@ def audit(block, exp, project):
             check = gx.ValidationDefinition(name=f"meridian_{t}", data=asset.add_batch_definition_whole_dataframe(t),
                                             suite=suite)
             result = ctx.validation_definitions.add_or_update(check).run(batch_parameters={"dataframe": df},
-                                                                          result_format="SUMMARY")
+                                                                         result_format="SUMMARY")
             for r in result.results:
                 n += 1
                 cfg, meta, res = r.expectation_config, r.expectation_config.meta or {}, r.result or {}
                 where = f"{t}.{cfg.kwargs['column'].removesuffix('__datetime')}" if "column" in cfg.kwargs else t
                 if crashed(r):
                     broken.append({"check": meta.get("check"), "where": where})
-                elif not r.success:
+                elif not r.success and not (meta.get("check") == "dates" and (res.get("unexpected_count") or 0)
+                                            <= exp.get("dates", {}).get("allow", {}).get(where, 0)):  # as validate
                     failed.append({"severity": meta.get("severity"), "check": meta.get("check"), "where": where,
                                    "unexpected": res.get("unexpected_count"), "of": res.get("element_count"),
                                    "examples": [str(v)[:60] for v in (res.get("partial_unexpected_list") or [])[:3]]})
@@ -144,7 +157,8 @@ def publish_docs(site, root, publish_dir, run_id):
     shutil.rmtree(dest, ignore_errors=True)
     tmp.rename(dest)
     latest = base / "latest.json"
-    latest.with_name("latest.json.tmp").write_text(json.dumps({"run_id": run_id, "index": f"{run_id}/index.html"}) + "\n",
+    latest.with_name("latest.json.tmp").write_text(json.dumps({"run_id": run_id,
+                                                               "index": f"{run_id}/index.html"}) + "\n",
                                                    encoding="utf-8", newline="\n")
     latest.with_name("latest.json.tmp").replace(latest)
     return dest / "index.html"
@@ -166,10 +180,12 @@ def main(run_id, config=CONFIG, root=None, publish_root=None, settings=None):
                                  encoding="utf-8", newline="\n")
     log(f"{n} expectations · {len(failed)} failed · {len(broken)} couldn't run -> {index}")
     for f in failed:
-        log(f"  {f['severity']:5} {f['check']:8} {f['where']:40} {f['unexpected']} of {f['of']} e.g. {f['examples'][:2]}")
+        log(f"  {f['severity']:5} {f['check']:8} {f['where']:40} {f['unexpected']} of {f['of']} "
+            f"e.g. {f['examples'][:2]}")
     if failed:
         alert.send(f"meridian GX {run_id}: {len(failed)} expectations failed (weekly audit)",
-                   [f"{f['check']} {f['where']}: {f['unexpected']} of {f['of']}" for f in failed] + [f"docs: {index}"], "warn")
+                   [f"{f['check']} {f['where']}: {f['unexpected']} of {f['of']}" for f in failed] + [f"docs: {index}"],
+                   "warn")
     if broken:
         alert.send(f"meridian GX {run_id}: {len(broken)} checks couldn't run",
                    [f"{b['check']} {b['where']}" for b in broken] + [f"docs: {index}"], "error")
@@ -179,6 +195,7 @@ def main(run_id, config=CONFIG, root=None, publish_root=None, settings=None):
 
 if __name__ == "__main__":
     ap = parser(__doc__)
-    ap.add_argument("--publish-root", type=Path, help="where the Data Docs go: the main data root (the rebuild passes it)")
+    ap.add_argument("--publish-root", type=Path,
+                    help="where the Data Docs go: the main data root (the rebuild passes it)")
     a = ap.parse_args()
     sys.exit(main(a.run_id, a.config, publish_root=a.publish_root))
