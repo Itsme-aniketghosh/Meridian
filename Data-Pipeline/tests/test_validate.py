@@ -46,12 +46,14 @@ IDS = """\
 
 
 def per_column_stats(db, table, cols, top_n):
-    """validate.column_stats as it was, one or two queries per column: the reference the one-query version must equal."""
+    """validate.column_stats as it was, one or two queries per column: the reference the one-query version must
+    equal."""
     rows = db.execute(f'SELECT count(*) FROM "{table}"').fetchone()[0]
     out = {}
     for name, typ, *_ in cols:
         q = f'"{name}"'
-        missing, distinct = db.execute(f"SELECT sum({q} IS NULL OR {q} = ''), count(DISTINCT {q}) FROM \"{table}\"").fetchone()
+        missing, distinct = db.execute(f"SELECT sum({q} IS NULL OR {q} = ''), count(DISTINCT {q}) "
+                                       f"FROM \"{table}\"").fetchone()
         s = {"missing": missing or 0, "distinct": distinct}
         if typ in V.NUMERIC:
             lo, hi, mean = db.execute(f'SELECT min({q}), max({q}), avg({q}) FROM "{table}"').fetchone()
@@ -110,7 +112,8 @@ class Validate(unittest.TestCase):
 
     def test_a_schema_violation_stops_before_anything_else(self):
         with open(self.out / "ticket_map.jsonl", "a", encoding="utf-8") as f:
-            f.write(json.dumps({"run_id": "R2", "key": "X-1", "target_kind": "fuzzy", "target": "", "method": "none"}) + "\n")
+            f.write(json.dumps({"run_id": "R2", "key": "X-1", "target_kind": "fuzzy", "target": "",
+                                "method": "none"}) + "\n")
         failed, found, _ = self.run_it()
         self.assertTrue(failed.startswith("schema"))
         self.assertEqual([f[:2] for f in found], [["error", "schema"]])
@@ -134,22 +137,27 @@ class Validate(unittest.TestCase):
             "ticket": {"rows": 5, "columns": {"key": {"distinct": 5}}}}}))       # under min_rows: noise, never drift
         failed, found, _ = self.run_it(prev_run="R1")
         self.assertIsNone(failed)
-        self.assertEqual([f[:3] for f in found if f[1] == "drift"], [["warn", "drift", "call_site"], ["warn", "drift", "call_site.repo"]])
+        self.assertEqual([f[:3] for f in found if f[1] == "drift"],
+                         [["warn", "drift", "call_site"], ["warn", "drift", "call_site.repo"]])
 
     def test_an_earlier_runs_results_never_outlive_a_crash(self):   # publish would read them and go live
         self.assertIsNone(self.run_it()[0])
-        with redirect_stdout(io.StringIO()), mock.patch.object(V.W, "write", side_effect=MemoryError), self.assertRaises(MemoryError):
+        with redirect_stdout(io.StringIO()), mock.patch.object(V.W, "write",
+                                                               side_effect=MemoryError), self.assertRaises(MemoryError):
             V.main("R2", self.tmp / "meridian.toml", self.tmp, None, self.tmp / "settings.toml")
         self.assertFalse((self.out / "anomalies.json").exists())
         self.assertFalse((self.out / "stats.json").exists())
 
     def test_a_write_failure_is_said_as_one_and_alerts_before_anomalies_json(self):
         self.run_it()
-        sent = mock.Mock(side_effect=lambda *a: self.assertFalse((self.out / "anomalies.json").exists()))   # a full disk may refuse it
-        with redirect_stdout(io.StringIO()), mock.patch.object(V.W, "write", side_effect=OSError("No space left on device")), \
+        # a full disk may refuse it
+        sent = mock.Mock(side_effect=lambda *a: self.assertFalse((self.out / "anomalies.json").exists()))
+        with redirect_stdout(io.StringIO()), mock.patch.object(V.W, "write",
+                                                               side_effect=OSError("No space left on device")), \
                 mock.patch.object(alert, "send", sent), self.assertRaisesRegex(SystemExit, "^write: No space left"):
             V.main("R2", self.tmp / "meridian.toml", self.tmp, None, self.tmp / "settings.toml")
-        self.assertEqual(json.loads((self.out / "anomalies.json").read_text()), [["error", "write", "", "No space left on device"]])
+        self.assertEqual(json.loads((self.out / "anomalies.json").read_text()),
+                         [["error", "write", "", "No space left on device"]])
         self.assertIn("could not write the block", sent.call_args[0][0])
 
     def test_a_missing_table_or_run_folder_is_refused(self):
@@ -237,14 +245,16 @@ class Alert(unittest.TestCase):
             slack_webhook_env = "HOOK"
             timeout_s = 2
             """)
-        with redirect_stdout(io.StringIO()) as log, mock.patch.dict("os.environ", {"HOOK": "http://127.0.0.1:9/x"}, clear=True):
+        with redirect_stdout(io.StringIO()) as log, mock.patch.dict("os.environ",
+                                                                    {"HOOK": "http://127.0.0.1:9/x"}, clear=True):
             self.assertEqual(alert.send("subject", [], "error", broken), [])
         self.assertIn("Slack failed", log.getvalue())
         self.assertIn("email failed", log.getvalue())
 
     def test_a_malformed_webhook_url_is_logged_and_email_is_still_tried(self):
         s = self.settings('[alerts]\non = ["failure"]\nslack_webhook_env = "HOOK"\nemail_to = ["team@example.com"]\n')
-        with redirect_stdout(io.StringIO()) as log, mock.patch.dict("os.environ", {"HOOK": "hooks.example/no-scheme"}, clear=True), \
+        with redirect_stdout(io.StringIO()) as log, mock.patch.dict("os.environ",
+                                                                    {"HOOK": "hooks.example/no-scheme"}, clear=True), \
                 mock.patch("smtplib.SMTP") as smtp:
             self.assertEqual(alert.send("task failed", [], "failure", s), ["email"])
         self.assertIn("Slack failed: unknown url type", log.getvalue())
@@ -252,7 +262,8 @@ class Alert(unittest.TestCase):
 
     def test_slack_gets_the_text_only_for_events_it_is_on_for(self):
         s = self.settings('[alerts]\non = ["error"]\nslack_webhook_env = "HOOK"\nmax_lines = 1\n')
-        with redirect_stdout(io.StringIO()), mock.patch.dict("os.environ", {"HOOK": "https://hooks.example/x"}, clear=True), \
+        with redirect_stdout(io.StringIO()), mock.patch.dict("os.environ",
+                                                             {"HOOK": "https://hooks.example/x"}, clear=True), \
                 mock.patch("urllib.request.urlopen") as post:
             self.assertEqual(alert.send("subject", ["a", "b"], "error", s), ["slack"])
             self.assertEqual(alert.send("subject", ["a"], "warn", s), [])        # warn isn't in on: logged only

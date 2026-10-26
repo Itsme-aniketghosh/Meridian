@@ -7,15 +7,17 @@ installed: every table a part reads is written by a part upstream of it, and pub
 STEPS = {
     "collect": ((), (), ("run",)),
     "history": (("collect",), ("run",), ("git_commit", "commit_file", "ticket", "ticket_event", "ticket_link",
-                                          "commit_ticket", "bug_inducing", "file_bug_fixes")),
+                                         "commit_ticket", "bug_inducing", "file_bug_fixes")),
     "scan": (("collect",), ("run",), ("candidate", "parse_failure", "module_import", "deprecation")),
     "resolve": (("scan",), ("candidate",), ("resolution", "call_edge")),
     "owners": (("history",), ("run", "git_commit", "commit_file", "ticket", "commit_ticket"),
                ("person", "person_alias", "team_map", "file_owner")),
-    "join": (("history", "resolve", "owners"), ("candidate", "resolution", "parse_failure", "file_owner", "file_bug_fixes",
-                                                "ticket", "commit_ticket", "commit_file", "git_commit", "run"),
+    "join": (("history", "resolve", "owners"),
+             ("candidate", "resolution", "parse_failure", "file_owner", "file_bug_fixes",
+              "ticket", "commit_ticket", "commit_file", "git_commit", "run"),
              ("call_site", "ticket_map", "coverage")),
-    "graph": (("join",), ("call_site", "call_edge", "resolution", "ticket_map", "ticket"), ("blocked_by", "blast_radius", "chain")),
+    "graph": (("join",), ("call_site", "call_edge", "resolution", "ticket_map", "ticket"),
+              ("blocked_by", "blast_radius", "chain")),
     "validate": (("graph",), ("*",), ()),          # every table; writes stats.json, anomalies.json, meridian.sqlite
     "bias": (("validate",), ("run", "git_commit", "commit_file", "commit_ticket", "ticket", "person", "person_alias",
                              "ticket_map", "candidate", "resolution"), ()),   # writes bias.json
@@ -28,9 +30,11 @@ CORE = {p: STEPS[p][0] for p in ("history", "scan", "resolve", "owners", "join",
 # report (meridian.report: what changed, and which commit), publish, compare (meridian.<task>), and fresh (shell).
 # gx (meridian.gx, the weekly Great Expectations audit) runs beside bias and nothing waits for it: it never gates.
 DAGS = {
-    "update": {"anything_new": (), "collect": ("anything_new",), **CORE, "report": ("validate",), "publish": ("report",)},
+    "update": {"anything_new": (), "collect": ("anything_new",), **CORE, "report": ("validate",),
+               "publish": ("report",)},
     "rebuild": {"fresh": (), "collect": ("fresh",), **CORE, "bias": ("validate",), "gx": ("validate",),
-                "report": ("validate",), "compare": ("report",), "publish": ("compare", "bias")},   # bias.json ships with it
+                "report": ("validate",), "compare": ("report",),
+                "publish": ("compare", "bias")},   # bias.json ships with it
 }
 
 # Gates stop the rest of their DAG by their command's exit code: task -> (go on, stop). Any other code fails the task.
@@ -43,17 +47,20 @@ def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", re
     """The shell command for one task of one DAG. Every part is the same one command (CONTRACTS.md). prev_arg is
     '--prev-run <run_id>' or '', prev the bare run_id or '' (in the DAG, templates that render to them). main and
     rebuild are the two data roots. The rebuild's tasks run under its own root (MERIDIAN_DATA), except publish, which
-    puts the rebuild where the views read. gx runs in its own environment (gx_python) and puts its Data Docs there too."""
+    puts the rebuild where the views read. gx runs in its own environment (gx_python) and puts its Data Docs there
+    too."""
     if task == "fresh":   # from scratch: its out/<run_id> wiped; the snapshot and the previous run's out/ linked in.
         # Its last line names the run once, for the later tasks (xcom): an update publishing meanwhile can't switch it
         out = f"{rebuild}/{handoff.format(run_id=run_id)}"
         prev_out = handoff.format(run_id="$p")
         return (f'rm -rf {out} && mkdir -p {out} && ln -sfn {main}/snapshots {rebuild}/snapshots && p="{prev}"'
-                f' && if [ -n "$p" ]; then rm -rf {rebuild}/{prev_out} && ln -sfn {main}/{prev_out} {rebuild}/{prev_out}; fi'
+                f' && if [ -n "$p" ]; then rm -rf {rebuild}/{prev_out}'
+                f' && ln -sfn {main}/{prev_out} {rebuild}/{prev_out}; fi'
                 f' && echo "run_id={run_id} prev_run=$p"')   # rm: ln -sfn onto a real dir would link inside it
     if task == "anything_new":
         return f"{python} -m meridian.status --config {config}"
-    cmd = f"{gx_python if task == 'gx' and gx_python else python} -m meridian.{task} --run-id {run_id} --config {config}"
+    cmd = (f"{gx_python if task == 'gx' and gx_python else python} -m meridian.{task} --run-id {run_id} "
+           f"--config {config}")
     if prev_arg and task in ("join", "validate", "report", "publish"):
         cmd += f" {prev_arg}"
     if task == "compare":
@@ -61,5 +68,6 @@ def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", re
     if task == "gx" and main:
         cmd += f" --publish-root {main}"
     if dag == "rebuild":
-        cmd = f"{cmd} --from-root {rebuild}" if task == "publish" else f"MERIDIAN_DATA={rebuild} MERIDIAN_NO_CACHE=1 {cmd}"
+        cmd = (f"{cmd} --from-root {rebuild}" if task == "publish"
+               else f"MERIDIAN_DATA={rebuild} MERIDIAN_NO_CACHE=1 {cmd}")
     return cmd

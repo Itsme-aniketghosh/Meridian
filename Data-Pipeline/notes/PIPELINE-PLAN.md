@@ -1,8 +1,8 @@
 # Pipeline plan · step 1 · 10 days
 
-Build stages 1–4 of [04-architecture](../docs/04-architecture.md): Collect, Extract, Join, Graph. At the end we hand over one thing: **graph data block v1**.
+Build stages 1–4 of [04-architecture](../../docs/04-architecture.md): Collect, Extract, Join, Graph. At the end we hand over one thing: **graph data block v1**.
 
-Also: [FIXES.md](FIXES.md) (the audit's problems and what changed) · [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md) (can the KB answer everything we planned, with proof).
+Also: [FIXES.md](FIXES.md) (the audit's problems and what changed) · [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md) (can the KB answer everything we planned, with proof).
 
 ![Pipeline plan: stages, owners, tasks, deadlines](pipeline-plan.svg)
 
@@ -31,11 +31,11 @@ One SQLite file per run, append-only, byte-identical on rebuild.
 
 ## Stage 0 · Contracts · Day 1 · everyone
 
-**Done.** Final versions: [CONTRACTS.md](CONTRACTS.md), [schema.sql](schema.sql), [meridian.toml](meridian.toml). Day 1 is now for everyone to read their tables and raise blockers.
+**Done.** Final versions: [CONTRACTS.md](../CONTRACTS.md), [schema.sql](../schema.sql), [meridian.toml](../meridian.toml). Day 1 is now for everyone to read their tables and raise blockers.
 
 | Task | Owner | Due | Done when |
 |---|---|---|---|
-| Columns and types for every table: the 4 in [03-data](../docs/03-data.md) plus `candidate`, `resolution`, `call_edge`, `person_alias`, `team_map`, `ticket`, `commit_ticket`, `file_bug_fixes`, `blast_radius` | Vishwa drafts, everyone agrees their own | D1 | Every table has an owner and is agreed |
+| Columns and types for every table: the 4 in [03-data](../../docs/03-data.md) plus `candidate`, `resolution`, `call_edge`, `person_alias`, `team_map`, `ticket`, `commit_ticket`, `file_bug_fixes`, `blast_radius` | Vishwa drafts, everyone agrees their own | D1 | Every table has an owner and is agreed |
 | What a "team" is per dataset: Jira component (Spark), `group::` label (GitLab), a rule for Django | Chaitali | D1 | Written in `meridian.toml` |
 
 ## Stage 1 · Build the parts · Days 2–6 · four in parallel
@@ -57,7 +57,7 @@ One SQLite file per run, append-only, byte-identical on rebuild.
 | Scanner: rules per symbol from config, roles, junk labels, Python outside `.py`, parse failures counted. Start from `week1/pair1/scripts/scan_sites.py` | D3 | Runs on Django and the packages |
 | Freeze the Django 265 answer key | D4 | Hand-checked, committed |
 | Candidates on Django + packages → Rochan | D4 | 265 of 265, 0 false · packages ≥ 97% |
-| Goldens for every case in [05-test](../docs/05-test.md) (assignment alias, `code.sample`, `is_anonymous = lambda`, re-export) | D6 | All pass |
+| Goldens for every case in [05-test](../../docs/05-test.md) (assignment alias, `code.sample`, `is_anonymous = lambda`, re-export) | D6 | All pass |
 
 ### Rochan · Resolver → Utkarsh
 
@@ -132,14 +132,14 @@ All from week 1. Nothing new to find.
 | SZZ, `bug_fixes` | Spark + Jira, scored on Defects4J |
 | Graph | Fixtures, plus the GitLab gold set for ticket-level chains |
 
-No single dataset fills every column. Django uses Trac, not Jira, so Django rows have no `ticket_map`. GitLab is Ruby, so code-level `blocked_by` runs on fixtures only. [02-product](../docs/02-product.md) already accepts both, and the screen says so.
+No single dataset fills every column. Django uses Trac, not Jira, so Django rows have no `ticket_map`. GitLab is Ruby, so code-level `blocked_by` runs on fixtures only. [02-product](../../docs/02-product.md) already accepts both, and the screen says so.
 
 ## Decided on Day 1
 
-- **CSV policy:** labels and results in git, scrubbed of people. Raw data never. See [CSV-POLICY.md](CSV-POLICY.md)
-- **Teams:** Jira component (Spark), folder path (Django, synthetic), repo (packages), `group::` label (GitLab). See [CONTRACTS.md](CONTRACTS.md)
+- **CSV policy:** labels and results in git, scrubbed of people. Raw data never. See [CSV-POLICY.md](../CSV-POLICY.md)
+- **Teams:** Jira component (Spark), folder path (Django, synthetic), repo (packages), `group::` label (GitLab). See [CONTRACTS.md](../CONTRACTS.md)
 - **Gold set owner:** Chaitali
-- **Orchestration:** Airflow on GCP, owned by Utkarsh. Every part runs as one command (see [CONTRACTS.md](CONTRACTS.md))
+- **Orchestration:** Airflow on GCP, owned by Utkarsh. Every part runs as one command (see [CONTRACTS.md](../CONTRACTS.md))
 - **Demo:** cross-team blocks shown from GitLab cases. Chains across repos stay on fixtures, and the screen says so
 
 ## Dropped first if we're behind

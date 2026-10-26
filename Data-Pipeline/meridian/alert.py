@@ -3,9 +3,11 @@ Airflow DAG (failed tasks).
 
 Where it goes is settings.toml [alerts]: email addresses, SMTP server, and which events alert at all. Secrets (the
 Slack webhook URL, an SMTP password) live in environment variables that [alerts] names, never in git. Nothing
-configured: the alert is only logged. A channel that fails is logged too: an alert must never break the run it reports on.
+configured: the alert is only logged. A channel that fails is logged too: an alert must never break the run it reports
+on.
 """
 import json
+import logging
 import os
 import smtplib
 import urllib.request
@@ -22,21 +24,23 @@ def send(subject, lines=(), event="error", settings=None):
     if len(lines) > a.get("max_lines", 20):
         lines = lines[:a.get("max_lines", 20)] + [f"... and {len(lines) - a.get('max_lines', 20)} more"]
     text = "\n".join([subject, *lines])
-    log(f"ALERT {text}")
+    log(f"ALERT {text}", level=logging.WARNING if event == "warn" else logging.ERROR)
     if event not in a.get("on", ["failure", "error", "warn"]):
         return []
     sent, timeout = [], a.get("timeout_s", 10)
     if hook := os.environ.get(a.get("slack_webhook_env", "MERIDIAN_SLACK_WEBHOOK")):
         try:
-            req = urllib.request.Request(hook, json.dumps({"text": text}).encode(), {"Content-Type": "application/json"})
+            req = urllib.request.Request(hook, json.dumps({"text": text}).encode(),
+                                         {"Content-Type": "application/json"})
             urllib.request.urlopen(req, timeout=timeout).close()
             sent.append("slack")
         except (OSError, ValueError) as e:  # ValueError: a malformed webhook URL
-            log(f"alert: Slack failed: {e}")
+            log(f"alert: Slack failed: {e}", level=logging.ERROR)
     if to := a.get("email_to"):
         try:
             msg = EmailMessage()
-            msg["Subject"], msg["From"], msg["To"] = f"[meridian] {subject}", a.get("email_from", "meridian@localhost"), ", ".join(to)
+            msg["Subject"], msg["From"] = f"[meridian] {subject}", a.get("email_from", "meridian@localhost")
+            msg["To"] = ", ".join(to)
             msg.set_content(text)
             with smtplib.SMTP(a.get("smtp_host", "localhost"), a.get("smtp_port", 25), timeout=timeout) as s:
                 if a.get("smtp_starttls"):
@@ -46,5 +50,5 @@ def send(subject, lines=(), event="error", settings=None):
                 s.send_message(msg)
             sent.append("email")
         except (OSError, ValueError, smtplib.SMTPException) as e:
-            log(f"alert: email failed: {e}")
+            log(f"alert: email failed: {e}", level=logging.ERROR)
     return sent

@@ -176,7 +176,8 @@ FILES = {
         "\n"
         "def fine():\n"
         "    warnings.warn('careful', UserWarning)\n"                             # no row
-        "    warnings.warn('x', category=PendingDeprecationWarning)\n"            # 17 fine: whole name, not DeprecationWarning
+        # 17 fine: whole name, not DeprecationWarning
+        "    warnings.warn('x', category=PendingDeprecationWarning)\n"
     ),
 }
 
@@ -309,7 +310,8 @@ class Goldens(unittest.TestCase):
         self.assertEqual(self.by_line[("app/direct.py", 4)]["in_except"], 0)
 
     def test_module_import(self):
-        self.assertEqual({(r["line"], r["module"], r["name"]) for r in self.imports if r["path"] == "app/rel/mod.py"}, IMPORTS)
+        self.assertEqual({(r["line"], r["module"], r["name"]) for r in self.imports if r["path"] == "app/rel/mod.py"},
+                         IMPORTS)
         is_test = {r["path"]: r["is_test"] for r in self.imports}
         self.assertEqual((is_test["app/tests/helpers.py"], is_test["tests/i18n/code.sample"], is_test["app/direct.py"],
                           is_test["app/Test_Case.py"]), (1, 1, 0, 0))
@@ -323,10 +325,12 @@ class Goldens(unittest.TestCase):
         self.assertEqual({r["line"]: (r["scope"], r["marker"]) for r in self.deprecations if r["path"] == "lib/old.py"},
                          DEPRECATIONS)
         self.assertEqual({r["path"] for r in self.deprecations}, {"lib/old.py", "lib/more.py", "lib/pkg/__init__.py"})
-        more = {(r["path"], r["line"]): (r["scope"], r["qualname"], r["marker"]) for r in self.deprecations if r["path"] != "lib/old.py"}
+        more = {(r["path"], r["line"]): (r["scope"], r["qualname"], r["marker"])
+                for r in self.deprecations if r["path"] != "lib/old.py"}
         self.assertEqual(more, {("lib/more.py", 9): ("g", "lib.more.g", "Deprecated"),
                                 ("lib/pkg/__init__.py", 4): ("K.__init__", "lib.pkg.K", "DeprecationWarning")})
-        self.assertEqual({r["qualname"] for r in self.deprecations if (r["path"], r["line"]) == ("lib/old.py", 5)}, {"lib.old.old"})
+        self.assertEqual({r["qualname"] for r in self.deprecations if (r["path"], r["line"]) == ("lib/old.py", 5)},
+                         {"lib.old.old"})
 
     def test_relative_import_above_root_kept_as_written(self):
         self.assertEqual({(r["module"], r["name"]) for r in self.imports if r["path"] == "pkg2/m.py"}, {("...", "x")})

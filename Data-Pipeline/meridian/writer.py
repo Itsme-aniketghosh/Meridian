@@ -27,12 +27,14 @@ class BadRow(Exception):
 
 
 def tables(schema_sql):
-    """{table: [(column, type, not_null, has_default, pk_position)]}, read from the schema itself so the writer never drifts."""
+    """{table: [(column, type, not_null, has_default, pk_position)]}, read from the schema itself so the writer never
+    drifts."""
     db = sqlite3.connect(":memory:")
     db.executescript(schema_sql)
     spec = {}
     for (t,) in db.execute("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"):
-        spec[t] = [(c[1], c[2].upper(), bool(c[3]), c[4] is not None, c[5]) for c in db.execute(f"PRAGMA table_info('{t}')")]
+        spec[t] = [(c[1], c[2].upper(), bool(c[3]), c[4] is not None, c[5])
+                   for c in db.execute(f"PRAGMA table_info('{t}')")]
     return spec
 
 
@@ -102,9 +104,11 @@ def write(src, db=None, schema=SCHEMA, complete=False):
     if unknown := [p.name for p in files if p.stem not in spec]:
         raise BadRow(f"no table in schema.sql for {unknown}")
     if complete and (missing := sorted(set(spec) - {p.stem for p in files})):
-        raise BadRow(f"no {', '.join(t + '.jsonl' for t in missing)}: a part didn't write its table (an empty file is an empty table)")
+        raise BadRow(f"no {', '.join(t + '.jsonl' for t in missing)}: a part didn't write its table "
+                     "(an empty file is an empty table)")
     try:
-        snapshot_at = json.loads(run.read_text(encoding="utf-8").split("\n")[0])["snapshot_at"] if run.exists() and run.stat().st_size else None
+        snapshot_at = (json.loads(run.read_text(encoding="utf-8").split("\n")[0])["snapshot_at"]
+                       if run.exists() and run.stat().st_size else None)
     except (ValueError, KeyError, TypeError) as e:  # UnicodeDecodeError is a ValueError
         raise BadRow(f"{run.name}:1: can't read snapshot_at ({type(e).__name__}: {e})")
     loaded = {p.stem: read_rows(p, spec[p.stem], run_id, snapshot_at) for p in files}
@@ -119,7 +123,8 @@ def write(src, db=None, schema=SCHEMA, complete=False):
             for where, r in loaded[t]:
                 cols = [c[0] for c in spec[t] if c[0] in r]  # a left-out column takes its schema DEFAULT
                 try:
-                    con.execute(f"INSERT INTO {t} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})", [r[c] for c in cols])
+                    con.execute(f"INSERT INTO {t} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+                                [r[c] for c in cols])
                 except sqlite3.IntegrityError as e:  # CHECK constraints: enums, 0/1, depth
                     raise BadRow(f"{where}: {e}")
         con.execute("COMMIT")

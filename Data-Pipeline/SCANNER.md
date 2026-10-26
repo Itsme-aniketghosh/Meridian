@@ -1,6 +1,6 @@
 # Scanner · step 1
 
-Rachna's part of the [pipeline plan](PIPELINE-PLAN.md): every place a tracked old name appears in the code. Team run **70dd1dabfed544b8**, 2026-10-23 (after dynamic-config). Earlier numbers on 973531f7fd4cfd5e are kept below where marked.
+Rachna's part of the [pipeline plan](notes/PIPELINE-PLAN.md): every place a tracked old name appears in the code. Team run **70dd1dabfed544b8**, 2026-10-23 (after dynamic-config). Earlier numbers on 973531f7fd4cfd5e are kept below where marked.
 
 ```
 python -m meridian.scan --run-id <run_id> --config meridian.toml      # from Data-Pipeline/

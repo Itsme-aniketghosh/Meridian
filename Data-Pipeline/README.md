@@ -1,6 +1,6 @@
 # Meridian data pipeline
 
-Meridian joins code, git and Jira to find every call site of a dying internal API, who owns it, how risky it is, and which teams wait on each other. This folder is the data pipeline: two Airflow DAGs from the raw sources to a validated, published SQLite block (the knowledge base every later stage reads). `meridian_update` runs on the "Update graph" click and daily; `meridian_rebuild` recomputes everything weekly and checks the updates against it ([UPDATE-PLAN.md](UPDATE-PLAN.md)).
+Meridian joins code, git and Jira to find every call site of a dying internal API, who owns it, how risky it is, and which teams wait on each other. This folder is the data pipeline: two Airflow DAGs from the raw sources to a validated, published SQLite block (the knowledge base every later stage reads). `meridian_update` runs on the "Update graph" click and daily; `meridian_rebuild` recomputes everything weekly and checks the updates against it ([UPDATE-PLAN.md](notes/UPDATE-PLAN.md)).
 
 ## Demo for TAs
 
@@ -17,8 +17,9 @@ anything_new ── collect ──┬── history ───────── 
                           │                              ├── join ── graph ── validate ── report ── publish
                           └── scan ──── resolve ─────────┘
 
-meridian_rebuild (Sunday): fresh ── collect ── … ── validate ── bias ── compare ── publish (only if they differ)
-                                                         └── gx (beside bias, never gates)
+meridian_rebuild (Sunday): fresh ── collect ── … ── validate ──┬── report ── compare ──┬── publish (only if they differ)
+                                                              ├── bias ───────────────┘
+                                                              └── gx (never gates)
 ```
 
 | Task | Does | Writes (`out/<run_id>/`) | Doc |
@@ -35,7 +36,7 @@ meridian_rebuild (Sunday): fresh ── collect ── … ── validate ─�
 | `gx` | Weekly rebuild only: `[validate]`'s generic checks (rows, missing, formats, ranges, dates) as a Great Expectations suite, in its own environment (`requirements-gx.txt`, `[gx] python`). Alerts, never gates: `validate` stays the gate | `gx.json`, Data Docs in `published/gx/<run_id>/` | `meridian/gx.py` |
 | `report` | What changed since the last published run, and which commit caused it (`meridian.report`) | | |
 | `publish` | Only after validate, and no data error: copies the block to `published/<run_id>.sqlite`, points `published/latest.json` at it; with `[dvc] push`, `dvc commit` and `dvc push` | `published/` | below |
-| `anything_new` | `meridian.status`: new commits since the published SHAs, or a publish older than a day; else the update stops | | below |
+| `anything_new` | `meridian.status`: new commits since the published SHAs, or a publish older than `[status] stale_after_hours` (20); else the update stops | | below |
 | `compare` | Rebuild only: every table byte for byte against the update's; a difference alerts and publishes the rebuild | | below |
 
 ## Folder structure

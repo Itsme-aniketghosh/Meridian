@@ -18,7 +18,7 @@ Query names are the named SQL in [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md), prov
 | Feature | Status | Reads | Evidence | Gap |
 |---|---|---|---|---|
 | S1 · Call sites remaining | ✅ | `call_site` (newest version by `known_at`, `status`) | `staff_headline`; 70dd: 1,526 present | |
-| S2 · Open tickets on the API | 🟡 | `ticket_map` (`target_kind = 'call_site'`), `ticket.status` | `staff_headline`; 70dd: 0 | No real ticket maps to a call site: Django and packages have no tracker, Spark has no tracked symbol, GitLab is Ruby ([HANDOFF.md](../HANDOFF.md) "What's empty", KB G7) |
+| S2 · Open tickets on the API | 🟡 | `ticket_map` (`target_kind = 'call_site'`), `ticket.status` | `staff_headline`; 70dd: 0 | No real ticket maps to a call site: Django and packages have no tracker, Spark has no tracked symbol, GitLab is Ruby ([HANDOFF.md](../notes/HANDOFF.md) "What's empty", KB G7) |
 | S3 · Hidden chains, "Jira links N of them" | 🟡 | `chain` (`depends_on`), `blocked_by`, `ticket_map`, `ticket_link` | `staff_chains`, `derive_depends_on`; `test_graph` 13 of 13; 70dd: 0 `depends_on` (43 chain rows, all `untracked`) | Needs `blocked_by` (0 on 70dd) and S2's mapping. Cross-repo chains on fixtures only ([02-product](../../docs/02-product.md) Known gaps) |
 | S4 · Collisions | 🟡 | `chain` (`collides`), `ticket_map`, `call_site.scope`, `ticket.status` | `derive_collides`; 70dd: 0. Spark proxy: inside rule 32 of 32 pairs, model-read ([GRAPH.md](../GRAPH.md)) | As S2. Function scope only; 04 says "function or file" (GRAPH.md Flags). Human check of the 50 pairs open |
 | S5 · Duplicates | 🟡 | `chain` (`duplicates`), `ticket_map` | `derive_duplicates`; 70dd: 0 | As S2. 05-test "beats title similarity" on Spark Duplicates not run |
@@ -136,7 +136,7 @@ Explore's other signals are S11 (deprecation with callers) and S12 (fan-in).
 
 Push alert outcomes are in the push check table.
 
-### Update graph and staleness ([UPDATE-PLAN.md](../UPDATE-PLAN.md))
+### Update graph and staleness ([UPDATE-PLAN.md](../notes/UPDATE-PLAN.md))
 
 | Feature | Status | Reads | Evidence | Gap |
 |---|---|---|---|---|

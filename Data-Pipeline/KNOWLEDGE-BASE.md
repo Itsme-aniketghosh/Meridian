@@ -8,7 +8,7 @@ This page checks that claim against everything we planned ([02-product](../docs/
 python -m unittest tests.test_kb -v        # from Data-Pipeline/
 ```
 
-**What the proof shows and what it doesn't.** It shows the KB *can carry and answer* each feature. join and graph aren't built yet, so the fixture fills `call_site`, `ticket_map`, `blocked_by`, `chain` and `blast_radius` by hand. The `derive_*` queries then show graph can compute its own tables from the inputs the other parts write. It does not show the numbers on real data: that's the [testing plan](#testing-plan) below.
+**What the proof shows and what it doesn't.** It shows the KB *can carry and answer* each feature. join and graph are built now, but the fixture still fills `call_site`, `ticket_map`, `blocked_by`, `chain` and `blast_radius` by hand, so the proof needs no real data. The `derive_*` queries then show graph can compute its own tables from the inputs the other parts write. It does not show the numbers on real data: that's the [testing plan](#testing-plan) below.
 
 ## What's in it
 
@@ -727,14 +727,14 @@ What the KB still can't answer, and what closes each.
 | owners | Spark owner vs next author beats last toucher | > 18% | ✅ 20% vs 18% |
 | owners | Top 20 identity groups + every local-part merge with different names hand-checked | ≥ 19 of 20 right | ❌ |
 | gold set | Human spot check of 10 waits | ≥ 9 of 10 | ❌ 0 of 262 checked |
-| join | Call-site ID fixtures (insert, move, rename, duplicate, split); Django weekly replay | 100%, replay error ≤ 1% | ❌ not built |
+| join | Call-site ID fixtures (insert, move, rename, duplicate, split); Django weekly replay | 100%, replay error ≤ 1% | ✅ fixtures (`tests/test_join.py`); replay ❌ |
 | join | Ticket → code on Spark, fix commits hidden | path, trace precision ≥ 0.90 | ❌ |
-| graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ❌ not built |
+| graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ✅ fixtures (`tests/test_graph.py`); hand checks ❌ |
 | new KB columns | `in_except`, `module_import`, `deprecation`, `receiver_from` on Django: hand-check 20 rows each | 20 of 20 | ❌ after the rerun |
 
 ### Order
 
-1. **Now:** the fixes in [FIXES.md](FIXES.md), with level 1–3 green on Windows (and on a Mac).
+1. **Now:** the fixes in [FIXES.md](notes/FIXES.md), with level 1–3 green on Windows (and on a Mac).
 2. **New run_id:** collect, history, scan, resolve, owners. Rerun every benchmark above that says "old run". Do the cross-machine check (level 4) once, on two laptops.
 3. **Hand checks** that are still open: rollback spot check, identity groups, gold set waits, the 20-row checks of the new columns.
 4. **join, then graph**, each with its fixtures first (level 1), then its benchmark (level 5).
@@ -742,4 +742,4 @@ What the KB still can't answer, and what closes each.
 
 ### CI
 
-There is no CI yet. The smallest one that holds the line: a GitHub Actions job on `ubuntu-latest` and `windows-latest` with Python 3.11 and the pinned requirements, running `python -m unittest discover -s tests -t .` from `Data-Pipeline/`. Two operating systems on purpose: half of this change's bugs only showed on Windows. The writer's SQLite pin means its byte tests need the same SQLite everywhere: pin it in the image, and in CI install that version, or the writer's byte test skips with the reason.
+[.github/workflows/ci.yml](../.github/workflows/ci.yml) is the smallest one that holds the line: a GitHub Actions job on `ubuntu-latest` and `windows-latest` with Python 3.11 and the pinned requirements, running `python -m unittest discover -s tests -t .` from `Data-Pipeline/`. Two operating systems on purpose: half of this change's bugs only showed on Windows. The writer's SQLite pin means its byte tests need the same SQLite everywhere: pin it in the image, and in CI install that version, or the writer's byte test skips with the reason.

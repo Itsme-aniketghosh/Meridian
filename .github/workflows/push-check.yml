@@ -1,4 +1,4 @@
-# Push check (Data-Pipeline/UPDATE-PLAN.md, Phase 2): P1–P9 on a PR to a watched repo, as one comment, against the
+# Push check (Data-Pipeline/notes/UPDATE-PLAN.md, Phase 2): P1–P9 on a PR to a watched repo, as one comment, against the
 # last published block. Read-only: the token can only read code and write PR comments. Never blocks a merge.
 #
 # It runs in the watched repo. Either copy this file there (on: pull_request), or call it from there:

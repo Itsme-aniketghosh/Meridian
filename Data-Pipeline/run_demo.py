@@ -1,7 +1,8 @@
 """Meridian data pipeline: a guided demo for graders. Run from Data-Pipeline/:
 
     python run_demo.py short       # ~1-3 min, no team data, no Docker: fresh clone + pip install -r requirements.txt
-    python run_demo.py long        # everything: short, all unit tests, GX, data download, team-run tests, Airflow (Docker)
+    python run_demo.py long        # everything: short, all unit tests, GX, data download, team-run tests,
+                                   # Airflow (Docker)
     python run_demo.py download    # only get the data: raw ticket pulls, then collect's repo checkouts
 
 Options: --zip <path-or-url> (the team zip), --public-pull (pull Jira/GitLab from the public APIs: slow, a run of
@@ -38,7 +39,8 @@ sys.path.insert(0, str(HERE))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 GB = 1024 ** 3
 PY = sys.executable
-ZIP_NAME, ZIP_SHA = "meridian-raw-973531f7fd4cfd5e.zip", "d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523"
+ZIP_NAME = "meridian-raw-973531f7fd4cfd5e.zip"
+ZIP_SHA = "d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523"
 RESULTS = []          # (step, PASS/SKIP/FAIL, note)
 ARGS = TMP = None
 STATE = {}
@@ -61,7 +63,8 @@ def saw(text):
 def show(cmd, env=None, cwd=HERE):
     pre = "".join(f"{k}={v} " for k, v in (env or {}).items())
     where = "" if Path(cwd) == HERE else f"(in {cwd}) "
-    print(f"\n$ {where}{pre}" + " ".join("python" if a == PY else (f'"{a}"' if " " in a or "{" in a else a) for a in cmd),
+    print(f"\n$ {where}{pre}" + " ".join("python" if a == PY else (f'"{a}"' if " " in a or "{" in a else a)
+                                         for a in cmd),
           flush=True)
 
 
@@ -187,7 +190,8 @@ def settings():
 
 def env_check():
     ram, ok = free_ram_gb(), sys.version_info[:2] == (3, 11)
-    rows = [["Python", platform.python_version(), "ok" if ok else "the team uses 3.11: other versions may give other bytes"],
+    rows = [["Python", platform.python_version(),
+             "ok" if ok else "the team uses 3.11: other versions may give other bytes"],
             ["OS", f"{platform.system()} {platform.release()}", ""],
             ["free RAM", f"{ram:.1f} GB" if ram is not None else "unknown", "full pipeline needs 3 GB"],
             ["free disk", f"{free_disk_gb(data_root()):.1f} GB", f"at {data_root()}; full pipeline needs 5 GB"],
@@ -204,7 +208,8 @@ def env_check():
               "  conda create -y -n meridian python=3.11 && conda activate meridian\n"
               "  pip install -r requirements.txt        (from the repo root)")
         raise SystemExit(f"missing packages: {', '.join(missing)}")
-    saw("the machine and the pinned dependencies from requirements.txt. Python 3.11 + these imports = the pipeline runs.")
+    saw("the machine and the pinned dependencies from requirements.txt. "
+        "Python 3.11 + these imports = the pipeline runs.")
     return f"Python {platform.python_version()}, deps ok"
 
 
@@ -267,8 +272,8 @@ def fixture_pipeline():
     table([r for r in rows if r[1]], ["table", "rows"])
     print(f"  ({sum(1 for r in rows if not r[1])} more tables empty in this fixture)")
     saw("the acme/shop fixture (tests/test_kb.py) stands in for collect -> join's outputs, which need the private "
-        "repos and tickets; graph then computed blocked_by / blast_radius / chain for real, and the writer loaded every "
-        "table into one SQLite block against schema.sql. Same commands, same code as the team run.")
+        "repos and tickets; graph then computed blocked_by / blast_radius / chain for real, and the writer loaded "
+        "every table into one SQLite block against schema.sql. Same commands, same code as the team run.")
     return f"{sum(r[1] for r in rows)} rows in {sum(1 for r in rows if r[1])} tables"
 
 
@@ -296,8 +301,10 @@ def validate():
         raise SystemExit(f"validate failed on the clean fixture (exit {rc})")
     stats = json.loads((TMP / "out/R2/stats.json").read_text())["tables"]
     print("\n  stats.json, call_site (one of 25 tables):")
-    table([[c, s["missing"], s["distinct"], s.get("min", ""), s.get("max", ""), s.get("top", "")[:2] if s.get("top") else ""]
-           for c, s in stats["call_site"]["columns"].items() if c in ("status", "bug_fixes", "owner_team", "line", "known_at")],
+    table([[c, s["missing"], s["distinct"], s.get("min", ""), s.get("max", ""),
+            s.get("top", "")[:2] if s.get("top") else ""]
+           for c, s in stats["call_site"]["columns"].items() if c in ("status", "bug_fixes", "owner_team",
+                                                                      "line", "known_at")],
           ["column", "missing", "distinct", "min", "max", "top values"])
     saw("validate = schema (the writer refuses any row schema.sql forbids), then statistics per table and column "
         "into stats.json (next run's drift baseline), then the checks. Clean fixture: 0 errors, 0 warnings. The "
@@ -308,7 +315,8 @@ def anomalies():
     bad = TMP / "bad"
     shutil.copytree(TMP / "out", bad / "out")
     shutil.copy(TMP / "meridian.toml", bad)
-    write_settings(bad / "settings.toml", '"commit_file.deleted" = 0.0\n', '[validate.outliers]\ncolumns = ["commit_file.added"]\n')
+    write_settings(bad / "settings.toml", '"commit_file.deleted" = 0.0\n',
+                   '[validate.outliers]\ncolumns = ["commit_file.added"]\n')
     print("  injected into a copy of the block:")
     for name, col, value in (("ticket", "created_at", "06/01/2026 9am"), ("file_owner", "share", 1.7),
                              ("commit_file", "deleted", None), ("commit_file", "added", 250000)):
@@ -403,7 +411,8 @@ def situations():
     (TMP / "shop.toml").write_text(T.CFG_TEXT, encoding="utf-8")
     (TMP / "push.toml").write_text("[push_check]\n" + "".join(f"{k} = {v}\n" for k, v in T.SETTINGS.items()))
     rc, out = run([PY, "-m", "meridian.pushcheck", "--base", str(base), "--repo", T.REPO, "--changed", "HEAD~1...HEAD",
-                   "--checkout", str(co), "--config", str(TMP / "shop.toml")], {"MERIDIAN_SETTINGS": str(TMP / "push.toml")})
+                   "--checkout", str(co), "--config", str(TMP / "shop.toml")],
+                  {"MERIDIAN_SETTINGS": str(TMP / "push.toml")})
     checks = sorted(set(re.findall(r"\*\*(P\d) ", out)))
     if rc or bad:
         raise SystemExit(f"pushcheck exit {rc}; doc mismatch: {bad}")
@@ -448,8 +457,9 @@ def unit_tests():
 def gx():
     gx_py = os.environ.get("MERIDIAN_GX_PYTHON") or (PY if importlib.util.find_spec("great_expectations") else "")
     if not gx_py:
-        raise Skip("no GX environment. Make one: python -m venv gx-env && gx-env/bin/pip install -r requirements-gx.txt "
-                   "(Windows: gx-env\\Scripts\\pip), then MERIDIAN_GX_PYTHON=<that python> python run_demo.py long")
+        raise Skip("no GX environment. Make one: python -m venv gx-env && "
+                   "gx-env/bin/pip install -r requirements-gx.txt (Windows: gx-env\\Scripts\\pip), "
+                   "then MERIDIAN_GX_PYTHON=<that python> python run_demo.py long")
     rc, _ = run([gx_py, "-m", "unittest", "tests.test_gx", "-v"])
     if rc:
         raise SystemExit("GX tests failed")
@@ -458,7 +468,8 @@ def gx():
 
 
 def raw_present(root):
-    return (root / "snapshots/_cache/jira/SPARK/.pull.json").exists() and (root / "snapshots/_cache/gitlab/.pull.json").exists()
+    return ((root / "snapshots/_cache/jira/SPARK/.pull.json").exists()
+            and (root / "snapshots/_cache/gitlab/.pull.json").exists())
 
 
 def gcs_credentials():
@@ -480,7 +491,8 @@ def fetch(url, dest):
         if "text/html" in r.headers.get("Content-Type", ""):
             raise SystemExit(f"{url} answers with a web page, not the zip (a login or confirm page): download it in a "
                              "browser and pass --zip <path>")
-        print(f"  downloading {size / 1e6:.0f} MB from {url}\n  -> {dest}" + (f" (resuming at {have / 1e6:.0f} MB)" if have else ""))
+        print(f"  downloading {size / 1e6:.0f} MB from {url}\n  -> {dest}"
+              + (f" (resuming at {have / 1e6:.0f} MB)" if have else ""))
         guard(disk=size / GB + 1, disk_at=dest.parent)
         done, shown = have, -1
         with open(part, "ab" if have else "wb") as f:
@@ -499,9 +511,11 @@ def download():
         print(f"  {root / 'snapshots/_cache'}: jira/SPARK/.pull.json and gitlab/.pull.json present")
         saw("the raw Jira and GitLab pulls are already here: nothing to download.")
         return "raw pulls already present"
-    sizes = {f: int(re.search(r"size: (\d+)", (REPO / f"snapshots/_cache/{f}.dvc").read_text()).group(1)) for f in ("jira", "gitlab")}
+    sizes = {f: int(re.search(r"size: (\d+)", (REPO / f"snapshots/_cache/{f}.dvc").read_text()).group(1))
+             for f in ("jira", "gitlab")}
     total = sum(sizes.values()) / GB
-    print(f"  raw pulls missing under {root / 'snapshots/_cache'} (jira {sizes['jira'] / 1e6:.0f} MB, gitlab {sizes['gitlab'] / 1e6:.0f} MB)")
+    print(f"  raw pulls missing under {root / 'snapshots/_cache'} "
+          f"(jira {sizes['jira'] / 1e6:.0f} MB, gitlab {sizes['gitlab'] / 1e6:.0f} MB)")
 
     print("\n  route 1: dvc pull")
     remotes = subprocess.run([PY, "-m", "dvc", "remote", "list"], cwd=REPO, capture_output=True, text=True).stdout \
@@ -541,7 +555,8 @@ def download():
         with open(z, "rb") as f:
             got = hashlib.file_digest(f, "sha256").hexdigest()
         if got != ZIP_SHA:
-            raise SystemExit(f"sha256 {got[:12]}... is not the team zip's {ZIP_SHA[:8]}...{ZIP_SHA[-6:]}: wrong or broken file")
+            raise SystemExit(f"sha256 {got[:12]}... is not the team zip's {ZIP_SHA[:8]}...{ZIP_SHA[-6:]}: "
+                             "wrong or broken file")
         print(f"  sha256 ok. Unzipping into {root / 'snapshots'}")
         with zipfile.ZipFile(z) as zf:
             guard(disk=sum(i.file_size for i in zf.infolist()) / GB + 1, disk_at=root)
@@ -556,9 +571,10 @@ def download():
     if ARGS.public_pull:
         guard(ram=1, disk=5, disk_at=root, hosts=("issues.apache.org", "gitlab.com", "github.com"))
         print("    collect pulls every SPARK ticket (about 35 min, 1.8 GB raw / ~120 MB gzipped) and the GitLab issues "
-              f"(~120 MB), then clones the 22 repos (~2.5 GB), all into {root / 'snapshots'}. Resumable: rerun after a stop.\n"
-              "    Today's tickets differ from the team's, so this makes a run of your own: another run_id, other numbers "
-              "than 70dd1dabfed544b8 in REPORT.md.")
+              f"(~120 MB), then clones the 22 repos (~2.5 GB), all into {root / 'snapshots'}. "
+              "Resumable: rerun after a stop.\n"
+              "    Today's tickets differ from the team's, so this makes a run of your own: another run_id, "
+              "other numbers than 70dd1dabfed544b8 in REPORT.md.")
         rc, out = run([PY, "-m", "meridian.collect", "--run-id", "new", "--config", "meridian.toml"])
         if rc:
             raise SystemExit(f"collect exited {rc}: rerun to resume")
@@ -590,7 +606,8 @@ def collect():
     rc, out = run([PY, "-m", "meridian.collect", "--run-id", run_id, "--config", "meridian.toml"])
     if rc or f"run_id={run_id}" not in out.strip().splitlines()[-1]:
         raise SystemExit(f"collect exit {rc}; its last line must say run_id={run_id}")
-    saw(f"data acquisition: the same code SHAs + raw pulls + meridian.toml gave the same run_id={run_id} as the team's.")
+    saw(f"data acquisition: the same code SHAs + raw pulls + meridian.toml gave the same run_id={run_id} "
+        "as the team's.")
     return f"run_id={run_id}"
 
 
@@ -612,7 +629,7 @@ def team_tests():
 def task_commands():
     from dags.pipeline_spec import DAGS, command
     run_id = settings()["pipeline"]["run_id"]
-    print(f"  the team run, without Airflow, from Data-Pipeline/ (in order; needs the data from `download`):\n")
+    print("  the team run, without Airflow, from Data-Pipeline/ (in order; needs the data from `download`):\n")
     for t in [*DAGS["update"], "bias"]:
         print(f"    {command('update', t, run_id, 'meridian.toml', 'python')}")
     print("\n  or let DVC run whatever changed:  dvc repro")
@@ -639,7 +656,8 @@ def airflow():
             "airflow-scheduler python -m unittest tests.test_dag -v",
             "docker compose exec airflow-scheduler airflow dags unpause meridian_update",
             "docker compose exec airflow-scheduler airflow dags trigger meridian_update --conf '{\"force\": true}'"]
-    env = dict(re.findall(r"^(\w+)=(.*)$", (HERE / (".env" if (HERE / ".env").exists() else ".env.example")).read_text(), re.M))
+    env = dict(re.findall(r"^(\w+)=(.*)$",
+                          (HERE / (".env" if (HERE / ".env").exists() else ".env.example")).read_text(), re.M))
     ui = f"http://localhost:{env.get('AIRFLOW_PORT') or 8080}"
     if why := docker_ok():
         print("  run these yourself, from Data-Pipeline/ (cp .env.example .env first):\n    " + "\n    ".join(cmds))
@@ -654,7 +672,8 @@ def airflow():
         if rc:
             raise SystemExit(f"{' '.join(cmd[:3])} exited {rc}")
     print(f"\n  Airflow UI: {ui}  (login: .env AIRFLOW_ADMIN_USER / AIRFLOW_ADMIN_PASSWORD)\n"
-          "  trigger: meridian_update -> Trigger DAG w/ config -> {\"force\": true}, or:\n    " + "\n    ".join(cmds[2:]))
+          "  trigger: meridian_update -> Trigger DAG w/ config -> {\"force\": true}, or:\n    "
+          + "\n    ".join(cmds[2:]))
     note = "image built, DagBag loads both DAGs"
     if ARGS.airflow_run:
         ex = ["docker", "compose", "exec", "-T", "airflow-scheduler", "airflow", "dags"]
@@ -663,7 +682,8 @@ def airflow():
         print("  waiting for the run (needs the team data in snapshots/; Ctrl+C stops waiting, not the run)")
         for _ in range(240):
             time.sleep(30)
-            out = subprocess.run(ex + ["list-runs", "-d", "meridian_update", "-o", "json"], cwd=HERE, capture_output=True,
+            out = subprocess.run(ex + ["list-runs", "-d", "meridian_update", "-o", "json"], cwd=HERE,
+                                 capture_output=True,
                                  text=True).stdout
             state = (json.loads(out[out.find("["):] if "[" in out else "[]") or [{}])[0].get("state")
             print(f"  {time.strftime('%H:%M:%S')}  latest run: {state}", flush=True)
@@ -705,7 +725,8 @@ def main():
     ap.add_argument("mode", choices=["short", "long", "download"])
     ap.add_argument("--zip", help="the team zip: a local path or a direct URL")
     ap.add_argument("--public-pull", action="store_true", help="no team zip: pull Jira and GitLab from the public APIs")
-    ap.add_argument("--airflow-run", action="store_true", help="long: trigger meridian_update in Docker and wait for it")
+    ap.add_argument("--airflow-run", action="store_true",
+                    help="long: trigger meridian_update in Docker and wait for it")
     ap.add_argument("--force", action="store_true", help="run steps even below their RAM/disk guard")
     ap.add_argument("--keep", action="store_true", help="keep the temp folder")
     ARGS = ap.parse_args()
@@ -713,7 +734,8 @@ def main():
     start = time.monotonic()
     ram = free_ram_gb()
     print(f"Meridian data pipeline demo · {ARGS.mode} · Python {platform.python_version()} · "
-          f"free RAM {f'{ram:.1f} GB' if ram is not None else 'unknown'} · free disk {free_disk_gb(data_root()):.1f} GB · "
+          f"free RAM {f'{ram:.1f} GB' if ram is not None else 'unknown'} · "
+          f"free disk {free_disk_gb(data_root()):.1f} GB · "
           f"data root {data_root()} · temp {TMP}")
     steps = {"short": SHORT + END, "long": SHORT + LONG + END, "download": DOWNLOAD}[ARGS.mode]
     STATE["n"] = len(steps)

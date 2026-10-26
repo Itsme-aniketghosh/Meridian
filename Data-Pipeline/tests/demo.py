@@ -15,11 +15,13 @@ from meridian.common import CONFIG, data_root, handoff, load_config, parser, rea
 PARTS = [  # (part, what it does, its tables, the table to show a row of)
     ("collect", "freezes the inputs: repos at pinned SHAs, raw Jira and GitLab pulls, one run_id", ["run"], "run"),
     ("history", "commits, files they touched, tickets as of snapshot_at, commit -> ticket keys, SZZ bug fixes",
-     ["git_commit", "commit_file", "ticket", "ticket_event", "ticket_link", "commit_ticket", "bug_inducing", "file_bug_fixes"],
+     ["git_commit", "commit_file", "ticket", "ticket_event", "ticket_link", "commit_ticket", "bug_inducing",
+      "file_bug_fixes"],
      "file_bug_fixes"),
     ("scan", "tree-sitter finds every place a tracked old name appears, with its role and scope",
      ["candidate", "parse_failure", "module_import", "deprecation"], "candidate"),
-    ("resolve", "Jedi decides what each name really is; who calls whom, up to 3 levels", ["resolution", "call_edge"], "call_edge"),
+    ("resolve", "Jedi decides what each name really is; who calls whom, up to 3 levels",
+     ["resolution", "call_edge"], "call_edge"),
     ("owners", "merges identities, maps people to teams, gives each file an owner team",
      ["person", "person_alias", "team_map", "file_owner"], "file_owner"),
     ("join", "call sites with owner, bug fixes, status and stable IDs; tickets mapped to code; what we missed",
@@ -48,13 +50,15 @@ def main(run_id, config=CONFIG):
         if missing := [t for t in tables if not (out / f"{t}.jsonl").exists()]:
             print(f"   {DIM}no {', '.join(missing)} yet: running python -m meridian.{part}{OFF}")
             start = time.monotonic()
-            subprocess.run([sys.executable, "-m", f"meridian.{part}", "--run-id", run_id, "--config", str(config)], check=True)
+            subprocess.run([sys.executable, "-m", f"meridian.{part}", "--run-id", run_id, "--config", str(config)],
+                           check=True)
             print(f"   {DIM}done in {time.monotonic() - start:.0f} s{OFF}")
         for t in tables:
             print(f"   {t:16} {lines(out / f'{t}.jsonl'):>10,} rows")
         row = first(out / f"{show}.jsonl")
         if row:
-            print(f"   {DIM}e.g. {show}: " + ", ".join(f"{k}={str(v)[:60]}" for k, v in row.items() if k != "run_id") + OFF)
+            print(f"   {DIM}e.g. {show}: " + ", ".join(f"{k}={str(v)[:60]}"
+                                                       for k, v in row.items() if k != "run_id") + OFF)
         print()
     print(f"{BOLD}What we missed{OFF}  coverage, from join")
     for c in read_jsonl(out / "coverage.jsonl"):

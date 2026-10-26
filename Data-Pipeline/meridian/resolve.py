@@ -82,8 +82,8 @@ import parso.file_io
 from jedi.inference.compiled.subprocess import functions as jedi_functions
 
 from meridian import scan as S
-from meridian.common import (Cache, blob_sha, cache_key, cache_on, data_root, handoff, load_config, load_settings, log, parser,
-                             read_jsonl, source_hash, write_jsonl)
+from meridian.common import (Cache, blob_sha, cache_key, cache_on, data_root, handoff, load_config, log, parser,
+                             read_jsonl, repo_checkout, source_hash, write_jsonl)
 from meridian.scan import PY, char_col, tracked, walk
 
 # parso (pinned in requirements.txt) evicts parsed files from memory once it holds 600, judging age by the file's
@@ -127,8 +127,8 @@ parso.file_io.FileIO.__init__ = _file_io
 
 
 # Jedi (pinned) guesses a parameter from the calls of its function in the first file of a project walk (os.walk) that
-# has one. os.walk lists a folder in the filesystem's order, so which caller it used, and so the answers, depended on the
-# OS: Windows (NTFS, by name) had 5 more django edges than macOS. Walk in one fixed order on every OS. The order is
+# has one. os.walk lists a folder in the filesystem's order, so which caller it used, and so the answers, depended on
+# the OS: Windows (NTFS, by name) had 5 more django edges than macOS. Walk in one fixed order on every OS. The order is
 # macOS's own (APFS, case-insensitive, its default), so the team's numbers, made on a Mac, stay.
 _CRC32C = [functools.reduce(lambda c, _: c >> 1 ^ (0x82F63B78 if c & 1 else 0), range(8), i) for i in range(256)]
 
@@ -152,7 +152,8 @@ def _walk(top):
 jedi.file_io.os = types.SimpleNamespace(**{**vars(os), "walk": _walk})  # only Jedi's folder walk changes
 
 RESOLVER = f"jedi=={jedi.__version__}"
-COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "detection", "via", "resolved_to", "resolver", "receiver_from"]
+COLUMNS = ["run_id", "repo", "path", "line", "col", "symbol", "detection", "via", "resolved_to", "resolver",
+           "receiver_from"]
 STDLIB = sorted({sysconfig.get_paths()[k] for k in ("stdlib", "platstdlib")})
 ENVIRONMENT = [Path(p).resolve() for p in STDLIB] + [Path(jedi.__file__).resolve().parent]  # with Jedi's own stubs
 
@@ -250,7 +251,8 @@ class Repo:
         if path not in self.code:
             self.code[path] = self.source(path).decode("utf-8", errors="replace")
         try:
-            script = jedi.Script(code=self.code[path], path=str(self.dir / path), project=self.project, environment=self.env)
+            script = jedi.Script(code=self.code[path], path=str(self.dir / path), project=self.project,
+                                 environment=self.env)
             return script.goto(line, col, follow_imports=follow_imports)
         except Exception as e:
             self.failures += 1
@@ -321,7 +323,8 @@ class Repo:
             return None
         home = S.scopes(recv)[:1]  # recv's own def/class, or [] for the module
         params = home[0].child_by_field_name("parameters") if home and home[0].type == "function_definition" else None
-        if params is not None and any(n.type == "identifier" and n.text == recv.text and S.name_only(n) for n in walk(params)):
+        if params is not None and any(n.type == "identifier" and n.text == recv.text and S.name_only(n)
+                                      for n in walk(params)):
             return None  # also a parameter: its value depends on the caller
         found = [n for n in walk(home[0] if home else root) if n.type == "identifier" and n.text == recv.text
                  and is_binding(n) and [d.id for d in S.scopes(n)[:1]] == [d.id for d in home]]
@@ -408,7 +411,8 @@ def resolve_candidates(run_id, repo, repo_dir, symbols, candidates, r=None):
     rows = []
     for c in candidates:
         if c["symbol"] not in symbols:
-            raise SystemExit(f"{repo} {c['path']}:{c['line']}: candidate symbol {c['symbol']!r} isn't tracked in meridian.toml")
+            raise SystemExit(f"{repo} {c['path']}:{c['line']}: candidate symbol {c['symbol']!r} "
+                             "isn't tracked in meridian.toml")
         detection, via, resolved_to = r.resolve_candidate(c)
         rows.append(dict(zip(COLUMNS, [run_id, repo, c["path"], c["line"], c["col"], c["symbol"], detection, via,
                                        resolved_to, RESOLVER, r.receiver_from(c, repo)])))
@@ -431,7 +435,8 @@ def resolve_aliases(run_id, repo, repo_dir, symbols, skip=(), r=None, paths=None
                 symbol = r.targets[resolved_to]
             else:  # say which binding the file made, so the row still explains itself
                 symbol, via = next((b for b in binds[alias] if b[1] == "import_alias"), binds[alias][0])
-            rows.append(dict(zip(COLUMNS, [run_id, repo, path, line, col, symbol, detection, via, resolved_to, RESOLVER, None])))
+            rows.append(dict(zip(COLUMNS,
+                                 [run_id, repo, path, line, col, symbol, detection, via, resolved_to, RESOLVER, None])))
     return rows
 
 
@@ -455,8 +460,9 @@ def resolve_cached(run_id, repo, r, candidates, files, cache, base):
     A file's rows are what Jedi and Repo make of the files they read while resolving it, given the checkout's names
     (in base, with the code, versions, config and dependency SHAs). So they are reused when base and the file's
     candidates are the same and every repo file read for it last time has the same blob SHA: a changed import, re-export
-    or anything else it read redoes it. A read in a dependency or the Python install is covered by base. A file that read
-    anything else, or had a Jedi failure, is never kept. call_edge is not cached: run() rebuilds it from these rows.
+    or anything else it read redoes it. A read in a dependency or the Python install is covered by base. A file that
+    read anything else, or had a Jedi failure, is never kept. call_edge is not cached: run() rebuilds it from these
+    rows.
     """
     global _reads
     by_path, blobs, places = {}, {}, {}
@@ -494,12 +500,14 @@ def resolve_cached(run_id, repo, r, candidates, files, cache, base):
                 _reads = None
             if r.failures == failures and None not in spots:
                 cache.put(path, {"key": key, "inputs": {p: blob(p) for p in sorted(spots - {""})},
-                                 "rows": [[{k: v for k, v in x.items() if k != "run_id"} for x in rows] for rows in got]})
+                                 "rows": [[{k: v for k, v in x.items() if k != "run_id"} for x in rows]
+                                          for rows in got]})
         taken = {(x["path"], x["line"], x["col"]) for x in got[0]}
         cands += got[0]
-        aliases += [x for x in got[1] if (x["path"], x["line"], x["col"]) not in taken]  # a candidate already covers that spot
-    log(f"  cache: {len(cache.hits)} of {len(todo)} files reused, {len(cache.new) - len(cache.hits)} resolved and kept, "
-        f"{len(todo) - len(cache.new)} resolved and not kept")
+        # a candidate already covers that spot
+        aliases += [x for x in got[1] if (x["path"], x["line"], x["col"]) not in taken]
+    log(f"  cache: {len(cache.hits)} of {len(todo)} files reused, "
+        f"{len(cache.new) - len(cache.hits)} resolved and kept, {len(todo) - len(cache.new)} resolved and not kept")
     return cands, aliases
 
 
@@ -517,15 +525,15 @@ def dependency_paths(snap, manifest, repo, symbols):
     """Snapshot repos that contain a tracked module this repo uses but doesn't have itself (packages -> django)."""
     paths = []
     for top in sorted({m.split(".")[0] for m in symbols.values()}):
-        if (snap / "repos" / repo.replace("/", "__") / top / "__init__.py").exists():
+        if (repo_checkout(snap, repo) / top / "__init__.py").exists():
             continue
-        paths += [snap / "repos" / other.replace("/", "__") for other in sorted(manifest["repos"])
-                  if other != repo and (snap / "repos" / other.replace("/", "__") / top / "__init__.py").exists()]
+        paths += [repo_checkout(snap, other) for other in sorted(manifest["repos"])
+                  if other != repo and (repo_checkout(snap, other) / top / "__init__.py").exists()]
     return paths
 
 
-EDGE_COLUMNS = ["run_id", "repo", "caller_path", "caller_scope", "line", "col", "callee_path", "callee_repo", "callee_scope",
-                "introduced_sha"]
+EDGE_COLUMNS = ["run_id", "repo", "caller_path", "caller_scope", "line", "col", "callee_path", "callee_repo",
+                "callee_scope", "introduced_sha"]
 
 
 def scope_of(root, src, line, col):
@@ -573,8 +581,9 @@ def call_edges(run_id, repo, r, uses, files, depth):
     Then the callers of every function holding one (depth 2), and their callers (depth 3, [resolver] call_edge_depth).
     A call counts only when Jedi lands on that very function's def (or, for an __init__, its class). Module and class
     bodies get edges but have no callers, so they stop the walk. Imports never make edges.
-    introduced_sha: the commit that last changed the caller's line, by join's blame (--first-parent -w) at the checkout's
-    HEAD, which run() has checked is the manifest's SHA. So an edge and the call site on its line name the same commit.
+    introduced_sha: the commit that last changed the caller's line, by join's blame (--first-parent -w) at the
+    checkout's HEAD, which run() has checked is the manifest's SHA. So an edge and the call site on its line name the
+    same commit.
     """
     from meridian.join import blame
     edges, frontier, seen, answers = {}, {}, set(), {}
@@ -606,7 +615,8 @@ def call_edges(run_id, repo, r, uses, files, depth):
     for path, line, *_ in edges:
         lines.setdefault(path, set()).add(line)
     made = {path: blame(r.dir, "HEAD", path, ls) for path, ls in sorted(lines.items())}
-    return [dict(zip(EDGE_COLUMNS, [run_id, repo, path, scope, line, col, callee_path, callee_repo, callee_scope, made[path][line]]))
+    return [dict(zip(EDGE_COLUMNS,
+                     [run_id, repo, path, scope, line, col, callee_path, callee_repo, callee_scope, made[path][line]]))
             for (path, line, col, callee_repo, callee_path, callee_scope), scope in sorted(edges.items())]
 
 
@@ -633,15 +643,17 @@ def run(run_id, cfg, root=None):
     settings = cfg.get("resolver", {})
     depth = settings.get("call_edge_depth", 3)
     if not settings.get("keep_unresolved", True):  # CONTRACTS.md rule 9: nothing is silently dropped
-        raise SystemExit("[resolver] keep_unresolved = false would drop rows silently, which CONTRACTS.md rule 9 forbids")
-    rules = dict(one_hop=settings.get("one_hop_assignment", True), score_on_old_name=settings.get("score_on_old_name", True))
+        raise SystemExit("[resolver] keep_unresolved = false would drop rows silently, "
+                         "which CONTRACTS.md rule 9 forbids")
+    rules = dict(one_hop=settings.get("one_hop_assignment", True),
+                 score_on_old_name=settings.get("score_on_old_name", True))
     roles = {(c["repo"], c["path"], c["line"], c["col"]): c["role"] for cs in by_repo.values() for c in cs}
     cached = cache_on("resolve")
     rows, edges = [], []
     for repo, sha in sorted(manifest["repos"].items()):
         if repo not in wanted:
             continue
-        repo_dir = snap / "repos" / repo.replace("/", "__")
+        repo_dir = repo_checkout(snap, repo)
         if S.head(repo_dir) != sha:
             raise SystemExit(f"{repo}: checkout is at {S.head(repo_dir)}, the manifest says {sha}")
         deps = dependency_paths(snap, manifest, repo, wanted[repo])
@@ -681,13 +693,15 @@ def run(run_id, cfg, root=None):
         # shortcut: with [cache] resolve on, call_edge's Jedi questions are still all asked. If resolve stays slow,
         # cache each call site's answer under its file's recorded reads, as resolve_cached does for rows
         found = call_edges(run_id, repo, r, uses, py_files(repo_dir, skip), depth)
-        log(f"  {len(found)} call edges ({len(uses)} from confirmed calls, {len(found) - len(uses)} from their callers) · "
+        log(f"  {len(found)} call edges ({len(uses)} from confirmed calls, "
+            f"{len(found) - len(uses)} from their callers) · "
             f"{r.failures - failed} Jedi failures while finding callers · "
             f"{sum(x['receiver_from'] is not None for x in cands)} receiver_from")
         edges += found
     out.mkdir(parents=True, exist_ok=True)
     write_jsonl(out / "resolution.jsonl", rows, ("repo", "path", "line", "col"))
-    write_jsonl(out / "call_edge.jsonl", edges, ("repo", "caller_path", "line", "col", "callee_repo", "callee_path", "callee_scope"))
+    write_jsonl(out / "call_edge.jsonl", edges,
+                ("repo", "caller_path", "line", "col", "callee_repo", "callee_path", "callee_scope"))
     log(f"{len(rows)} resolution rows, {len(edges)} call edges -> {out} ({RESOLVER})")
     return rows
 

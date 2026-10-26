@@ -1,4 +1,4 @@
-# Optional, Phase 2 (Data-Pipeline/UPDATE-PLAN.md): a push to a watched repo's main branch starts the update DAG
+# Optional, Phase 2 (Data-Pipeline/notes/UPDATE-PLAN.md): a push to a watched repo's main branch starts the update DAG
 # through Airflow's REST API. A burst of pushes is fine: the DAG has max_active_runs = 1, and its "anything new?" step
 # drops a queued run that has nothing left to pick up.
 #

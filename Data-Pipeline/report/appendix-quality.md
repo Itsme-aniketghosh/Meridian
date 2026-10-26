@@ -4,7 +4,7 @@ Sources: `stats.json`, `anomalies.json`, `bias.json` and `meridian.sqlite` of te
 
 ## 1. Tests
 
-`python -m unittest discover -s tests -t .` from `Data-Pipeline/`, without team data: 262 tests, OK, 13 skipped, 0 failures, 0 errors. The saved verbose run (`tests_light.txt`: 261 tests in 79 s, 248 passed) and the chart below predate one new regression test in `test_kb.py`.
+`python -m unittest discover -s tests -t .` from `Data-Pipeline/`, without team data: 285 tests, OK, 14 skipped, 0 failures, 0 errors. The saved verbose run (`tests_light.txt`: 261 tests in 79 s, 248 passed) and the chart below predate one new regression test in `test_kb.py`.
 
 ![](figures/tests_per_file.png)
 
@@ -31,7 +31,7 @@ Team-run tests (`MERIDIAN_RUN_ID=70dd1dabfed544b8`, Oct 25, `tests_team.txt`):
 | `test_resolve.PackagesScore`: precision and recall on the 20 Django packages | ✅ 1 of 1 |
 | `test_golden.TeamRun`: md5 of the 24 `.jsonl` outputs vs `golden/70dd1dabfed544b8.json` (Mac, schema v1.2) | ❌ 20 of 24 match |
 
-`test_scan` and `test_resolve` together: 60 tests, 254 s, OK, none skipped. Of the 4 golden mismatches, 3 (`resolution`, `call_edge`, `blast_radius`) are likely the resolver's known Windows gap (TESTING.md, UPDATE-PLAN.md), not yet verified. `call_site` is likely the join fix made after the freeze: the outputs on disk date from Oct 24, before the golden file was regenerated for schema v1.2 and before join's "no stolen matches" fix (`b277e65`, Oct 25). A fresh Linux run in Airflow will settle it. The fixture half of the golden check (hashes of all 25 tables) runs everywhere and passed.
+`test_scan` and `test_resolve` together: 60 tests, 254 s, OK, none skipped. Of the 4 golden mismatches, 3 (`resolution`, `call_edge`, `blast_radius`) are likely the resolver's known Windows gap (TESTING.md, notes/UPDATE-PLAN.md), not yet verified. `call_site` is likely the join fix made after the freeze: the outputs on disk date from Oct 24, before the golden file was regenerated for schema v1.2 and before join's "no stolen matches" fix (`b277e65`, Oct 25). A fresh Linux run in Airflow will settle it. The fixture half of the golden check (hashes of all 25 tables) runs everywhere and passed.
 
 ## 2. Schema and statistics
 

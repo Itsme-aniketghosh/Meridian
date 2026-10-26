@@ -39,7 +39,8 @@ def defects4j(d4j, labels, code):
              for r in csv.reader(open(d4j / "project_repos" / "repos.csv", encoding="utf-8", newline=""))}
     fixed = {}
     for p in {r["pid"] for r in labels}:
-        for name in ("active-bugs.csv", "deprecated-bugs.csv"):  # some labelled bugs are deprecated in v3, the fix still is one
+        # some labelled bugs are deprecated in v3, the fix still is one
+        for name in ("active-bugs.csv", "deprecated-bugs.csv"):
             f = d4j / "framework" / "projects" / p / name
             for b in csv.DictReader(open(f, encoding="utf-8", newline="")) if f.exists() else []:
                 fixed[(p, b["bug.id"])] = b["revision.id.fixed"]
@@ -47,7 +48,8 @@ def defects4j(d4j, labels, code):
     for r in labels:
         co, fix = d4j / "project_repos" / repos[r["pid"]], fixed[(r["pid"], r["bid"])]
         parent = git(co, "rev-parse", fix + "^").strip()
-        paths = [p for p in git(co, "diff", "--name-only", "--no-renames", parent, fix).split("\n") if p and code_file(p, code)]
+        paths = [p for p in git(co, "diff", "--name-only", "--no-renames", parent, fix).split("\n")
+                 if p and code_file(p, code)]
         past = history(co, parent, paths) if paths else []
         when = {s: at for s, at, _ in past}
         blamed = Counter()
@@ -72,7 +74,8 @@ def defects4j(d4j, labels, code):
 
 
 def fragility(db, snapshot_at, cfg):
-    fmt, ck, rule, risky_at = cfg["run"]["time_format"], cfg["checks"], cfg["szz"]["fix"], cfg["graph"]["risky_bug_fixes"]
+    fmt, ck = cfg["run"]["time_format"], cfg["checks"]
+    rule, risky_at = cfg["szz"]["fix"], cfg["graph"]["risky_bug_fixes"]
     end, days = datetime.strptime(snapshot_at, fmt).replace(tzinfo=timezone.utc), ck["fragility_window_days"]
     cut, start = (end - timedelta(days=days)).strftime(fmt), (end - timedelta(days=2 * days)).strftime(fmt)
     src_rx, test_rx = re.compile(ck["source_files"]), re.compile(ck["test_files"])
@@ -80,7 +83,7 @@ def fragility(db, snapshot_at, cfg):
     fix_sql = f"""SELECT DISTINCT c.repo, c.sha, f.path FROM commit_ticket ct JOIN ticket t ON t.key = ct.key
                  JOIN git_commit c ON c.repo = ct.repo AND c.sha = ct.sha JOIN commit_file f ON f.repo = c.repo AND f.sha = c.sha
                  WHERE {" AND ".join(f"t.{k} = ?" for k in rule)} AND t.bulk_closed = 0 AND c.first_parent = 1
-                 AND c.is_merge = 0 AND c.authored_at >= ? AND c.authored_at > ? AND c.authored_at <= ?"""
+                 AND c.is_merge = 0 AND c.authored_at >= ? AND c.authored_at > ? AND c.authored_at <= ?"""  # noqa: E501
 
     def fixes(a, b):
         out = defaultdict(Counter)
@@ -92,8 +95,9 @@ def fragility(db, snapshot_at, cfg):
     prev, nxt = fixes(start, cut), fixes(cut, snapshot_at)
     for repo in sorted(prev):
         live, churn = set(), Counter()
-        for path, a, d in db.execute("""SELECT f.path, f.added, f.deleted FROM commit_file f JOIN git_commit c ON c.repo = f.repo
-                AND c.sha = f.sha WHERE f.repo = ? AND c.first_parent = 1 AND c.authored_at > ? AND c.authored_at <= ?""", (repo, start, cut)):
+        live_sql = """SELECT f.path, f.added, f.deleted FROM commit_file f JOIN git_commit c ON c.repo = f.repo
+                AND c.sha = f.sha WHERE f.repo = ? AND c.first_parent = 1 AND c.authored_at > ? AND c.authored_at <= ?"""  # noqa: E501
+        for path, a, d in db.execute(live_sql, (repo, start, cut)):
             if src(path):
                 live.add(path)
                 churn[path] += (a or 0) + (d or 0)
@@ -104,10 +108,12 @@ def fragility(db, snapshot_at, cfg):
 
         def lift(files):  # as text: n/a when there's nothing to divide by (no files picked, or no fixes next year)
             got = sum(n_next.get(p, 0) for p in files)
-            return (f"{got / total / (len(files) / len(live)):.1f}x" if files and total else "n/a"), (f"{got / total:.0%}" if total else "n/a")
+            return ((f"{got / total / (len(files) / len(live)):.1f}x" if files and total else "n/a"),
+                    (f"{got / total:.0%}" if total else "n/a"))
 
         (l, s), (lc, sc) = lift(risky), lift(by_churn)
-        log(f"[fragility] {repo}  cutoff {cut}  source files {len(live):,}, risky {len(risky)} ({len(risky) / len(live):.1%}) "
+        log(f"[fragility] {repo}  cutoff {cut}  source files {len(live):,}, "
+            f"risky {len(risky)} ({len(risky) / len(live):.1%}) "
             f"-> {s} of next year's {total:,} file-fixes, lift {l}")
         log(f"            churn baseline, top {len(risky)} files by churn -> {sc}, lift {lc}")
 

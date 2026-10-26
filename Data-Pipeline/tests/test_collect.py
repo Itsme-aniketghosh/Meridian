@@ -42,7 +42,8 @@ class MockJira(BaseHTTPRequestHandler):
         ids = [i for i in (sorted(self.changed) if "updated >=" in jql else range(TOTAL)) if i not in self.deleted]
         if m := re.search(r'key > "FIX-(\d+)"', jql):
             ids = [i for i in ids if i + 1 > int(m[1])]
-        issues = [{"key": f"FIX-{i + 1}", "fields": {"summary": self.changed.get(i, f"ticket {i + 1}"), "created": "2026-01-01T00:00:00.000+0000"},
+        issues = [{"key": f"FIX-{i + 1}", "fields": {"summary": self.changed.get(i, f"ticket {i + 1}"),
+                                                     "created": "2026-01-01T00:00:00.000+0000"},
                    "changelog": {"histories": []}} for i in ids[start:start + n]]
         body = json.dumps({"startAt": start, "maxResults": n, "total": len(ids), "issues": issues}).encode()
         self.send_response(200)
@@ -69,7 +70,8 @@ class MockGitLab(BaseHTTPRequestHandler):
             data = {"project": {"issues": {"nodes": nodes}}}
         else:
             iids = sorted(self.changed if "updatedAfter" in q["query"] else self.issues, key=int)
-            nodes = [{"iid": i, "title": self.issues[i][0], "createdAt": "2025-02-01T00:00:00Z", "hasParent": False} for i in iids]
+            nodes = [{"iid": i, "title": self.issues[i][0], "createdAt": "2025-02-01T00:00:00Z", "hasParent": False}
+                     for i in iids]
             data = {"project": {"issues": {"pageInfo": {"hasNextPage": False, "endCursor": None}, "nodes": nodes}}}
         body = json.dumps({"data": data}).encode()
         self.send_response(200)
@@ -84,6 +86,7 @@ class MockGitLab(BaseHTTPRequestHandler):
 def clock(start):
     """A stand-in for collect's only clock: one second later on every call, from start."""
     t = [datetime.strptime(start, "%Y-%m-%dT%H:%M:%SZ")]
+
     def now():
         t[0] += timedelta(seconds=1)
         return t[0].strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -91,7 +94,8 @@ def clock(start):
 
 
 def commit(path, i):
-    """Commit c<i> on the checked-out branch, with a fixed author and date (2026-01-0<i+1>), so SHAs match everywhere."""
+    """Commit c<i> on the checked-out branch, with a fixed author and date (2026-01-0<i+1>), so SHAs match
+    everywhere."""
     run = lambda *a, **env: subprocess.run(["git", "-C", str(path), *a], check=True, capture_output=True,
                                            env={**os.environ, **env}, text=True).stdout.strip()
     (path / "a.py").write_text(f"x = {i}\n")
@@ -108,7 +112,8 @@ def fixture_repo(path):
     subprocess.run(["git", "-C", str(path), "init", "--quiet", "--initial-branch=main"], check=True)
     for i in range(3):
         commit(path, i)
-    return subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD~1"], check=True, capture_output=True, text=True).stdout.strip()
+    return subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD~1"], check=True, capture_output=True,
+                          text=True).stdout.strip()
 
 
 # A pinned run as the team's v1 is made: refs pinned, snapshot_at configured, the mirror and a finished base pull
@@ -120,10 +125,11 @@ repos = [{ repo = "fixture/repo", ref = "HEAD~1", url = "https://example.invalid
 snapshot_at = "2026-01-02T00:00:00Z"
 tracker = "jira"
 jira = { base = "https://example.invalid/rest/api/2/search", jql = "project=FIX ORDER BY key ASC", page = 100, expand = "changelog" }
-"""
+"""  # noqa: E501
 PINNED_RUN = {"config_hash": "4fa921f28b531a6407ecb1033949005fb1b7eaa72a353bfb6a53869bf425e2a7", "model_versions": "{}",
-              "notes": "jira/FIX pulled 2026-01-03T00:00:00Z..2026-01-03T00:00:05Z | ticket status, resolution and resolved_at "
-                       "are as of snapshot_at; other ticket fields are as of the pull",
+              "notes": "jira/FIX pulled 2026-01-03T00:00:00Z..2026-01-03T00:00:05Z | "
+                       "ticket status, resolution and resolved_at are as of snapshot_at; "
+                       "other ticket fields are as of the pull",
               "repo_shas": '{"fixture/repo":"327aca897508485cb01090564786b637d8f0bb8d"}', "run_id": "b50f349d8a81d027",
               "snapshot_at": "2026-01-02T00:00:00Z",
               "source_hashes": '{"jira/FIX":"0d71e4b84315a06430c6916b0e6d4c82ad4dbb71837ee2e515ac5becc4cca764"}',
@@ -132,14 +138,16 @@ PINNED_RUN = {"config_hash": "4fa921f28b531a6407ecb1033949005fb1b7eaa72a353bfb6a
 
 def pinned_cache(root, upstream):
     cache = root / "snapshots" / "_cache"
-    subprocess.run(["git", "clone", "--bare", "--quiet", str(upstream), str(cache / "repos" / "fixture__repo.git")], check=True)
+    subprocess.run(["git", "clone", "--bare", "--quiet", str(upstream), str(cache / "repos" / "fixture__repo.git")],
+                   check=True)
     jira = cache / "jira" / "FIX"
     jira.mkdir(parents=True)
     issues = [{"key": f"FIX-{i}", "fields": {"summary": f"ticket {i}", "created": "2026-01-01T00:00:00.000+0000"},
                "changelog": {"histories": []}} for i in (1, 2, 3)]
     body = json.dumps({"startAt": 0, "maxResults": 100, "total": 3, "issues": issues}).encode()
     (jira / "page-000000.json.gz").write_bytes(S.gz(body))
-    (jira / ".pull.json").write_text(json.dumps({"started_at": "2026-01-03T00:00:00Z", "finished_at": "2026-01-03T00:00:05Z", "total": 3}))
+    (jira / ".pull.json").write_text(json.dumps({"started_at": "2026-01-03T00:00:00Z",
+                                                 "finished_at": "2026-01-03T00:00:05Z", "total": 3}))
     return jira
 
 
@@ -195,7 +203,8 @@ min_share = {threshold}
         self.assertEqual(sorted(p.name for p in (snap / "jira" / "FIX").iterdir()),
                          ["page-000000.json.gz", "page-000100.json.gz", "page-000200.json.gz"])
         co = snap / "repos" / "fixture__repo"
-        git = lambda *x: subprocess.run(["git", "-C", str(co), *x], capture_output=True, text=True, check=True).stdout.strip()
+        git = lambda *x: subprocess.run(["git", "-C", str(co), *x], capture_output=True, text=True,
+                                        check=True).stdout.strip()
         self.assertEqual(git("rev-parse", "HEAD"), self.sha)
         self.assertEqual(git("rev-list", "--count", "HEAD"), "2")  # full history up to the pin
         run_rows = (self.tmp / "root" / "out" / a["run_id"] / "run.jsonl").read_text().splitlines()
@@ -251,7 +260,8 @@ min_share = {threshold}
         jira = pinned_cache(root, self.tmp / "upstream")
         cfg = self.tmp / "pinned.toml"
         cfg.write_text(PINNED)
-        for name, meta in (("delta-20260204T000000Z", {"started_at": "2026-02-04T00:00:00Z", "finished_at": "2026-02-04T00:00:01Z"}),
+        for name, meta in (("delta-20260204T000000Z",
+                            {"started_at": "2026-02-04T00:00:00Z", "finished_at": "2026-02-04T00:00:01Z"}),
                            ("delta-20260205T000000Z", {"started_at": "2026-02-05T00:00:00Z"})):  # the second one killed
             (jira / name).mkdir()
             (jira / name / "cursor.json").write_text('{"since":"2026-01-03T00:00:00Z"}\n')
@@ -265,7 +275,8 @@ min_share = {threshold}
         m = json.loads((snap / "manifest.json").read_text())
         self.assertEqual(sorted(m), ["config_hash", "repos", "run_id", "snapshot_at", "sources"])
         co = snap / "repos" / "fixture__repo"
-        git = lambda *x: subprocess.run(["git", "-C", str(co), *x], capture_output=True, text=True, check=True).stdout.strip()
+        git = lambda *x: subprocess.run(["git", "-C", str(co), *x], capture_output=True, text=True,
+                                        check=True).stdout.strip()
         self.assertEqual(git("rev-parse", "HEAD"), self.sha)
         self.assertEqual(git("rev-list", "--count", "HEAD"), "2")
 
@@ -296,7 +307,8 @@ min_share = {threshold}
 
         snap_a, snap_b = root / "snapshots" / a["run_id"], root / "snapshots" / b["run_id"]
         delta = snap_b / "jira" / "FIX" / "delta-20260202T000003Z"
-        self.assertEqual(sorted(p.name for p in delta.iterdir()), ["cursor.json", "keys.json.gz", "page-000000.json.gz"])
+        self.assertEqual(sorted(p.name for p in delta.iterdir()),
+                         ["cursor.json", "keys.json.gz", "page-000000.json.gz"])
         self.assertEqual(json.loads((delta / "cursor.json").read_text()), {"since": "2026-01-31T00:00:03Z"})
         for p in (snap_a / "jira" / "FIX").glob("page-*"):  # the base pull, unchanged
             self.assertEqual(p.read_bytes(), (snap_b / "jira" / "FIX" / p.name).read_bytes())
@@ -304,7 +316,8 @@ min_share = {threshold}
         self.assertEqual([t["key"] for t in ta], [t["key"] for t in tb])
         self.assertEqual((ta[4]["fields"]["summary"], tb[4]["fields"]["summary"]), ("ticket 5", "ticket 5, edited"))
 
-        git = lambda co, *x: subprocess.run(["git", "-C", str(co), *x], capture_output=True, text=True, check=True).stdout.strip()
+        git = lambda co, *x: subprocess.run(["git", "-C", str(co), *x], capture_output=True, text=True,
+                                            check=True).stdout.strip()
         self.assertEqual(git(snap_b / "repos" / "fixture__repo", "rev-parse", "HEAD"), new)
         self.assertEqual(git(snap_b / "repos" / "fixture__repo", "rev-list", "--count", "HEAD"), "4")
         self.assertEqual(git(snap_a / "repos" / "fixture__repo", "rev-parse", "HEAD"), old)  # the older run is intact
@@ -354,7 +367,8 @@ min_share = {threshold}
         """A GitLab delta asks for issues updated after the cursor, each with all its notes again; the newest wins."""
         MockGitLab.issues = {"1": ("one", []), "2": ("two", []), "3": ("three", [])}
         MockGitLab.changed, MockGitLab.queries = set(), []
-        ds = {"graphql": self.graphql, "project": "g/p", "issues_created": ["2025-01-01T00:00:00Z", "2025-07-01T00:00:00Z"]}
+        ds = {"graphql": self.graphql, "project": "g/p",
+              "issues_created": ["2025-01-01T00:00:00Z", "2025-07-01T00:00:00Z"]}
         pull = lambda d, since: S.pull_gitlab(d, ds, since)
         d = self.tmp / "gitlab"
         with mock.patch.object(S, "now", clock("2026-02-01T00:00:00Z")):
@@ -362,7 +376,8 @@ min_share = {threshold}
         self.assertEqual(used, [d])
         base = (d / "issues.jsonl.gz").read_bytes()
 
-        note = {"body": "marked this issue as blocking #1", "createdAt": "2026-02-01T12:00:00Z", "system": True, "author": None}
+        note = {"body": "marked this issue as blocking #1", "createdAt": "2026-02-01T12:00:00Z", "system": True,
+                "author": None}
         MockGitLab.issues["2"] = ("two, edited", [note])
         MockGitLab.changed = {"2"}
         MockGitLab.issues.pop("3")  # deleted: only the delta's iid listing can tell
@@ -386,7 +401,8 @@ min_share = {threshold}
     def test_one_command_for_airflow(self):
         """CONTRACTS.md, "Every part runs as one command": data under $MERIDIAN_DATA, exit code, run_id last."""
         cfg = self.config()
-        cmd = lambda run_id: subprocess.run([sys.executable, "-m", "meridian.collect", "--run-id", run_id, "--config", str(cfg)],
+        cmd = lambda run_id: subprocess.run([sys.executable, "-m", "meridian.collect", "--run-id", run_id,
+                                             "--config", str(cfg)],
                                             cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True,
                                             env={**os.environ, "MERIDIAN_DATA": str(self.tmp / "data")})
         new = cmd("new")
@@ -397,6 +413,32 @@ min_share = {threshold}
         wrong = cmd("0000000000000000")
         self.assertNotEqual(wrong.returncode, 0)
         self.assertIn("inputs now give", wrong.stderr)
+
+
+class Curl(unittest.TestCase):
+    NET = {"http_tries": 3, "http_backoff_s": 1, "http_429_factor": 10}
+
+    def curl(self, *replies):
+        """collect.curl against these (curl exit code, stdout) replies; -> (its result or error, the sleeps)."""
+        runs = [mock.Mock(returncode=rc, stdout=out) for rc, out in replies]
+        with mock.patch.object(S, "load_infra", return_value=self.NET), \
+                mock.patch.object(S.subprocess, "run", side_effect=runs), \
+                mock.patch.object(S.time, "sleep") as sleep, redirect_stdout(io.StringIO()):
+            try:
+                got = S.curl("https://example.invalid/x")
+            except RuntimeError as e:
+                got = e
+        return got, [c.args[0] for c in sleep.call_args_list]
+
+    def test_retries_with_backoff_then_returns_the_body(self):
+        got, sleeps = self.curl((0, b"slow down\n429"), (7, b"\n000"), (0, b'{"ok": 1}\n200'))
+        self.assertEqual((got, sleeps), (b'{"ok": 1}', [10, 2]))   # 429 waits 10x longer; doubling per try
+
+    def test_gives_up_after_the_last_try(self):
+        got, sleeps = self.curl(*[(0, b"\n500")] * 3)
+        self.assertIsInstance(got, RuntimeError)
+        self.assertIn("gave up after 3 tries", str(got))
+        self.assertEqual(sleeps, [1, 2, 4])
 
 
 if __name__ == "__main__":

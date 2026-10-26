@@ -17,9 +17,11 @@ import meridian.report as RP
 from meridian.common import write_jsonl
 
 REPO = "acme/shop"
-C1, C2, C3, C4 = ("1" * 40, "start"), ("2" * 40, "SHOP-1 a new call"), ("3" * 40, "drop the old call"), ("4" * 40, "move k")
+C1, C2, C3, C4 = ("1" * 40, "start"), ("2" * 40, "SHOP-1 a new call"), ("3" * 40,
+                                                                        "drop the old call"), ("4" * 40, "move k")
 COMMITS = [dict(run_id="R2", repo=REPO, sha=sha, parent_sha=None, seq=i, first_parent=1, is_merge=0,
-                authored_at=f"2026-0{i + 1}-01T00:00:00Z", author_email="ann@example.com", committer_email="ann@example.com",
+                authored_at=f"2026-0{i + 1}-01T00:00:00Z", author_email="ann@example.com",
+                committer_email="ann@example.com",
                 subject=subject) for i, (sha, subject) in enumerate((C1, C2, C3, C4))]
 R1, R2 = ("R1", "2026-01-15T00:00:00Z"), ("R2", "2026-05-15T00:00:00Z")
 
@@ -45,10 +47,12 @@ SITES_R2 = SITES_R1 + [  # append-only: R1's versions stay, R2 writes what chang
     site("S2", R2, "a.py", 5, "g", C3, "removed"),            # removed by commit 3
     site("S3", R2, "b.py", 4, "k", C4),                       # moved by commit 4
     site("S4", R2, "a.py", 7, "h", C2)]                       # added by commit 2
-EDGES_R1 = [edge(R1, "a.py", "f", 3, C1), edge(R1, "a.py", "g", 5, C1), edge(R1, "b.py", "k", 2, C1), edge(R1, "c.py", "m", 10, C1)]
+EDGES_R1 = [edge(R1, "a.py", "f", 3, C1), edge(R1, "a.py", "g", 5, C1), edge(R1, "b.py", "k", 2, C1),
+            edge(R1, "c.py", "m", 10, C1)]
 EDGES_R2 = [edge(R2, "a.py", "f", 3, C1),
             edge(R2, "a.py", "h", 7, C2),                     # new call: commit 2
-            edge(R2, "b.py", "k", 4, C4),                     # line rewritten by commit 4: old edge removed, this one added
+            # line rewritten by commit 4: old edge removed, this one added
+            edge(R2, "b.py", "k", 4, C4),
             edge(R2, "c.py", "m", 12, C1)]                    # only moved (lines inserted above): neither
 
 
@@ -104,7 +108,8 @@ class TwoRuns(unittest.TestCase):
     def test_blast_radius_before_and_after_by_depth(self):
         b = self.doc["blast_radius"][0]
         self.assertEqual((b["repo"], b["symbol"]), (REPO, "ugettext"))
-        self.assertEqual((b["before"]["by_depth"], b["after"]["by_depth"]), ({"1": 4, "2": 0, "3": 0}, {"1": 3, "2": 1, "3": 0}))
+        self.assertEqual((b["before"]["by_depth"], b["after"]["by_depth"]),
+                         ({"1": 4, "2": 0, "3": 0}, {"1": 3, "2": 1, "3": 0}))
 
     def test_no_people_and_the_same_bytes_again(self):
         path = self.tmp / "out" / "R2" / "changes.json"

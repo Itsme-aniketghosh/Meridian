@@ -15,10 +15,12 @@ import build_gitlab_gold as G
 class Gold(unittest.TestCase):
     def test_every_username_is_scrubbed_any_case_words_too(self):
         scrub = G.scrubber({"design", "jdoe99", "bob"})
-        self.assertEqual(scrub("Design said JDOE99 and bob, cc @jdoe99 a@b.org"), "user said user and bob, cc @user [email]")
+        self.assertEqual(scrub("Design said JDOE99 and bob, cc @jdoe99 a@b.org"),
+                         "user said user and bob, cc @user [email]")
 
     def test_put_keeps_one_source_unless_both_lists_have_the_pair(self):
-        row = lambda source, verdict: {"blocked_ref": "g#1", "blocker_ref": "g#2", "verdict": verdict, "source": source, "q": ""}
+        row = lambda source, verdict: {"blocked_ref": "g#1", "blocker_ref": "g#2", "verdict": verdict,
+                                       "source": source, "q": ""}
         rows = {}
         G.put(rows, row("link_pass", "unclear"))
         G.put(rows, row("link_pass", "wait"))

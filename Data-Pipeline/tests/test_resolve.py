@@ -41,6 +41,7 @@ def scanned(run_id, repo, repo_dir, symbols, scanner):
     """Rachna's candidate rows for one repo, from meridian.scan itself."""
     return S.scan_repo(run_id, repo, repo_dir, symbols, scanner)[0]
 
+
 FILES = {
     "lib/__init__.py": "",
     "lib/translation.py": (
@@ -164,7 +165,8 @@ def fixture_repo(path, files=None):
     env = {**os.environ, "GIT_AUTHOR_DATE": "2026-01-01T00:00:00Z", "GIT_COMMITTER_DATE": "2026-01-01T00:00:00Z"}
 
     def git(*a):
-        return subprocess.run(["git", "-C", str(path), *a], check=True, capture_output=True, text=True, env=env).stdout.strip()
+        return subprocess.run(["git", "-C", str(path), *a], check=True, capture_output=True, text=True,
+                              env=env).stdout.strip()
 
     git("init", "--quiet", "--initial-branch=main")
     git("add", ".")
@@ -177,7 +179,8 @@ def snapshot(root, run_id=RUN):
     repo_dir = root / "snapshots" / run_id / "repos" / "fix__app"
     repo_dir.mkdir(parents=True)
     sha = fixture_repo(repo_dir)
-    (root / "snapshots" / run_id / "manifest.json").write_text(json.dumps({"run_id": run_id, "repos": {"fix/app": sha}}))
+    (root / "snapshots" / run_id / "manifest.json").write_text(json.dumps({"run_id": run_id,
+                                                                           "repos": {"fix/app": sha}}))
     config = root / "meridian.toml"
     symbols = ", ".join(f'{{ name = "{n}", module = "{m}" }}' for n, m in SYMBOLS.items())
     config.write_text(
@@ -209,7 +212,8 @@ class Aliases(unittest.TestCase):
         for key, (detection, via, resolved_to, symbol) in EXPECTED.items():
             with self.subTest(key=key):
                 r = self.by_key[key]
-                self.assertEqual((r["detection"], r["via"], r["resolved_to"], r["symbol"]), (detection, via, resolved_to, symbol))
+                self.assertEqual((r["detection"], r["via"], r["resolved_to"], r["symbol"]),
+                                 (detection, via, resolved_to, symbol))
                 self.assertEqual(r["resolver"], R.RESOLVER)
 
     def test_one_hop_reaches_the_old_name_not_the_new(self):
@@ -285,7 +289,8 @@ class Candidates(unittest.TestCase):
         for key, (role, detection, via, resolved_to) in CANDIDATES.items():
             with self.subTest(key=key):
                 c, r = self.by_line[key]
-                self.assertEqual((c["role"], r["detection"], r["via"], r["resolved_to"]), (role, detection, via, resolved_to))
+                self.assertEqual((c["role"], r["detection"], r["via"], r["resolved_to"]),
+                                 (role, detection, via, resolved_to))
 
     def test_resolved_means_its_own_old_name(self):
         for r in self.rows:
@@ -307,7 +312,9 @@ class Candidates(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:   # spelled ugettext, but it is ugettext_lazy
             repo = Path(tmp)
             fixture_repo(repo, {"lib/__init__.py": "", "lib/translation.py": FILES["lib/translation.py"],
-                                "app/__init__.py": "", "app/swap.py": "from lib.translation import ugettext_lazy as ugettext\n\nugettext('x')\n"})
+                                "app/__init__.py": "",
+                                "app/swap.py": "from lib.translation import ugettext_lazy as ugettext\n\n"
+                                               "ugettext('x')\n"})
             c = {"path": "app/swap.py", "line": 3, "col": 0, "symbol": "ugettext"}
             strict = R.Repo(repo, SYMBOLS).resolve_candidate(c)
             loose = R.Repo(repo, SYMBOLS, score_on_old_name=False).resolve_candidate(c)
@@ -477,12 +484,14 @@ class Edges(unittest.TestCase):
         repo_dir = root / "snapshots" / RUN / "repos" / "fix__edges"
         repo_dir.mkdir(parents=True)
         sha = fixture_repo(repo_dir, EDGE_FILES)
-        (root / "snapshots" / RUN / "manifest.json").write_text(json.dumps({"run_id": RUN, "repos": {"fix/edges": sha}}))
+        (root / "snapshots" / RUN / "manifest.json").write_text(json.dumps({"run_id": RUN,
+                                                                            "repos": {"fix/edges": sha}}))
         cfg = {"run": {"handoff_dir": "out/{run_id}"}, "scanner": {}, "resolver": {"call_edge_depth": 3},
                "datasets": {"edges": {"repos": [{"repo": "fix/edges", "ref": sha}],
                                       "symbols": [{"name": "ugettext", "module": "lib.translation"}]}}}
         (root / "out" / RUN).mkdir(parents=True)
-        write_jsonl(root / "out" / RUN / "candidate.jsonl", scanned(RUN, "fix/edges", repo_dir, {"ugettext": "lib.translation"}, SCANNER))
+        write_jsonl(root / "out" / RUN / "candidate.jsonl",
+                    scanned(RUN, "fix/edges", repo_dir, {"ugettext": "lib.translation"}, SCANNER))
         cls.log = io.StringIO()
         with contextlib.redirect_stdout(cls.log):
             R.run(RUN, cfg, root)
@@ -524,7 +533,8 @@ class Edges(unittest.TestCase):
             first = fixture_repo(repo_dir, EDGE_FILES)
             with open(repo_dir / "app/chain.py", "a", encoding="utf-8", newline="\n") as f:
                 f.write("\ndef extra():\n    return level1()\n")  # a later commit adds a caller of level1
-            git = lambda *a: subprocess.run(["git", "-C", str(repo_dir), "-c", "user.name=F", "-c", "user.email=f@example.com",
+            git = lambda *a: subprocess.run(["git", "-C", str(repo_dir), "-c", "user.name=F", "-c",
+                                             "user.email=f@example.com",
                                              *a], check=True, capture_output=True, text=True).stdout.strip()
             git("commit", "-qam", "extra")
             second = git("rev-parse", "HEAD")
@@ -585,7 +595,8 @@ class ReceiverFrom(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             fixture_repo(repo, RECEIVER_FILES)
-            rows = R.resolve_candidates(RUN, "fix/repo", repo, symbols, scanned(RUN, "fix/repo", repo, symbols, SCANNER))
+            rows = R.resolve_candidates(RUN, "fix/repo", repo, symbols,
+                                        scanned(RUN, "fix/repo", repo, symbols, SCANNER))
         self.assertEqual({(r["path"], r["line"]): r["receiver_from"] for r in rows}, RECEIVERS)
 
 
@@ -594,8 +605,10 @@ class WalkOrder(unittest.TestCase):
 
     def test_callers_found_dont_depend_on_listing_order(self):
         files = {"lib/__init__.py": "", "lib/use.py": "def use(obj):\n    return obj.run()\n"}
-        for i in range(2):  # Jedi guesses obj from the first file of its walk that calls use(), so the order picks C0 or C1
-            files[f"c{i}.py"] = f"from lib.use import use\n\nclass C{i}:\n    def run(self):\n        pass\n\nuse(C{i}())\n"
+        # Jedi guesses obj from the first file of its walk that calls use(), so the order picks C0 or C1
+        for i in range(2):
+            files[f"c{i}.py"] = (f"from lib.use import use\n\nclass C{i}:\n    def run(self):\n        pass\n\n"
+                                 f"use(C{i}())\n")
         walk = os.walk
 
         def reversed_walk(top, **kw):  # a filesystem that lists each folder the other way round
@@ -623,7 +636,8 @@ class Helpers(unittest.TestCase):
             repo.mkdir()
             parent = fixture_repo(repo, {"a.py": "x = 1\ny = 2\n"})
             (repo / "a.py").write_text("x = 1\ny = 3\n", encoding="utf-8")
-            git = lambda *a: subprocess.run(["git", "-C", str(repo), *a], check=True, capture_output=True, text=True).stdout
+            git = lambda *a: subprocess.run(["git", "-C", str(repo), *a], check=True, capture_output=True,
+                                            text=True).stdout
             git("-c", "user.name=F", "-c", "user.email=f@example.com", "commit", "--quiet", "-am", "two")
             user.write_text("[diff]\n\tnoprefix = true\n")
             with mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(user)}):
@@ -656,7 +670,8 @@ class DjangoAnswerKey(unittest.TestCase):
         cls.repo = R.Repo(DJANGO, cls.symbols)
 
     def test_542_of_542(self):
-        rows = R.resolve_aliases(RUN_ID, "django/django", DJANGO, self.symbols, self.cfg["scanner"]["skip_paths"], self.repo)
+        rows = R.resolve_aliases(RUN_ID, "django/django", DJANGO, self.symbols,
+                                 self.cfg["scanner"]["skip_paths"], self.repo)
         with open(KEY, newline="", encoding="utf-8") as f:
             key = {(r["file"], int(r["line"]), int(r["col"])): r["expected_symbol"] for r in csv.DictReader(f)}
         got = {(r["path"], r["line"], r["col"]): r for r in rows}
@@ -682,7 +697,8 @@ class DjangoAnswerKey(unittest.TestCase):
 SNAP = data_root() / "snapshots" / RUN_ID
 CFG = load_config(HERE / "meridian.toml")
 PACKAGES = sorted(set(R.tracked(CFG)) & {r["repo"] for r in CFG["datasets"]["django_packages"]["repos"]}
-                  & set(json.loads((SNAP / "manifest.json").read_text())["repos"] if (SNAP / "manifest.json").exists() else ()))
+                  & set(json.loads((SNAP / "manifest.json").read_text())["repos"]
+                        if (SNAP / "manifest.json").exists() else ()))
 
 
 @unittest.skipUnless(PACKAGES, f"no django_packages repos in snapshots/{RUN_ID}/")

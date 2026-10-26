@@ -7,7 +7,8 @@ of its snapshot_at, and, per repo in meridian.toml, the commits between its publ
 the repo's local mirror ([status] mirrors: collect's bare clones). A repo that follows a branch has its mirror fetched
 first ([status] fetch), so a push made since the last collect counts: without it the "Update graph" click and the daily
 run saw nothing until stale_after_hours passed. A pinned repo is never fetched. A fetch that fails (offline) leaves the
-mirror as the last collect did. A repo whose mirror or ref isn't there is unknown, and never counts as new by its commits.
+mirror as the last collect did. A repo whose mirror or ref isn't there is unknown, and never counts as new by its
+commits.
 
 Exit 0 = something new: nothing published yet, a new commit, a repo in meridian.toml the published run doesn't have
 (no mirror needed), a meridian.toml whose config_hash isn't the published run's, or a publish older than [status]
@@ -92,7 +93,8 @@ def trigger(settings=None, env_file=HERE / ".env"):
     login = base64.b64encode(f"{env.get(d['api_user_env'], '')}:{env.get(d['api_password_env'], '')}".encode()).decode()
 
     def call(path, body=None):
-        req = urllib.request.Request(f"{d['api']}/dags/{d['dag_id']}/dagRuns{path}", None if body is None else json.dumps(body).encode(),
+        req = urllib.request.Request(f"{d['api']}/dags/{d['dag_id']}/dagRuns{path}",
+                                     None if body is None else json.dumps(body).encode(),
                                      {"Authorization": f"Basic {login}", "Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as r:
             return json.load(r)

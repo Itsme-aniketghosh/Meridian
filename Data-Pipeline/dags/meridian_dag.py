@@ -20,8 +20,9 @@ A trigger whose config names a run_id, or has "force": true, skips anything_new:
 new (a rerun after a code fix). For a run whose snapshot exists, collect replays its SHAs and snapshot_at.
 
 The run: the trigger's config {"run_id": "...", "prev_run": "..."}, else whatever run collect makes from the inputs
-(update) or the last published run (rebuild). prev_run: the config, else [pipeline] prev_run or the last published run (update), or the
-published run's own prev_run (rebuild, to give the same bytes). Never the run itself.
+(update) or the last published run (rebuild). prev_run: the config, else [pipeline] prev_run or the last published run
+(update; a forced rerun of the published run uses its own prev_run), or the published run's own prev_run (rebuild, to
+give the same bytes). Never the run itself.
 """
 import subprocess
 import sys
@@ -36,7 +37,7 @@ HERE = Path(__file__).resolve().parents[1]          # Data-Pipeline/
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from meridian import alert, publish                 # noqa: E402  (needs the path above)
-from meridian.common import data_root, load_config, load_settings   # noqa: E402
+from meridian.common import data_root, load_config, load_settings, log   # noqa: E402
 from pipeline_spec import DAGS, GATES, command       # noqa: E402
 
 PIPELINE, ORCH, SPECS = load_settings("pipeline"), load_settings("orchestration"), load_settings("dags")
@@ -75,10 +76,10 @@ def gate(cmd, go, stop, force=""):
     """Run a gate's command: go on at exit code go, skip the rest of the DAG at stop, fail at anything else.
     force (rendered from the trigger's config): go on without asking, for a run someone asked for by name."""
     if force:
-        print(f"forced by the trigger's config ({force}): not asking {cmd}", flush=True)
+        log(f"forced by the trigger's config ({force}): not asking {cmd}")
         return True
     p = subprocess.run(cmd, shell=True, cwd=HERE, capture_output=True, text=True)
-    print(p.stdout, p.stderr, sep="\n", flush=True)
+    log(f"{p.stdout}\n{p.stderr}")
     if p.returncode not in (go, stop):
         raise RuntimeError(f"exit {p.returncode}: {cmd}")
     return p.returncode == go
@@ -87,7 +88,8 @@ def gate(cmd, go, stop, force=""):
 def templates(run, prev):
     """(run, '--prev-run <p>' or '', p or '') as templates; never the run itself as its prev."""
     sets = f"{{% set r = {run} %}}{{% set p = {prev} %}}"
-    return f"{{{{ {run} }}}}", sets + "{{ '--prev-run ' ~ p if p and p != r else '' }}", sets + "{{ p if p and p != r else '' }}"
+    return (f"{{{{ {run} }}}}", sets + "{{ '--prev-run ' ~ p if p and p != r else '' }}",
+            sets + "{{ p if p and p != r else '' }}")
 
 
 def build(name, description):
@@ -115,14 +117,17 @@ def build(name, description):
             cmd = command(name, task, run, PIPELINE["config"], ORCH["python"], prev_arg, prev, MAIN.as_posix(),
                           REBUILD.as_posix(), HANDOFF, GX_PYTHON)
             timeout = timedelta(minutes=ORCH.get("timeout_minutes", {}).get(task, 60))
-            retries = ORCH.get("task_retries", {}).get(task, ORCH.get("retries", 2))   # validate: 0, its errors are data
+            # validate: 0, its errors are data
+            retries = ORCH.get("task_retries", {}).get(task, ORCH.get("retries", 2))
             if task in GATES:
                 force = FORCE if task == "anything_new" else ""   # compare is never skipped: it is the weekly check
-                tasks[task] = ShortCircuitOperator(task_id=task, python_callable=gate, execution_timeout=timeout, retries=retries,
+                tasks[task] = ShortCircuitOperator(task_id=task, python_callable=gate, execution_timeout=timeout,
+                                                   retries=retries,
                                                    op_kwargs={"cmd": cmd, "go": GATES[task][0], "stop": GATES[task][1],
                                                               "force": force})
             else:
-                tasks[task] = BashOperator(task_id=task, bash_command=cmd, cwd=str(HERE), execution_timeout=timeout, retries=retries,
+                tasks[task] = BashOperator(task_id=task, bash_command=cmd, cwd=str(HERE), execution_timeout=timeout,
+                                           retries=retries,
                                            env={"PYTHONUNBUFFERED": "1"},
                                            append_env=True)   # keep MERIDIAN_DATA, the alert secrets, PATH
             for up in upstream:

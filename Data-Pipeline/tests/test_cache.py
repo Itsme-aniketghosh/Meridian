@@ -23,7 +23,7 @@ import meridian.szz as Z
 import tests.test_resolve as TR
 import tests.test_scan as TS
 import tests.test_szz as TZ
-from meridian.common import Cache, cache_on, load_config, write_jsonl
+from meridian.common import Cache, cache_on, load_config, read_jsonl, write_jsonl
 
 RUN, RUN2 = "abcdef0123456789", "0123456789abcdef"
 
@@ -55,7 +55,8 @@ def next_snapshot(root, repo_dir_name, repo, files):
     git = lambda *a: subprocess.run(["git", "-C", str(co), "-c", "user.name=F", "-c", "user.email=f@example.com", *a],
                                     check=True, capture_output=True, text=True).stdout.strip()
     git("commit", "--quiet", "-am", "next")
-    (root / "snapshots" / RUN2 / "manifest.json").write_text(json.dumps({"run_id": RUN2, "repos": {repo: git("rev-parse", "HEAD")}}))
+    (root / "snapshots" / RUN2 / "manifest.json").write_text(json.dumps({"run_id": RUN2,
+                                                                         "repos": {repo: git("rev-parse", "HEAD")}}))
     (root / "out" / RUN2).mkdir(parents=True, exist_ok=True)
     return co
 
@@ -66,6 +67,28 @@ class Switch(unittest.TestCase):
             self.assertTrue(all(cache_on(n) for n in ("scan", "resolve", "szz")))
             with mock.patch.dict(os.environ, {"MERIDIAN_NO_CACHE": "1"}):   # what the rebuild DAG sets
                 self.assertFalse(any(cache_on(n) for n in ("scan", "resolve", "szz")))
+
+
+class Corrupt(unittest.TestCase):
+    def test_a_truncated_cache_file_is_a_miss(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Cache("scan", "o/r", tmp).path
+            path.parent.mkdir(parents=True)
+            path.write_text('{"k": [1, 2', encoding="utf-8")   # a save cut off by a full disk
+            with contextlib.redirect_stdout(io.StringIO()) as log:
+                c = Cache("scan", "o/r", tmp)
+            self.assertIsNone(c.get("k"))
+            self.assertIn("unreadable", log.getvalue())
+            c.put("k", 1)
+            c.save()
+            self.assertEqual(Cache("scan", "o/r", tmp).get("k"), 1)   # the next save replaces it
+
+    def test_a_corrupt_jsonl_line_names_file_and_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "t.jsonl"
+            path.write_text('{"a": 1}\n\n{"a": 2\n', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, re.escape(f"{path}:3:")):
+                read_jsonl(path)
 
 
 class ScanCache(unittest.TestCase):
@@ -84,7 +107,8 @@ class ScanCache(unittest.TestCase):
             files = len(S.files(root / "snapshots" / RUN / "repos" / "fix__app", cfg["scanner"]))
             self.assertEqual((first, second), ([0], [files]))             # then every file reused
 
-            next_snapshot(root, "fix__app", "fix/app", {"app/direct.py": "from lib.translation import ugettext\nugettext('n')\n"})
+            next_snapshot(root, "fix__app", "fix/app",
+                          {"app/direct.py": "from lib.translation import ugettext\nugettext('n')\n"})
             quiet(S.run, RUN2, cfg, root)
             scratch = tables(root, RUN2, S.KEYS)
             with switched(root, scan=True):
@@ -115,7 +139,8 @@ class ResolveCache(unittest.TestCase):
             sha = TR.fixture_repo(co, files)
             (root / "snapshots" / RUN / "manifest.json").write_text(json.dumps({"run_id": RUN, "repos": {repo: sha}}))
             (root / "out" / RUN).mkdir(parents=True)
-            cfg = {"run": {"handoff_dir": "out/{run_id}"}, "scanner": {"skip_paths": ["docs/"]}, "resolver": {"call_edge_depth": 3},
+            cfg = {"run": {"handoff_dir": "out/{run_id}"}, "scanner": {"skip_paths": ["docs/"]},
+                   "resolver": {"call_edge_depth": 3},
                    "datasets": {"d": {"repos": [{"repo": repo, "ref": sha}],
                                       "symbols": [{"name": n, "module": m} for n, m in TR.SYMBOLS.items()]}}}
             write_jsonl(root / "out" / RUN / "candidate.jsonl", TR.scanned(RUN, repo, co, TR.SYMBOLS, TR.SCANNER))
@@ -142,7 +167,8 @@ class ResolveCache(unittest.TestCase):
     def test_change_in_a_callee_module(self):
         # app/chain.py's level1 is renamed: app/importer.py's call of it is no longer an edge. importer.py has no rows
         # of its own to redo (no tracked name), so it is reused, and its edge goes because call_edge is always rebuilt
-        chain = TR.EDGE_FILES["app/chain.py"].replace("def level1():", "def level0():").replace("return level1()", "return level0()")
+        chain = TR.EDGE_FILES["app/chain.py"].replace("def level1():", "def level0():").replace("return level1()",
+                                                                                                "return level0()")
         self.check(TR.EDGE_FILES, "fix/edges", {"app/chain.py": chain}, ["app/chain.py"])
 
 
@@ -173,7 +199,8 @@ class SzzCache(unittest.TestCase):
         self.assertEqual(self.rows(fixes, cache=True), (off, [0]))       # first run with the cache: same bytes
         self.assertEqual(self.rows(fixes, cache=True), (off, [2]))       # then both fixes reused
         # a new fix commit, and the old fix now keyed to another ticket: the key is never cached
-        run = lambda *a: subprocess.run(["git", "-C", str(self.co), "-c", "user.name=A", "-c", "user.email=a@example.com", *a],
+        run = lambda *a: subprocess.run(["git", "-C", str(self.co), "-c", "user.name=A", "-c",
+                                         "user.email=a@example.com", *a],
                                         check=True, capture_output=True, text=True).stdout.strip()
         (self.co / "app.py").write_text((self.co / "app.py").read_text().replace("return 3", "return 4"))
         run("commit", "--quiet", "-am", "fix2")

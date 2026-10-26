@@ -1,6 +1,6 @@
 # Open points · step 1 · Oct 24
 
-Everything still open before graph data block v1 freezes, by owner. Team run `70dd1dabfed544b8`. Pulled from [PENDING-TASKS](Data-Pipeline/PENDING-TASKS.md), [PIPELINE-PLAN](Data-Pipeline/PIPELINE-PLAN.md), the KB [testing plan](Data-Pipeline/KNOWLEDGE-BASE.md#testing-plan), [JOIN](Data-Pipeline/JOIN.md), [RESOLVER](Data-Pipeline/RESOLVER.md) and [GRAPH](Data-Pipeline/GRAPH.md). Tick a box when it's done, with the number it gave.
+Everything still open before graph data block v1 freezes, by owner. Team run `70dd1dabfed544b8`. Pulled from [PENDING-TASKS](Data-Pipeline/notes/PENDING-TASKS.md), [PIPELINE-PLAN](Data-Pipeline/notes/PIPELINE-PLAN.md), the KB [testing plan](Data-Pipeline/KNOWLEDGE-BASE.md#testing-plan), [JOIN](Data-Pipeline/JOIN.md), [RESOLVER](Data-Pipeline/RESOLVER.md) and [GRAPH](Data-Pipeline/GRAPH.md). Tick a box when it's done, with the number it gave.
 
 🔴 = blocks someone else.
 
@@ -15,7 +15,7 @@ Everything still open before graph data block v1 freezes, by owner. Team run `70
 - [x] 50 Spark collision pairs, generic names dropped first, model read: hunk headers 0.64, the new inside rule 1.00 (32 of 32), 62 pairs left, 12 both open (GRAPH.md, `labels/spark_collision_pairs_50.csv`)
 - [ ] Human check of those 50: fill `human_verdict` (the rule was written after reading this sample)
 - [ ] First end-to-end run from Airflow, with Utkarsh (D8)
-- [x] One-page handoff note for stall rules, Jev and views (D10): [HANDOFF.md](Data-Pipeline/HANDOFF.md)
+- [x] One-page handoff note for stall rules, Jev and views (D10): [HANDOFF.md](Data-Pipeline/notes/HANDOFF.md)
 
 ## MLOps course submission (branch `mlops-pipeline`, [Data-Pipeline/README.md](Data-Pipeline/README.md))
 

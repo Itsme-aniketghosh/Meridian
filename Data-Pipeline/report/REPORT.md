@@ -78,7 +78,7 @@ Cross-team features: built, but quiet on our real data.
 Of 74 proposed features, 24 ✅ work now, 36 🟡 have their tables and queries but are quiet on real data or only partly covered, 6 ❌ are not built, and 8 ⛔ belong to later stages (LLM, gate, auditor).
 
 Tests:
-- 262 unit tests pass on Windows (13 skipped by design).
+- 285 unit tests pass on Windows (14 skipped by design: team data, Airflow, GX).
 - With the team data, the Django and packages answer keys pass: 6 of 6.
 - The v1.2 golden check matches 20 of 24 files. 3 (`resolution`, `call_edge`, `blast_radius`) are likely the resolver's Windows gap (unverified), and `call_site` likely the join fix made after the freeze. A fresh Linux run in Airflow will settle it.
 - 0 schema violations and 0 data errors on 1,788,242 rows.
@@ -94,7 +94,7 @@ Tests:
 ## 6. Known limits
 
 - The DVC remote (GCS) is a placeholder until GCP is set up. Use a local remote until then (README, "Data versioning").
-- On Windows, 3 of 24 golden files (`resolution`, `call_edge`, `blast_radius`) differ from the Mac values. This is likely the resolver's Windows path gap ([UPDATE-PLAN.md](../UPDATE-PLAN.md)), not yet verified; a fresh Linux run in Airflow will settle it.
+- On Windows, 3 of 24 golden files (`resolution`, `call_edge`, `blast_radius`) differ from the Mac values. This is likely the resolver's Windows path gap ([UPDATE-PLAN.md](../notes/UPDATE-PLAN.md)), not yet verified; a fresh Linux run in Airflow will settle it.
 - None of the four sources has cross-repo chains, so chains and P4 are tested on fixtures only ([docs/02-product.md](../../docs/02-product.md), "Known gaps").
 - Spark tickets rarely link to each other (5.8% of the newest 500 carry a link), so P3, P5 and chains go quiet on Spark. Commits are well keyed: 41,138 of 50,371 Spark commits (82%) name a ticket.
 - The owner-rule mitigation (team lookback of 730 days) is scored, not applied. It needs a new team `run_id` ([BIAS.md](../BIAS.md)).

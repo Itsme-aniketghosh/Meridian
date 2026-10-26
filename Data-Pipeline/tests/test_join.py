@@ -22,7 +22,7 @@ import meridian.history as H
 import meridian.join as J
 import meridian.scan as S
 import meridian.writer as W
-from meridian.common import load_config, read_jsonl, write_jsonl
+from meridian.common import load_config, write_jsonl
 
 REPO, DIR = "acme/shop", "acme__shop"
 IMPORT = "from django.utils.translation import ugettext\n"
@@ -55,14 +55,17 @@ CONFIG = textwrap.dedent("""\
 # (date, message, {path: text or None to delete}); R1 = commit 1, R2 = commit 6
 COMMITS = [
     ("2026-01-01T00:00:00Z", "start", {
-        "a.py": IMPORT + "\ndef f():\n    return ugettext('a')\n\ndef g():\n    return ugettext('b')\n    return ugettext('b')\n",
+        "a.py": IMPORT + "\ndef f():\n    return ugettext('a')\n\n"
+                         "def g():\n    return ugettext('b')\n    return ugettext('b')\n",
         "old.py": IMPORT + "def h():\n    return ugettext('c')\n",
         "big.py": IMPORT + "def k():\n    return ugettext('k')\ndef m():\n    return ugettext('m')\n",
         "gone.py": IMPORT + "def z():\n    return ugettext('z')\n"}),
     ("2026-02-01T00:00:00Z", "SHOP-1 insert two comment lines", {
-        "a.py": IMPORT + "# one\n# two\n\ndef f():\n    return ugettext('a')\n\ndef g():\n    return ugettext('b')\n    return ugettext('b')\n"}),
+        "a.py": IMPORT + "# one\n# two\n\ndef f():\n    return ugettext('a')\n\n"
+                         "def g():\n    return ugettext('b')\n    return ugettext('b')\n"}),
     ("2026-03-01T00:00:00Z", "move f below g, rename old.py", {
-        "a.py": IMPORT + "# one\n# two\n\ndef g():\n    return ugettext('b')\n    return ugettext('b')\n\ndef f():\n    return ugettext('a')\n",
+        "a.py": IMPORT + "# one\n# two\n\ndef g():\n    return ugettext('b')\n    return ugettext('b')\n\n"
+                         "def f():\n    return ugettext('a')\n",
         "old.py": None,
         "new.py": IMPORT + "def h():\n    return ugettext('c')\n"}),
     ("2026-04-01T00:00:00Z", "split big.py", {
@@ -71,7 +74,8 @@ COMMITS = [
     ("2026-05-01T00:00:00Z", "remove z's call", {
         "gone.py": IMPORT + "def z():\n    return 'z'\n"}),
     ("2026-06-01T00:00:00Z", "SHOP-1 a new call and a third duplicate", {
-        "a.py": IMPORT + "# one\n# two\n\ndef g():\n    return ugettext('b')\n    return ugettext('b')\n    return ugettext('b')\n"
+        "a.py": IMPORT + "# one\n# two\n\ndef g():\n    return ugettext('b')\n    return ugettext('b')\n"
+                         "    return ugettext('b')\n"
                          "    return ugettext('new')\n\ndef f():\n    return ugettext('a')\n",
         "m1/src/acme/Foo.java": "class Foo {}\n", "m2/src/acme/Foo.java": "class Foo {}\n"}),
 ]
@@ -88,7 +92,8 @@ TICKETS = {  # key: (summary, description)
 
 def sh(co, *args, env=None):
     return subprocess.run(["git", "-C", str(co), *args], check=True, capture_output=True, text=True,
-                          env={**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1", **(env or {})}).stdout
+                          env={**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
+                               **(env or {})}).stdout
 
 
 def make_repo(src):
@@ -110,7 +115,8 @@ def make_repo(src):
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(text)
         sh(src, "add", "-A")
-        env = {"GIT_AUTHOR_DATE": date, "GIT_COMMITTER_DATE": date, "GIT_AUTHOR_NAME": "Ann", "GIT_AUTHOR_EMAIL": "ann@example.com",
+        env = {"GIT_AUTHOR_DATE": date, "GIT_COMMITTER_DATE": date, "GIT_AUTHOR_NAME": "Ann",
+               "GIT_AUTHOR_EMAIL": "ann@example.com",
                "GIT_COMMITTER_NAME": "Ann", "GIT_COMMITTER_EMAIL": "ann@example.com"}
         sh(src, "commit", "-q", "-m", msg, env=env)
         shas.append(sh(src, "rev-parse", "HEAD").strip())
@@ -130,13 +136,15 @@ def build_run(root, cfg, src, run_id, sha, snapshot_at, tickets=(), commit_ticke
         "run": [{"run_id": run_id, "snapshot_at": snapshot_at, "repo_shas": json.dumps({REPO: sha})}],
         "candidate": cands, "parse_failure": failures, "git_commit": commits, "commit_file": files,
         "resolution": [{k: c[k] for k in ("run_id", "repo", "path", "line", "col", "symbol")} |
-                       {"detection": "ast_resolved", "via": "direct", "resolved_to": "django.utils.translation.ugettext",
+                       {"detection": "ast_resolved", "via": "direct",
+                        "resolved_to": "django.utils.translation.ugettext",
                         "resolver": "fixture", "receiver_from": None} for c in cands],
         "file_owner": [{"run_id": run_id, "repo": REPO, "path": "a.py", "owner_team": "checkout", "share": 1.0,
                         "top_person_id": None, "n_commits": 1, "last_commit_at": None, "basis": "repo"}],
         "file_bug_fixes": [{"run_id": run_id, "repo": REPO, "path": "a.py", "bug_fixes": 2, "fix_keys": "[]",
                             "window_start": "", "window_end": snapshot_at}],
-        "ticket": [{"run_id": run_id, "key": k, "tracker": "jira", "summary": s, "description": d} for k, (s, d) in tickets],
+        "ticket": [{"run_id": run_id, "key": k, "tracker": "jira", "summary": s, "description": d}
+                   for k, (s, d) in tickets],
         "commit_ticket": list(commit_ticket),
     }
     for name, rows in tables.items():
@@ -160,7 +168,8 @@ class TwoRuns(unittest.TestCase):
         build_run(cls.tmp, cls.cfg, cls.tmp / "src", "R1", cls.shas[0], COMMITS[0][0])
         cls.r1 = quiet(J.main, "R1", cls.config, cls.tmp)[0]
         ct = [{"run_id": "R2", "repo": REPO, "sha": cls.shas[5], "key": "SHOP-1", "source": "subject"}]
-        cls.out2 = build_run(cls.tmp, cls.cfg, cls.tmp / "src", "R2", cls.shas[5], COMMITS[5][0], sorted(TICKETS.items()), ct)
+        cls.out2 = build_run(cls.tmp, cls.cfg, cls.tmp / "src", "R2", cls.shas[5], COMMITS[5][0],
+                             sorted(TICKETS.items()), ct)
         cls.r2, cls.tmap, cls.cov = quiet(J.main, "R2", cls.config, cls.tmp, prev_run="R1")
         last = J.newest(cls.r2)
         cls.now = {(s["path"], s["line"]): s for s in last.values() if s["status"] == "present"}
@@ -176,7 +185,8 @@ class TwoRuns(unittest.TestCase):
     def test_first_run_writes_every_site_present(self):
         self.assertEqual(len(self.r1), 11)  # 4 imports + 7 calls
         self.assertTrue(all(s["status"] == "present" and s["run_id"] == "R1" for s in self.r1))
-        self.assertTrue(all(s["effective_date"] == COMMITS[0][0] and s["effective_sha"] == self.shas[0] for s in self.r1))
+        self.assertTrue(all(s["effective_date"] == COMMITS[0][0] and s["effective_sha"] == self.shas[0]
+                            for s in self.r1))
         self.assertEqual(len({s["call_site_id"] for s in self.r1}), 11)
 
     def test_insert_lines_above_keeps_the_id(self):   # g's calls shift down 2, up 3 (f moved away): git's line map
@@ -215,7 +225,8 @@ class TwoRuns(unittest.TestCase):
         s = self.now[("a.py", 9)]
         self.assertEqual(s["effective_date"], COMMITS[5][0])
         self.assertEqual(s["effective_sha"], self.shas[5])
-        self.assertEqual(self.now[("new.py", 3)]["effective_sha"], self.shas[0])  # renamed, line unchanged: still commit 1
+        # renamed, line unchanged: still commit 1
+        self.assertEqual(self.now[("new.py", 3)]["effective_sha"], self.shas[0])
         self.assertNotIn(s["call_site_id"], {r["call_site_id"] for r in self.r1})
 
     def test_append_only_unchanged_sites_get_no_new_version(self):
@@ -260,7 +271,8 @@ class TwoRuns(unittest.TestCase):
                                                      "status": "complete"}) + "\n")
         W.write(block, self.tmp / "block.sqlite")
         import sqlite3
-        with contextlib.closing(sqlite3.connect(self.tmp / "block.sqlite")) as db:  # an open file can't be deleted on Windows
+        # an open file can't be deleted on Windows
+        with contextlib.closing(sqlite3.connect(self.tmp / "block.sqlite")) as db:
             got = dict(db.execute("SELECT run_id, count(*) FROM call_site GROUP BY run_id"))
         self.assertEqual(got["R1"], len(self.r1))
         self.assertEqual(got["R2"], sum(r["run_id"] == "R2" for r in self.r2))
@@ -312,7 +324,8 @@ class Units(unittest.TestCase):
                                     junk="none", in_except=0, text=f"x{line}")
         r = lambda line, det: dict(repo=REPO, path="p.py", line=line, col=0, detection=det)
         sites, n = J.current_sites([c(1, "call"), c(2, "call"), c(3, "reference"), c(4, "import")],
-                                   [r(1, "ast_resolved"), r(2, "dropped"), r(3, "ast_resolved"), r(4, "ast_unresolved")],
+                                   [r(1, "ast_resolved"), r(2, "dropped"), r(3, "ast_resolved"),
+                                    r(4, "ast_unresolved")],
                                    ["import", "call", "alias"])
         self.assertEqual([(s["line"], s["detection"]) for s in sites], [(1, "ast_resolved"), (4, "ast_unresolved")])
         self.assertEqual(n, {"dropped": 1, "not_edit_role": 1})
@@ -340,7 +353,8 @@ class Units(unittest.TestCase):
     def test_a_removed_id_comes_back_to_one_site_only(self):
         p, q = J.with_occurrence([self.site(3), self.site(4)])  # R0: two identical lines; R1 removed the second
         i0, i1 = J.site_id(p), J.site_id(q)
-        hist = [self.version(p, i0, "present", "2026-01-01T00:00:00Z"), self.version(q, i1, "present", "2026-01-01T00:00:00Z"),
+        hist = [self.version(p, i0, "present", "2026-01-01T00:00:00Z"),
+                self.version(q, i1, "present", "2026-01-01T00:00:00Z"),
                 self.version(q, i1, "removed", "2026-02-01T00:00:00Z")]
         now = J.with_occurrence([self.site(3), self.site(4), self.site(5)])  # R2: two more inserted above the first
         got = self.sites_run(hist, now, {"a.py": ("a.py", [(2, 0, 3, 2)])})
@@ -351,7 +365,8 @@ class Units(unittest.TestCase):
         p = J.with_occurrence([self.site(3, "b.py")])[0]
         hist = [self.version(p, "S1", "present", "2026-01-01T00:00:00Z")]
         diff = {"b.py": ("b.py", [(0, 0, 1, 1)])}  # R2 adds a broken line at the top: no candidates in b.py
-        self.assertEqual(self.sites_run(hist, [], diff, {(REPO, "b.py")}), [(4, "present", "S1")])  # carried, not removed
+        # carried, not removed
+        self.assertEqual(self.sites_run(hist, [], diff, {(REPO, "b.py")}), [(4, "present", "S1")])
         self.assertEqual(self.sites_run(hist, [], diff), [(3, "removed", "S1")])  # without the parse failure: removed
 
     def test_a_site_in_an_unparsed_file_is_not_handed_another_files_identical_line(self):

@@ -26,7 +26,6 @@ Reads out/<run_id>/ tables and settings.toml [bias]. Writes out/<run_id>/bias.js
 import json
 import re
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -36,7 +35,9 @@ from scipy.stats import binomtest
 from sklearn.metrics import accuracy_score
 
 import meridian.owners as O
-from meridian.common import CONFIG, data_root, handoff, load_config, load_settings, log, parser
+from meridian.common import (CONFIG, data_root, days_before, handoff, load_config, load_settings, log, parser,
+                             repo_checkout)
+
 
 def author_dataset(cfg):
     """(dataset, its repos): the dataset whose team is a person's ticket component ([teams] rule person_component).
@@ -70,7 +71,7 @@ def owner_rows(cfg, out, root, run_id, variants, earlier=0):
     and keeps next authors before the old cut: what is picked there never sees the current cut's answers."""
     run = next(stream(out / "run.jsonl"))
     fmt, w = cfg["run"]["time_format"], cfg["ownership"]["window_days"]
-    back = lambda t, d=w: (datetime.strptime(t, fmt).replace(tzinfo=timezone.utc) - timedelta(days=d)).strftime(fmt)
+    back = lambda t, d=w: days_before(t, d, fmt)
     until = back(run["snapshot_at"], earlier * w)
     cut = back(until)
     ds, repos = author_dataset(cfg)
@@ -80,7 +81,8 @@ def owner_rows(cfg, out, root, run_id, variants, earlier=0):
     keys = defaultdict(list)
     for r in stream(out / "commit_ticket.jsonl", in_ds):
         keys[r["sha"]].append(r["key"])
-    components = {t["key"]: json.loads(t["components"]) for t in stream(out / "ticket.jsonl", lambda t: t["tracker"] == "jira")}
+    components = {t["key"]: json.loads(t["components"])
+                  for t in stream(out / "ticket.jsonl", lambda t: t["tracker"] == "jira")}
     pid = {a["email"]: a["person_id"] for a in stream(out / "person_alias.jsonl")}
     bots = {p["person_id"] for p in stream(out / "person.jsonl") if p["is_bot"]}
     unassigned = cfg["teams"][ds]["unassigned"] if ds else "unassigned"
@@ -90,8 +92,9 @@ def owner_rows(cfg, out, root, run_id, variants, earlier=0):
     src, test = (re.compile(cfg["checks"][k]) for k in ("source_files", "test_files"))
     touched = {}
     for repo in repos:   # a file's history is per repo: renames are followed inside one
-        co = root / "snapshots" / run_id / "repos" / repo.replace("/", "__")
-        skip = O.ignore_revs(co, json.loads(run["repo_shas"])[repo], cfg["ownership"]["ignore_revs_file"]) if co.exists() else set()
+        co = repo_checkout(root / "snapshots" / run_id, repo)
+        skip = O.ignore_revs(co, json.loads(run["repo_shas"])[repo],
+                             cfg["ownership"]["ignore_revs_file"]) if co.exists() else set()
         mine = lambda r: r["repo"] == repo
         for path, cs in O.touches([c for c in commits if mine(c)], [f for f in files if mine(f)], skip).items():
             touched[path if len(repos) == 1 else f"{repo}:{path}"] = cs
@@ -106,7 +109,8 @@ def owner_rows(cfg, out, root, run_id, variants, earlier=0):
             continue
         window = [x for x in before if back(cut) < x[0]]
         k = prior[after[0][1]]
-        row = {"path": path, "module": module(path), "prior": "0" if not k else "1" if k == 1 else "2-10" if k <= 10 else ">10"}
+        row = {"path": path, "module": module(path),
+               "prior": "0" if not k else "1" if k == 1 else "2-10" if k <= 10 else ">10"}
         for name, (share, d) in variants.items():
             team_of = lambda p: teams[d].get(p, unassigned)
             row[f"owner|{name}"] = O.team_owner(window, team_of, unassigned, share)[0]
@@ -136,12 +140,15 @@ def frame(metrics, y_true, y_pred, by, b):
     # Series, not arrays: Fairlearn squeezes a 1-row array to 0-d and refuses it
     d = pd.DataFrame({"t": np.asarray(y_true), "p": np.asarray(y_pred), "s": np.asarray(by)})
     d = d[d["s"].map(d["s"].value_counts()) >= b["min_n"]]
-    spread = MetricFrame(metrics=metrics[metric], y_true=d["t"], y_pred=d["p"], sensitive_features=d["s"]) if len(d) else None
+    spread = MetricFrame(metrics=metrics[metric], y_true=d["t"], y_pred=d["p"],
+                         sensitive_features=d["s"]) if len(d) else None
     flagged = sorted((g for g, m in by_group.items() if m["flagged"]), key=lambda g: by_group[g][metric])
     return {"overall": {metric: num(mf.overall[metric]), "n": int(mf.overall["n"])}, "by_group": by_group,
-            "difference": num(spread.difference()) if len(d) else None, "ratio": num(spread.ratio()) if len(d) else None,
+            "difference": num(spread.difference()) if len(d) else None,
+            "ratio": num(spread.ratio()) if len(d) else None,
             "tested": sum(m["n"] >= b["min_n"] for m in by_group.values()),
-            "flagged": [{"slice": g, metric: by_group[g][metric], "n": by_group[g]["n"], "ci_high": by_group[g]["ci_high"],
+            "flagged": [{"slice": g, metric: by_group[g][metric], "n": by_group[g]["n"],
+                         "ci_high": by_group[g]["ci_high"],
                          "gap": round(mf.overall[metric] - by_group[g][metric], 4)} for g in flagged]}
 
 
@@ -158,9 +165,11 @@ def owner_report(df, unassigned, variants, b):
     owned, assigned = owner != "unowned", nxt != unassigned
     ok = owned & assigned
     report = {f"accuracy_by_{by}": frame(acc, nxt[ok], owner[ok], df.loc[ok, col], b)
-              for by, col in (("module", "module"), ("next_author_team", f"next|{base}"), ("next_author_prior_commits", "prior"))}
+              for by, col in (("module", "module"), ("next_author_team", f"next|{base}"),
+                              ("next_author_prior_commits", "prior"))}
     for name, hit in (("owned_share", owned), ("assigned_share", assigned)):
-        report[f"{name}_by_module"] = frame({name: selection_rate, "n": count}, hit.astype(int), hit.astype(int), df["module"], b)
+        report[f"{name}_by_module"] = frame({name: selection_rate, "n": count}, hit.astype(int), hit.astype(int),
+                                            df["module"], b)
 
     preds = {name: (df[f"owner|{name}"], df[f"next|{name}"]) for name in variants}
     preds["fallback to last toucher"] = (owner.where(owned, df[f"last|{base}"].replace(unassigned, "unowned")), nxt)
@@ -217,7 +226,8 @@ def mapping_report(out, b):
               for by, d in (("component", comp), ("type", df), ("year", df))}
     if since := b.get("recent_since"):   # the same slices on recent tickets only: what's left once age is held fixed
         recent = comp[comp["year"] >= since]
-        report[f"mapped_share_by_component_since_{since}"] = frame(share, recent["mapped"], recent["mapped"], recent["component"], b)
+        report[f"mapped_share_by_component_since_{since}"] = frame(share, recent["mapped"], recent["mapped"],
+                                                                   recent["component"], b)
     return report
 
 
@@ -228,7 +238,8 @@ def resolver_report(cfg, out, b):
     rows = [{"repo": c["repo"], "kept": int(det.get((c["repo"], c["path"], c["line"], c["col"])) != "dropped")}
             for c in stream(out / "candidate.jsonl", lambda c: c["role"] in roles)]
     df = pd.DataFrame(rows)
-    return {"kept_share_by_repo": frame({"kept_share": selection_rate, "n": count}, df["kept"], df["kept"], df["repo"], b)}
+    return {"kept_share_by_repo": frame({"kept_share": selection_rate, "n": count}, df["kept"], df["kept"],
+                                        df["repo"], b)}
 
 
 def main(run_id, config=CONFIG, root=None, settings=None):
@@ -251,7 +262,8 @@ def main(run_id, config=CONFIG, root=None, settings=None):
         report["owner_rule"] = owner_report(df, unassigned, variants, b) | {"cut": cut}
         # shortcut: reads the tables a second time for the earlier cut; load once if bias outgrows its timeout
         early, _, early_cut = owner_rows(cfg, out, root, run_id, variants, earlier=1)
-        report["owner_rule"]["held_out"] = held_out(early, df, unassigned, variants) | {"cut": early_cut, "files": len(early)}
+        report["owner_rule"]["held_out"] = held_out(early, df, unassigned, variants) | {"cut": early_cut,
+                                                                                        "files": len(early)}
     report["ticket_mapping"] = mapping_report(out, b)
     report["resolver"] = resolver_report(cfg, out, b)
     frames = [(part, name, r) for part in ("owner_rule", "ticket_mapping", "resolver")
@@ -269,11 +281,13 @@ def main(run_id, config=CONFIG, root=None, settings=None):
     for name, m in report.get("owner_rule", {}).get("mitigations", {}).items():
         log(f"  owner rule, {name:38} owns {m['files_owned']:,} of {m['of']:,} files · accuracy {m['accuracy']:.3f}, "
             f"{m['accuracy_assigned']:.3f} on next authors with a team · next author unassigned "
-            f"{m['next_author_unassigned']:.1%} · {m['flagged_modules']} modules flagged · worst module gap {m['worst_module_gap']:.3f}")
+            f"{m['next_author_unassigned']:.1%} · {m['flagged_modules']} modules flagged · worst module gap "
+            f"{m['worst_module_gap']:.3f}")
     if h := report.get("owner_rule", {}).get("held_out"):
-        log(f"  held out: picked '{h['picked_at_earlier_cut']}' at the cut {h['cut'][:10]} ({h['files']:,} files); on the "
-            f"current cut accuracy {h['accuracy_now']}, delta {h['delta']} (95% bootstrap {h['delta_ci']})")
-    log(f"{report['slices_tested']} slices judged (N >= {b['min_n']}), {report['slices_flagged']} flagged -> {out / 'bias.json'}")
+        log(f"  held out: picked '{h['picked_at_earlier_cut']}' at the cut {h['cut'][:10]} ({h['files']:,} files); "
+            f"on the current cut accuracy {h['accuracy_now']}, delta {h['delta']} (95% bootstrap {h['delta_ci']})")
+    log(f"{report['slices_tested']} slices judged (N >= {b['min_n']}), {report['slices_flagged']} flagged "
+        f"-> {out / 'bias.json'}")
     return report
 
 

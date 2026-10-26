@@ -43,7 +43,7 @@ Draft from Aniket's discussion with Utkarsh. Built so far: the Phase 3 caches, a
 
 ## DAGs
 
-**Built (Phase 1 orchestration):** `meridian_update` and `meridian_rebuild` in `dags/meridian_dag.py`, from `dags/pipeline_spec.py`; `meridian.status`, `meridian.publish`, `meridian.compare`; the dashboard's staleness line and Update graph button. Not yet: collect's mirrors and cursors (#14–#18), parallel repos (#8), `meridian.report`'s content, the push check. Each DAG recomputes every part for now.
+**Built (Phase 1 orchestration):** `meridian_update` and `meridian_rebuild` in `dags/meridian_dag.py`, from `dags/pipeline_spec.py`; `meridian.status`, `meridian.publish`, `meridian.compare`; the dashboard's staleness line and Update graph button; collect's mirrors and cursors (#14–#18, `meridian.collect`), `meridian.report` and the push check (`meridian.pushcheck`). Not yet: parallel repos (#8). Each DAG recomputes every part for now.
 
 | DAG | Runs | Does |
 |---|---|---|

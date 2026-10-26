@@ -9,7 +9,7 @@ line that commit changed is a real use. Some migrations weren't finished (graphe
 left tests and examples behind), so a line the commit didn't touch is a real use too when it is the import, or a
 url(...) call, in a file that imports url from django.conf.urls. That rule is plain text, so it doesn't lean on Jedi.
 
-    precision  resolved rows that are real uses / resolved rows                  (bar: >= 0.98, PIPELINE-PLAN.md)
+    precision  resolved rows that are real uses / resolved rows                  (bar: >= 0.98, notes/PIPELINE-PLAN.md)
     recall     real uses that are resolved / real uses (import and call rows only)
 """
 import json
@@ -54,7 +54,8 @@ def score(run_id, cfg, candidates, rows, root=None):
                 continue                                    # alias rows and other repos
             c = cands[key]
             if r["path"] not in imports_url:
-                imports_url[r["path"]] = bool(DJANGO_URL.search((repo_dir / r["path"]).read_text(encoding="utf-8", errors="replace")))
+                imports_url[r["path"]] = bool(DJANGO_URL.search((repo_dir / r["path"]).read_text(encoding="utf-8",
+                                                                                                 errors="replace")))
             on_commit = r["line"] in changed.get(r["path"], ())
             by_text = imports_url[r["path"]] and c["role"] in ("import", "call")
             real_use = c["role"] in ("import", "call") and (on_commit or by_text)
@@ -71,10 +72,11 @@ def score(run_id, cfg, candidates, rows, root=None):
 
 
 def show(table, total):
-    log(f"{'package':<42} {'cands':>6} {'resolved':>9} {'right':>6} {'not on commit':>14} {'real uses':>10} {'found':>6}")
+    log(f"{'package':<42} {'cands':>6} {'resolved':>9} {'right':>6} {'not on commit':>14} {'real uses':>10} "
+        f"{'found':>6}")
     for repo, t in [*table.items(), ("ALL PACKAGES", total)]:
-        log(f"{repo:<42} {t['candidates']:>6} {t['resolved']:>9} {t['resolved_real']:>6} {t['resolved_off_commit']:>14} "
-            f"{t['real']:>10} {t['real_resolved']:>6}")
+        log(f"{repo:<42} {t['candidates']:>6} {t['resolved']:>9} {t['resolved_real']:>6} "
+            f"{t['resolved_off_commit']:>14} {t['real']:>10} {t['real_resolved']:>6}")
     log(f"precision {total['resolved_real']} of {total['resolved']} = {total['resolved_real'] / total['resolved']:.3f}"
         f"  (on the commit alone: {total['resolved'] - total['resolved_off_commit']} of {total['resolved']})")
     log(f"recall    {total['real_resolved']} of {total['real']} = {total['real_resolved'] / total['real']:.3f}")

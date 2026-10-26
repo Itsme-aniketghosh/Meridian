@@ -1,10 +1,10 @@
 # Pending tasks · the four parts · 3 days left
 
-What Vishwa, Rachna, Rochan and Chaitali still owe before the join (Utkarsh) and the graph (Aniket) can finish. From a review of every commit up to `4790da1`, checked against [PIPELINE-PLAN.md](PIPELINE-PLAN.md) and [CONTRACTS.md](CONTRACTS.md).
+What Vishwa, Rachna, Rochan and Chaitali still owe before the join (Utkarsh) and the graph (Aniket) can finish. From a review of every commit up to `4790da1`, checked against [PIPELINE-PLAN.md](PIPELINE-PLAN.md) and [CONTRACTS.md](../CONTRACTS.md).
 
 ![Pending tasks per person](pending-tasks.svg)
 
-> **✅ Oct 23: the new team run is `70dd1dabfed544b8`.** Built by Utkarsh and Aniket after dynamic-config, every part rerun on it (collect, history, scan, resolve, owners), all bars met, 145 of 145 tests pass on it. **Use it; don't build your own.** Details: [shared-snapshot/README.md](shared-snapshot/README.md).
+> **✅ Oct 23: the new team run is `70dd1dabfed544b8`.** Built by Utkarsh and Aniket after dynamic-config, every part rerun on it (collect, history, scan, resolve, owners), all bars met, 145 of 145 tests pass on it. **Use it; don't build your own.** Details: [shared-snapshot/README.md](../shared-snapshot/README.md).
 > What's left for the four is only the human checks marked below.
 
 **Order:** ✅ decisions → ✅ new `run_id` → ✅ all parts rerun → join (Utkarsh) → graph (Aniket).
@@ -23,7 +23,7 @@ Already in `meridian.toml` and `settings.toml`, pushed with this doc. dynamic-co
 |---|---|---|
 | Chaitali's `[identity] local_part_max_names = 2` | **Kept.** Without it, 112 different people merge into one | None, already in |
 | Rochan's resolver environment | **Accepted.** The packages resolve against the snapshot's `django/django` checkout. Per-repo lockfiles can't work: none of the 16 packages has one | `[resolver] env`: `"per_repo_lockfile"` → `"snapshot"` |
-| `[orchestration]` (Airflow, GCP, schedule) | **Moved out** to [settings.toml](settings.toml). It's where the pipeline runs, not what it computes, so it no longer counts toward the `run_id` | Section removed from `meridian.toml` |
+| `[orchestration]` (Airflow, GCP, schedule) | **Moved out** to [settings.toml](../settings.toml). It's where the pipeline runs, not what it computes, so it no longer counts toward the `run_id` | Section removed from `meridian.toml` |
 | Call depth | **Left open on purpose**, for model training. Stays at 3 for v1 | Comment on `call_edge_depth` |
 | Aniket's dynamic-config logic changes ([FIXES.md](FIXES.md)) | **Approved** (Utkarsh + Aniket, Oct 23). The rerun on `70dd1dabfed544b8` meets every bar | None |
 | The 315 keyword-argument names (`[scanner] keep_name_only`) | **Kept** (`true`), Oct 23. Nothing silently dropped; the join leaves `role = reference` rows out of `call_site` | None |
@@ -33,7 +33,7 @@ Already in `meridian.toml` and `settings.toml`, pushed with this doc. dynamic-co
 | What | Who decides | By when |
 |---|---|---|
 | Call depth: `call_edge_depth`, `blocked_by_max_depth`, `blast_radius_max_depth` | Utkarsh + Aniket | During model training. A change then means a new `run_id` and a rerun. To look deeper than 3, raise `call_edge_depth` too: the graph can't use edges the resolver never collected |
-| GCP names: `image`, `snapshot_bucket` in [settings.toml](settings.toml) | Utkarsh | When GCP is set up. Placeholders today, no rerun when they change |
+| GCP names: `image`, `snapshot_bucket` in [settings.toml](../settings.toml) | Utkarsh | When GCP is set up. Placeholders today, no rerun when they change |
 | The 21,787 Spark files with no owner (180-day rule): accept, and count them in the coverage report | Utkarsh | Before the join |
 | ~~GitLab usernames in `week1/cross-team/gitlab/xt_cross_team_blocks.csv`: remove~~ Done in dynamic-config (still in git history at `ebe68b8`) | Aniket | ✅ |
 
@@ -80,7 +80,7 @@ Already in `meridian.toml` and `settings.toml`, pushed with this doc. dynamic-co
    ```
    python3 -m meridian.history --run-id <new id> --config meridian.toml
    ```
-6. Update [shared-snapshot/README.md](shared-snapshot/README.md). This is the only file you push:
+6. Update [shared-snapshot/README.md](../shared-snapshot/README.md). This is the only file you push:
 
    | What | Change |
    |---|---|
@@ -99,7 +99,7 @@ Delivered first: collect, writer, tickets (94.0% keyed, 3 dead keys) and SZZ (be
 
 | | Task | Due | Done when |
 |---|---|---|---|
-| ✅ | ~~Post the new `run_id`, with collect + history rerun on it~~ Done Oct 23 by Utkarsh + Aniket: `70dd1dabfed544b8` | D1 | Steps above done, [shared-snapshot/README.md](shared-snapshot/README.md) pushed |
+| ✅ | ~~Post the new `run_id`, with collect + history rerun on it~~ Done Oct 23 by Utkarsh + Aniket: `70dd1dabfed544b8` | D1 | Steps above done, [shared-snapshot/README.md](../shared-snapshot/README.md) pushed |
 | | D5: run `week1/pair3/defects4j/make_labels.py` and `ticket_key_check.sh` once. If you already did, just write down the result. **Can start now** | D1 | Same 130 labels and 812 of 854 keyed |
 
 ## Rachna · Call sites · done
@@ -107,7 +107,7 @@ Delivered first: collect, writer, tickets (94.0% keyed, 3 dead keys) and SZZ (be
 | | Task | Due | Done when |
 |---|---|---|---|
 | ✅ | ~~Rerun scan on the new `run_id`~~ Done Oct 23: 3,196 candidates, Django 265 of 265 | D1 | Includes the 4 newly pinned packages (about 179 sites) |
-| ✅ | ~~Keep or drop the 315 keyword-argument and parameter names, with Rochan.~~ Decided Oct 23: kept. It's `[scanner] keep_name_only` in `meridian.toml`, so changing it changes the `run_id`. **Can start now** | D1 | Decided before Vishwa makes the new run_id (it's in `meridian.toml`), and written in [SCANNER.md](SCANNER.md) |
+| ✅ | ~~Keep or drop the 315 keyword-argument and parameter names, with Rochan.~~ Decided Oct 23: kept. It's `[scanner] keep_name_only` in `meridian.toml`, so changing it changes the `run_id`. **Can start now** | D1 | Decided before Vishwa makes the new run_id (it's in `meridian.toml`), and written in [SCANNER.md](../SCANNER.md) |
 
 ## Rochan · Resolver · done
 

@@ -1,4 +1,5 @@
-"""GitLab gold set · step 1 · D6: the two week-1 lists of cross-team blocks, merged, and the 57 stall reads. See CSV-POLICY.md.
+"""GitLab gold set · step 1 · D6: the two week-1 lists of cross-team blocks, merged, and the 57 stall reads. See
+CSV-POLICY.md.
 
     python3 "Data-Pipeline/labels/build_gitlab_gold.py" <gold-set dir> <out/<run_id> dir>
 
@@ -7,8 +8,8 @@ usernames the model quoted that aren't in the GitLab pull, one per line, so they
   xt_cross_team_blocks.csv    Aniket's link pass, one row per "blocked by" link
   cross_hand_check_116.csv    Vishwa's targeted read; 25 confirmed
   hand_check_17.csv, hand_check_40.csv   Vishwa's 57 stall reads; the 5 cross_team = y make Vishwa's 30
-<out/<run_id> dir> is a team run's handoff folder: GitLab ticket and ticket_link fill the teams and dates the sheets lack.
-Its snapshots/<run_id>/gitlab/issues.jsonl.gz must exist: the raw dump is the list of usernames to scrub.
+<out/<run_id> dir> is a team run's handoff folder: GitLab ticket and ticket_link fill the teams and dates the sheets
+lack. Its snapshots/<run_id>/gitlab/issues.jsonl.gz must exist: the raw dump is the list of usernames to scrub.
 
 Writes, next to this script:
   gitlab_cross_team_blocks.csv  one row per (blocked_ref, blocker_ref). A pair in both lists -> source 'both', the
@@ -30,7 +31,7 @@ from pathlib import Path
 GL = "gitlab-org/gitlab"
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from meridian.common import read_jsonl
+from meridian.common import read_jsonl  # noqa: E402  (needs the path above)
 REF = re.compile(r"(?:[\w.-]+/)*[\w.-]+#\d+|(?<![\w/#])#\d+")
 RANK = ["wait", "planned", "partial", "unclear", "no", "no_evidence"]  # strongest first
 XT_VERDICT = {"no evidence": "no_evidence"}
@@ -68,7 +69,8 @@ def scrubber(usernames, always=()):
 
 
 _s = scrubber([])
-assert _s("@.name @user.x @a_b @user @user/team-x a@b.co g=h@156b") == "@user @user @user @user @user/team-x [email] g=h@156b"
+assert (_s("@.name @user.x @a_b @user @user/team-x a@b.co g=h@156b")
+        == "@user @user @user @user @user/team-x [email] g=h@156b")
 
 
 def group(components):
@@ -85,7 +87,8 @@ def put(rows, r):
     old = rows[key]
     win = r if RANK.index(r["verdict"]) < RANK.index(old["verdict"]) else old
     lose = old if win is r else r
-    rows[key] = {k: win[k] or lose[k] for k in win} | {"source": old["source"] if old["source"] == r["source"] else "both"}
+    rows[key] = {k: win[k] or lose[k]
+                 for k in win} | {"source": old["source"] if old["source"] == r["source"] else "both"}
 
 
 def main(src, run):
@@ -97,7 +100,8 @@ def main(src, run):
     links = [l for l in read_jsonl(run / "ticket_link.jsonl") if l["link_type"] == "blocked_by"]
     xt = read_csv(src / "xt_cross_team_blocks.csv")
     vp = read_csv(src / "cross_hand_check_116.csv")
-    stalls = [dict(r, group=r.get("group", "")) for f in ("hand_check_17.csv", "hand_check_40.csv") for r in read_csv(src / f)]
+    stalls = [dict(r, group=r.get("group", "")) for f in ("hand_check_17.csv", "hand_check_40.csv")
+              for r in read_csv(src / f)]
     users = set(re.findall(r'"username":\s*"([^"]+)"', gzip.decompress(raw.read_bytes()).decode()))
     users |= {t[k] for t in tickets.values() for k in ("assignee", "reporter") if t.get(k)}
     extra = src / "extra_names.txt"  # names the model read live, not in the pull: kept local, one per line
@@ -121,16 +125,20 @@ def main(src, run):
     rows = {}
     for r in xt:
         a, b = f"{GL}#{r['x']}", full_ref(r["blocker"], known)
-        put(rows, {"blocked_ref": a, "blocker_ref": b, "waiting_team": r["x_group"] or team(a), "blocking_team": r["blocker_group"] or team(b),
-             "link_added_at": r["link_added"][:10] or added(a, b), "blocker_closed_at": r["blocker_closed"][:10] or closed(b),
-             "verdict": XT_VERDICT.get(r["verdict"], r["verdict"]), "source": "link_pass", "evidence_url": url(r["x"]),
-             "evidence_quote": scrub(r["evidence"], 200), "checked_by": "model", "human_verdict": ""})
+        put(rows, {"blocked_ref": a, "blocker_ref": b, "waiting_team": r["x_group"] or team(a),
+                   "blocking_team": r["blocker_group"] or team(b), "link_added_at": r["link_added"][:10] or added(a, b),
+                   "blocker_closed_at": r["blocker_closed"][:10] or closed(b),
+                   "verdict": XT_VERDICT.get(r["verdict"], r["verdict"]), "source": "link_pass",
+                   "evidence_url": url(r["x"]), "evidence_quote": scrub(r["evidence"], 200), "checked_by": "model",
+                   "human_verdict": ""})
 
     def vishwa(a, refs, own, other, verdict, link, evidence):
         for b in refs or [""]:
-            put(rows, {"blocked_ref": a, "blocker_ref": b, "waiting_team": team(a) or own, "blocking_team": team(b) or other,
-                 "link_added_at": added(a, b), "blocker_closed_at": closed(b), "verdict": verdict, "source": "targeted_read",
-                 "evidence_url": link, "evidence_quote": scrub(evidence, 200), "checked_by": "model", "human_verdict": ""})
+            put(rows,
+                {"blocked_ref": a, "blocker_ref": b, "waiting_team": team(a) or own, "blocking_team": team(b) or other,
+                 "link_added_at": added(a, b), "blocker_closed_at": closed(b), "verdict": verdict,
+                 "source": "targeted_read", "evidence_url": link, "evidence_quote": scrub(evidence, 200),
+                 "checked_by": "model", "human_verdict": ""})
 
     for r in vp:
         a = f"{GL}#{r['iid']}"
@@ -154,7 +162,8 @@ def main(src, run):
         link = links.get((r["blocked_ref"], r["blocker_ref"]))
         if r["waiting_team"] and r["waiting_team"] == r["blocking_team"]:
             r["verdict"], why = "no", "same team"           # not cross-team
-        elif link and link["removed_at"] and (not r["blocker_closed_at"] or link["removed_at"][:10] < r["blocker_closed_at"]):
+        elif link and link["removed_at"] and (not r["blocker_closed_at"]
+                                              or link["removed_at"][:10] < r["blocker_closed_at"]):
             r["verdict"], why = "no", "link swapped"        # unlinked while the blocker was still open
         else:
             continue
@@ -167,7 +176,8 @@ def main(src, run):
                 r["verdict"] = again[k]
                 ruled["model recheck"] = ruled.get("model recheck", 0) + 1
     if (HERE / "gitlab_cross_team_blocks.csv").exists():  # a rebuild keeps the spot-check
-        done = {(r["blocked_ref"], r["blocker_ref"]): r["human_verdict"] for r in read_csv(HERE / "gitlab_cross_team_blocks.csv")}
+        done = {(r["blocked_ref"], r["blocker_ref"]): r["human_verdict"]
+                for r in read_csv(HERE / "gitlab_cross_team_blocks.csv")}
         for r in blocks:
             r["human_verdict"] = done.get((r["blocked_ref"], r["blocker_ref"]), "")
     stall_rows = []
@@ -189,11 +199,15 @@ def main(src, run):
 
     pos = [r for r in blocks if r["verdict"] in ("wait", "planned")]
     by = lambda rs, k: {v: sum(r[k] == v for r in rs) for v in sorted({r[k] for r in rs})}
-    print(f"gitlab_cross_team_blocks.csv  {len(blocks)} pairs · verdicts {by(blocks, 'verdict')} · sources {by(blocks, 'source')}")
+    print(f"gitlab_cross_team_blocks.csv  {len(blocks)} pairs · verdicts {by(blocks, 'verdict')} · "
+          f"sources {by(blocks, 'source')}")
     print(f"  verdicts changed by rule: {ruled}")
-    print(f"  wait + planned: {len(pos)} pairs on {len({r['blocked_ref'] for r in pos})} distinct waiting issues (need >= 38)")
-    print(f"  no blocker ref: {sum(not r['blocker_ref'] for r in blocks)} · no blocking team: {sum(not r['blocking_team'] for r in blocks)}")
-    print(f"gitlab_stall_reasons.csv  {len(stall_rows)} stalls · reasons {by(stall_rows, 'reason')} · ended_by {by(stall_rows, 'ended_by')}")
+    print(f"  wait + planned: {len(pos)} pairs on {len({r['blocked_ref'] for r in pos})} distinct waiting issues "
+          "(need >= 38)")
+    print(f"  no blocker ref: {sum(not r['blocker_ref'] for r in blocks)} · "
+          f"no blocking team: {sum(not r['blocking_team'] for r in blocks)}")
+    print(f"gitlab_stall_reasons.csv  {len(stall_rows)} stalls · reasons {by(stall_rows, 'reason')} · "
+          f"ended_by {by(stall_rows, 'ended_by')}")
 
     # The spot-check: 10 wait, 5 planned, 5 partial, one per waiting issue, picked by hash so anyone gets the same 20
     # A wait or planned case holds if the person finds a wait or planned; a partial one if they find any real dependency
@@ -207,9 +221,11 @@ def main(src, run):
                 seen.add(r["blocked_ref"])
                 picked.append(r)
         held = [r for r in picked if r["human_verdict"]]
-        print(f"  {verdict}: {len(held)} of {len(picked)} checked, {sum(r['human_verdict'] in holds[verdict] for r in held)} hold")
+        print(f"  {verdict}: {len(held)} of {len(picked)} checked, "
+              f"{sum(r['human_verdict'] in holds[verdict] for r in held)} hold")
         for r in picked:
-            print(f"    {r['human_verdict'] or '____':12} {r['blocked_ref']} waits on {r['blocker_ref']}  {r['evidence_url']}")
+            print(f"    {r['human_verdict'] or '____':12} {r['blocked_ref']} waits on {r['blocker_ref']}  "
+                  f"{r['evidence_url']}")
 
 
 if __name__ == "__main__":

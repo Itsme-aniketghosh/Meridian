@@ -15,7 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import meridian.tickets as T
 
 RUN, SNAP = "abcdef0123456789", "2026-10-01T00:00:00Z"
-RULES = {"bulk_close": {"label": "bulk-closed", "per_person": 20, "within_minutes": 60}, "subtask_takes_parent_type": True,
+RULES = {"bulk_close": {"label": "bulk-closed", "per_person": 20, "within_minutes": 60},
+         "subtask_takes_parent_type": True,
          "key_regex_generic": r"\b[A-Z][A-Z0-9]+-\d+\b"}
 BLOCKER = {"name": "Blocker", "inward": "is blocked by", "outward": "blocks"}
 
@@ -59,7 +60,8 @@ class Jira(unittest.TestCase):
                 history(1, "2026-03-01T00:00:00Z", ("Link", None, "This issue is blocked by SPARK-2")),
                 history(2, "2026-04-01T00:00:00Z", ("Link", "This issue is blocked by SPARK-2", None)),
                 history(3, "2026-10-03T00:00:00Z", ("Link", None, "This issue is blocked by SPARK-3"))]),
-            issue("SPARK-6", labels=["bulk-closed"], status="Closed", resolution="Incomplete", resolved="2026-01-02T00:00:00Z"),
+            issue("SPARK-6", labels=["bulk-closed"], status="Closed", resolution="Incomplete",
+                  resolved="2026-01-02T00:00:00Z"),
             # fixed before, reopened after: Jira cleared resolutiondate, but it was Fixed at the snapshot
             issue("SPARK-7", status="Reopened", histories=[
                 history(1, "2026-02-01T00:00:00Z", ("status", "Open", "Resolved"), ("resolution", None, "Fixed")),
@@ -73,7 +75,8 @@ class Jira(unittest.TestCase):
                    for i in range(20)]
         # 20 in one hour with no author: anonymous entries are no one, never pooled into one person
         issues += [issue(f"SPARK-{200 + i}", status="Closed", resolution="Won't Fix", resolved="2026-06-01T10:30:00Z",
-                         histories=[history(1, f"2026-06-01T10:{i:02d}:00Z", ("resolution", None, "Won't Fix"), who=None)])
+                         histories=[history(1, f"2026-06-01T10:{i:02d}:00Z",
+                                            ("resolution", None, "Won't Fix"), who=None)])
                    for i in range(20)]
         tickets, events, links, self.counts = T.jira(issues, SNAP, RULES, RUN, "SPARK")
         self.t, self.events, self.links = {r["key"]: r for r in tickets}, events, links
@@ -82,10 +85,13 @@ class Jira(unittest.TestCase):
         self.assertNotIn("SPARK-4", self.t)
 
     def test_rolled_back_to_snapshot(self):
-        self.assertEqual((self.t["SPARK-1"]["status"], self.t["SPARK-1"]["resolution"], self.t["SPARK-1"]["resolved_at"]),
+        self.assertEqual((self.t["SPARK-1"]["status"], self.t["SPARK-1"]["resolution"],
+                          self.t["SPARK-1"]["resolved_at"]),
                          ("Open", None, None))
-        self.assertEqual((self.t["SPARK-2"]["resolution"], self.t["SPARK-2"]["resolved_at"]), ("Fixed", "2026-02-01T00:00:00Z"))
-        self.assertEqual((self.t["SPARK-7"]["status"], self.t["SPARK-7"]["resolution"], self.t["SPARK-7"]["resolved_at"]),
+        self.assertEqual((self.t["SPARK-2"]["resolution"], self.t["SPARK-2"]["resolved_at"]),
+                         ("Fixed", "2026-02-01T00:00:00Z"))
+        self.assertEqual((self.t["SPARK-7"]["status"], self.t["SPARK-7"]["resolution"],
+                          self.t["SPARK-7"]["resolved_at"]),
                          ("Resolved", "Fixed", "2026-02-01T00:00:00Z"))
 
     def test_cut_changelog_counted(self):
@@ -108,7 +114,8 @@ class Jira(unittest.TestCase):
 
     def test_links(self):
         got = {(l["key"], l["link_type"], l["other_key"]): (l["added_at"], l["removed_at"]) for l in self.links}
-        self.assertEqual(got[("SPARK-1", "blocked_by", "SPARK-5")], (None, None))  # 'blocks', keyed by the waiting ticket
+        # 'blocks', keyed by the waiting ticket
+        self.assertEqual(got[("SPARK-1", "blocked_by", "SPARK-5")], (None, None))
         self.assertEqual(got[("SPARK-5", "blocked_by", "SPARK-2")], ("2026-03-01T00:00:00Z", "2026-04-01T00:00:00Z"))
         self.assertEqual(got[("SPARK-5", "blocked_by", "HADOOP-9")], (None, None))  # other projects stay
         self.assertEqual(got[("SPARK-3", "parent", "SPARK-2")], (None, None))
@@ -117,19 +124,25 @@ class Jira(unittest.TestCase):
         self.assertEqual(self.counts["links_to_missing"], 1)  # left out, but counted
 
 
-def gl_issue(iid, title="t", state="opened", closed=None, labels=(), notes=None, blocked_by=(), parent=None, ptype="Issue",
+def gl_issue(iid, title="t", state="opened", closed=None, labels=(), notes=None, blocked_by=(),
+             parent=None, ptype="Issue",
              desc="x"):
     return {"iid": str(iid), "title": title, "state": state, "closedAt": closed, "createdAt": "2025-02-01T00:00:00Z",
             "type": "TASK" if parent else "ISSUE", "description": desc, "author": {"username": "rep"},
-            "assignees": {"nodes": [{"username": "zed"}, {"username": "amy"}]}, "labels": {"nodes": [{"title": l} for l in labels]},
-            "blockedByIssues": {"nodes": [{"iid": str(b), "webUrl": f"https://gitlab.com/gitlab-org/gitlab/-/issues/{b}"} for b in blocked_by]},
+            "assignees": {"nodes": [{"username": "zed"}, {"username": "amy"}]},
+            "labels": {"nodes": [{"title": l} for l in labels]},
+            "blockedByIssues": {"nodes": [{"iid": str(b),
+                                           "webUrl": f"https://gitlab.com/gitlab-org/gitlab/-/issues/{b}"}
+                                          for b in blocked_by]},
             "parent": {"iid": str(parent), "workItemType": {"name": ptype}} if parent else None, "epic": None,
-            "notes": [{"body": b, "createdAt": at, "system": True, "author": {"username": "amy"}} for at, b in notes or []]}
+            "notes": [{"body": b, "createdAt": at, "system": True, "author": {"username": "amy"}}
+                      for at, b in notes or []]}
 
 
 class GitLab(unittest.TestCase):
     def setUp(self):
-        ds = {"project": "gitlab-org/gitlab", "key_format": "gitlab-org/gitlab#{iid}", "drop_titles_starting": ["[Test]"]}
+        ds = {"project": "gitlab-org/gitlab", "key_format": "gitlab-org/gitlab#{iid}",
+              "drop_titles_starting": ["[Test]"]}
         issues = [
             gl_issue(1, state="closed", closed="2026-10-05T00:00:00Z", labels=["group::a", "type::bug"], notes=[
                 ("2025-03-01T00:00:00Z", "marked this issue as blocked by #2"),
@@ -168,20 +181,25 @@ class GitLab(unittest.TestCase):
     def test_links_from_notes(self):
         self.assertEqual(self.links[("gitlab-org/gitlab#1", "blocked_by", "gitlab-org/gitlab#2")],
                          ("2025-03-01T00:00:00Z", "2025-04-01T00:00:00Z"))  # 'removed the relation' matched to it
-        self.assertEqual(self.links[("gitlab-org/gitlab#3", "blocked_by", "gitlab-org/gitlab#1")], ("2025-05-01T00:00:00Z", None))
+        self.assertEqual(self.links[("gitlab-org/gitlab#3", "blocked_by", "gitlab-org/gitlab#1")],
+                         ("2025-05-01T00:00:00Z", None))
         self.assertIn(("gitlab-org/other#4", "blocked_by", "gitlab-org/gitlab#1"), self.links)
-        self.assertEqual(self.links[("gitlab-org/gitlab#2", "blocked_by", "gitlab-org/gitlab#9")], (None, None))  # in the pull
+        # in the pull
+        self.assertEqual(self.links[("gitlab-org/gitlab#2", "blocked_by", "gitlab-org/gitlab#9")], (None, None))
         self.assertIn(("gitlab-org/gitlab#3", "parent", "gitlab-org/gitlab#2"), self.links)
         self.assertNotIn(("gitlab-org/gitlab#1", "blocked_by", "gitlab-org/gitlab#5"), self.links)  # after the snapshot
 
     def test_events(self):
         one = [(e["field"], e["from_value"], e["to_value"]) for e in self.events if e["key"] == "gitlab-org/gitlab#1"]
-        self.assertEqual(one, [("link", None, "blocked_by gitlab-org/gitlab#2"), ("link", "blocked_by gitlab-org/gitlab#2", None),
-                               ("link", None, "blocks gitlab-org/gitlab#3"), ("link", None, "blocks gitlab-org/other#4"),
+        self.assertEqual(one, [("link", None, "blocked_by gitlab-org/gitlab#2"),
+                               ("link", "blocked_by gitlab-org/gitlab#2", None),
+                               ("link", None, "blocks gitlab-org/gitlab#3"),
+                               ("link", None, "blocks gitlab-org/other#4"),
                                ("status", None, "In dev")])
         self.assertEqual(T.gl_ref("&5", "gitlab-org/gitlab"), "gitlab-org&5")
         self.assertEqual(T.gl_ref("gitlab-org&5", "gitlab-org/gitlab"), "gitlab-org&5")
-        self.assertEqual(T.gl_ref("gitaly#5", "gitlab-org/gitlab"), "gitlab-org/gitaly#5")  # as blockedByIssues writes it
+        # as blockedByIssues writes it
+        self.assertEqual(T.gl_ref("gitaly#5", "gitlab-org/gitlab"), "gitlab-org/gitaly#5")
 
 
 class CommitTicket(unittest.TestCase):
@@ -192,7 +210,6 @@ class CommitTicket(unittest.TestCase):
         self.assertEqual([(r["sha"], r["key"], r["source"]) for r in rows],
                          [("a", "SPARK-1", "subject"), ("b", "SPARK-2", "body"), ("c", "SPARK-1", "subject")])
         self.assertEqual(dead, 1)  # SPARK-99 isn't a ticket
-
 
 
 class Build(unittest.TestCase):
@@ -207,24 +224,30 @@ class Build(unittest.TestCase):
                       links=[{"type": BLOCKER, "inwardIssue": {"key": "SPARK-2"}}])
         fixed["fields"]["description"] = "boom"
         batch = [issue(f"SPARK-{10 + i}", status="Closed", resolution="Won't Fix", resolved="2026-05-01T11:00:00Z",
-                       histories=[history(1, f"2026-05-01T10:{i:02d}:00Z", ("resolution", None, "Won't Fix"), who="bot")])
+                       histories=[history(1, f"2026-05-01T10:{i:02d}:00Z",
+                                          ("resolution", None, "Won't Fix"), who="bot")])
                  for i in range(20)]
         batch[0]["fields"]["description"] = None
-        for i, page in enumerate([[fixed, issue("SPARK-2")], [issue("SPARK-2"), *batch]]):  # SPARK-2 twice: paging shifted
+        # SPARK-2 twice: paging shifted
+        for i, page in enumerate([[fixed, issue("SPARK-2")], [issue("SPARK-2"), *batch]]):
             (d / f"page-{i:04d}.json.gz").write_bytes(gzip.compress(json.dumps({"issues": page}).encode()))
-        cfg = {"tickets": RULES, "datasets": {"spark": {"tracker": "jira", "jira": {"jql": "project=SPARK ORDER BY key ASC"},
-                                                         "key_regex": r"\bSPARK-\d+\b", "repos": [{"repo": "apache/spark"}]}}}
+        cfg = {"tickets": RULES,
+               "datasets": {"spark": {"tracker": "jira", "jira": {"jql": "project=SPARK ORDER BY key ASC"},
+                                      "key_regex": r"\bSPARK-\d+\b", "repos": [{"repo": "apache/spark"}]}}}
         manifest = {"snapshot_at": SNAP, "sources": {"jira/SPARK": "x"}, "repos": {"apache/spark": "f00"}}
         out = T.build(tmp, manifest, cfg, RUN, lambda repo: [("a1", "[SPARK-1] fix", ""), ("b2", "no key", "SPARK-77")])
         t = {r["key"]: r for r in out["ticket"]}
         self.assertEqual(len(out["ticket"]), 22)
         one = t["SPARK-1"]
-        self.assertEqual((one["effective_type"], one["status"], one["resolution"], one["resolved_at"], one["bulk_closed"], one["description"]),
+        self.assertEqual((one["effective_type"], one["status"], one["resolution"], one["resolved_at"],
+                          one["bulk_closed"], one["description"]),
                          ("Bug", "Resolved", "Fixed", "2026-03-01T00:00:00Z", 0, "boom"))
         self.assertTrue(all(t[f"SPARK-{10 + i}"]["bulk_closed"] for i in range(20)))
         self.assertEqual(t["SPARK-10"]["description"], "")
-        self.assertEqual([(l["key"], l["link_type"], l["other_key"]) for l in out["ticket_link"]], [("SPARK-1", "blocked_by", "SPARK-2")])
-        self.assertEqual([(r["sha"], r["key"], r["source"]) for r in out["commit_ticket"]], [("a1", "SPARK-1", "subject")])
+        self.assertEqual([(l["key"], l["link_type"], l["other_key"]) for l in out["ticket_link"]],
+                         [("SPARK-1", "blocked_by", "SPARK-2")])
+        self.assertEqual([(r["sha"], r["key"], r["source"]) for r in out["commit_ticket"]],
+                         [("a1", "SPARK-1", "subject")])
 
 
 if __name__ == "__main__":

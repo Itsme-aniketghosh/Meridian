@@ -106,7 +106,7 @@ delta_overlap_minutes = 1440          # a ticket delta asks for changes since th
 [history]
 szz_workers = 0                       # SZZ processes. 0 = one per CPU
 
-# ───────────── caches (UPDATE-PLAN.md, Phase 3) ─────────────
+# ───────────── caches (notes/UPDATE-PLAN.md, Phase 3) ─────────────
 # Each switch lets a part reuse its last results for inputs that didn't change. All off: Phase 3 is signed off "only
 # if runs get slow". On or off, a part writes the same bytes (tests/test_cache.py). A cache lives under the data root in
 # snapshots/_cache/{scan,resolve,szz}/<repo>.json, is never hashed into a run, and keeps only what its last run used.

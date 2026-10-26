@@ -30,10 +30,12 @@ def fixture_repo(path):
 
     def run(*a, date="2026-01-31T00:00:00Z"):
         return subprocess.run(["git", "-C", str(path), *a], check=True, capture_output=True, text=True,
-                              env={**os.environ, "GIT_AUTHOR_DATE": date, "GIT_COMMITTER_DATE": "2026-02-01T00:00:00Z"}).stdout.strip()
+                              env={**os.environ, "GIT_AUTHOR_DATE": date,
+                                   "GIT_COMMITTER_DATE": "2026-02-01T00:00:00Z"}).stdout.strip()
 
     def commit(msg, who="Ann <Ann@Example.com>"):
-        run("-c", "user.name=Committer", "-c", "user.email=merger@example.com", "commit", "--quiet", "--author", who, "-m", msg, date=next(t))
+        run("-c", "user.name=Committer", "-c", "user.email=merger@example.com", "commit", "--quiet", "--author", who,
+            "-m", msg, date=next(t))
 
     run("init", "--quiet", "--initial-branch=main")
     (path / "old.py").write_text("".join(f"line {i}\n" for i in range(50)))
@@ -49,7 +51,8 @@ def fixture_repo(path):
         run("add", ".")
         commit(f"s{i}", who="Bo <bo@example.com>")
     run("checkout", "--quiet", "main")
-    run("-c", "user.name=Committer", "-c", "user.email=merger@example.com", "merge", "--quiet", "--no-ff", "-m", "merge side", "side")
+    run("-c", "user.name=Committer", "-c", "user.email=merger@example.com", "merge", "--quiet", "--no-ff", "-m",
+        "merge side", "side")
     (path / "new.py").write_text("changed\n")
     run("add", ".")
     commit("c3")
@@ -99,10 +102,12 @@ class Keyed(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.co = self.tmp / "repo"
         self.co.mkdir()
-        run = lambda *a: subprocess.run(["git", "-C", str(self.co), "-c", "user.name=A", "-c", "user.email=a@example.com", *a],
+        run = lambda *a: subprocess.run(["git", "-C", str(self.co), "-c", "user.name=A", "-c",
+                                         "user.email=a@example.com", *a],
                                         check=True, capture_output=True, text=True).stdout.strip()
         run("init", "--quiet", "--initial-branch=main")
-        for i, msg in enumerate([["[SPARK-3] old"], ["no key"], ["[MINOR] typo", "-m", "branch SPARK-2-fix\nmore"], ["[SPARK-1] fix"]]):
+        for i, msg in enumerate([["[SPARK-3] old"], ["no key"], ["[MINOR] typo", "-m", "branch SPARK-2-fix\nmore"],
+                                 ["[SPARK-1] fix"]]):
             (self.co / "f.py").write_text(f"x = {i}\n")
             run("add", ".")
             run("commit", "--quiet", "-m", *msg)
@@ -114,7 +119,8 @@ class Keyed(unittest.TestCase):
     def test_messages_and_keyed(self):
         msgs = C.messages(self.co, self.sha)
         self.assertEqual([(s, b.strip()) for _, s, b in msgs],
-                         [("[SPARK-1] fix", ""), ("[MINOR] typo", "branch SPARK-2-fix\nmore"), ("no key", ""), ("[SPARK-3] old", "")])
+                         [("[SPARK-1] fix", ""), ("[MINOR] typo", "branch SPARK-2-fix\nmore"), ("no key", ""),
+                          ("[SPARK-3] old", "")])
         ct, dead = T.commit_tickets(msgs, "r", re.compile(r"\bSPARK-\d+\b"), {"SPARK-1", "SPARK-2", "SPARK-3"}, RUN)
         commits, _ = C.read_repo(self.co, "r", self.sha, RUN)
         self.assertEqual(C.keyed(commits, ct, 3), (1 / 3, 2 / 3, 3))  # the last 3: subject, body, none
@@ -209,24 +215,30 @@ class Writer(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "run.jsonl: run meridian.collect"):
             W.write(self.out, self.tmp / "x.sqlite", complete=True)
         (self.out / "run.jsonl").write_text("")
-        with self.assertRaisesRegex(W.BadRow, r"^no blast_radius.jsonl, blocked_by.jsonl, .*ticket_map.jsonl: a part didn't"):
+        with self.assertRaisesRegex(W.BadRow,
+                                    r"^no blast_radius.jsonl, blocked_by.jsonl, .*ticket_map.jsonl: a part didn't"):
             W.write(self.out, self.tmp / "x.sqlite", complete=True)
         W.write(self.out, self.tmp / "x.sqlite")   # a part's own tests load just its tables
 
     def test_call_site_carries_earlier_runs_versions(self):   # append-only: other tables stay one run_id
-        site = {"call_site_id": "a1", "repo": "r", "path": "p.py", "line": 1, "col": 0, "scope": "<module>", "symbol": "s",
+        site = {"call_site_id": "a1", "repo": "r", "path": "p.py", "line": 1, "col": 0,
+                "scope": "<module>", "symbol": "s",
                 "role": "call", "detection": "ast_resolved", "junk": "none", "owner_team": "t", "bug_fixes": 0,
                 "status": "present", "effective_date": "2026-01-01T00:00:00Z", "effective_sha": "e" * 40}
         old = {**site, "run_id": "R0", "known_at": "2026-01-15T00:00:00Z"}
         self.refused([old], "snapshot_at None", table="call_site")  # no run row: can't tell when "now" is
-        (self.out / "run.jsonl").write_text(json.dumps({"run_id": RUN, "snapshot_at": "2026-02-01T00:00:00Z", "repo_shas": "{}",
+        (self.out / "run.jsonl").write_text(json.dumps({"run_id": RUN, "snapshot_at": "2026-02-01T00:00:00Z",
+                                                        "repo_shas": "{}",
                                                         "source_hashes": "{}", "config_hash": "x", "image_digest": "x",
                                                         "status": "complete"}) + "\n")
-        self.coverage([old, {**site, "run_id": RUN, "known_at": "2026-02-01T00:00:00Z", "status": "removed"}], "call_site")
+        self.coverage([old, {**site, "run_id": RUN, "known_at": "2026-02-01T00:00:00Z", "status": "removed"}],
+                      "call_site")
         W.write(self.out, self.tmp / "ok.sqlite")
-        got = sqlite3.connect(self.tmp / "ok.sqlite").execute("SELECT run_id, status FROM call_site ORDER BY known_at").fetchall()
+        got = sqlite3.connect(self.tmp / "ok.sqlite").execute(
+            "SELECT run_id, status FROM call_site ORDER BY known_at").fetchall()
         self.assertEqual(got, [("R0", "present"), (RUN, "removed")])
-        self.refused([{**old, "known_at": "2026-03-01T00:00:00Z"}], "must be known by", table="call_site")  # from the future
+        # from the future
+        self.refused([{**old, "known_at": "2026-03-01T00:00:00Z"}], "must be known by", table="call_site")
 
     def test_check_constraints(self):
         self.refused([{"run_id": RUN, "key": "K-1", "target_kind": "fuzzy", "target": "", "method": "none"}],

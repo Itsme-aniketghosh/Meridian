@@ -54,7 +54,8 @@ def make_repo(path, commits, mailmap=""):
 
 
 def fixture_repo(path):
-    return make_repo(path, [(who, f"2026-01-{i + 1:02d}T00:00:00Z", f"f{i}.py", f"c{i}{extra}") for i, (who, extra) in enumerate(AUTHORS)],
+    return make_repo(path, [(who, f"2026-01-{i + 1:02d}T00:00:00Z", f"f{i}.py", f"c{i}{extra}")
+                            for i, (who, extra) in enumerate(AUTHORS)],
                      "Carol Ng <carol@new.example> <carol-old@x.example>\n")
 
 
@@ -98,7 +99,8 @@ class People(unittest.TestCase):
 
     def test_generic_and_bots_never_merge(self):
         self.assertFalse(self.same("root@host1.example", "root@host2.example"))
-        self.assertEqual((self.by_email["root@host1.example"]["generic"], self.by_email["root@host1.example"]["source"]), (1, "single"))
+        self.assertEqual((self.by_email["root@host1.example"]["generic"],
+                          self.by_email["root@host1.example"]["source"]), (1, "single"))
         bot = self.pid["49699333+dependabot[bot]@users.noreply.github.com"]
         self.assertEqual({p["person_id"]: p["is_bot"] for p in self.person}[bot], 1)
         self.assertEqual(sum(p["is_bot"] for p in self.person), 1)
@@ -117,16 +119,20 @@ class People(unittest.TestCase):
         self.assertEqual(name[self.pid["carol@new.example"]], "Carol Ng")
 
     def test_rerun_same_bytes_and_loads(self):
-        before = {p: (self.out / p).read_bytes() for p in ("person.jsonl", "person_alias.jsonl", "team_map.jsonl", "file_owner.jsonl")}
+        before = {p: (self.out / p).read_bytes()
+                  for p in ("person.jsonl", "person_alias.jsonl", "team_map.jsonl", "file_owner.jsonl")}
         O.main(RUN, self.config, root=self.tmp)
         self.assertEqual(before, {p: (self.out / p).read_bytes() for p in before})
         counts = W.write(self.out, self.tmp / "db.sqlite")
-        self.assertEqual((counts["person"], counts["person_alias"], counts["team_map"], counts["file_owner"]), (7, 10, 1, 10))
+        self.assertEqual((counts["person"], counts["person_alias"], counts["team_map"], counts["file_owner"]),
+                         (7, 10, 1, 10))
 
     def test_every_file_at_the_sha_has_an_owner(self):
-        self.assertEqual(sorted(r["path"] for r in self.file_owner), sorted([".mailmap"] + [f"f{i}.py" for i in range(9)]))
+        self.assertEqual(sorted(r["path"] for r in self.file_owner),
+                         sorted([".mailmap"] + [f"f{i}.py" for i in range(9)]))
         self.assertEqual({(r["owner_team"], r["basis"]) for r in self.file_owner}, {("fix/repo", "repo")})
-        self.assertEqual(self.team_map, [{"dataset": "fixture", "subject_kind": "repo", "subject": "fix/repo", "team": "fix/repo", "rule": "repo"}])
+        self.assertEqual(self.team_map, [{"dataset": "fixture", "subject_kind": "repo", "subject": "fix/repo",
+                                          "team": "fix/repo", "rule": "repo"}])
 
     def test_top_lists_groups_joined_on_a_local_part_with_other_names(self):
         with contextlib.redirect_stdout(io.StringIO()) as got:
@@ -147,11 +153,13 @@ class People(unittest.TestCase):
 
 
 class Modes(unittest.TestCase):
-    """D5 through main(): two author-mode datasets (Spark-like) and a repo-mode package pinned years before snapshot_at."""
+    """D5 through main(): two author-mode datasets (Spark-like) and a repo-mode package pinned years before
+    snapshot_at."""
     ANN, CY, BO = "Ann Lee <ann@a.example>", "Cy Ray <cy@c.example>", "Bo Tan <bo@b.example>"
     BOT = "dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>"
     REPOS = {
-        "fx/spark": [(ANN, "2020-01-01T00:00:00Z", "old.py", "FX-1 old"), (ANN, "2026-08-01T00:00:00Z", "a.py", "FX-1 one"),
+        "fx/spark": [(ANN, "2020-01-01T00:00:00Z", "old.py", "FX-1 old"),
+                     (ANN, "2026-08-01T00:00:00Z", "a.py", "FX-1 one"),
                      (ANN, "2026-08-02T00:00:00Z", "a.py", "FX-1 two"), (BOT, "2026-08-03T00:00:00Z", "a.py", "bump"),
                      (BOT, "2026-08-04T00:00:00Z", "a.py", "bump"), (BOT, "2026-08-05T00:00:00Z", "a.py", "bump"),
                      (CY, "2026-08-06T00:00:00Z", "c.py", "no key")],
@@ -175,12 +183,15 @@ class Modes(unittest.TestCase):
         write_jsonl(out / "commit_file.jsonl", files, ("repo", "sha", "path"))
         write_jsonl(out / "run.jsonl", [{"run_id": RUN, "snapshot_at": "2026-10-01T00:00:00Z"}])
         write_jsonl(out / "ticket.jsonl", [{"key": "FX-1", "components": '["SQL"]'}])
-        write_jsonl(out / "commit_ticket.jsonl", [{"sha": c["sha"], "key": "FX-1"} for c in commits if c["subject"].startswith("FX-1")])
+        write_jsonl(out / "commit_ticket.jsonl",
+                    [{"sha": c["sha"], "key": "FX-1"} for c in commits if c["subject"].startswith("FX-1")])
         config = cls.tmp / "meridian.toml"
         config.write_text(CONFIG.read_text() + "".join(
-            f'\n[datasets.{ds}]\nrepos = [{{ repo = "{repo}", ref = "x" }}]\nowner_mode = "{mode}"\n[teams.{ds}]\nrule = "{rule}"\n'
+            f'\n[datasets.{ds}]\nrepos = [{{ repo = "{repo}", ref = "x" }}]\nowner_mode = "{mode}"\n'
+            f'[teams.{ds}]\nrule = "{rule}"\n'
             + ('unassigned = "unassigned"\n' if mode == "author" else "")
-            for ds, repo, mode, rule in [("fx_a", "fx/spark", "author", "person_component"), ("fx_b", "fx/other", "author", "person_component"),
+            for ds, repo, mode, rule in [("fx_a", "fx/spark", "author", "person_component"),
+                                         ("fx_b", "fx/other", "author", "person_component"),
                                          ("fx_p", "fx/pkg", "repo", "repo")]))
         person, alias, cls.team_map, file_owner = O.main(RUN, config, root=cls.tmp)
         cls.pid = {a["email"]: a["person_id"] for a in alias}
@@ -192,7 +203,8 @@ class Modes(unittest.TestCase):
 
     def test_bots_dont_count(self):
         a = self.own["a.py"]
-        self.assertEqual((a["owner_team"], a["share"], a["n_commits"], a["top_person_id"]), ("SQL", 1.0, 2, self.pid["ann@a.example"]))
+        self.assertEqual((a["owner_team"], a["share"], a["n_commits"], a["top_person_id"]),
+                         ("SQL", 1.0, 2, self.pid["ann@a.example"]))
 
     def test_no_commits_in_window_is_basis_none(self):
         o = self.own["old.py"]
@@ -206,7 +218,8 @@ class Modes(unittest.TestCase):
         # ann is SQL in fx_a but unassigned in fx_b: b.py takes fx_b's teams, not the last dataset's
         self.assertEqual(self.own["b.py"]["owner_team"], "unowned")
         teams = {(r["dataset"], r["subject"]): r["team"] for r in self.team_map if r["subject_kind"] == "person"}
-        self.assertEqual((teams["fx_a", self.pid["ann@a.example"]], teams["fx_b", self.pid["ann@a.example"]]), ("SQL", "unassigned"))
+        self.assertEqual((teams["fx_a", self.pid["ann@a.example"]], teams["fx_b", self.pid["ann@a.example"]]),
+                         ("SQL", "unassigned"))
 
     def test_repo_window_ends_at_the_pinned_commit(self):
         p = self.own["p.py"]
@@ -224,7 +237,8 @@ class Merge(unittest.TestCase):
 
     def test_local_part_shared_by_many_names_doesnt_merge(self):
         _, alias, stats = O.merge([(f"chris@{d}.example", f"chris@{d}.example", n, [])
-                                   for d, n in [("a", "Chris Adams"), ("b", "Chris Lamb"), ("c", "Chris May")]], self.ident)
+                                   for d, n in [("a", "Chris Adams"), ("b", "Chris Lamb"), ("c", "Chris May")]],
+                                  self.ident)
         self.assertEqual(len({a["person_id"] for a in alias}), 3)
         self.assertEqual(stats["shared"], {"chris"})
 
@@ -265,20 +279,23 @@ class Teams(unittest.TestCase):
         rows, keys = [], {}
         for i, (email, day, ks, merge) in enumerate(commits):
             day = day if len(day) == 10 else f"2026-{day}"
-            rows.append({"author_email": email, "authored_at": f"{day}T00:00:00Z", "seq": i, "sha": f"s{i}", "is_merge": merge})
+            rows.append({"author_email": email, "authored_at": f"{day}T00:00:00Z", "seq": i, "sha": f"s{i}",
+                         "is_merge": merge})
             keys[f"s{i}"] = ks
         pid = {r["author_email"]: r["author_email"] for r in rows}
         return O.person_teams(rows, keys, self.TICKETS, pid, self.SINCE, self.UNTIL, "unassigned")
 
     def test_most_common_component_wins(self):
-        self.assertEqual(self.teams(("a", "02-01", ["T-1"], 0), ("a", "03-01", ["T-1"], 0), ("a", "04-01", ["T-2"], 0))["a"], "SQL")
+        self.assertEqual(self.teams(("a", "02-01", ["T-1"], 0), ("a", "03-01", ["T-1"], 0),
+                                    ("a", "04-01", ["T-2"], 0))["a"], "SQL")
 
     def test_n_components_give_one_nth_each(self):
         # T-3 gives SQL, Core, ML 1/3 each: one T-5 (ML 1) beats it
         self.assertEqual(self.teams(("a", "02-01", ["T-3"], 0), ("a", "01-15", ["T-5"], 0))["a"], "ML")
 
     def test_three_thirds_tie_with_one(self):
-        # T-3 three times: SQL, Core, ML 1/3 + 1/3 + 1/3 each. T-2 (Core 1) and T-1 (SQL 1) make SQL = Core = 2: newest wins
+        # T-3 three times: SQL, Core, ML 1/3 + 1/3 + 1/3 each. T-2 (Core 1) and T-1 (SQL 1) make SQL = Core = 2: newest
+        # wins
         got = self.teams(("a", "02-01", ["T-3"], 0), ("a", "02-02", ["T-3"], 0), ("a", "02-03", ["T-3"], 0),
                          ("a", "03-01", ["T-2"], 0), ("a", "03-02", ["T-1"], 0))
         self.assertEqual(got["a"], "SQL")
@@ -308,7 +325,8 @@ class FileOwner(unittest.TestCase):
         return O.team_owner(self.ts(*people), self.TEAM, "unassigned", self.cfg["ownership"]["min_share"])
 
     def test_team_share_sums_people(self):
-        self.assertEqual(self.own("ann", "bo", "ed", "cy", "cy"), ("SQL", 0.6))  # cy is the top person, SQL the top team
+        # cy is the top person, SQL the top team
+        self.assertEqual(self.own("ann", "bo", "ed", "cy", "cy"), ("SQL", 0.6))
 
     def test_tie_goes_to_most_recent_and_low_share_is_unowned(self):
         self.assertEqual(self.own("cy", "ann")[0], "SQL")
@@ -323,7 +341,8 @@ class FileOwner(unittest.TestCase):
         self.assertEqual(self.own(), ("unowned", 0.0))
 
     def test_touches_follow_renames_and_skip_merges(self):
-        c = lambda sha, seq, merge=0: {"sha": sha, "seq": seq, "authored_at": f"2026-01-0{seq + 1}T00:00:00Z", "is_merge": merge}
+        c = lambda sha, seq, merge=0: {"sha": sha, "seq": seq, "authored_at": f"2026-01-0{seq + 1}T00:00:00Z",
+                                       "is_merge": merge}
         commits = [c("a", 0), c("b", 1), c("m", 2, 1), c("d", 3), c("fmt", 4)]
         files = [{"sha": "a", "path": "old.py", "old_path": None}, {"sha": "b", "path": "mid.py", "old_path": "old.py"},
                  {"sha": "m", "path": "new.py", "old_path": None}, {"sha": "d", "path": "new.py", "old_path": "mid.py"},
@@ -341,7 +360,8 @@ class FileOwner(unittest.TestCase):
 
     def test_last_toucher_test(self):
         d = lambda m: f"2026-{m:02d}-01T00:00:00Z"
-        hist = {"a.py": [(d(2), "ann"), (d(3), "ann"), (d(4), "cy"), (d(8), "bo")],   # owner SQL, last toucher Core, next SQL
+        # owner SQL, last toucher Core, next SQL
+        hist = {"a.py": [(d(2), "ann"), (d(3), "ann"), (d(4), "cy"), (d(8), "bo")],
                 "b.py": [(d(2), "cy"), (d(8), "cy")],                                 # owner Core = last = next
                 "tests/c.py": [(d(2), "ann"), (d(8), "cy")]}                          # tests are not scored
         src, test = (re.compile(self.cfg["checks"][k]) for k in ("source_files", "test_files"))

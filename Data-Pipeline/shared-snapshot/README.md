@@ -17,7 +17,7 @@ Everyone has to work on the same run, or our tables won't join. The `run_id` pro
 |---|---|
 | run_id | `70dd1dabfed544b8` |
 | snapshot_at | `2026-10-01T01:23:03Z` |
-| status | `complete`: all 22 repos pinned. Built 2026-10-23 after dynamic-config ([FIXES.md](../FIXES.md)). Replaces `973531f7fd4cfd5e` |
+| status | `complete`: all 22 repos pinned. Built 2026-10-23 after dynamic-config ([FIXES.md](../notes/FIXES.md)). Replaces `973531f7fd4cfd5e` |
 | zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB · ask the team for it (team only) |
 | sha256 | `d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523` |
 

@@ -19,7 +19,8 @@ shortest depth. files = the distinct caller files of those invocations.
 chain, ticket to ticket, through ticket_map's call_site targets:
 - depends_on: a key on A and another on B, for a blocked_by A -> B. Evidence 'A>B'.
 - duplicates: two keys on the same call site. Evidence: the shared sites.
-- collides: two open keys ([rules] done_statuses, any case) on sites in the same function that share no site. Evidence 'repo:path:scope'.
+- collides: two open keys ([rules] done_statuses, any case) on sites in the same function that share no site. Evidence
+  'repo:path:scope'.
 - untracked: per owner team, its present sites no key maps to. from_key = the team, to_key = ''.
 in_cycle = 1 on a depends_on chain whose to_key leads back to its from_key.
 """
@@ -50,7 +51,8 @@ def build_blocked_by(run_id, present, res, edges, max_depth, different_owners):
         inside[fn_of(s["repo"], s["path"], s["scope"])].append(s)
     calls = defaultdict(set)
     for e in edges:
-        calls[fn_of(e["repo"], e["caller_path"], e["caller_scope"])].add(fn_of(e["callee_repo"], e["callee_path"], e["callee_scope"]))
+        calls[fn_of(e["repo"], e["caller_path"], e["caller_scope"])].add(fn_of(e["callee_repo"], e["callee_path"],
+                                                                               e["callee_scope"]))
     recv = {(r["repo"], r["path"], r["line"], r["col"]): r["receiver_from"] for r in res if r.get("receiver_from")}
     detection = {s["call_site_id"]: s["detection"] for s in present}
     rows, n = [], Counter()
@@ -79,11 +81,13 @@ def build_blocked_by(run_id, present, res, edges, max_depth, different_owners):
 
 def build_blast_radius(run_id, present, res, edges, max_depth):
     """-> one blast_radius row per (repo, symbol) with a present site or an invocation."""
-    symbol_at = {(r["repo"], r["path"], r["line"], r["col"]): r["symbol"] for r in res if r["detection"] == "ast_resolved"}
+    symbol_at = {(r["repo"], r["path"], r["line"], r["col"]): r["symbol"]
+                 for r in res if r["detection"] == "ast_resolved"}
     into = defaultdict(list)
     for e in edges:
         into[fn_of(e["callee_repo"], e["callee_path"], e["callee_scope"])].append(e)
-    key = lambda e: (e["repo"], e["caller_path"], e["line"], e["col"], e["callee_repo"], e["callee_path"], e["callee_scope"])
+    key = lambda e: (e["repo"], e["caller_path"], e["line"], e["col"], e["callee_repo"], e["callee_path"],
+                     e["callee_scope"])
     reached = defaultdict(dict)  # (repo, symbol) -> {edge: depth}
     for e in edges:
         if sym := symbol_at.get((e["repo"], e["caller_path"], e["line"], e["col"])):
@@ -170,7 +174,8 @@ def main(run_id, config=CONFIG, root=None):
     blocked, n = build_blocked_by(run_id, present, t["resolution"], t["call_edge"], g["blocked_by_max_depth"],
                                   g["blocked_by_needs_different_owners"])
     blast = build_blast_radius(run_id, present, t["resolution"], t["call_edge"], g["blast_radius_max_depth"])
-    chain = build_chain(run_id, sites, present, blocked, t["ticket_map"], t["ticket"], set(cfg["rules"]["done_statuses"]))
+    chain = build_chain(run_id, sites, present, blocked, t["ticket_map"], t["ticket"],
+                        set(cfg["rules"]["done_statuses"]))
 
     for name, rows in (("blocked_by", blocked), ("blast_radius", blast), ("chain", chain)):
         write_jsonl(out / f"{name}.jsonl", rows, KEYS[name])
@@ -179,9 +184,10 @@ def main(run_id, config=CONFIG, root=None):
         + "".join(f" · {v:,} {k}" for k, v in sorted(Counter(r["status"] for r in blocked).items())))
     width = max([len(r["repo"] + r["symbol"]) + 1 for r in blast] + [43])
     for r in blast:
-        log(f"  {r['repo'] + ' ' + r['symbol']:{width}} {r['direct_sites']:>6,} sites {r['invocations']:>6,} invocations "
-            f"{r['files']:>5,} files  by depth {r['by_depth']}")
-    log(f"{'chain':45} {len(chain):,} rows · " + ", ".join(f"{v:,} {k}" for k, v in sorted(Counter(r["type"] for r in chain).items()))
+        log(f"  {r['repo'] + ' ' + r['symbol']:{width}} {r['direct_sites']:>6,} sites "
+            f"{r['invocations']:>6,} invocations {r['files']:>5,} files  by depth {r['by_depth']}")
+    log(f"{'chain':45} {len(chain):,} rows · "
+        + ", ".join(f"{v:,} {k}" for k, v in sorted(Counter(r["type"] for r in chain).items()))
         + f" · {sum(r['in_cycle'] for r in chain):,} in a cycle")
     log(f"{len(blocked):,} blocked_by · {len(blast):,} blast_radius · {len(chain):,} chain -> {out}")
     return blocked, blast, chain

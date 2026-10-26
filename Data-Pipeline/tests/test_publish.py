@@ -71,7 +71,8 @@ class Publish(Base):
         pub = self.tmp / "published"
         self.assertEqual((pub / "R1.sqlite").read_bytes(), b"block")
         self.assertEqual(json.loads((pub / "latest.json").read_text()), doc)
-        self.assertEqual((doc["run_id"], doc["prev_run"], doc["file"], doc["repo_shas"]), ("R1", "R0", "R1.sqlite", {"o/r": "a" * 40}))
+        self.assertEqual((doc["run_id"], doc["prev_run"], doc["file"], doc["repo_shas"]),
+                         ("R1", "R0", "R1.sqlite", {"o/r": "a" * 40}))
         self.assertEqual(sorted(p.name for p in pub.iterdir()), ["R1.sqlite", "latest.json"])   # no tmp left
 
     def test_errors_or_no_validate_refuse_and_the_last_good_block_stays_live(self):
@@ -92,7 +93,8 @@ class Publish(Base):
         self.block(self.tmp / "rebuild", db=b"rebuilt")
         self.publish("R1", from_root=self.tmp / "rebuild")
         pub = self.tmp / "published"
-        self.assertEqual(((pub / "R1.sqlite").read_bytes(), (pub / "R1.rebuild.sqlite").read_bytes()), (b"block", b"rebuilt"))
+        self.assertEqual(((pub / "R1.sqlite").read_bytes(), (pub / "R1.rebuild.sqlite").read_bytes()),
+                         (b"block", b"rebuilt"))
         self.assertEqual(Pub.latest(self.tmp, self.settings)["file"], "R1.rebuild.sqlite")
         # the update's out/ was wrong: the rebuild's replaces it, for the next update's join
         self.assertEqual((self.tmp / "out" / "R1" / "meridian.sqlite").read_bytes(), b"rebuilt")
@@ -121,7 +123,8 @@ class Publish(Base):
 
     def test_dvc_only_for_the_run_dvc_yaml_tracks(self):
         self.block(self.tmp)
-        self.settings.write_text(SETTINGS.replace("push = false", "push = true") + '[pipeline]\nrun_id = "R0"\n', encoding="utf-8")
+        self.settings.write_text(SETTINGS.replace("push = false", "push = true") + '[pipeline]\nrun_id = "R0"\n',
+                                 encoding="utf-8")
         with mock.patch("subprocess.run") as run:
             self.publish("R1")
             run.assert_not_called()
@@ -156,7 +159,8 @@ class Compare(Base):
     def test_a_different_or_missing_table_alerts_with_its_rows(self):
         self.tables(self.tmp / "a", t=[1, 2], u=[3], v=[4])
         self.tables(self.tmp / "b", t=[1, 5, 6], u=[3])
-        self.assertEqual(C.compare(self.tmp / "a" / "out" / "R1", self.tmp / "b" / "out" / "R1"), [("t", 2, 3), ("v", 1, None)])
+        self.assertEqual(C.compare(self.tmp / "a" / "out" / "R1", self.tmp / "b" / "out" / "R1"),
+                         [("t", 2, 3), ("v", 1, None)])
         failed, sent = self.run_it()
         self.assertEqual(failed, str(C.DIFFERENT))   # not 1: a crash fails the task instead of publishing
         self.assertIn("the weekly rebuild is the truth", sent.call_args[0][0])
@@ -195,7 +199,8 @@ class Status(Base):
         git(self.repo, "init", "--quiet")
         self.shas = []
         for i in range(3):
-            git(self.repo, "-c", "user.name=t", "-c", "user.email=t@x", "commit", "--quiet", "--allow-empty", "-m", f"c{i}")
+            git(self.repo, "-c", "user.name=t", "-c", "user.email=t@x", "commit", "--quiet",
+                "--allow-empty", "-m", f"c{i}")
             self.shas.append(git(self.repo, "rev-parse", "HEAD").strip())
 
     def published(self, sha, published_at=None):
@@ -218,7 +223,8 @@ class Status(Base):
     def test_new_commits_since_the_published_sha_are_new(self):
         self.published(self.shas[0])
         st = S.status(self.config, self.tmp, self.settings)
-        self.assertEqual((st["repos"], st["new_commits"], st["stale"], st["new"]), ({"o/r": 2, "o/gone": None}, 2, False, True))
+        self.assertEqual((st["repos"], st["new_commits"], st["stale"], st["new"]),
+                         ({"o/r": 2, "o/gone": None}, 2, False, True))
         code, line = self.main()
         self.assertEqual(code, 0)
         self.assertRegex(line, r"^data \d+ days old · 2 new commits · run R1 · 1 repos unknown$")
@@ -231,18 +237,21 @@ class Status(Base):
         upstream = self.tmp / "upstream"
         upstream.mkdir()
         git(upstream, "init", "--quiet", "--initial-branch=main")
-        commit = lambda m: git(upstream, "-c", "user.name=t", "-c", "user.email=t@x", "commit", "--quiet", "--allow-empty", "-m", m)
+        commit = lambda m: git(upstream, "-c", "user.name=t", "-c", "user.email=t@x", "commit", "--quiet",
+                               "--allow-empty", "-m", m)
         commit("c0")
         mirror = self.tmp / "mirrors" / "o__f.git"
         git(self.tmp, "clone", "--bare", "--quiet", str(upstream), str(mirror))
-        self.config.write_text(CONFIG.replace('{ repo = "o/gone", ref = "HEAD" }', '{ repo = "o/f", ref = "main" }'), encoding="utf-8")
+        self.config.write_text(CONFIG.replace('{ repo = "o/gone", ref = "HEAD" }', '{ repo = "o/f", ref = "main" }'),
+                               encoding="utf-8")
         self.block(self.tmp, shas={"o/r": self.shas[-1], "o/f": git(mirror, "rev-parse", "main").strip()})
         self.publish("R1")
         self.assertEqual(self.main()[0], S.NOTHING_NEW)
         commit("c1")   # pushed upstream after the last collect: only a fetch can see it
         st = S.status(self.config, self.tmp, self.settings)
         self.assertEqual((st["repos"], st["new"]), ({"o/r": 0, "o/f": 1}, True))
-        self.settings.write_text(SETTINGS.replace("stale_after_hours", "fetch = false\nstale_after_hours"), encoding="utf-8")
+        self.settings.write_text(SETTINGS.replace("stale_after_hours", "fetch = false\nstale_after_hours"),
+                                 encoding="utf-8")
         commit("c2")
         self.assertEqual(S.status(self.config, self.tmp, self.settings)["repos"]["o/f"], 1)   # not fetched: c2 unseen
 
@@ -269,8 +278,10 @@ class Trigger(Base):
                                  'api_user_env = "AF_USER"\napi_password_env = "AF_PASSWORD"\n', encoding="utf-8")
         (self.tmp / ".env").write_text("# login\nAF_USER=admin\nAF_PASSWORD=pw\n", encoding="utf-8")
         answers = iter([{"dag_runs": queued}, {"dag_run_id": "manual__1"}])
-        reply = lambda req, timeout: mock.MagicMock(**{"__enter__.return_value": io.BytesIO(json.dumps(next(answers)).encode())})
-        with mock.patch("urllib.request.urlopen", side_effect=reply) as urlopen, mock.patch.dict("os.environ", {}, clear=True):
+        reply = lambda req, timeout: mock.MagicMock(
+            **{"__enter__.return_value": io.BytesIO(json.dumps(next(answers)).encode())})
+        with mock.patch("urllib.request.urlopen", side_effect=reply) as urlopen, mock.patch.dict("os.environ",
+                                                                                                 {}, clear=True):
             said = S.trigger(self.settings, self.tmp / ".env")
         return said, [c.args[0] for c in urlopen.call_args_list]
 
@@ -278,7 +289,8 @@ class Trigger(Base):
         said, reqs = self.click([])
         self.assertEqual(said, "queued: manual__1")
         self.assertEqual([(r.get_method(), r.full_url) for r in reqs],
-                         [("GET", "http://af/api/v1/dags/u/dagRuns?state=queued"), ("POST", "http://af/api/v1/dags/u/dagRuns")])
+                         [("GET", "http://af/api/v1/dags/u/dagRuns?state=queued"),
+                          ("POST", "http://af/api/v1/dags/u/dagRuns")])
         self.assertEqual(reqs[1].get_header("Authorization"), "Basic YWRtaW46cHc=")   # admin:pw
 
     def test_a_second_click_while_one_is_queued_adds_nothing(self):

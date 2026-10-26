@@ -74,26 +74,32 @@ class Spec(unittest.TestCase):
         self.assertNotIn("gx", P.DAGS["update"])
         self.assertTrue(all("gx" not in ancestors(t, rebuild) for t in rebuild))   # nothing waits for it
         cmd = P.command("rebuild", "gx", "R", "meridian.toml", "py", "", "", "/d", "/d/rb", gx_python="gxpy")
-        self.assertEqual(cmd, "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 gxpy -m meridian.gx --run-id R --config meridian.toml "
-                              "--publish-root /d")   # its own environment; Data Docs where the views read
+        self.assertEqual(cmd,
+                         "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 gxpy -m meridian.gx --run-id R "
+                         "--config meridian.toml --publish-root /d")  # its own environment; Data Docs where views read
 
     def test_commands(self):
         c = lambda dag, task, prev_arg="", prev="": P.command(dag, task, "R", "meridian.toml", "py", prev_arg, prev,
                                                               "/d", "/d/rb")
-        self.assertEqual(c("update", "join", "--prev-run Q"), "py -m meridian.join --run-id R --config meridian.toml --prev-run Q")
+        self.assertEqual(c("update", "join", "--prev-run Q"),
+                         "py -m meridian.join --run-id R --config meridian.toml --prev-run Q")
         self.assertEqual(c("update", "graph", "--prev-run Q"), "py -m meridian.graph --run-id R --config meridian.toml")
         self.assertEqual(c("update", "anything_new"), "py -m meridian.status --config meridian.toml")
         self.assertEqual(c("update", "report", "--prev-run Q"),
                          "py -m meridian.report --run-id R --config meridian.toml --prev-run Q")
         self.assertEqual(c("update", "publish"), "py -m meridian.publish --run-id R --config meridian.toml")
         # the rebuild computes under its own root, compares with the main one, and publishes where the views read
-        self.assertEqual(c("rebuild", "scan"), "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 py -m meridian.scan --run-id R --config meridian.toml")
+        self.assertEqual(c("rebuild", "scan"),
+                         "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 py -m meridian.scan --run-id R "
+                         "--config meridian.toml")
         self.assertEqual(c("rebuild", "compare"),
-                         "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 py -m meridian.compare --run-id R --config meridian.toml --against-root /d")
+                         "MERIDIAN_DATA=/d/rb MERIDIAN_NO_CACHE=1 py -m meridian.compare --run-id R "
+                         "--config meridian.toml --against-root /d")
         self.assertEqual(c("rebuild", "publish", "--prev-run Q"),
                          "py -m meridian.publish --run-id R --config meridian.toml --prev-run Q --from-root /d/rb")
         fresh = c("rebuild", "fresh", prev="Q")
-        self.assertTrue(fresh.startswith("rm -rf /d/rb/out/R && mkdir -p /d/rb/out/R && ln -sfn /d/snapshots /d/rb/snapshots"))
+        self.assertTrue(fresh.startswith("rm -rf /d/rb/out/R && mkdir -p /d/rb/out/R "
+                                         "&& ln -sfn /d/snapshots /d/rb/snapshots"))
         self.assertIn('p="Q" && if [ -n "$p" ]; then rm -rf /d/rb/out/$p && ln -sfn /d/out/$p /d/rb/out/$p; fi', fresh)
         self.assertTrue(fresh.endswith('echo "run_id=R prev_run=$p"'))   # the run, named once for the later tasks
 
@@ -118,7 +124,8 @@ class Dag(unittest.TestCase):
         from airflow.models import DagBag
         bag = DagBag(dag_folder=str(HERE / "dags"), include_examples=False)
         cls.errors = bag.import_errors
-        cls.dags = {name: bag.dags.get(s["dag_id"]) for name, s in load_settings("dags").items()}   # get_dag() asks the database
+        # get_dag() asks the database
+        cls.dags = {name: bag.dags.get(s["dag_id"]) for name, s in load_settings("dags").items()}
 
     def test_loads_without_errors(self):
         self.assertEqual(self.errors, {})
@@ -135,7 +142,8 @@ class Dag(unittest.TestCase):
     def test_a_trigger_naming_a_run_skips_anything_new(self):   # a rerun after a code fix, from the UI or the API
         import meridian_dag as M
         self.assertIn("dag_run.conf", self.dags["update"].get_task("anything_new").op_kwargs["force"])
-        self.assertEqual(self.dags["rebuild"].get_task("compare").op_kwargs["force"], "")   # the weekly check always runs
+        # the weekly check always runs
+        self.assertEqual(self.dags["rebuild"].get_task("compare").op_kwargs["force"], "")
         with redirect_stdout(io.StringIO()):
             self.assertTrue(M.gate("exit 1", 0, 99, force="R1"))     # forced: the command isn't even run
             self.assertFalse(M.gate("exit 99", 0, 99))                # not forced: nothing new stops the DAG
@@ -148,18 +156,22 @@ class Dag(unittest.TestCase):
 
         def render(dag, task, latest, conf=None, xcom=None):
             t = self.dags[dag].get_task(task)
-            ctx = {"dag_run": NS(conf=conf or {}), "ti": NS(xcom_pull=lambda task_ids: xcom), "params": self.dags[dag].params}
+            ctx = {"dag_run": NS(conf=conf or {}), "ti": NS(xcom_pull=lambda task_ids: xcom),
+                   "params": self.dags[dag].params}
             with mock.patch.object(Pub, "latest", return_value=latest):   # the published() macro's latest.json
                 return t.render_template(t.op_kwargs if task in P.GATES else t.bash_command, ctx)
         pub = {"run_id": "R", "prev_run": "Q"}
-        self.assertTrue(render("update", "join", pub, xcom="run_id=S").endswith("--run-id S --config meridian.toml --prev-run R"))
+        self.assertTrue(render("update", "join", pub,
+                               xcom="run_id=S").endswith("--run-id S --config meridian.toml --prev-run R"))
         # a forced rerun of the published run keeps its prev_run, not none
-        self.assertTrue(render("update", "join", pub, {"run_id": "R"}).endswith("--run-id R --config meridian.toml --prev-run Q"))
+        self.assertTrue(render("update", "join", pub,
+                               {"run_id": "R"}).endswith("--run-id R --config meridian.toml --prev-run Q"))
         self.assertEqual(render("update", "anything_new", pub, {"force": True})["force"], "force")
         # the rebuild names its run once, in fresh: an update published meanwhile doesn't switch the later tasks
-        self.assertTrue(render("rebuild", "fresh", pub).endswith('p="Q" && if [ -n "$p" ]; then rm -rf {0}/out/$p && ln -sfn '
-                                                                 '{1}/out/$p {0}/out/$p; fi && echo "run_id=R prev_run=$p"'
-                                                                 .format(M.REBUILD.as_posix(), M.MAIN.as_posix())))
+        self.assertTrue(render("rebuild", "fresh",
+                               pub).endswith('p="Q" && if [ -n "$p" ]; then rm -rf {0}/out/$p && ln -sfn '
+                                             '{1}/out/$p {0}/out/$p; fi && echo "run_id=R prev_run=$p"'
+                                             .format(M.REBUILD.as_posix(), M.MAIN.as_posix())))
         later = {"run_id": "S", "prev_run": "R"}
         self.assertIn("--run-id R --config meridian.toml --prev-run Q --from-root",
                       render("rebuild", "publish", later, xcom="run_id=R prev_run=Q"))

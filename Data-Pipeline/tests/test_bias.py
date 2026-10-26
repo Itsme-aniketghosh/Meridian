@@ -57,7 +57,8 @@ COMMITS = [
     ("a5", "ann@x.test", "2026-05-11T00:00:00Z", None, ["core/b.scala"]),        # after the cut: next author, Ann
 ]
 TICKETS = {"ENG-1": (["SQL"], "Bug", "2026-01-01T00:00:00Z"), "ENG-9": (["Core"], "Bug", "2015-01-01T00:00:00Z"),
-           "ENG-2": (["Core"], "Wish", "0012-10-19T00:09:00Z"), "ENG-3": (["SQL", "Core"], "Bug", "2026-02-01T00:00:00Z")}
+           "ENG-2": (["Core"], "Wish", "0012-10-19T00:09:00Z"),
+           "ENG-3": (["SQL", "Core"], "Bug", "2026-02-01T00:00:00Z")}
 
 
 class Bias(unittest.TestCase):
@@ -80,7 +81,8 @@ class Bias(unittest.TestCase):
             "person": [dict(person_id=e, is_bot=0) for e in people],
             "person_alias": [dict(email=e, person_id=e) for e in people],
             "ticket_map": [dict(key="ENG-1", target_kind="path", target=f"{REPO}:sql/a.scala"),
-                           dict(key="ENG-2", target_kind="unmapped", target=""), dict(key="ENG-9", target_kind="unmapped", target="")],
+                           dict(key="ENG-2", target_kind="unmapped", target=""),
+                           dict(key="ENG-9", target_kind="unmapped", target="")],
             "candidate": [dict(repo=REPO, path="m.py", line=n, col=0, role="call") for n in (1, 2)],
             "resolution": [dict(repo=REPO, path="m.py", line=1, col=0, detection="ast_resolved"),
                            dict(repo=REPO, path="m.py", line=2, col=0, detection="dropped")],
@@ -97,10 +99,12 @@ class Bias(unittest.TestCase):
 
     def test_owner_rule_by_module(self):
         r = self.report["owner_rule"]
-        self.assertEqual(list(r["accuracy_by_module"]["by_group"]), ["sql"])   # core/b.scala: Ann has no team, not scored
+        # core/b.scala: Ann has no team, not scored
+        self.assertEqual(list(r["accuracy_by_module"]["by_group"]), ["sql"])
         self.assertEqual(r["accuracy_by_module"]["by_group"]["sql"]["accuracy"], 1.0)
         core = r["owned_share_by_module"]["by_group"]["core"]
-        self.assertEqual((core["owned_share"], r["assigned_share_by_module"]["by_group"]["core"]["assigned_share"]), (0.0, 0.0))
+        self.assertEqual((core["owned_share"], r["assigned_share_by_module"]["by_group"]["core"]["assigned_share"]),
+                         (0.0, 0.0))
         self.assertGreater(core["ci_high"], 0.4)                    # 0 of 1: its interval reaches the overall 0.5 ...
         self.assertEqual(r["owned_share_by_module"]["flagged"], [])   # ... so N = 1 can't be flagged even at min_n = 1
 
@@ -111,11 +115,13 @@ class Bias(unittest.TestCase):
         m = self.report["owner_rule"]["mitigations"]
         self.assertEqual(m["min_share 0.3, teams from 180 days"]["files_owned"], 1)
         self.assertEqual(m["teams from 730 days"]["files_owned"], 2)          # ENG-9 puts Ann in Core
-        self.assertEqual((m["teams from 730 days"]["accuracy"], m["teams from 730 days"]["accuracy_assigned"]), (1.0, 1.0))
+        self.assertEqual((m["teams from 730 days"]["accuracy"], m["teams from 730 days"]["accuracy_assigned"]),
+                         (1.0, 1.0))
 
     def test_held_out_cut_is_one_window_earlier(self):   # nothing spans 2025-10-06 here: the configured variant stays
         h = self.report["owner_rule"]["held_out"]
-        self.assertEqual((h["cut"], h["files"], h["picked_at_earlier_cut"]), ("2025-10-06T00:00:00Z", 0, "min_share 0.3, teams from 180 days"))
+        self.assertEqual((h["cut"], h["files"], h["picked_at_earlier_cut"]),
+                         ("2025-10-06T00:00:00Z", 0, "min_share 0.3, teams from 180 days"))
         self.assertEqual(h["delta"], 0.0)
 
     def test_ci_flag_rule_and_n_at_min_n(self):
@@ -125,7 +131,8 @@ class Bias(unittest.TestCase):
         r = B.frame({"rate": B.selection_rate, "n": B.count}, y, y, pd.Series(by), {"min_n": 30, "max_gap": 0.10})
         self.assertEqual([f["slice"] for f in r["flagged"]], ["B"])   # Wilson 0/30: [0, 0.114]
         self.assertFalse(r["by_group"]["C"]["flagged"])               # 0.0, but N = 3 isn't judged
-        self.assertFalse(r["by_group"]["D"]["flagged"])               # 0.30 < 0.319, but its interval [0.167, 0.479] isn't
+        # 0.30 < 0.319, but its interval [0.167, 0.479] isn't
+        self.assertFalse(r["by_group"]["D"]["flagged"])
         self.assertAlmostEqual(r["by_group"]["D"]["ci_high"], 0.479, places=3)
         self.assertEqual((r["tested"], r["difference"], r["ratio"]), (3, 1.0, 0.0))   # Fairlearn's, over A, B, D
 
@@ -138,7 +145,8 @@ class Bias(unittest.TestCase):
         now = rows([("X", "X"), ("X", "Y"), ("X", "X"), ("X", "Y"), ("X", "unassigned")],
                    [("X", "X"), ("Y", "Y"), ("X", "X"), ("Y", "Y"), ("X", "unassigned")])
         h = B.held_out(early, now, "unassigned", {"base": (0.3, 180), "long": (0.3, 730)})
-        self.assertEqual((h["picked_at_earlier_cut"], h["accuracy_at_earlier_cut"]), ("long", {"base": 0.25, "long": 0.75}))
+        self.assertEqual((h["picked_at_earlier_cut"], h["accuracy_at_earlier_cut"]),
+                         ("long", {"base": 0.25, "long": 0.75}))
         self.assertEqual((h["accuracy_now"], h["delta"]), ({"base": 0.5, "long": 1.0}, 0.5))
         lo, hi = h["delta_ci"]
         self.assertTrue(0 <= lo <= 0.5 <= hi <= 1)
@@ -147,7 +155,8 @@ class Bias(unittest.TestCase):
     def test_ticket_mapping_and_resolver_slices(self):
         t = self.report["ticket_mapping"]
         self.assertEqual(t["mapped_share_by_component"]["by_group"]["Core"]["mapped_share"], 0.0)
-        self.assertEqual(t["mapped_share_by_component"]["by_group"]["SQL"]["n"], 2)   # ENG-3 is SQL and Core: counts in both
+        # ENG-3 is SQL and Core: counts in both
+        self.assertEqual(t["mapped_share_by_component"]["by_group"]["SQL"]["n"], 2)
         self.assertEqual(t["mapped_share_by_year"]["by_group"]["0012"]["n"], 1.0)
         self.assertEqual(self.report["resolver"]["kept_share_by_repo"]["overall"]["kept_share"], 0.5)
 
@@ -159,7 +168,8 @@ class Bias(unittest.TestCase):
         self.assertEqual(B.mapping_report(out, {"min_n": 30, "max_gap": 0.1}), {})
 
     def test_written_as_json(self):
-        self.assertEqual(self.saved["owner_rule"]["accuracy_by_module"], self.report["owner_rule"]["accuracy_by_module"])
+        self.assertEqual(self.saved["owner_rule"]["accuracy_by_module"],
+                         self.report["owner_rule"]["accuracy_by_module"])
 
 
 if __name__ == "__main__":
