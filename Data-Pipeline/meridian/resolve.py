@@ -642,6 +642,8 @@ def run(run_id, cfg, root=None):
     skip = cfg.get("scanner", {}).get("skip_paths", [])
     settings = cfg.get("resolver", {})
     depth = settings.get("call_edge_depth", 3)
+    if isinstance(depth, bool) or not isinstance(depth, int) or depth < 1:  # 0 would act as 1, "3" would crash
+        raise SystemExit(f"[resolver] call_edge_depth must be a whole number of at least 1, not {depth!r}")
     if not settings.get("keep_unresolved", True):  # CONTRACTS.md rule 9: nothing is silently dropped
         raise SystemExit("[resolver] keep_unresolved = false would drop rows silently, "
                          "which CONTRACTS.md rule 9 forbids")
