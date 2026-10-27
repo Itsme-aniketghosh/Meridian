@@ -262,6 +262,37 @@ class Merge(unittest.TestCase):
         self.assertEqual({a["person_id"] for a in alias}, {O.h("alee@b.example")})
         self.assertEqual(stats["risky"], {O.h("alee@b.example")})
 
+    def test_first_name_local_part_with_different_surnames_doesnt_merge(self):
+        # the hand check's 4 false merges: joel@ for Joel Pitt and Joel Whitaker
+        recs = [("joel@a.example", "joel@a.example", "Joel Pitt", []),
+                ("joel@b.example", "joel@b.example", "Joel Whitaker", [])]
+        self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 2)
+        off = {**self.ident, "local_part_same_surname": False}
+        self.assertEqual(len({a["person_id"] for a in O.merge(recs, off)[1]}), 1)
+
+    def test_swapped_name_order_still_merges(self):
+        recs = [("xiangli@a.example", "xiangli@a.example", "Xiang Li", []),
+                ("xiangli@b.example", "xiangli@b.example", "Li Xiang", [])]
+        self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 1)
+
+    def test_a_handle_and_one_full_name_still_merge(self):
+        recs = [("jpitt@a.example", "jpitt@a.example", "Joel Pitt", []),
+                ("jpitt@b.example", "jpitt@b.example", "jp", [])]  # a handle: no surname to clash with
+        self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 1)
+
+    def test_a_handle_between_two_surnames_joins_neither(self):
+        ident = {**self.ident, "local_part_max_names": 3}  # 3 names on jakub@, so the 3+ names rule doesn't block it
+        _, alias, _ = O.merge([("jakub@a.example", "jakub@a.example", "Jakub Paczkowski", []),
+                               ("jakub@b.example", "jakub@b.example", "Jakub Roztocil", []),
+                               ("jakub@c.example", "jakub@c.example", "jk", [])], ident)
+        self.assertEqual(len({a["person_id"] for a in alias}), 3)
+
+    def test_no_reply_is_generic(self):
+        _, alias, _ = O.merge([("no-reply@a.example", "no-reply@a.example", "Isaac", []),
+                               ("isaac@b.example", "isaac@b.example", "Isaac", [])], self.ident)
+        self.assertEqual(len({a["person_id"] for a in alias}), 2)
+        self.assertEqual({a["email"]: a["generic"] for a in alias}["no-reply@a.example"], 1)
+
     def test_generic_name_with_real_email_not_merged_on_name(self):
         _, alias, _ = O.merge([("alice@a.example", "alice@a.example", "jenkins", []),
                                ("bob@b.example", "bob@b.example", "jenkins", [])], self.ident)
