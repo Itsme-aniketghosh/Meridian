@@ -55,11 +55,12 @@ services:
     <<: *airflow
     entrypoint: /bin/bash
     command:   # through the image's /entrypoint: it registers an AIRFLOW_UID other than 50000 (Linux's `id -u`)
+      # a failed migrate fails init, so nothing starts on it; users create exits 0 for a user that already exists
       - -c
       - >
         /entrypoint airflow db migrate &&
         /entrypoint airflow users create --role Admin --username "$${AIRFLOW_ADMIN_USER:?set it in .env}" --password "$${AIRFLOW_ADMIN_PASSWORD:?set it in .env}"
-        --firstname Meridian --lastname Admin --email admin@example.com || true
+        --firstname Meridian --lastname Admin --email admin@example.com
     restart: "no"
 
   airflow-scheduler:

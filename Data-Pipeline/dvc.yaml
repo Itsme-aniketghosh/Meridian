@@ -143,7 +143,6 @@ stages:
       - meridian/common.py
       - ${pipeline.config}
       - schema.sql
-      - settings.toml
       - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
       - ../out/${pipeline.run_id}/git_commit.jsonl
       - ../out/${pipeline.run_id}/commit_file.jsonl
@@ -169,6 +168,10 @@ stages:
       - ../out/${pipeline.run_id}/blocked_by.jsonl
       - ../out/${pipeline.run_id}/blast_radius.jsonl
       - ../out/${pipeline.run_id}/chain.jsonl
+    params:   # what of settings.toml it reads: its checks, and the run it measures drift against
+      - settings.toml:
+          - validate
+          - pipeline.prev_run
     outs:
       - ../out/${pipeline.run_id}/stats.json:
           cache: false
@@ -182,7 +185,6 @@ stages:
       - meridian/owners.py
       - meridian/common.py
       - ${pipeline.config}
-      - settings.toml
       - ../snapshots/${pipeline.run_id}/manifest.json   # not run.jsonl: its image_digest differs by machine
       - ../out/${pipeline.run_id}/git_commit.jsonl
       - ../out/${pipeline.run_id}/commit_file.jsonl
@@ -193,6 +195,9 @@ stages:
       - ../out/${pipeline.run_id}/ticket_map.jsonl
       - ../out/${pipeline.run_id}/candidate.jsonl
       - ../out/${pipeline.run_id}/resolution.jsonl
+    params:   # what of settings.toml it reads
+      - settings.toml:
+          - bias
     metrics:
       - ../out/${pipeline.run_id}/bias.json:
           cache: false

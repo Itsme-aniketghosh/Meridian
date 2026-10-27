@@ -2,7 +2,13 @@
 # tests skip here (TESTING.md).
 name: ci
 
-on: [push, pull_request]
+on:  # a same-repo PR's branch is checked once, by its pull_request run
+  push:
+    branches: [main]
+  pull_request: {}
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -35,6 +41,21 @@ jobs:
           python-version: "3.11"
       - run: python -m venv /tmp/gx && /tmp/gx/bin/pip install -r requirements-gx.txt
       - run: /tmp/gx/bin/python -m unittest tests.test_gx -v
+
+  pushcheck:  # tests.test_pushcheck with only the packages push-check.yml installs: a new import there fails here first
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Data-Pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: >-
+          python -m venv /tmp/pc &&
+          grep -E '^(tree-sitter|jedi|parso)' requirements.txt | /tmp/pc/bin/pip install -r /dev/stdin
+      - run: /tmp/pc/bin/python -m unittest tests.test_pushcheck -v
 
   airflow:  # test_dag's last 5 tests: Airflow's own DagBag loads both DAGs, in the image the pipeline runs in
     runs-on: ubuntu-latest

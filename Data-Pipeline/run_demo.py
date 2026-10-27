@@ -37,10 +37,12 @@ REPO = HERE.parent
 os.chdir(HERE)
 sys.path.insert(0, str(HERE))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+from meridian.common import data_root, load_settings, read_env   # noqa: E402  (needs the path above)
 GB = 1024 ** 3
 PY = sys.executable
 ZIP_NAME = "meridian-raw-973531f7fd4cfd5e.zip"
 ZIP_SHA = "d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523"
+TEAM_CONFIG = "271a5b0"   # the last commit whose meridian.toml hashes to the team run's config (99f417d changed it)
 RESULTS = []          # (step, PASS/SKIP/FAIL, note)
 ARGS = TMP = None
 STATE = {}
@@ -175,15 +177,6 @@ def resources_short(ram=0, disk=0, disk_at=None, hosts=()):
     for p in problems:
         print(f"  guard overridden by --force: {p}")
     return ""
-
-
-def data_root():
-    return Path(os.environ.get("MERIDIAN_DATA") or REPO)
-
-
-def settings():
-    import tomllib
-    return tomllib.loads((HERE / "settings.toml").read_text(encoding="utf-8"))
 
 
 # ---------------------------------------------------------------- short
@@ -588,7 +581,7 @@ def download():
 
 
 def collect():
-    root, run_id = data_root(), settings()["pipeline"]["run_id"]
+    root, run_id = data_root(), load_settings("pipeline")["run_id"]
     if STATE.get("own_run"):
         raise Skip(f"the public pull already built your own run {STATE['own_run']}")
     if (root / "snapshots" / run_id / "manifest.json").exists():
@@ -601,9 +594,16 @@ def collect():
     guard(ram=1, disk=5, disk_at=root, hosts=("github.com",))
     if not shutil.which("git"):
         raise Skip("git isn't installed")
+    # shortcut: the team run's own config until a team run is made with today's meridian.toml; then drop TEAM_CONFIG
+    config = TMP / "meridian.team.toml"
+    p = subprocess.run(["git", "show", f"{TEAM_CONFIG}:Data-Pipeline/meridian.toml"], cwd=HERE, capture_output=True)
+    if p.returncode:
+        raise Skip(f"needs git history back to {TEAM_CONFIG} (a full clone): {p.stderr.decode().strip()}")
+    config.write_bytes(p.stdout)
     print(f"  clones the 22 repos at the SHAs in meridian.toml (~2.5 GB) into {root / 'snapshots'}; reads the raw "
-          "pulls, never contacts Jira or GitLab")
-    rc, out = run([PY, "-m", "meridian.collect", "--run-id", run_id, "--config", "meridian.toml"])
+          f"pulls, never contacts Jira or GitLab. It uses meridian.toml as of commit {TEAM_CONFIG}, the config {run_id}"
+          " was made with: today's has changed since, and would hash to another run")
+    rc, out = run([PY, "-m", "meridian.collect", "--run-id", run_id, "--config", str(config)])
     if rc or f"run_id={run_id}" not in out.strip().splitlines()[-1]:
         raise SystemExit(f"collect exit {rc}; its last line must say run_id={run_id}")
     saw(f"data acquisition: the same code SHAs + raw pulls + meridian.toml gave the same run_id={run_id} "
@@ -628,7 +628,7 @@ def team_tests():
 
 def task_commands():
     from dags.pipeline_spec import DAGS, command
-    run_id = settings()["pipeline"]["run_id"]
+    run_id = load_settings("pipeline")["run_id"]
     print("  the team run, without Airflow, from Data-Pipeline/ (in order; needs the data from `download`):\n")
     for t in [*DAGS["update"], "bias"]:
         print(f"    {command('update', t, run_id, 'meridian.toml', 'python')}")
@@ -656,8 +656,7 @@ def airflow():
             "airflow-scheduler python -m unittest tests.test_dag -v",
             "docker compose exec airflow-scheduler airflow dags unpause meridian_update",
             "docker compose exec airflow-scheduler airflow dags trigger meridian_update --conf '{\"force\": true}'"]
-    env = dict(re.findall(r"^(\w+)=(.*)$",
-                          (HERE / (".env" if (HERE / ".env").exists() else ".env.example")).read_text(), re.M))
+    env = read_env(HERE / (".env" if (HERE / ".env").exists() else ".env.example"))
     ui = f"http://localhost:{env.get('AIRFLOW_PORT') or 8080}"
     if why := docker_ok():
         print("  run these yourself, from Data-Pipeline/ (cp .env.example .env first):\n    " + "\n    ".join(cmds))

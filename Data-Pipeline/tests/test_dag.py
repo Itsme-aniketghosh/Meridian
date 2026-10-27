@@ -110,9 +110,9 @@ class Spec(unittest.TestCase):
         self.assertEqual(c("rebuild", "publish", "--prev-run Q"),
                          "py -m meridian.publish --run-id R --config meridian.toml --prev-run Q --from-root /d/rb")
         fresh = c("rebuild", "fresh", prev="Q")
-        self.assertTrue(fresh.startswith("rm -rf /d/rb/out/R && mkdir -p /d/rb/out/R "
+        self.assertTrue(fresh.startswith("rm -rf /d/rb/out && mkdir -p /d/rb/out/R "   # every past week's out/ too
                                          "&& ln -sfn /d/snapshots /d/rb/snapshots"))
-        self.assertIn('p="Q" && if [ -n "$p" ]; then rm -rf /d/rb/out/$p && ln -sfn /d/out/$p /d/rb/out/$p; fi', fresh)
+        self.assertIn('p="Q" && if [ -n "$p" ]; then ln -sfn /d/out/$p /d/rb/out/$p; fi', fresh)
         self.assertTrue(fresh.endswith('echo "run_id=R prev_run=$p"'))   # the run, named once for the later tasks
 
     @unittest.skipUnless(shutil.which("bash"), "needs bash")
@@ -123,10 +123,21 @@ class Spec(unittest.TestCase):
         (d / "snapshots").mkdir()
         (d / "out" / "Q" / "call_site.jsonl").write_text("main")
         (d / "rb" / "out" / "Q").mkdir(parents=True)   # last week's rebuild of Q, a real dir
+        (d / "rb" / "out" / "O").mkdir()               # an older week's: ~0.5 GB each, never read again
         fresh = P.command("rebuild", "fresh", "R", "m.toml", "py", "", "Q", d.as_posix(), (d / "rb").as_posix())
-        p = subprocess.run([shutil.which("bash"), "-c", fresh], capture_output=True, text=True)
-        self.assertEqual((p.returncode, p.stdout.split()[-2:]), (0, ["run_id=R", "prev_run=Q"]), p.stderr)
-        self.assertEqual(sorted(x.name for x in (d / "rb" / "out" / "Q").iterdir()), ["call_site.jsonl"])
+        for _ in range(2):   # the second time out/Q is last time's link: rm -rf removes the link, not main's files
+            p = subprocess.run([shutil.which("bash"), "-c", fresh], capture_output=True, text=True)
+            self.assertEqual((p.returncode, p.stdout.split()[-2:]), (0, ["run_id=R", "prev_run=Q"]), p.stderr)
+            self.assertEqual(sorted(x.name for x in (d / "rb" / "out" / "Q").iterdir()), ["call_site.jsonl"])
+            self.assertEqual(sorted(x.name for x in (d / "rb" / "out").iterdir()), ["Q", "R"])
+        self.assertEqual((d / "out" / "Q" / "call_site.jsonl").read_text(), "main")
+
+    def test_a_part_that_alerted_itself_gets_no_second_alert(self):   # exit code 4: it sent its own, then failed
+        self.assertTrue(P.alerted("Bash command failed. The command returned a non-zero exit code 4."))   # Airflow 2.10
+        self.assertTrue(P.alerted(RuntimeError("exit code 4: py -m meridian.compare --run-id R")))         # gate()
+        for other in ("Bash command failed. The command returned a non-zero exit code 1.", "exit code 42: x",
+                      "Timeout, PID: 4", "", None):
+            self.assertFalse(P.alerted(other), other)
 
 
 @unittest.skipUnless(importlib.util.find_spec("airflow"), "Airflow isn't installed here: run it in the Docker image")
@@ -180,11 +191,18 @@ class Dag(unittest.TestCase):
         self.assertTrue(render("update", "join", pub,
                                {"run_id": R}).endswith(f"--run-id {R} --config meridian.toml --prev-run {Q}"))
         self.assertEqual(render("update", "anything_new", pub, {"force": True})["force"], "force")
+        # the Trigger form sends the params as conf: left as they are, it's the usual run, not a forced 70dd
+        form = self.dags["update"].params.dump()
+        self.assertEqual(form, {"run_id": "", "prev_run": "", "force": False})
+        self.assertEqual(render("update", "anything_new", pub, form)["force"], "")
+        self.assertIn("--run-id new ", render("update", "collect", pub, form))
         # the rebuild names its run once, in fresh: an update published meanwhile doesn't switch the later tasks
         self.assertTrue(render("rebuild", "fresh",
-                               pub).endswith(f'p="{Q}" && if [ -n "$p" ]; then rm -rf {{0}}/out/$p && ln -sfn '
+                               pub).endswith(f'p="{Q}" && if [ -n "$p" ]; then ln -sfn '
                                              f'{{1}}/out/$p {{0}}/out/$p; fi && echo "run_id={R} prev_run=$p"'
                                              .format(M.REBUILD.as_posix(), M.MAIN.as_posix())))
+        # nothing published yet: settings.toml [pipeline] run_id
+        self.assertIn(f'echo "run_id={M.PIPELINE["run_id"]} prev_run=$p"', render("rebuild", "fresh", {}))
         later = {"run_id": S, "prev_run": R}
         self.assertIn(f"--run-id {R} --config meridian.toml --prev-run {Q} --from-root",
                       render("rebuild", "publish", later, xcom=f"run_id={R} prev_run={Q}"))

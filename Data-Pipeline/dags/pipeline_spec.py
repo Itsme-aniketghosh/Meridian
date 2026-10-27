@@ -42,6 +42,7 @@ DAGS = {
 # Gates stop the rest of their DAG by their command's exit code: task -> (go on, stop). Any other code fails the task.
 GATES = {"anything_new": (0, 99),   # meridian.status: 0 = something new since the last published run, 99 = nothing
          "compare": (3, 0)}         # meridian.compare: 3 = the rebuild differs (alerted): publish it; 0 = same: done
+ALERTED = 4   # a part's exit code when it sent its own alert, then failed: the DAG's on_failure doesn't send another
 
 
 def checked_run(v):
@@ -52,6 +53,12 @@ def checked_run(v):
     return v or ""
 
 
+def alerted(exception):
+    """True if the task's exception says exit code ALERTED: BashOperator's "...a non-zero exit code 4.", gate()'s
+    "exit code 4: <cmd>"."""
+    return bool(re.search(rf"\bexit code {ALERTED}\b", str(exception or "")))
+
+
 def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", rebuild="", handoff="out/{run_id}",
             gx_python=""):
     """The shell command for one task of one DAG. Every part is the same one command (CONTRACTS.md). prev_arg is
@@ -59,17 +66,19 @@ def command(dag, task, run_id, config, python, prev_arg="", prev="", main="", re
     rebuild are the two data roots. The rebuild's tasks run under its own root (MERIDIAN_DATA), except publish, which
     puts the rebuild where the views read. gx runs in its own environment (gx_python) and puts its Data Docs there
     too."""
-    if task == "fresh":   # from scratch: its out/<run_id> wiped; the snapshot and the previous run's out/ linked in.
-        # Its last line names the run once, for the later tasks (xcom): an update publishing meanwhile can't switch it
+    if task == "fresh":   # from scratch: all of its out/ wiped (every past week's too, and the last prev link: rm
+        # doesn't follow it; ln -sfn onto a real dir would link inside it); the snapshot and the previous run's out/
+        # linked in. Its last line names the run once, for the later tasks (xcom): an update publishing meanwhile
+        # can't switch it
         if not rebuild or os.path.realpath(rebuild) in (os.path.realpath("."), os.path.realpath(main)):
             raise ValueError(f"[dags.rebuild] data_root must be a folder of its own, not {rebuild!r} "
                              f"(main is {main!r})")
+        top = handoff.split("/")[0]   # out/
         out = f"{rebuild}/{handoff.format(run_id=run_id)}"
         prev_out = handoff.format(run_id="$p")
-        return (f'rm -rf {out} && mkdir -p {out} && ln -sfn {main}/snapshots {rebuild}/snapshots && p="{prev}"'
-                f' && if [ -n "$p" ]; then rm -rf {rebuild}/{prev_out}'
-                f' && ln -sfn {main}/{prev_out} {rebuild}/{prev_out}; fi'
-                f' && echo "run_id={run_id} prev_run=$p"')   # rm: ln -sfn onto a real dir would link inside it
+        return (f'rm -rf {rebuild}/{top} && mkdir -p {out} && ln -sfn {main}/snapshots {rebuild}/snapshots'
+                f' && p="{prev}" && if [ -n "$p" ]; then ln -sfn {main}/{prev_out} {rebuild}/{prev_out}; fi'
+                f' && echo "run_id={run_id} prev_run=$p"')
     if task == "anything_new":
         return f"{python} -m meridian.status --config {config}"
     cmd = (f"{gx_python if task == 'gx' and gx_python else python} -m meridian.{task} --run-id {run_id} "
