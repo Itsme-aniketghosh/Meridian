@@ -155,4 +155,4 @@ A failed task (after its retries), a data error or a warning sends one Slack or 
 python -m unittest discover -s tests -t .      # from Data-Pipeline/
 ```
 
-293 tests, 14 skipped by design on a plain machine (7 need the team data, 5 Airflow, 2 GX). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).
+304 tests, 18 skipped by design on a plain machine (11 need the team data, 5 Airflow, 2 GX). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).

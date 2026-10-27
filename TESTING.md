@@ -19,7 +19,7 @@ cd "Data-Pipeline"
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 293 tests ... OK (skipped=14)` (macOS, Python 3.11, Oct 26): 7 skipped need the team run, 5 need Airflow (`test_dag.Dag`), 2 need Great Expectations (`test_gx.Audit`). CI runs this on every push and pull request, on Linux and Windows, after flake8 at 120 characters (`Data-Pipeline/setup.cfg`), and runs the Airflow and GX tests in their own jobs ([ci.yml](.github/workflows/ci.yml)).
+Expect `Ran 304 tests ... OK (skipped=18)` (macOS, Python 3.11, Oct 26): 11 skipped need the team run, 5 need Airflow (`test_dag.Dag`), 2 need Great Expectations (`test_gx.Audit`). CI runs this on every push and pull request, on Linux and Windows, after flake8 at 120 characters (`Data-Pipeline/setup.cfg`), and runs the Airflow and GX tests in their own jobs ([ci.yml](.github/workflows/ci.yml)).
 
 ## Every test, the team run included
 
@@ -33,7 +33,7 @@ export MERIDIAN_RUN_ID=70dd1dabfed544b8                   # Mac, Linux
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 293 tests ... OK (skipped=7)`. The extra 7 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines), the packages' precision and recall, and the golden files.
+Expect `Ran 304 tests ... OK (skipped=7)`. The extra 11 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines), the packages' precision and recall, the golden files, and every real call edge.
 
 ## Freeze v1
 

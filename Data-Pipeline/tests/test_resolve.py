@@ -12,6 +12,7 @@ import csv
 import io
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -375,6 +376,15 @@ class Command(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("rule 9", r.stderr)
 
+    def test_call_edge_depth_must_be_a_whole_number_of_at_least_1(self):
+        base = self.config.read_text()
+        for bad in ("0", "-1", '"3"', "2.5", "true"):
+            with self.subTest(depth=bad):
+                self.config.write_text(base + f"\n[resolver]\ncall_edge_depth = {bad}\n")
+                r = self.resolve()
+                self.assertNotEqual(r.returncode, 0)
+                self.assertIn("call_edge_depth must be a whole number", r.stderr)
+
     def test_checkout_not_at_the_manifest_sha_halts(self):
         manifest = self.root / "snapshots" / RUN / "manifest.json"
         manifest.write_text(json.dumps({"run_id": RUN, "repos": {"fix/app": "0" * 40}}))
@@ -627,6 +637,97 @@ class WalkOrder(unittest.TestCase):
         self.assertEqual(forward, backward)
 
 
+U = "from lib.translation import ugettext\n"
+REAL_FILES = {   # what real repos hold that the fixture above doesn't
+    "lib/__init__.py": "",
+    "lib/translation.py": "def gettext(m):\n    return m\n\nugettext = gettext\n",
+    "app/__init__.py": "",
+    "app/py2.py": U + "print 'hi'\nx = ugettext('a')\n",                     # Python 2 syntax beside it
+    "app/compat.py": ("try:\n    from lib.translation import ugettext\n"   # the packages' compat pattern
+                      "except ImportError:\n    ugettext = lambda s: s\n\nx = ugettext('a')\n"),
+    "app/star.py": "from lib.translation import *\nx = ugettext('a')\n",
+    "app/modalias.py": "import lib.translation as t\nx = t.ugettext('a')\n",
+    "app/twohop.py": U + "a = ugettext\nb = a\nx = b('t')\n",              # two hops: the one-hop rule stops
+    "app/cyc_a.py": "from app.cyc_b import ugettext\nx = ugettext('a')\n",  # a re-export loop: Jedi recurses
+    "app/cyc_b.py": "from app.cyc_a import ugettext\n",
+    "app/deco.py": U + ("def deco(f):\n    return f\n\n@deco\ndef g():\n    return ugettext('a')\n\n"
+                        "async def h():\n    return g()\n\ndef k():\n    return h()\n"),
+    "app/meth.py": U + ("class C:\n    def m(self):\n        return ugettext('a')\n"
+                        "    def n(self):\n        return self.m()\n\ndef use_c():\n    return C().n()\n"),
+    "app/nested.py": U + ("def outer():\n    def inner():\n        return ugettext('b')\n    return inner()\n\n"
+                          "def top():\n    return outer()\n"),
+    "app/prop.py": U + ("class P:\n    @property\n    def label(self):\n        return ugettext('p')\n\n"
+                        "def read_it():\n    return P().label\n"),                 # a property is read, not called
+}
+REAL_RAW = {
+    "app/latin1.py": U.encode() + b"s = '\xe9'; x = ugettext('a')\n",          # not UTF-8
+    "app/crlf.py": (U + "x = 1\ny = ugettext('a')\n").replace("\n", "\r\n").encode(),
+}
+
+
+class RealWorldCode(unittest.TestCase):
+    """The red-team probes: odd files and call shapes from real repos, through the one command, never a crash."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        root = Path(cls.tmp.name)
+        repo_dir = root / "snapshots" / RUN / "repos" / "fix__real"
+        for rel, data in REAL_RAW.items():
+            (repo_dir / rel).parent.mkdir(parents=True, exist_ok=True)
+            (repo_dir / rel).write_bytes(data)
+        sha = fixture_repo(repo_dir, REAL_FILES)
+        (root / "snapshots" / RUN / "manifest.json").write_text(json.dumps({"run_id": RUN,
+                                                                            "repos": {"fix/real": sha}}))
+        cfg = {"run": {"handoff_dir": "out/{run_id}"}, "scanner": {}, "resolver": {"call_edge_depth": 3},
+               "datasets": {"real": {"repos": [{"repo": "fix/real", "ref": sha}],
+                                     "symbols": [{"name": "ugettext", "module": "lib.translation"}]}}}
+        (root / "out" / RUN).mkdir(parents=True)
+        write_jsonl(root / "out" / RUN / "candidate.jsonl",
+                    scanned(RUN, "fix/real", repo_dir, {"ugettext": "lib.translation"}, SCANNER))
+        cls.log = io.StringIO()
+        with contextlib.redirect_stdout(cls.log):
+            R.run(RUN, cfg, root)
+        cls.rows = {(r["path"], r["line"]): r["detection"] for r in read_jsonl(root / "out" / RUN / "resolution.jsonl")}
+        cls.edges = {(e["caller_scope"], e["callee_scope"])
+                     for e in read_jsonl(root / "out" / RUN / "call_edge.jsonl")}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_odd_files_still_resolve(self):
+        for key in [("app/py2.py", 3), ("app/latin1.py", 2), ("app/crlf.py", 3)]:
+            with self.subTest(file=key[0]):
+                self.assertEqual(self.rows[key], "ast_resolved")
+
+    def test_import_shapes(self):
+        self.assertEqual(self.rows[("app/compat.py", 2)], "ast_resolved")   # the real import
+        self.assertEqual(self.rows[("app/compat.py", 4)], "dropped")        # the fallback is someone else's
+        self.assertEqual(self.rows[("app/compat.py", 6)], "ast_resolved")
+        self.assertEqual(self.rows[("app/star.py", 2)], "ast_resolved")
+        self.assertEqual(self.rows[("app/modalias.py", 2)], "ast_resolved")
+
+    def test_two_hop_alias_call_is_not_seen(self):  # known limit of the one-hop rule: b('t') gets no row
+        self.assertEqual(self.rows[("app/twohop.py", 2)], "ast_resolved")  # a = ugettext, a candidate
+        self.assertNotIn(("app/twohop.py", 4), self.rows)
+
+    def test_reexport_loop_is_kept_unresolved_and_logged(self):
+        self.assertEqual({k: v for k, v in self.rows.items() if k[0].startswith("app/cyc_")},
+                         {("app/cyc_a.py", 1): "ast_unresolved", ("app/cyc_a.py", 2): "ast_unresolved",
+                          ("app/cyc_b.py", 1): "ast_unresolved"})
+        self.assertIn("RecursionError", self.log.getvalue())
+
+    def test_callers_through_decorators_async_methods_and_nesting(self):
+        self.assertLessEqual({("g", "ugettext"), ("h", "g"), ("k", "h"),
+                              ("C.m", "ugettext"), ("C.n", "C.m"), ("use_c", "C.n"),
+                              ("outer.inner", "ugettext"), ("outer", "outer.inner"), ("top", "outer")}, self.edges)
+
+    def test_property_reader_is_not_a_caller(self):  # known limit: only calls make edges, and p.label is no call
+        self.assertIn(("P.label", "ugettext"), self.edges)
+        self.assertFalse([e for e in self.edges if e[1] == "P.label"])
+
+
 class Helpers(unittest.TestCase):
     """score_packages and the alias hand check: the same output on every machine."""
 
@@ -718,6 +819,66 @@ class PackagesScore(unittest.TestCase):
         _, total = score(RUN_ID, CFG, cands, rows)
         self.assertGreaterEqual(total["resolved_real"] / total["resolved"], 0.98)
         self.assertGreaterEqual(total["real_resolved"] / total["real"], 0.95)
+
+
+OUT = data_root() / "out" / RUN_ID
+
+
+@unittest.skipUnless((OUT / "call_edge.jsonl").exists() and (OUT / "resolution.jsonl").exists(),
+                     f"no resolve output in out/{RUN_ID}/")
+class TeamRunEdges(unittest.TestCase):
+    """Every call_edge row of a real run, checked by plain text and the rows, not by Jedi or tree-sitter."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.edges = read_jsonl(OUT / "call_edge.jsonl")
+        cls.res = {(r["repo"], r["path"], r["line"], r["col"]): r for r in read_jsonl(OUT / "resolution.jsonl")}
+        cls.names = {n for symbols in R.tracked(CFG).values() for n in symbols}
+        cls.lines = {}
+
+    def line(self, e, n=0):
+        key = (e["repo"], e["caller_path"])
+        if key not in self.lines:
+            path = SNAP / "repos" / e["repo"].replace("/", "__") / e["caller_path"]
+            self.lines[key] = path.read_text(encoding="utf-8", errors="replace").splitlines() + [""]
+        return self.lines[key][e["line"] - 1 + n]
+
+    def test_no_edge_on_an_import_line(self):
+        self.assertFalse([e for e in self.edges if re.match(r"\s*(from\s+\S+\s+)?import\b", self.line(e))])
+
+    def test_a_use_edge_sits_on_a_confirmed_use(self):
+        uses = [e for e in self.edges if e["callee_scope"] in self.names]
+        self.assertTrue(uses)
+        self.assertFalse([e for e in uses if self.res.get((e["repo"], e["caller_path"], e["line"], e["col"]), {})
+                          .get("detection") != "ast_resolved"])
+
+    def test_a_caller_edge_calls_its_callee_by_name(self):  # an __init__: Class(...), super().__init__(...)
+        bad = []
+        for e in self.edges:
+            *cls, name = e["callee_scope"].split(".")
+            if name in self.names:
+                continue
+            names = [name] + cls[-1:] if name == "__init__" else [name]
+            text = self.line(e) + self.line(e, 1)   # a call can break its line after the name
+            if not any(re.search(r"\b" + re.escape(n) + r"\s*\(", text) for n in names):
+                bad.append(e)
+        self.assertEqual(bad, [])
+
+    def test_every_edge_is_within_call_edge_depth_of_a_use(self):
+        into = {}
+        for e in self.edges:
+            into.setdefault((e["repo"], e["callee_path"], e["callee_scope"]), []).append(e)
+        level, frontier = {}, [(e, 1) for e in self.edges if e["callee_scope"] in self.names]
+        while frontier:
+            nxt = []
+            for e, d in frontier:
+                key = json.dumps(e, sort_keys=True)
+                if key not in level:
+                    level[key] = d
+                    nxt += [(up, d + 1) for up in into.get((e["repo"], e["caller_path"], e["caller_scope"]), [])]
+            frontier = nxt
+        self.assertEqual(len(level), len(self.edges))
+        self.assertLessEqual(max(level.values()), CFG["resolver"]["call_edge_depth"])
 
 
 if __name__ == "__main__":
