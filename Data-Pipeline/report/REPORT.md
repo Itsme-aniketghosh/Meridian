@@ -44,13 +44,13 @@ Each step is its own module, run as `python -m meridian.<part> --run-id <id> --c
 | `join` | The features: call sites with owner, bug-fix count, status and a stable id, tickets mapped to code, and coverage |
 | `graph` | Which call site waits on which, how far each call reaches (blast radius), and ticket chains |
 
-Does it work? On Django's `ugettext*` the block finds all 265 lines in a hand-checked answer key, with 0 false hits. It resolves 542 of 542 aliased `_()` calls. The commit where Django actually migrated edits exactly the 267 lines we found. On Spark, 61% of 59,491 tickets map to code.
+Does it work? On Django's `ugettext*` the block finds all 265 lines in a hand-checked answer key, with 0 false hits. It resolves 542 of 542 aliased `_()` calls. The commit where Django actually migrated edits exactly the 267 lines we found. The push check, which now runs the resolver on the changed files, flagged only real new calls: 4 of 4 on 21 replayed commits and 2 of 2 on 9 later Django commits it hadn't seen. On Spark, 61% of 59,491 tickets map to code.
 
 The weak spot is the cross-team part. None of our public datasets has both a ticket tracker and tracked code, so on real data 0 tickets map to a call site and the "who blocks whom" table is empty. A small hand-built repo (`acme/shop`) runs the whole cross-team story instead, and all 43 product queries pass on it. [Appendix C](appendix-real-data.md) goes feature by feature.
 
 ### 2.3 Test modules
 
-292 unit tests (`unittest`), one test file per part, all passing. 14 are skipped on a plain machine because they need Airflow, GX or the team's private data. Those run in their own CI jobs or with the team data. Edge cases are built into the fixtures: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
+293 unit tests (`unittest`), one test file per part, all passing. 14 are skipped on a plain machine because they need Airflow, GX or the team's private data. Those run in their own CI jobs or with the team data. Edge cases are built into the fixtures: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
 
 ```
 python -m unittest discover -s tests -t .        # from Data-Pipeline/
@@ -60,7 +60,7 @@ CI runs this on Linux and Windows on every push, plus an Airflow job and a GX jo
 
 ### 2.4 Pipeline orchestration (Airflow DAGs)
 
-Both DAGs come from one spec, `dags/pipeline_spec.py`, and `test_dag` checks them against it. Each task is one of the commands above. The update starts with `anything_new`, which stops the run when nothing changed since the last publish. `publish` only runs after `validate` passes, so a bad run never replaces the last good block.
+Both DAGs come from one spec, `dags/pipeline_spec.py`, and `test_dag` checks them against it. Each task is one of the commands above. The update starts with `anything_new`, which stops the run in about 2 s when nothing changed since the last publish. `publish` only runs after `validate` passes, so a bad run never replaces the last good block.
 
 We ran both on the real data in Docker on a Mac. The update passed every task first try in 1,268 s. The rebuild then recomputed everything from scratch with caches off, and compare found 0 differences from the update. Screenshots and timings are in [Appendix A](appendix-airflow.md).
 
@@ -204,11 +204,11 @@ What still falls short:
 
 - No real alert channel yet, and the DVC remote is a placeholder.
 - The cross-team features only show their full value on the fixture, because no public dataset has both tickets and tracked code. With one run there's no burndown yet either.
-- The push check's first rule (a new call to the retired API) was right 4 times out of 11 on real commits, under our 0.80 target. It has no resolver at push time, so look-alike calls get through.
+- Two weaker signals didn't make it. We wrote the pass bars down before running them ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a "bug with no reproduction" check didn't predict Spark's vague bugs, and timing evidence didn't lift the GitLab cross-team rule (precision 0.25 against a 0.50 bar).
 
 ## Appendices
 
 - [A. Airflow run and Gantt](appendix-airflow.md): both DAGs in Docker on the real data, and where the time goes.
 - [B. Data quality and bias](appendix-quality.md): tests, schema, statistics, anomalies, the GX audit, bias and mitigation.
 - [C. The real data, feature by feature](appendix-real-data.md): what each proposed feature gets from the real block, with charts.
-- [D. Testing the pipeline against itself](appendix-testing.md): the red team and the scenario tests, what broke and what's still open.
+- [D. Testing the pipeline against itself](appendix-testing.md): what we test and how, what broke and what's still open.
