@@ -154,9 +154,7 @@ class Commands(unittest.TestCase):
             self.assertIn("fix/repo", r.stdout)
             self.assertIn("jira/SPARK", r.stdout)  # no ticket source in this snapshot: said, not skipped silently
         self.assertEqual((self.tmp / "out" / RUN / "ticket.jsonl").read_text(), "")
-        mine = self.tmp / "m.toml"  # the real config pins one SQLite; this machine may have another
-        mine.write_text(f'[run]\nhandoff_dir = "out/{{run_id}}"\nsqlite_version = "{sqlite3.sqlite_version}"\n')
-        r = self.cmd("writer", "--config", str(mine))
+        r = self.cmd("writer")   # the real meridian.toml, on whatever SQLite this machine has: no pin to refuse it
         self.assertEqual(r.returncode, 0, r.stderr)
         db = sqlite3.connect(self.tmp / "out" / RUN / "meridian.sqlite")
         self.assertEqual(db.execute("SELECT count(*) FROM git_commit").fetchone(), (6,))
@@ -243,14 +241,6 @@ class Writer(unittest.TestCase):
     def test_check_constraints(self):
         self.refused([{"run_id": RUN, "key": "K-1", "target_kind": "fuzzy", "target": "", "method": "none"}],
                      "CHECK constraint", table="ticket_map")
-
-    def test_sqlite_version_is_pinned(self):
-        cfg = self.tmp / "m.toml"
-        cfg.write_text('[run]\nsqlite_version = "0.0.1"\n')
-        with self.assertRaisesRegex(SystemExit, "pins 0.0.1"):
-            W.check_sqlite(cfg)
-        cfg.write_text(f'[run]\nsqlite_version = "{sqlite3.sqlite_version}"\n')
-        W.check_sqlite(cfg)  # the machine's own version passes
 
 
 if __name__ == "__main__":

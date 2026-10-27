@@ -16,7 +16,8 @@ config = "meridian.toml"              # what the parts compute
 
 [orchestration]                       # both DAGs (dags/meridian_dag.py); each one's id and schedule in [dags.*]
 retries = 2
-task_retries = { validate = 0 }       # per task, over retries: validate's errors are in the data, a retry finds them again
+task_retries = { validate = 0, gx = 0 }   # per task, over retries: validate's errors are in the data, a retry finds
+                                      # them again; gx's broken check alerted already, a retry would alert again
 retry_delay_minutes = 5
 max_active_tasks = 4                  # parts that may run at once: history next to scan and resolve
 python = "/opt/meridian-venv/bin/python"   # the pipeline's own environment in the image, built from requirements.txt
@@ -61,7 +62,6 @@ python = "/opt/meridian-gx-venv/bin/python"   # its own environment in the image
 dir = "published"                     # under the data root: <run_id>.sqlite per published run, latest.json -> the live one
 
 [status]                              # meridian.status: "data 2 days old · 14 new commits"
-mirrors = "snapshots/_cache/repos"    # under the data root: one bare <owner>__<name>.git per repo (collect's)
 fetch = true                          # fetch the mirror of a repo that follows a branch before counting its new commits,
                                       # so a push since the last collect is seen. Pinned repos are never fetched
 stale_after_hours = 20                # a publish older than this counts as new: ticket changes can't be seen without a pull.

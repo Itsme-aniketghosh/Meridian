@@ -4,7 +4,7 @@
 
 Prints "data 2 days old · 14 new commits · run <run_id>": the published run (latest.json, see meridian.publish), the age
 of its snapshot_at, and, per repo in meridian.toml, the commits between its published SHA and the tip of its ref in
-the repo's local mirror ([status] mirrors: collect's bare clones). A repo that follows a branch has its mirror fetched
+the repo's local mirror ([collect] mirrors: collect's bare clones). A repo that follows a branch has its mirror fetched
 first ([status] fetch), so a push made since the last collect counts: without it the "Update graph" click and the daily
 run saw nothing until stale_after_hours passed. A pinned repo is never fetched. A fetch that fails (offline) leaves the
 mirror as the last collect did. A repo whose mirror or ref isn't there is unknown, and never counts as new by its
@@ -17,10 +17,10 @@ pinned, collect makes the same run again). Exit 99 = nothing new. Anything else 
 
     python -m meridian.status --update        # the "Update graph" click: trigger meridian_update
 
---update triggers meridian_update through Airflow's REST API ([dags.update] api, the login from the environment
-variables it names, else Data-Pipeline/.env), unless a run is already queued: that one starts after the current run and
-takes every push up to its start, so a second click adds nothing. One run at a time (max_active_runs = 1), and its
-anything_new step skips the run when nothing changed.
+--update triggers meridian_update through Airflow's REST API ([dags.update] api, on port AIRFLOW_PORT when set, as
+docker-compose.yaml maps it; the login from the environment variables it names, else Data-Pipeline/.env), unless a
+run is already queued: that one starts after the current run and takes every push up to its start, so a second click
+adds nothing. One run at a time (max_active_runs = 1), and its anything_new step skips the run when nothing changed.
 """
 import argparse
 import base64
@@ -28,13 +28,14 @@ import json
 import os
 import subprocess
 import sys
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
 from meridian import publish
 from meridian.collect import canon, fetch, rev, sha256
-from meridian.common import CONFIG, HERE, data_root, git, load_config, load_settings, log
+from meridian.common import CONFIG, HERE, data_root, git, load_config, load_settings, log, read_env
 
 NOTHING_NEW = 99
 TIME = "%Y-%m-%dT%H:%M:%SZ"
@@ -63,7 +64,8 @@ def status(config=CONFIG, root=None, settings=None, now=None):
     cfg, s = load_config(config), load_settings("status", settings)
     root, now = Path(root or data_root()), now or datetime.now(timezone.utc)
     pub = publish.latest(root, settings)
-    shas, mirrors = pub.get("repo_shas", {}), root / s.get("mirrors", "snapshots/_cache/repos")
+    shas = pub.get("repo_shas", {})
+    mirrors = root / load_settings("collect", settings).get("mirrors", "snapshots/_cache/repos")   # collect's
     listed = [r for ds in cfg.get("datasets", {}).values() for r in ds.get("repos", [])]
     mirror = lambda r: mirrors / (r["repo"].replace("/", "__") + ".git")
     if s.get("fetch", True):
@@ -96,12 +98,14 @@ def line(st):
 def trigger(settings=None, env_file=HERE / ".env"):
     """Queue a meridian_update run, unless one is queued already. Returns what happened, for the button."""
     d = load_settings("dags", settings)["update"]
-    lines = env_file.read_text(encoding="utf-8").splitlines() if env_file.exists() else []
-    env = {**dict(s.strip().split("=", 1) for s in lines if "=" in s and not s.lstrip().startswith("#")), **os.environ}
+    env = {**read_env(env_file), **os.environ}
+    api = urllib.parse.urlsplit(d["api"])
+    if env.get("AIRFLOW_PORT"):   # docker-compose.yaml publishes the API there
+        api = api._replace(netloc=f"{api.hostname}:{env['AIRFLOW_PORT']}")
     login = base64.b64encode(f"{env.get(d['api_user_env'], '')}:{env.get(d['api_password_env'], '')}".encode()).decode()
 
     def call(path, body=None):
-        req = urllib.request.Request(f"{d['api']}/dags/{d['dag_id']}/dagRuns{path}",
+        req = urllib.request.Request(f"{api.geturl()}/dags/{d['dag_id']}/dagRuns{path}",
                                      None if body is None else json.dumps(body).encode(),
                                      {"Authorization": f"Basic {login}", "Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as r:

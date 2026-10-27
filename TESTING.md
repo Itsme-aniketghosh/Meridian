@@ -19,7 +19,7 @@ cd "Data-Pipeline"
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 310 tests ... OK (skipped=19)` (Windows, Python 3.11, Oct 27): 11 skipped need the team run, 5 need Airflow (`test_dag.Dag`), 2 need Great Expectations (`test_gx.Audit`), and 1 runs off Windows only (`test_resolve.ReexportLoop`, a re-export loop overflows Windows' C stack), so Mac and Linux skip 18. CI runs this on every pull request and push to main, on Linux and Windows, after flake8 at 120 characters (`Data-Pipeline/setup.cfg`), and runs the Airflow and GX tests in their own jobs, and `test_pushcheck` with only the packages `push-check.yml` installs ([ci.yml](.github/workflows/ci.yml)).
+Expect `Ran 339 tests ... OK (skipped=19)` (Windows, Python 3.11, Oct 27): 11 skipped need the team run, 5 need Airflow (`test_dag.Dag`), 2 need Great Expectations (`test_gx.Audit`), and 1 runs off Windows only (`test_resolve.ReexportLoop`, a re-export loop overflows Windows' C stack), so Mac and Linux skip 18. CI runs this on every pull request and push to main, on Linux and Windows, after flake8 at 120 characters (`Data-Pipeline/setup.cfg`), and runs the Airflow and GX tests in their own jobs, and `test_pushcheck` with only the packages `push-check.yml` installs ([ci.yml](.github/workflows/ci.yml)).
 
 ## Every test, the team run included
 
@@ -33,7 +33,7 @@ export MERIDIAN_RUN_ID=70dd1dabfed544b8                   # Mac, Linux
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 310 tests ... OK (skipped=7)` on Mac and Linux, 8 on Windows. The extra 11 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines), the packages' precision and recall, the golden files, and every real call edge.
+Expect `Ran 339 tests ... OK (skipped=7)` on Mac and Linux, 8 on Windows. The extra 11 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines), the packages' precision and recall, the golden files, and every real call edge.
 
 ## Freeze v1
 

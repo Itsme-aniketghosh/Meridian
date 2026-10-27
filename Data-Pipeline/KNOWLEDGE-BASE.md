@@ -708,7 +708,7 @@ What the KB still can't answer, and what closes each.
 
 | Level | What | When | Command | Today |
 |---|---|---|---|---|
-| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | ✅ 22 test files, 310 tests (19 skipped by design on Windows, 18 elsewhere) |
+| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | ✅ 22 test files, 339 tests (19 skipped by design on Windows, 18 elsewhere) |
 | 2. Goldens | A frozen fixture → exact rows: scan's 15 cases, resolve's edge fixtures, the writer's same-bytes check. On the team run, md5 of the 24 output files against `golden/` | Every commit | same | ✅ |
 | 3. KB proof | This page's queries against the fixture KB | Every commit | `python -m unittest tests.test_kb` | ✅ 44 queries |
 | 4. Cross-machine | Same run on Windows and Mac (and the Airflow image): every `out/<run_id>/*.jsonl` sha256 equal | Every new run_id | `sha256sum out/<run_id>/*.jsonl` on each, compared | ✅ Windows and Docker on a Mac. One difference found, Jedi's folder order, now fixed ([RESOLVER.md](RESOLVER.md)) |
@@ -744,4 +744,4 @@ Done: the dynamic-config fixes, the new run_id (70dd1dabfed544b8), join and grap
 
 ### CI
 
-[.github/workflows/ci.yml](../.github/workflows/ci.yml) runs `python -m unittest discover -s tests -t .` from `Data-Pipeline/` on `ubuntu-latest` and `windows-latest`, with Python 3.11 and the pinned requirements, plus flake8, the Great Expectations tests and the DAG tests. Two operating systems on purpose: half of the dynamic-config bugs only showed on Windows. The writer's byte tests need the pinned SQLite. The image has it; where it's missing, the test skips and says why.
+[.github/workflows/ci.yml](../.github/workflows/ci.yml) runs `python -m unittest discover -s tests -t .` from `Data-Pipeline/` on `ubuntu-latest` and `windows-latest`, with Python 3.11 and the pinned requirements, plus flake8, the Great Expectations tests and the DAG tests. Two operating systems on purpose: half of the dynamic-config bugs only showed on Windows. The golden tests compare table rows, not the .sqlite file, so the SQLite version doesn't matter.

@@ -9,7 +9,6 @@ schema_version = 1
 id_hash = "sha256"          # IDs = first 16 hex chars of sha256 over fields joined by \x1f
 id_length = 16
 time_format = "%Y-%m-%dT%H:%M:%SZ"   # UTC everywhere. No wall clock after Collect
-sqlite_version = "3.50.4"   # pinned (Python's sqlite3 module): same rows + same version = same bytes
 handoff_dir = "out/{run_id}"         # before the writer lands: one {table}.jsonl per table, sorted by primary key
 
 # ───────────── datasets ─────────────
@@ -191,7 +190,7 @@ keyed_last_commits = 1000             # week 1: share of the last 1,000 first-pa
 [join]
 call_site_id = ["repo", "symbol", "path", "scope", "normalized_line", "occurrence"]
 normalize_line = "strip_whitespace"
-match_order = ["git_line_map_with_renames", "same_repo_symbol_scope_normalized_line"]
+match_order = ["git_line_map_with_renames", "same_repo_symbol_scope_normalized_line", "same_path_scope_symbol"]
 fuzzy_ticket_matching = false
 
 # ───────────── graph · Aniket ─────────────

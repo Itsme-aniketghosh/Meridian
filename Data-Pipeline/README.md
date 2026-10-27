@@ -64,7 +64,7 @@ Data-Pipeline/
 └── requirements.txt       every pinned dependency (requirements-gx.txt: the GX audit's own)
 ```
 
-The data lives at the repo root (or `$MERIDIAN_DATA`), git-ignored: `snapshots/` (inputs) and `out/<run_id>/` (outputs), both versioned by DVC, then `published/` (the live block) and `rebuild/`. The course guideline's `data/` is our `snapshots/` and `out/`, and its `scripts/` is `meridian/`.
+The data lives at the repo root (or `$MERIDIAN_DATA`), git-ignored: `snapshots/` (inputs) and `out/<run_id>/` (outputs), of which DVC versions only the raw ticket pulls and the `[pipeline]` run's `out/`, then `published/` (the live block) and `rebuild/`. The course guideline's `data/` is our `snapshots/` and `out/`, and its `scripts/` is `meridian/`.
 
 Nothing is hard-coded. [meridian.toml](meridian.toml) holds what the parts compute, so changing it means a new `run_id`. [settings.toml](settings.toml) holds everything that never changes a row: Airflow, alerts, data checks, bias, DVC. Secrets live only in `.env` (from [.env.example](.env.example)), which git ignores.
 
@@ -117,23 +117,24 @@ The update ran in Docker on a Mac in 1,268 s. Running `scan` and `resolve` besid
 
 ## Run it without Airflow
 
-Each task is one command. From `Data-Pipeline/`, in the order above:
+Each task is one command. From `Data-Pipeline/`, in the order above. Only collect checks the config against the run_id, but every part computes from it, so they all take the team file:
 
 ```
-python -m meridian.collect --run-id 70dd1dabfed544b8 --config meridian.toml
-python -m meridian.history --run-id 70dd1dabfed544b8 --config meridian.toml
+git show 271a5b0:Data-Pipeline/meridian.toml > meridian.team.toml   # the config 70dd was made with (99f417d changed it)
+python -m meridian.collect --run-id 70dd1dabfed544b8 --config meridian.team.toml
+python -m meridian.history --run-id 70dd1dabfed544b8 --config meridian.team.toml
 ...                                                   # scan, resolve, owners, join, graph
-python -m meridian.validate --run-id 70dd1dabfed544b8 --config meridian.toml
-python -m meridian.bias --run-id 70dd1dabfed544b8 --config meridian.toml
-python -m meridian.report --run-id 70dd1dabfed544b8 --config meridian.toml
-python -m meridian.publish --run-id 70dd1dabfed544b8 --config meridian.toml     # -> published/, if validate passed
+python -m meridian.validate --run-id 70dd1dabfed544b8 --config meridian.team.toml
+python -m meridian.bias --run-id 70dd1dabfed544b8 --config meridian.team.toml
+python -m meridian.report --run-id 70dd1dabfed544b8 --config meridian.team.toml
+python -m meridian.publish --run-id 70dd1dabfed544b8 --config meridian.team.toml     # -> published/, if validate passed
 ```
 
 Or let DVC run whatever changed: `dvc repro`. `python -m tests.demo --run-id 70dd1dabfed544b8 --config meridian.toml` prints each part's tables, and `python -m tests.dashboard` with the same arguments writes one HTML page.
 
 ## Reproducibility and DVC
 
-Collect's last line must say `run_id=70dd1dabfed544b8`. The same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and the same bytes from every part. `tests/test_golden.py` checks all 24 outputs against [golden/70dd1dabfed544b8.json](golden/70dd1dabfed544b8.json), and all 24 match ([TESTING.md](../TESTING.md) has the two known exceptions). Don't pass `--run-id new` for the team run: that makes a run of your own.
+Collect's last line must say `run_id=70dd1dabfed544b8`. The same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and the same bytes from every part. Until a team run is made with today's `meridian.toml`, collect 70dd with the config it was made with, `git show 271a5b0:Data-Pipeline/meridian.toml` (run_demo.py does this). `tests/test_golden.py` checks all 24 outputs against [golden/70dd1dabfed544b8.json](golden/70dd1dabfed544b8.json), and all 24 match ([TESTING.md](../TESTING.md) has the two known exceptions). Don't pass `--run-id new` for the team run: that makes a run of your own.
 
 - Inputs: `snapshots/_cache/jira.dvc` and `gitlab.dvc` pin the raw pulls. The repo clones aren't tracked, because collect rebuilds them byte for byte from the pinned SHAs.
 - Outputs: [dvc.yaml](dvc.yaml) declares each part as a stage with what it reads and writes. `dvc commit` records every output's hash in `dvc.lock`, which git tracks, so each commit pins the data its code produced and `dvc diff` shows what changed. Commit `dvc.lock` from Linux or Mac only.
@@ -155,4 +156,4 @@ A failed task (after its retries), a data error or a warning sends one Slack or 
 python -m unittest discover -s tests -t .      # from Data-Pipeline/
 ```
 
-310 tests, 19 skipped by design on a plain Windows machine (11 need the team data, 5 Airflow, 2 GX, 1 runs off Windows only). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).
+339 tests, 19 skipped by design on a plain Windows machine (11 need the team data, 5 Airflow, 2 GX, 1 runs off Windows only). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).

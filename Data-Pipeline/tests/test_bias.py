@@ -167,6 +167,24 @@ class Bias(unittest.TestCase):
         write_jsonl(out / "ticket_map.jsonl", [])
         self.assertEqual(B.mapping_report(out, {"min_n": 30, "max_gap": 0.1}), {})
 
+    def test_nothing_to_slice_is_none_not_a_crash(self):   # MetricFrame raises ValueError on no rows
+        b = {"min_n": 1, "max_gap": 0.1}
+        none = pd.Series([], dtype=int)
+        self.assertIsNone(B.frame({"rate": B.selection_rate, "n": B.count}, none, none, none, b))
+        # every next author unassigned: nothing scored for accuracy, coverage still sliced
+        df = pd.DataFrame({"owner|base": ["Core"], "next|base": ["unassigned"], "last|base": ["Core"],
+                           "module": ["core"], "prior": ["0"]})
+        r = B.owner_report(df, "unassigned", {"base": (0.3, 180)}, b)
+        self.assertIsNone(r["accuracy_by_module"])
+        self.assertEqual(r["owned_share_by_module"]["by_group"]["core"]["owned_share"], 1.0)
+        self.assertEqual((r["mitigations"]["base"]["accuracy_assigned"], r["mitigations"]["base"]["flagged_modules"]),
+                         (0.0, 0))
+        out = self.tmp / "nocandidates"
+        out.mkdir()
+        write_jsonl(out / "candidate.jsonl", [])
+        write_jsonl(out / "resolution.jsonl", [])
+        self.assertEqual(B.resolver_report({"scanner": {"edit_roles": ["call"]}}, out, b), {})
+
     def test_written_as_json(self):
         self.assertEqual(self.saved["owner_rule"]["accuracy_by_module"],
                          self.report["owner_rule"]["accuracy_by_module"])
