@@ -32,6 +32,8 @@ class MockJira(BaseHTTPRequestHandler):
     changed = {}  # ticket index -> summary: edited since the base pull, and all an `updated >=` query returns
     deleted = set()  # ticket indexes no query returns any more
     jqls = []  # every jql asked for
+    grow = 0  # tickets filed after each request
+    filed = 0
 
     def do_GET(self):
         q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
@@ -39,13 +41,15 @@ class MockJira(BaseHTTPRequestHandler):
         n = min(n, self.cap or n)
         jql = q["jql"][0]
         MockJira.jqls.append(jql)
-        ids = [i for i in (sorted(self.changed) if "updated >=" in jql else range(TOTAL)) if i not in self.deleted]
+        ids = [i for i in (sorted(self.changed) if "updated >=" in jql else range(TOTAL + self.filed))
+               if i not in self.deleted]
         if m := re.search(r'key > "FIX-(\d+)"', jql):
             ids = [i for i in ids if i + 1 > int(m[1])]
         issues = [{"key": f"FIX-{i + 1}", "fields": {"summary": self.changed.get(i, f"ticket {i + 1}"),
                                                      "created": "2026-01-01T00:00:00.000+0000"},
                    "changelog": {"histories": []}} for i in ids[start:start + n]]
         body = json.dumps({"startAt": start, "maxResults": n, "total": len(ids), "issues": issues}).encode()
+        MockJira.filed += MockJira.grow
         self.send_response(200)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -168,6 +172,7 @@ class Collect(unittest.TestCase):
 
     def setUp(self):
         MockJira.cap, MockJira.changed, MockJira.deleted, MockJira.jqls = None, {}, set(), []
+        MockJira.grow, MockJira.filed = 0, 0
         self.tmp = Path(tempfile.mkdtemp())
         self.sha = fixture_repo(self.tmp / "upstream")
 
@@ -252,6 +257,32 @@ min_share = {threshold}
         with self.assertRaisesRegex(RuntimeError, "expected 100"):
             S.pull_jira(self.tmp / "capped", {"base": self.base, "jql": "project=FIX", "page": 100})
 
+    def test_a_ticket_filed_mid_pull_doesnt_fail_it(self):
+        """The total from page 1, kept for the last page, was one short forever, resume or not."""
+        MockJira.grow = 1
+        meta = S.pull_jira(self.tmp / "p", {"base": self.base, "jql": "project=FIX", "page": 100})
+        self.assertIn("finished_at", meta)
+
+    def test_gitlab_kill_and_resume_gives_the_same_pull(self):
+        """A kill mid-write leaves half a line in .work/: the rerun appended onto it, and json.loads failed forever."""
+        MockGitLab.issues = {"1": ("one", []), "2": ("twö", [{"body": "blocks #1 ö"}])}
+        MockGitLab.changed = set()
+        ds = {"graphql": self.graphql, "project": "g/p",
+              "issues_created": ["2025-01-01T00:00:00Z", "2025-07-01T00:00:00Z"]}
+        clean = self.tmp / "clean"
+        S.pull_gitlab(clean, ds)
+        for name, meta in (("issues.jsonl", {}), ("notes.jsonl", {"issues_done": True})):
+            killed = self.tmp / name
+            shutil.copytree(clean / ".work", killed / ".work")
+            if not meta:
+                (killed / ".work" / "notes.jsonl").unlink()
+            p = killed / ".work" / name
+            b = p.read_bytes()
+            p.write_bytes(b[:b.rindex("ö".encode()) + 1])  # killed mid-line, inside a 2-byte character
+            S.save_meta(killed, meta)
+            S.pull_gitlab(killed, ds)
+            self.assertEqual((killed / "issues.jsonl.gz").read_bytes(), (clean / "issues.jsonl.gz").read_bytes())
+
     def test_unresolvable_refs_make_a_partial_run(self):
         extra = (f', {{ repo = "fixture/later", ref = "TBD-day4", url = "{(self.tmp / "upstream").as_posix()}" }}'
                  f', {{ repo = "fixture/gone", ref = "deadbeef1234", url = "{(self.tmp / "upstream").as_posix()}" }}')
@@ -269,6 +300,20 @@ min_share = {threshold}
     def test_snapshot_at_in_the_future_is_refused(self):
         with self.assertRaisesRegex(SystemExit, "in the future"):
             self.run_once(self.config(snapshot_at="2999-01-01T00:00:00Z"))
+
+    def test_snapshot_at_must_be_in_time_format(self):
+        for bad in ("2026-10-01", "2026-1-01T00:00:00Z"):
+            with self.subTest(bad), self.assertRaisesRegex(SystemExit, "is not"):
+                self.run_once(self.config(), snapshot_at=bad)
+
+    def test_two_datasets_pulling_one_source_are_refused(self):
+        cfg = self.config()
+        cfg.write_text(cfg.read_text() + f"""[datasets.fix_bugs]
+tracker = "jira"
+jira = {{ base = "{self.base}", jql = "project = FIX AND type = Bug" }}
+""")
+        with self.assertRaisesRegex(SystemExit, r"same source: \['jira/FIX'\]"):
+            self.run_once(cfg)
 
     def test_pinned_run_is_unchanged(self):
         """v1's path: pinned refs, configured snapshot_at, mirror and base pull on disk. The same run, row for row,
@@ -379,6 +424,15 @@ min_share = {threshold}
         self.assertEqual(len(MockJira.jqls) - n, 3)   # only 'new' pulled a delta (query, key listing, next page)
         self.assertNotEqual(new["run_id"], a["run_id"])
         self.assertEqual(json.loads(new["repo_shas"]), {"fixture/repo": moved})
+
+    def test_a_run_the_inputs_dont_give_makes_nothing(self):
+        """Checked before the 2.5 GB checkout, refs/runs and run.jsonl, not after."""
+        root = self.tmp / "root"
+        with mock.patch.dict(os.environ, {"MERIDIAN_DATA": str(root)}), redirect_stdout(io.StringIO()), \
+                self.assertRaisesRegex(SystemExit, "inputs now give"):
+            S.main(["--run-id", "0000000000000000", "--config", str(self.config())])
+        self.assertEqual([p.name for p in (root / "snapshots").iterdir()], ["_cache"])
+        self.assertFalse((root / "out").exists())
 
     def test_gitlab_delta(self):
         """A GitLab delta asks for issues updated after the cursor, each with all its notes again; the newest wins."""

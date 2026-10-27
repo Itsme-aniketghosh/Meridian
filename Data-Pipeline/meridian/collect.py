@@ -47,8 +47,9 @@ import urllib.parse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from meridian.common import (CONFIG, atomic_write, data_root, git, handoff, load_config, load_infra, log, parser,
-                             repo_checkout, write_jsonl)
+from meridian.common import (CONFIG, FIXED, atomic_write, data_root, git, handoff, load_config, load_infra, log,
+                             parser, repo_checkout, write_jsonl)
+from meridian.tickets import source_key
 
 
 def canon(obj):
@@ -82,8 +83,14 @@ def load_meta(d):
 
 
 def read_lines(p):
-    """Lines of a .work/ file a resumable pull appends to; none if it doesn't exist yet."""
-    return p.read_text(encoding="utf-8").split("\n")[:-1] if p.exists() else []
+    """Lines of a .work/ file a resumable pull appends to; none if it doesn't exist yet. Half a line (killed mid-write)
+    is cut off the file too, so the next append starts a line of its own."""
+    if not p.exists():
+        return []
+    b = p.read_bytes()
+    b = b[:b.rfind(b"\n") + 1]
+    os.truncate(p, len(b))
+    return b.decode("utf-8").split("\n")[:-1]
 
 
 def save_meta(d, meta):
@@ -225,7 +232,7 @@ def pull_jira(dest, jira, stop_after=None, since=None):
             body = curl(f"{jira['base']}?{q}")
             data = json.loads(body)
             meta.setdefault("total", data["total"])
-            want = min(page, meta["total"] - start)
+            want = min(page, max(0, data["total"] - start))  # this page's total: tickets are filed mid-pull
             if len(data["issues"]) != want:  # Jira caps maxResults silently; stepping by `page` would skip tickets
                 raise RuntimeError(f"Jira returned {len(data['issues'])} issues at startAt={start}, expected {want}. "
                                    "Lower `page`")
@@ -303,6 +310,7 @@ def pull_gitlab(dest, ds, since=None):
     if not meta.get("issues_done"):
         cur = work / "cursor.txt"
         after = (cur.read_text(encoding="utf-8").strip() or None) if cur.exists() else None
+        read_lines(work / "issues.jsonl")
         with open(work / "issues.jsonl", "a", encoding="utf-8", newline="\n") as f:
             while True:
                 page = gql(url, ISSUES_Q % (proj, frm, to, f', updatedAfter:"{since}"' if since else ""),
@@ -311,7 +319,7 @@ def pull_gitlab(dest, ds, since=None):
                     f.write(json.dumps(n, ensure_ascii=False) + "\n")
                 f.flush()
                 after = page["pageInfo"]["endCursor"]
-                cur.write_text(after or "", encoding="utf-8")
+                write_atomic(cur, (after or "").encode())
                 if page["nodes"]:
                     log(f"  gitlab issues up to {page['nodes'][-1]['createdAt']}")
                 if not page["pageInfo"]["hasNextPage"]:
@@ -437,13 +445,17 @@ def image_digest():
                          "collect": sha256(Path(__file__).read_bytes())}).encode())
 
 
-def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=None, pins=None):
-    """pins: {repo: SHA} to use instead of resolving each ref (replaying a run: see main)."""
+def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=None, pins=None, expect=None):
+    """pins: {repo: SHA} to use instead of resolving each ref (replaying a run: see main). expect: the run_id the
+    inputs must give, checked before anything is checked out or written."""
     config, root = Path(config), Path(root or data_root())
     cfg = load_config(config)
     names = datasets or list(cfg["datasets"])
     if unknown := [n for n in names if n not in cfg["datasets"]]:
         raise SystemExit(f"not in {config.name}: {unknown}")
+    keys = [k for n, ds in cfg["datasets"].items() if (k := source_key(n, ds))]
+    if same := sorted({k for k in keys if keys.count(k) > 1}):  # one cache folder, and tickets would read it twice
+        raise SystemExit(f"two datasets pull the same source: {same}")
     snaps = root / "snapshots"
     cache, mirrors = snaps / "_cache", root / load_infra("collect").get("mirrors", "snapshots/_cache/repos")
     repos, sources, src_dirs, gaps, pulls, follows = {}, {}, {}, [], [], False
@@ -478,18 +490,23 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
         if len(declared) != 1:
             raise SystemExit(f"need one snapshot_at, the config gives {sorted(declared) or 'none'}: pass --snapshot-at")
         snapshot_at = declared.pop()
+    fmt = FIXED[("run", "time_format")]
+    try:
+        ok = datetime.strptime(snapshot_at, fmt).strftime(fmt) == snapshot_at
+    except (TypeError, ValueError):
+        ok = False
+    if not ok:  # cutoffs are compared as text: "2026-10-01" sorts before every time that day
+        raise SystemExit(f"snapshot_at {snapshot_at!r} is not {fmt}")
 
     for name in names:
         ds = cfg["datasets"][name]
         tracker = ds.get("tracker", "none")
         if tracker == "none":
             continue
+        key = source_key(name, ds)
         if tracker == "jira":
-            m = re.search(r"project\s*=\s*(\w+)", ds["jira"]["jql"])
-            key = f"jira/{m.group(1) if m else name.upper()}"
             pull = lambda d, since: pull_jira(d, ds["jira"], since=since)
         elif tracker == "gitlab":
-            key = "gitlab"
             pull = lambda d, since: pull_gitlab(d, ds, since)
         else:
             raise SystemExit(f"{name}: unknown tracker {tracker!r}")
@@ -508,6 +525,8 @@ def snapshot(config=CONFIG, datasets=None, root=None, refresh=(), snapshot_at=No
     manifest = {"snapshot_at": snapshot_at, "repos": repos, "sources": sources,
                 "config_hash": sha256(canon(cfg).encode())}  # parsed, so comments and spacing don't count
     run_id = sha256(canon(manifest).encode())[:16]
+    if expect and run_id != expect:
+        raise SystemExit(f"asked for run {expect}, but the inputs now give {run_id}: config, a ref or a source changed")
     manifest = {"run_id": run_id, **manifest}
 
     dest = snaps / run_id
@@ -578,13 +597,11 @@ def main(argv=None):
         snapshot_at, pins = m["snapshot_at"], m["repos"]
         log(f"replaying {a.run_id}: snapshot_at {snapshot_at}, {len(pins)} repos at their recorded SHAs")
     row = snapshot(a.config, a.datasets.split(",") if a.datasets else None, None,
-                   tuple(filter(None, a.refresh.split(","))), snapshot_at, pins)
+                   tuple(filter(None, a.refresh.split(","))), snapshot_at, pins,
+                   None if a.run_id == "new" else a.run_id)
     log(f"status {row['status']}")
     for n in filter(None, row["notes"].split(" | ")):
         log(f"  {n}")
-    if a.run_id != "new" and row["run_id"] != a.run_id:
-        raise SystemExit(f"asked for run {a.run_id}, but the inputs now give {row['run_id']}: "
-                         "config, a ref or a source changed")
     log(f"run_id={row['run_id']}")
     return row
 

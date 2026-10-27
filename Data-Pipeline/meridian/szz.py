@@ -1,7 +1,8 @@
 """SZZ · step 1 · D6: bug_inducing and file_bug_fixes from a snapshot. Run by meridian.history. See CONTRACTS.md.
 
 - A fix = a first-parent, non-merge commit from [szz] fix_since on (CONTRACTS.md: "SZZ counts fix commits from 2015 on
-  only"), keyed in commit_ticket to a ticket matching [szz] fix (Bug + Fixed) that isn't bulk-closed.
+  only"), keyed in commit_ticket to a ticket matching [szz] fix (Bug + Fixed) that isn't bulk-closed, and not a
+  revert (subject starting 'Revert "').
   First-parent only, as in week 1: a side commit and the merge that brings it in would count one fix twice.
 - SZZ: for each code file the fix changed, the lines it deleted or changed (git diff -w: whitespace-only edits don't
   count) are blamed at the fix's parent (blame -w). Blank and comment-only lines are skipped, and so are test files.
@@ -108,7 +109,8 @@ def fixes(commits, tickets, commit_ticket, rule, since):
     out = defaultdict(list)
     for r in commit_ticket:
         c = by.get((r["repo"], r["sha"]))
-        if r["key"] in ok and c and c["first_parent"] and not c["is_merge"] and c["authored_at"] >= since:
+        if (r["key"] in ok and c and c["first_parent"] and not c["is_merge"] and c["authored_at"] >= since
+                and not c["subject"].startswith('Revert "')):  # a revert names the fix's key: blame would name the fix
             out[(r["repo"], r["sha"])].append(r["key"])
     return {k: (by[k], sorted(v)) for k, v in out.items()}
 
