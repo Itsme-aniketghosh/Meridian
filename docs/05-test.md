@@ -25,7 +25,7 @@
 | Ticket links | Spark, hand-check 50 | Precision ≥ 0.95 |
 | Ticket → code | Spark: hide fix commits, map from text | Path, trace precision ≥ 0.90 |
 | SZZ, fragility | Defects4J + Fonte (130 bug-inducing commits); 50 hand labels; train < 2025, test 2025. Baselines: `bug_fixes`, churn | Beats both |
-| Blocking, chains | Fixtures; Spark same-function pairs in 30 days; GitLab: 30+ cross-team blocks, spot-checked by a person | 100%, precision ≥ 0.90 |
+| Blocking, chains | Fixtures; Spark same-function pairs in 30 days; GitLab gold set (262 pairs), spot-checked by a person | 100%, precision ≥ 0.90 |
 | Rules | Fixture per rule; order is topological; ETA error reported | Exact |
 | Stall reasons | GitLab: 57 blocked issues with written reasons; then logged verdicts | No claim below N = 30 |
 | Auditor | Elo simulation with known skill; recompute twice; seeded ε ± 2% over 1,000; `known_at` leak; promotion guard | Ranks right, 100% |

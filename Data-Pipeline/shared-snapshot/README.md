@@ -1,107 +1,84 @@
-# Shared snapshot · temporary
+# Shared snapshot (temporary)
 
-**Temporary.** This folder exists only until Utkarsh's GCS bucket is ready. Then collect uploads and downloads the raw pulls itself, and this folder gets deleted.
+This folder goes away once the team's GCS bucket is ready and collect moves the raw pulls itself.
 
-## Why this exists
+Everyone has to work on the same run, or our tables won't join. Collect can clone the code anywhere, since a SHA is the same code everywhere. Tickets are different: a fresh pull today gets other tickets and a different `run_id`, so they come only from the zip.
 
-Everyone has to work on the same run, or our tables won't join. The `run_id` proves two people have the same data, but it can't make the data:
-
-| Part of the snapshot | How you get it |
-|---|---|
-| Code: 22 repos at pinned SHAs | Collect clones them from GitHub. A SHA is the same code everywhere |
-| Tickets: raw Jira (Spark) and GitLab pulls | **Only from the zip.** A fresh pull today gets different tickets, so a different `run_id` |
-
-## The current team run
+## The team run
 
 | | |
 |---|---|
-| run_id | `70dd1dabfed544b8` |
+| run_id | `70dd1dabfed544b8` (v1, frozen) |
 | snapshot_at | `2026-10-01T01:23:03Z` |
-| status | `complete`: all 22 repos pinned. Built 2026-10-23 after dynamic-config. Replaces `973531f7fd4cfd5e` |
-| zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB · ask the team for it (team only) |
+| status | `complete`: all 22 repos pinned. Built 2026-10-23, replacing `973531f7fd4cfd5e` |
+| zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB, team only |
 | sha256 | `d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523` |
 
-**The zip is not in git.** It holds raw tickets with real names ([CSV-POLICY.md](../CSV-POLICY.md): raw data never goes in git), and it's over GitHub's 100 MB limit. Ask Vishwa for it: the link is shared with team members only, never in git. Keep it within the team, and don't reshare it.
+The zip holds real names ([CSV-POLICY.md](../CSV-POLICY.md)), so it's not in git. Ask the team for the link, and don't share it outside the team.
 
-## Get the run · step by step
+## Get the run, step by step
 
-You need Python 3.11+, git and about 2 GB free.
+You need Python 3.11, git and about 5 GB free.
 
-**1. Get the latest code**
+1. Get the latest code.
 
-```
-cd <your Meridian repo>
-git checkout main
-git pull
-```
+   ```
+   cd <your Meridian repo>
+   git checkout main
+   git pull
+   ```
 
-**2. Download the zip** (ask Vishwa for the link) and put it in this folder (`Data-Pipeline/shared-snapshot/`). git ignores it here.
+2. Download the zip into this folder (`Data-Pipeline/shared-snapshot/`). Git ignores it here.
 
-**3. Check the download.** It must print the sha256 above.
+3. Check it. This must print the sha256 above.
 
-```
-shasum -a 256 "Data-Pipeline/shared-snapshot/meridian-raw-973531f7fd4cfd5e.zip"                 # Mac / Linux
-certutil -hashfile "Data-Pipeline\shared-snapshot\meridian-raw-973531f7fd4cfd5e.zip" SHA256      # Windows
-```
+   ```
+   shasum -a 256 "Data-Pipeline/shared-snapshot/meridian-raw-973531f7fd4cfd5e.zip"                 # Mac / Linux
+   certutil -hashfile "Data-Pipeline\shared-snapshot\meridian-raw-973531f7fd4cfd5e.zip" SHA256      # Windows
+   ```
 
-**4. Unzip into `snapshots/`,** from the repo root. Use the terminal, not double-click.
+4. Unzip it into `snapshots/` from the repo root, in the terminal.
 
-```
-unzip "Data-Pipeline/shared-snapshot/meridian-raw-973531f7fd4cfd5e.zip" -d snapshots             # Mac / Linux
-mkdir snapshots & tar -xf "Data-Pipeline\shared-snapshot\meridian-raw-973531f7fd4cfd5e.zip" -C snapshots   # Windows
-```
+   ```
+   unzip "Data-Pipeline/shared-snapshot/meridian-raw-973531f7fd4cfd5e.zip" -d snapshots             # Mac / Linux
+   mkdir snapshots & tar -xf "Data-Pipeline\shared-snapshot\meridian-raw-973531f7fd4cfd5e.zip" -C snapshots   # Windows
+   ```
 
-You should now have `snapshots/_cache/jira/SPARK/` and `snapshots/_cache/gitlab/`, each with a hidden `.pull.json`. Without `.pull.json`, collect pulls again.
+   `snapshots/_cache/jira/SPARK/` and `snapshots/_cache/gitlab/` should each have a hidden `.pull.json`. Without it, collect pulls again.
 
-**5. Build the snapshot**
+5. Build the snapshot. The first time, it clones the 22 repos (about 2.5 GB), without contacting Jira or GitLab.
 
-```
-cd "Data-Pipeline"
-python3 -m meridian.collect --run-id 70dd1dabfed544b8 --config meridian.toml
-```
+   ```
+   cd "Data-Pipeline"
+   python3 -m meridian.collect --run-id 70dd1dabfed544b8 --config meridian.toml
+   ```
 
-The first time, it clones the 22 repos (about 2.5 GB). It does not contact Jira or GitLab.
+6. The last line must say `run_id=70dd1dabfed544b8`. If it says anything else, or fails, stop and tell the team.
 
-**6. Check the last line.** It must say `run_id=70dd1dabfed544b8`. If it says anything else, or fails, stop and tell Vishwa. Don't use that run.
+7. Build the commit and ticket tables.
 
-**7. Build the history tables**
+   ```
+   python3 -m meridian.history --run-id 70dd1dabfed544b8 --config meridian.toml
+   ```
 
-```
-python3 -m meridian.history --run-id 70dd1dabfed544b8 --config meridian.toml
-```
+   Expect these rows, and a log line with `94.0% from the subject` for the last 1,000 Spark commits and `3 dead keys`.
 
-This writes the commit tables (D3) and the ticket tables (D4) in one go. Expect:
+   | Table | Rows |
+   |---|---:|
+   | `git_commit` | 139,228 |
+   | `commit_file` | 849,643 |
+   | `ticket` | 74,015 (59,491 Spark, 14,524 GitLab) |
+   | `ticket_event` | 235,252 |
+   | `ticket_link` | 61,615 |
+   | `commit_ticket` | 42,191 |
 
-| Table | Rows |
-|---|---:|
-| `git_commit` | 139,228 |
-| `commit_file` | 849,643 |
-| `ticket` | 74,015 (59,491 Spark, 14,524 GitLab) |
-| `ticket_event` | 235,252 |
-| `ticket_link` | 61,615 |
-| `commit_ticket` | 42,191 |
-
-The log should also say `94.0% from the subject` for the last 1,000 Spark commits, and `3 dead keys`.
-
-## Rules
-
-- **Never use `--run-id new`.** That makes your own run, not the team one.
-- **Pass `--run-id 70dd1dabfed544b8` to your own part too,** so every table carries the same run.
-- Your data lands in `snapshots/70dd1dabfed544b8/` and `out/70dd1dabfed544b8/`. Both are git-ignored.
+Pass `--run-id 70dd1dabfed544b8` to every part, never `--run-id new`, which makes a run of your own. The rest is in [the pipeline README](../README.md).
 
 ## What collect keeps between runs
 
-- `snapshots/_cache/repos/<owner>__<name>.git`: one mirror per repo, cloned once and then updated with `git fetch` (path: `mirrors` in [settings.toml](../settings.toml)). Every snapshot's `repos/` checkout borrows its objects, so **don't move or delete it**.
-- `snapshots/_cache/jira/SPARK/`, `snapshots/_cache/gitlab/`: the base pull from the zip, plus a `delta-<time>/` folder for each later pull of just the changed tickets. Deltas are only pulled for a run whose `snapshot_at` is after every pull, which happens once a repo `ref` names a branch (`snapshot_at` is then the pull time). v1 pins every ref, so it never pulls one, and a delta on disk doesn't change `70dd1dabfed544b8`.
+- `snapshots/_cache/repos/<owner>__<name>.git`: one mirror per repo, cloned once and then fetched (`mirrors` in [settings.toml](../settings.toml)). Every snapshot's checkout borrows its objects, so don't move or delete it.
+- `snapshots/_cache/jira/SPARK/` and `snapshots/_cache/gitlab/`: the base pull, plus a `delta-<time>/` folder per later pull of changed tickets. Collect pulls a delta only once some repo's `ref` names a branch, which v1 never does.
 
 ## When the run changes
 
-Around D4, Rachna's 4 package refs land in `meridian.toml`. That gives a new `run_id`, and Vishwa posts it. Utkarsh's bucket settings are in `settings.toml`, which doesn't change the `run_id`.
-
-- **Keep the zip.** Those changes don't touch the Jira or GitLab pulls, so the same zip works for the next run.
-- When a new `run_id` is posted: `git pull`, redo steps 5–7 with the new ID, then rerun your own part with it. No code changes are needed.
-- This table gets updated with the new `run_id`.
-
-## When GCS is ready
-
-Collect reads and writes the bucket directly, and nobody shares a zip. Then this folder is deleted.
+Only a change to `meridian.toml` makes a new `run_id`, and the team posts it here. Keep the zip, since the pulls don't change. Then `git pull`, redo steps 5 to 7 with the new ID, and rerun your own part.

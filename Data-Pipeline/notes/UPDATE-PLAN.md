@@ -1,6 +1,6 @@
 # Keeping the graph up to date · plan
 
-Draft from Aniket's discussion with Utkarsh. Built so far: the Phase 3 caches, all switched off (Phases, below). Numbers (#1–#18) are the items to confirm.
+Draft from a team discussion. Built so far: the Phase 3 caches, all switched off (Phases, below). Numbers (#1–#18) are the items to confirm.
 
 ## Now vs where we want to be
 
@@ -33,7 +33,7 @@ Draft from Aniket's discussion with Utkarsh. Built so far: the Phase 3 caches, a
 12. **Show staleness before the click:** "data 2 days old · 14 new pushes · Update". A click during a run doesn't start a second one.
 13. **Build in phases** (see Phases, below).
 
-## Contract changes (after the v1 freeze, Aniket's OK)
+## Contract changes (after the v1 freeze, with the team's OK)
 
 14. Repos follow their main branch, resolved to a commit at collect time.
 15. `snapshot_at` moves forward to each run's pull time.
@@ -56,7 +56,7 @@ Draft from Aniket's discussion with Utkarsh. Built so far: the Phase 3 caches, a
 
 ## Faster
 
-Times now (Oct 23–24), **on Aniket's Windows machine**: history 430 s, resolve 295 s, validate 165 s, scan 140 s, everything else under a minute each. On Utkarsh's Mac the same run takes history ~300 s, resolve ~74 s, validate ~19 s, scan ~6 s (about 7 minutes in all), so part of the Windows time is the file system and Docker's folder mount, not the pipeline.
+Times now (Oct 23–24), **on a Windows machine**: history 430 s, resolve 295 s, validate 165 s, scan 140 s, everything else under a minute each. On a Mac the same run takes history ~300 s, resolve ~74 s, validate ~19 s, scan ~6 s (about 7 minutes in all), so part of the Windows time is the file system and Docker's folder mount, not the pipeline.
 
 | Change | Gain (estimated) | Phase |
 |---|---|---|
@@ -105,9 +105,9 @@ Times now (Oct 23–24), **on Aniket's Windows machine**: history 430 s, resolve
 - [x] Add `dvc-gs` to `requirements.txt` (for the `gcs` remote). Done: `dvc-gs==3.1.0`, `gcsfs==2026.10.1`; `dvc version` lists gs
 - [x] Add `.DS_Store` and `Thumbs.db` to `.dvcignore`. Done: the raw-pull hashes now match on Mac and Windows
 - [ ] Find the Windows-vs-Mac difference in `resolution` and `call_edge` (2,293 vs 2,288 edges). Needs both machines' files. The regenerated `dvc.lock` records the Mac values: `resolution`, `call_edge`, `blast_radius`, `stats.json` differ from Windows, and `run.jsonl` by design (`image_digest`)
-  - Aniket, checked on Windows after the LF refresh: no code or config file shows changed any more. Mac's `call_edge.jsonl` is 662,303 bytes ≈ **2,288** edges, as RESOLVER.md; Windows has 2,293. `resolution.jsonl` has the same 3,739 rows on both but 48 bytes differ, so a few values, not rows. The gap is Windows only. Next: Utkarsh sends his `resolution.jsonl` and `call_edge.jsonl`, Aniket diffs them
+  - Checked on Windows after the LF refresh: no code or config file shows changed any more. Mac's `call_edge.jsonl` is 662,303 bytes ≈ **2,288** edges, as RESOLVER.md; Windows has 2,293. `resolution.jsonl` has the same 3,739 rows on both but 48 bytes differ, so a few values, not rows. The gap is Windows only. Next: send the Mac's `resolution.jsonl` and `call_edge.jsonl` and diff them against Windows
 - [ ] **`run.jsonl` makes stages look changed on every other machine.** Its `image_digest` differs by machine on purpose, and history, scan, validate and bias depend on it in `dvc.yaml`, so `dvc repro` would rerun history and scan for nothing. Fix: depend on `../snapshots/${pipeline.run_id}/manifest.json` instead (the same run, no machine fingerprint), then regenerate `dvc.lock` once on Mac/Linux
-- [ ] **One machine kind writes `dvc.lock`.** Until the Windows gap is fixed, a `dvc commit` on Windows overwrites the Mac values and back. Rule: `dvc.lock` is committed from Linux or Mac only (the Docker image, or Utkarsh's Mac)
+- [ ] **One machine kind writes `dvc.lock`.** Until the Windows gap is fixed, a `dvc commit` on Windows overwrites the Mac values and back. Rule: `dvc.lock` is committed from Linux or Mac only (the Docker image, or a Mac)
 - [x] The Windows refresh command below used `&&`, which Windows PowerShell 5.1 doesn't have. Fixed: one command per line
 
 On Windows, after pulling this, commit or stash your work first, then once (cmd or PowerShell):
@@ -121,7 +121,7 @@ so every file is checked out with LF.
 
 ## Sign-off before building
 
-**Utkarsh, please sign off on DAGs, Faster and Phases (and #6–#18) before anything there is built.** Tick one line, or write what to change next to it:
+**Sign-off needed on DAGs, Faster and Phases (and #6–#18) before anything there is built.** Tick one line, or write what to change next to it:
 
 - [ ] DAGs: `meridian_update`, `meridian_rebuild`, the push check in GitHub Actions
 - [ ] Faster: the Phase 1 speed-ups, and the Phase 3 ones for later

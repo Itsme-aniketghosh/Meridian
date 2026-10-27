@@ -1,15 +1,18 @@
 # Meridian data pipeline
 
-Meridian joins code, git and Jira to find every call site of a dying internal API, who owns it, how risky it is, and which teams wait on each other. This folder is the data pipeline: two Airflow DAGs from the raw sources to a validated, published SQLite block (the knowledge base every later stage reads). `meridian_update` runs on the "Update graph" click and daily; `meridian_rebuild` recomputes everything weekly and checks the updates against it ([UPDATE-PLAN.md](notes/UPDATE-PLAN.md)).
+Meridian joins code, git and Jira to find every call site of a dying internal API, who owns it, how risky it is, and which teams wait on each other. This folder is the data pipeline: two Airflow DAGs that turn the raw sources into a validated, published SQLite block that every later stage reads. The course write-up is [report/REPORT.md](report/REPORT.md), and the design is in [UPDATE-PLAN.md](notes/UPDATE-PLAN.md).
 
 ## Demo for TAs
 
-From `Data-Pipeline/`, after `pip install -r requirements.txt`; each step names the rubric item, the command, the result and what it showed, then a pass/skip/fail table:
+From `Data-Pipeline/`, after `pip install -r requirements.txt`. Each step prints the rubric item, the command and the result, and the demo ends with a pass/skip/fail table.
 
-- `python run_demo.py short`: about 1 minute, no team data, no Docker. Both DAGs and the DVC stages, the pipeline end to end on the built-in fixture, schema and statistics, four injected anomalies caught with an alert, bias slices with mitigations, KNOWLEDGE-BASE views and a P1–P9 push check.
-- `python run_demo.py long`: 10+ minutes. All of short, plus every unit test, the GX suite (if its environment exists), the data download, the team-run tests (team data only), every task's command, and Airflow in Docker (`--airflow-run` also triggers `meridian_update` and waits for it).
-- `python run_demo.py download`: only gets the data: the raw ticket pulls (already there, `dvc pull`, `--zip <team zip>`, or `--public-pull` for a run of your own), then `collect`'s repo checkouts (~2.5 GB).
-- Heavy steps check free RAM, disk, network and Docker first. If something is short, the step is skipped with the reason and the demo goes on; `--force` runs it anyway.
+- `python run_demo.py short` takes about 10 seconds, with no team data and no Docker. It covers both DAGs and the DVC stages, the pipeline end to end on the built-in fixture, schema and statistics, four injected anomalies caught with an alert, bias slices with mitigations, the KNOWLEDGE-BASE views and a P1–P9 push check.
+- `python run_demo.py long` takes 10 minutes or more. It adds every unit test, the GX suite (if its environment exists), the data download, the team-run tests (team data only), every task's command, and Airflow in Docker. `--airflow-run` also triggers `meridian_update` and waits for it.
+- `python run_demo.py download` only gets the data: the raw ticket pulls (already there, `dvc pull`, `--zip <team zip>`, or `--public-pull` for a run of your own), then collect's repo checkouts (about 2.5 GB).
+
+Heavy steps check RAM, disk, network and Docker first, and skip with a reason if something is short (`--force` runs them anyway).
+
+## What runs
 
 ```
 meridian_update (click, daily)
@@ -17,27 +20,29 @@ anything_new ── collect ──┬── history ───────── 
                           │                              ├── join ── graph ── validate ── report ── publish
                           └── scan ──── resolve ─────────┘
 
-meridian_rebuild (Sunday): fresh ── collect ── … ── validate ──┬── report ── compare ──┬── publish (only if they differ)
-                                                              ├── bias ───────────────┘
-                                                              └── gx (never gates)
+meridian_rebuild (Sunday): fresh ── collect ── … ── validate ──┬── report ── compare ── publish (only if they differ)
+                                                              ├── bias (never gates)
+                                                              └── gx   (never gates)
 ```
 
-| Task | Does | Writes (`out/<run_id>/`) | Doc |
-|---|---|---|---|
-| `collect` | Freezes the inputs: 22 repos at pinned SHAs, the raw Jira and GitLab pulls, one `run_id` | `run` | [shared-snapshot](shared-snapshot/README.md) |
-| `history` | Commits, files, tickets as of the snapshot, commit → ticket keys, SZZ bug fixes | 8 tables | [CONTRACTS](CONTRACTS.md) |
-| `scan` | tree-sitter: every place a tracked old name appears, with role and scope | `candidate` … | [SCANNER](SCANNER.md) |
-| `resolve` | Jedi: what each name really is; who calls whom | `resolution`, `call_edge` | [RESOLVER](RESOLVER.md) |
-| `owners` | Merged identities, teams, an owner team per file | `person` … `file_owner` | [CONTRACTS](CONTRACTS.md) |
-| `join` | Call sites with owner, bug fixes, status, stable IDs; tickets → code; coverage | `call_site`, `ticket_map`, `coverage` | [JOIN](JOIN.md) |
-| `graph` | Which site waits on which, blast radius, ticket chains | `blocked_by`, `blast_radius`, `chain` | [GRAPH](GRAPH.md) |
-| `validate` | Schema, statistics, anomalies; alerts | `meridian.sqlite`, `stats.json`, `anomalies.json` | below |
-| `bias` | Slices the pipeline's rules by team, module and repo (Fairlearn) | `bias.json` | [BIAS](BIAS.md) |
-| `gx` | Weekly rebuild only: `[validate]`'s generic checks (rows, missing, formats, ranges, dates) as a Great Expectations suite, in its own environment (`requirements-gx.txt`, `[gx] python`). Alerts, never gates: `validate` stays the gate | `gx.json`, Data Docs in `published/gx/<run_id>/` | `meridian/gx.py` |
-| `report` | What changed since the last published run, and which commit caused it (`meridian.report`) | | |
-| `publish` | Only after validate, and no data error: copies the block to `published/<run_id>.sqlite`, points `published/latest.json` at it; with `[dvc] push`, `dvc commit` and `dvc push` | `published/` | below |
-| `anything_new` | `meridian.status`: new commits since the published SHAs, or a publish older than `[status] stale_after_hours` (20); else the update stops | | below |
-| `compare` | Rebuild only: every table byte for byte against the update's; a difference alerts and publishes the rebuild | | below |
+Each task is one module, `python -m meridian.<task>`, writing to `out/<run_id>/`. The DAGs are built from [dags/pipeline_spec.py](dags/pipeline_spec.py), which lists each task's inputs and outputs.
+
+| Task | What it does | More |
+|---|---|---|
+| `anything_new` | `meridian.status`: stops the update when nothing is new | below |
+| `collect` | Freezes 22 repos at pinned SHAs and the raw ticket pulls into one `run_id` | [shared-snapshot](shared-snapshot/README.md) |
+| `history` | Commits, files, tickets, commit-to-ticket keys, SZZ bug fixes | [CONTRACTS](CONTRACTS.md) |
+| `scan` | tree-sitter: every place a tracked old name appears | [SCANNER](SCANNER.md) |
+| `resolve` | Jedi: what each name really is, and who calls whom | [RESOLVER](RESOLVER.md) |
+| `owners` | Merged identities, teams, an owner team per file | [CONTRACTS](CONTRACTS.md) |
+| `join` | Call sites with owner and bug fixes; tickets mapped to code; coverage | [JOIN](JOIN.md) |
+| `graph` | Which site waits on which, blast radius, ticket chains | [GRAPH](GRAPH.md) |
+| `validate` | Schema, statistics, anomalies; builds `meridian.sqlite`. The only gate | below |
+| `report` | What changed since the last published run, and which commit caused it | |
+| `publish` | Makes the block live: `published/<run_id>.sqlite` and `published/latest.json` | below |
+| `bias` | Slices the pipeline's rules by team, module and repo (Fairlearn) | [BIAS](BIAS.md) |
+| `gx` | Great Expectations audit with Data Docs | `meridian/gx.py` |
+| `fresh`, `compare` | Rebuild only: start from scratch, then compare with the update | below |
 
 ## Folder structure
 
@@ -48,32 +53,24 @@ Data-Pipeline/
 ├── tests/                 unittest: one file per part, plus the DAG, validation, bias; demo.py, dashboard.py
 ├── golden/                v1 frozen: the expected hashes tests/test_golden.py checks (TESTING.md)
 ├── labels/                hand-checked answer keys and gold sets (CSV-POLICY.md)
+├── report/                REPORT.md, appendices A–D, the scripts that draw the figures
+├── notes/                 UPDATE-PLAN.md, HANDOVER.md, PASS-BARS-2026-10-26.md
 ├── logs/                  Airflow's task logs (git-ignored)
 ├── meridian.toml          what the parts compute: hashed into the run_id
 ├── settings.toml          everything else: run, Airflow, alerts, data checks, bias. Never changes a row
 ├── schema.sql             every table: columns, types, keys, allowed values
 ├── dvc.yaml, dvc.lock     data versioning: each part as a stage, the hash of every output
 ├── Dockerfile, docker-compose.yaml, .env.example     Airflow on one machine
-└── requirements.txt       every pinned dependency
+└── requirements.txt       every pinned dependency (requirements-gx.txt: the GX audit's own)
 ```
 
-In the course guideline's terms: its `data/` is the repo root's `snapshots/` (inputs) and `out/` (outputs, versioned with DVC); its `scripts/` is `meridian/`.
+The data lives at the repo root (or `$MERIDIAN_DATA`), git-ignored: `snapshots/` (inputs) and `out/<run_id>/` (outputs), both versioned by DVC, then `published/` (the live block) and `rebuild/`. The course guideline's `data/` is our `snapshots/` and `out/`, and its `scripts/` is `meridian/`.
 
-The data itself lives outside this folder, at the repo root (or under `$MERIDIAN_DATA`): `snapshots/` (inputs), `out/<run_id>/` (outputs), `published/` (the live block and `latest.json`) and `rebuild/` (the weekly rebuild's own `out/`). All are git-ignored; DVC versions `snapshots/` and `out/`.
-
-## Settings: three places, nothing hard-coded
-
-| File | Holds | In git | Changes the `run_id` |
-|---|---|---|---|
-| [meridian.toml](meridian.toml) | What the parts compute: datasets, pinned refs, team rules, thresholds | yes | **yes**: a change means a new team run |
-| [settings.toml](settings.toml) | The run to process, Airflow (schedule, retries, timeouts, parallelism), alert recipients and SMTP, data checks, bias slicing, DVC push | yes | no |
-| `.env` (from [.env.example](.env.example)) | Secrets and machine-specific values: the Slack webhook, SMTP login, the Airflow UI login, ports | **no** | no |
-
-`settings.toml` names the environment variable that holds each secret (`[alerts] slack_webhook_env`), so no secret is ever in git.
+Nothing is hard-coded. [meridian.toml](meridian.toml) holds what the parts compute, so changing it means a new `run_id`. [settings.toml](settings.toml) holds everything that never changes a row: Airflow, alerts, data checks, bias, DVC. Secrets live only in `.env` (from [.env.example](.env.example)), which git ignores.
 
 ## Set up
 
-Python 3.11 (tree-sitter won't build on 3.14), and git.
+You need Python 3.11 (tree-sitter won't build on 3.14), git, about 5 GB of free disk and 3 GB of free memory.
 
 ```
 conda create -y -n meridian python=3.11
@@ -81,32 +78,46 @@ conda activate meridian
 pip install -r requirements.txt          # from the repo root: includes Data-Pipeline/requirements.txt
 ```
 
-**The raw data.** The Jira and GitLab pulls are not in git (real names, 230 MB). Either:
-- `dvc pull` once the team's DVC remote is set up (below), or
-- the team zip: download `meridian-raw-973531f7fd4cfd5e.zip` (link in [shared-snapshot/README.md](shared-snapshot/README.md), team only), check `sha256 = d422ba26…f2d523`, and unzip it into `snapshots/` at the repo root. `snapshots/_cache/jira/SPARK/.pull.json` must exist.
+The raw Jira and GitLab pulls (about 230 MB) hold real names, so they aren't in git. Get them with `dvc pull` once the team's remote is set up, or from the team zip ([shared-snapshot/README.md](shared-snapshot/README.md)). Afterwards `snapshots/_cache/jira/SPARK/.pull.json` must exist.
 
-About 5 GB free disk (repo clones, outputs, DVC cache) and 3 GB free memory.
+## Run it with Airflow
 
-## Run it
-
-**With Airflow (Docker).** From `Data-Pipeline/`:
+From `Data-Pipeline/`:
 
 ```
 cp .env.example .env                     # set the UI password; alert secrets if you want them
 docker compose up -d --build             # Postgres, scheduler, web UI at http://localhost:8080
 ```
 
-On Windows or Mac, file I/O through Docker's folder mount is several times slower; to keep `snapshots/` and `out/` on Docker volumes instead, add `-f docker-compose.volumes.yaml` after `-f docker-compose.yaml` to every `docker compose` command (off by default; the host's `snapshots/` and `out/` are then hidden from the containers).
-The volumes start empty, so get the raw data in from inside the container: put the team zip at the repo root and run `docker compose -f docker-compose.yaml -f docker-compose.volumes.yaml run --rm airflow-scheduler python -m zipfile -e /opt/meridian/meridian-raw-973531f7fd4cfd5e.zip /opt/meridian/snapshots/`, or `... run --rm airflow-scheduler bash -c "cd /opt/meridian/Data-Pipeline && /opt/meridian-venv/bin/dvc pull"`.
+In the UI, unpause `meridian_update` and `meridian_rebuild`. Task logs are in the UI and in `logs/`, and schedules in `settings.toml [dags.*]`. Each DAG runs one run at a time.
 
-In the UI, unpause `meridian_update` and `meridian_rebuild`. Task logs are in the UI and in `Data-Pipeline/logs/`. Ids and schedules are in `settings.toml [dags.update]` and `[dags.rebuild]`; both run one at a time (`max_active_runs = 1`).
+Docker's folder mount is several times slower on Windows and Mac. To use Docker volumes for `snapshots/` and `out/`, add `-f docker-compose.volumes.yaml` after `-f docker-compose.yaml` to every `docker compose` command. The volumes start empty: put the team zip at the repo root and run `docker compose -f docker-compose.yaml -f docker-compose.volumes.yaml run --rm airflow-scheduler python -m zipfile -e /opt/meridian/meridian-raw-973531f7fd4cfd5e.zip /opt/meridian/snapshots/`, or `... run --rm airflow-scheduler bash -c "cd /opt/meridian/Data-Pipeline && /opt/meridian-venv/bin/dvc pull"`.
 
-- **`meridian_update`**: the "Update graph" click and daily at 02:00 UTC. Trigger it in the UI, with `python -m meridian.status --update` (Airflow's REST API, the UI login from `.env`), or with the dashboard's button (below). It processes `[pipeline] run_id`, or the trigger's config `{"run_id": "...", "prev_run": "..."}`; prev_run defaults to the last published run. Its first task, `anything_new`, stops the run when nothing changed since the last publish, so repeat clicks cost nothing; a click while a run is queued adds nothing. It publishes only if validate passed: a failed run leaves the last good block live.
-- **`meridian_rebuild`**: Sunday 04:00 UTC. Recomputes the last published run from scratch under `rebuild/` (`fresh` wipes its `out/<run_id>/` and links the snapshot and the previous run in), every cache off, runs bias and the change report, then `compare`s every table and `changes.json` with the update's. The rebuild is the truth. 0 differences: done. Otherwise: the update was wrong. An alert says where it went wrong (the part whose inputs match but outputs don't) and which rows differ, `rebuild/out/<run_id>/compare.json` keeps the details, and the rebuild is published as `published/<run_id>.rebuild.sqlite`.
+### meridian_update
 
-**Staleness.** `python -m meridian.status --config meridian.toml` prints `data 2 days old · 14 new commits · run <id>` (`--json` for all of it): the published run's age, and per repo the commits between its published SHA and the tip of its ref in the local mirror (`[status] mirrors`, collect's bare clones; never fetched). Exit 0 = something new, 99 = nothing new. The dashboard shows the same line with an **Update graph** button: `python -m tests.dashboard --run-id <id> --config meridian.toml --serve 8765`, then http://127.0.0.1:8765/.
+It runs daily at 02:00 UTC and on each "Update graph" click: in the UI, on the dashboard, or with `python -m meridian.status --update` (Airflow's REST API, with the UI login in `.env`). A click while a run is queued adds nothing, and `anything_new` ends a run when nothing is new.
 
-**Without Airflow.** Each task is one command, from `Data-Pipeline/`, in the order above:
+Collect makes whatever run the inputs give, unless the trigger config `{"run_id": "...", "prev_run": "..."}` names one. Naming a run, or `{"force": true}`, skips the check. Run ids must be 16 hex characters, or the task fails before any command runs.
+
+`publish` refuses a run with a data error, a partial run (a tracker was down), and a rollback to an older snapshot, so the last good block stays live. After publishing it deletes old runs' `snapshots/` and `out/`, except the live run, its previous run and the frozen team run. With `[dvc] push = true` it also runs `dvc commit` and `dvc push`.
+
+### meridian_rebuild
+
+Sundays at 04:00 UTC it recomputes the last published run from scratch under `rebuild/`, caches off, and `compare` checks every table against the update's, byte for byte. The rebuild is the truth. If they differ, an alert names the part where the difference started, `rebuild/out/<run_id>/compare.json` keeps the rows, and the rebuild is published as `published/<run_id>.rebuild.sqlite`. Publish waits on `compare` only; `bias` and `gx` never gate. On the team run there were 0 differences ([Appendix A](report/appendix-airflow.md)).
+
+### Freshness and timing
+
+```
+python -m meridian.status --config meridian.toml          # data 2 days old · 14 new commits · run <id>   (--json for all of it)
+```
+
+It exits 0 when something is new, 99 when not. New commits in collect's mirrors, a new repo, a changed `meridian.toml` or no publish yet all count. So does a publish older than `[status] stale_after_hours` (20), but only when some repo follows a branch: with every ref pinned, as in v1, collect would make the same run again. The dashboard shows the same line with an Update graph button: `python -m tests.dashboard --run-id <id> --config meridian.toml --serve 8765`, then http://127.0.0.1:8765/.
+
+The update ran in Docker on a Mac in 1,268 s. Running `scan` and `resolve` beside `history` saved 21%, measured from the Airflow Gantt. The bottleneck is `history`'s SZZ step ([Appendix A](report/appendix-airflow.md)).
+
+## Run it without Airflow
+
+Each task is one command. From `Data-Pipeline/`, in the order above:
 
 ```
 python -m meridian.collect --run-id 70dd1dabfed544b8 --config meridian.toml
@@ -114,54 +125,29 @@ python -m meridian.history --run-id 70dd1dabfed544b8 --config meridian.toml
 ...                                                   # scan, resolve, owners, join, graph
 python -m meridian.validate --run-id 70dd1dabfed544b8 --config meridian.toml
 python -m meridian.bias --run-id 70dd1dabfed544b8 --config meridian.toml
+python -m meridian.report --run-id 70dd1dabfed544b8 --config meridian.toml
 python -m meridian.publish --run-id 70dd1dabfed544b8 --config meridian.toml     # -> published/, if validate passed
 ```
 
-or let DVC run what changed: `dvc repro`. Then look at the data: `python -m tests.demo --run-id 70dd1dabfed544b8 --config meridian.toml` (each part's tables in the terminal) and `python -m tests.dashboard ...` (one HTML page).
+Or let DVC run whatever changed: `dvc repro`. `python -m tests.demo --run-id 70dd1dabfed544b8 --config meridian.toml` prints each part's tables, and `python -m tests.dashboard` with the same arguments writes one HTML page.
 
-**Reproducibility.** Collect's last line must say `run_id=70dd1dabfed544b8`: the same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and every part gives the same bytes for the same run (`call_site.jsonl` sha256 starts `faff6dfd75931183`), except the resolver's Windows gap: 3 of 24 files (`resolution`, `call_edge`, `blast_radius`) differ there ([TESTING.md](../TESTING.md)). Never pass `--run-id new`: that makes a run of your own.
+## Reproducibility and DVC
 
-## Data versioning (DVC)
+Collect's last line must say `run_id=70dd1dabfed544b8`. The same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and the same bytes from every part. `tests/test_golden.py` checks all 24 outputs against [golden/70dd1dabfed544b8.json](golden/70dd1dabfed544b8.json), and all 24 match ([TESTING.md](../TESTING.md) has the two known exceptions). Don't pass `--run-id new` for the team run: that makes a run of your own.
 
-- **Inputs:** `snapshots/_cache/jira.dvc` and `gitlab.dvc` pin the raw pulls (`dvc add`). The repo clones aren't tracked: collect rebuilds them byte for byte from the pinned SHAs in `meridian.toml`.
-- **Outputs:** [dvc.yaml](dvc.yaml) declares each part as a stage, with the code, settings and tables it depends on and the tables it writes. With `[dvc] push = true`, the DAGs' `publish` task runs `dvc commit --force`, which writes every output's hash into `dvc.lock`, then `dvc push`. Git tracks `dvc.lock`, so every commit pins the exact data its code produced; `dvc diff` shows what changed between two commits.
-- **Remote:** `.dvc/config` names the team's GCS bucket as remote `gcs` (from `settings.toml`, a placeholder until GCP is set up; needs `pip install dvc-gs`). Until then, keep a copy anywhere with `dvc remote add -d --local mine /path/to/store`, then `dvc push`. Set `[dvc] push = true` for publish to push after every published run.
+- Inputs: `snapshots/_cache/jira.dvc` and `gitlab.dvc` pin the raw pulls. The repo clones aren't tracked, because collect rebuilds them byte for byte from the pinned SHAs.
+- Outputs: [dvc.yaml](dvc.yaml) declares each part as a stage with what it reads and writes. `dvc commit` records every output's hash in `dvc.lock`, which git tracks, so each commit pins the data its code produced and `dvc diff` shows what changed. Commit `dvc.lock` from Linux or Mac only.
+- Remote: `.dvc/config` names the team's GCS bucket as `gcs` (`dvc-gs` is in `requirements.txt`). Until GCP is set up, use `dvc remote add -d --local mine /path/to/store`, then `dvc push`.
 
-## Data quality: schema, statistics, anomalies
+## Data quality, alerts and errors
 
-`meridian.validate` runs after `graph`, with thresholds in `settings.toml [validate]`:
+`meridian.validate` loads the block against [schema.sql](schema.sql), writes per-column statistics to `stats.json`, then runs the checks in `settings.toml [validate]`. Errors fail the task (too few rows, bad formats, out-of-range numbers, low coverage). Warnings only alert (missing values, odd dates, outliers, drift). On `70dd1dabfed544b8`: 1,788,242 rows in 25 tables, 0 errors, and one warning for 289 Spark tickets dated in the years 0010–0012, which is how Apache Jira has them. The weekly GX audit ran 308 expectations and none failed ([Appendix B](report/appendix-quality.md)).
 
-1. **Schema.** The block loads with the writer against [schema.sql](schema.sql): names, types, NOT NULL, allowed values, one `run_id`, no duplicate key. Any violation stops here.
-2. **Statistics.** Per table and column: rows, missing, distinct, min / max / mean, most common values → `stats.json`, so the next run compares against it.
-3. **Checks.** Errors (fail the task, alert): too few rows, bad formats (UTC times, 16-hex IDs, 40-hex SHAs, `owner/name` repos, POSIX paths, sorted JSON lists), out-of-range numbers, coverage below its floor. Warnings (alert, run goes on): missing values above a column's allowance, implausible dates, outliers beyond IQR fences (on a log scale for long-tailed counts), row-count drift from the previous run.
-
-On run `70dd1dabfed544b8`: 1,788,242 rows in 25 tables, 0 errors. It found 289 Spark tickets dated in the years 0010–0012; Apache Jira itself has those dates, so they are reported, not fixed.
-
-## Alerts, logging, errors
-
-- **Alerts** (`meridian/alert.py`): a failed task (after its retries), a data error or a data warning sends one message to Slack and/or email, as `settings.toml [alerts]` says (`on`, `email_to`, SMTP server; secrets from `.env`). Nothing configured: logged only. A broken channel is logged and never breaks the run.
-- **Logging:** every part logs its counts through Python's logging; Airflow keeps each task's log (UI and `logs/`).
-- **Errors:** a part that can't go on stops with the reason and a non-zero exit (a missing input table, a snapshot not at its pinned SHA, a bad row, a setting the code doesn't support), so Airflow retries it (`[orchestration] retries`) and then alerts. Parts are idempotent, so a retry is safe.
+A failed task (after its retries), a data error or a warning sends one Slack or email message, per `settings.toml [alerts]`; a broken channel never breaks the run. Parts log through Python's logging. A part that can't go on exits non-zero with the reason, and Airflow retries it, then alerts. Parts are idempotent, so retries are safe.
 
 ## Bias
 
-`meridian.bias` slices the pipeline's three deciding rules (owner rule, ticket mapping, resolver) by module, team, component, issue type, year and repo with Fairlearn's `MetricFrame`, flags slices whose 95% interval lies entirely more than 0.10 below overall (N ≥ 30), and scores mitigations. Findings, mitigation and trade-offs: [BIAS.md](BIAS.md).
-
-## Pipeline flow
-
-`history` and `scan → resolve` run side by side: they share nothing until `join` (`[orchestration] max_active_tasks`). Measured on the team run (Oct 23–24), each task on its own:
-
-| Task | Time | | Task | Time |
-|---|---:|---|---|---:|
-| collect (snapshot exists) | ~10 s | | owners | 15 s |
-| history | 430 s | | join | 40 s |
-| scan | 140 s | | graph | 2 s |
-| resolve | 295 s | | validate | 165 s |
-| | | | bias | 35 s |
-
-In sequence that is about 1,130 s; in the DAG the two branches overlap (history + owners 445 s, scan + resolve 435 s). Measured on the Airflow Gantt of a Docker run on a Mac: 1,599 s of tasks in 1,268 s, **21% saved** (report, Appendix A; the folder mount slows Docker about 3×). The bottleneck is `history`'s SZZ step; it already runs one process per CPU (`[history] szz_workers`). Airflow's Gantt view (DAG → a run → Gantt) shows the same split on every run.
-
-Inside validate, about a minute is the writer building `meridian.sqlite` (the dashboard reuses it, not rebuilding it), the checks ~20 s, and the statistics 15–40 s on a copy of this block (Windows, little free memory). They now read each table once, in one aggregate query, with the same `stats.json`; that took as long as one query per column, because the time is in counting distinct values of long text columns (`ticket.description`, 19 s), not in reading the table.
+`meridian.bias` slices the three deciding rules (owner rule, ticket mapping, resolver) by module, team, component, issue type, year and repo with Fairlearn's `MetricFrame`. A slice of 30 or more rows is flagged when its whole 95% interval is more than 0.10 below overall. Findings and mitigations: [BIAS.md](BIAS.md).
 
 ## Tests
 
@@ -169,4 +155,4 @@ Inside validate, about a minute is the writer building `meridian.sqlite` (the da
 python -m unittest discover -s tests -t .      # from Data-Pipeline/
 ```
 
-One test file per part, plus publish, compare, status and the Update graph trigger (`test_publish.py`), the DAGs' structure (`test_dag.py`; the Airflow half runs in the image: `docker compose run --rm airflow-scheduler python -m unittest tests.test_dag`), validation and alerts (`test_validate.py`) and bias (`test_bias.py`). Edge cases are fixtures: renames, splits, parse failures, missing values, schema violations, broken alert channels. Details and the team-run tests: [TESTING.md](../TESTING.md).
+293 tests, 14 skipped by design on a plain machine (7 need the team data, 5 Airflow, 2 GX). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).

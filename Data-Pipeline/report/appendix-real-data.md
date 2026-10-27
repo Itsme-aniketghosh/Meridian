@@ -1,8 +1,8 @@
 # Appendix C: The real data, feature by feature
 
-Can the block serve each feature the team proposed ([02-product](../../docs/02-product.md), [04-architecture](../../docs/04-architecture.md), [project-scoping](../../scoping/project-scoping.md))? Each one is a named SQL query in [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md), tested in CI on the hand-built fixture `acme/shop`. Here the same queries run unchanged on team run `70dd1dabfed544b8` (snapshot 2026-10-01: Django at `4353640ea9`, Spark with Apache Jira, 20 Django packages, GitLab issues). We also score the block against the answer keys in [labels/](../labels/) and replay real commits through the push check. Ideas the team dropped ([06-dead-ideas](../../docs/06-dead-ideas.md)) are left out.
+Can the block serve each feature the team proposed ([02-product](../../docs/02-product.md), [04-architecture](../../docs/04-architecture.md), [project-scoping](../../scoping/project-scoping.md))? Each one is a named SQL query in [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md), tested in CI on the hand-built fixture `acme/shop`. Here we run the same queries, unchanged, on team run `70dd1dabfed544b8` (snapshot 2026-10-01: Django at `4353640ea9`, Spark with Apache Jira, 20 Django packages, GitLab issues). We also score the block against the answer keys in [labels/](../labels/) and replay real commits through the push check. Ideas the team dropped ([06-dead-ideas](../../docs/06-dead-ideas.md)) are left out.
 
-In short, the code side carries exact signal and the ticket side real signal on Spark, but the two never meet in one dataset: Django has no Jira, Spark has no tracked symbol, GitLab has no Python (G7). So every feature that joins a ticket to a call site is quiet on real data because of the data's shape, not because it is wrong.
+The short version: the code side is exact and the ticket side has real signal on Spark, but the two never meet in one dataset. Django has no Jira, Spark has no tracked symbol, and GitLab has no Python (G7). So every feature that joins a ticket to a call site comes back empty on real data. That's the data's shape, not a broken feature.
 
 ## How the queries were run
 
@@ -12,12 +12,12 @@ python report/figures_scenarios.py --db <run 70dd…>/meridian.sqlite    # from 
 
 It needs matplotlib, plus tree-sitter for the push replay (`--replay` reruns the cached `figures/push_replay.json`). Every number in §1–§9 is in `figures/scenarios.json`.
 
-- On the fixture, `tests.test_kb` and `tests.test_pushcheck` pass 18 of 18: all 43 `-- expect:` queries, two KB regression tests and the 15 push-check tests. With `test_graph`, `test_join` and `test_report` it is 56 of 56.
-- The checklist's counts are each query on the whole block, with the parameters `tests/dashboard.py` picks. §1–§9 run each dataset (`django`, `packages`, `spark`, `gitlab`) on its own through TEMP views, because the queries mixed datasets at the time. That bug and three more found here are fixed since ([Appendix D](appendix-testing.md)); numbers that predate a fix say so.
+- On the fixture, `tests.test_kb` and `tests.test_pushcheck` pass 18 of 18: all 43 `-- expect:` queries, two KB regression tests and the 15 push-check tests. With `test_graph`, `test_join` and `test_report` it's 56 of 56.
+- The checklist counts each query on the whole block, with the parameters `tests/dashboard.py` picks. §1–§9 run each dataset (`django`, `packages`, `spark`, `gitlab`) on its own through TEMP views, because the queries mixed datasets at the time. That bug and three more we found here are fixed now ([Appendix D](appendix-testing.md)). Numbers from before a fix say so.
 - `asof` is the run's time (2026-10-01), so every Django team looks stalled for years. The `django@pin` scenario moves `known_at` to the pinned commit's date (2017-02-03).
-- The block is one run, so no call site can be `removed` yet; burndown is checked against the next real commit.
+- The block is one run, so no call site can be `removed` yet. We check burndown against the next real commit instead.
 
-✅ supported: columns in [schema.sql](../schema.sql), query proven on the fixture, and a meaningful answer on the real block (or the code path built and tested). 🟡 partial: it passes on the fixture, but the real block gives it an empty input, or only half the feature is covered. ❌ not yet: the data isn't in the block. ⛔ out of scope: a later stage does the work.
+✅ supported: the columns are in [schema.sql](../schema.sql), the query passes on the fixture, and the real block gives a meaningful answer (or the code path is built and tested). 🟡 partial: it passes on the fixture, but the real block gives it an empty input, or only half the feature is covered. ❌ not yet: the data isn't in the block. ⛔ out of scope: a later stage does the work.
 
 ## Checklist
 
@@ -49,7 +49,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | O2 · ETA | 🟡 | `owner_eta`: NULL (0 removals in 28 days, under 3) | As O1 |
 | O3 · Per team: left, moving / stalled, days | ✅ | `owner_teams`: 43 teams, e.g. `contrib.admin` 43 left, stalled ([§3](#3-owner-status-by-team)) | "Blocked" can't fire (O4) |
 | O4 · Per team: blocked, "waiting on X" | 🟡 | `owner_teams`, `consumer_blocked`: 0 `blocked_by` ([§6](#6-cross-team-blocks-and-chains)) | 0 `receiver_from`: `url()` and `ugettext()` are called directly (GRAPH.md) |
-| O5 · Per team: risky count | 🟡 | `owner_teams`: 0 sites with `bug_fixes` > 0 ([§5](#5-fragility)) | SZZ runs on Spark only, and Spark has no call sites |
+| O5 · Per team: risky count | 🟡 | `owner_teams`: 0 sites with `bug_fixes` > 0 ([§5](#5-fragility)) | SZZ (tracing each bug fix back to the commit that caused it) runs on Spark only, and Spark has no call sites |
 | C1 · Sites per file | ✅ | `consumer_files`: 28 files for `django-oscar` | |
 | C2 · Bug fixes this year per file | 🟡 | `consumer_files`: 1,492 Spark files, 0 call-site files ([§5](#5-fragility)) | As O5 |
 | C3 · Blocked by a shared client; "you are blocking X" | 🟡 | `consumer_blocked`, `consumer_blocking`: 0 | As O4 |
@@ -125,13 +125,13 @@ Eight features belong to later stages, and the pipeline only supplies their fact
 
 ### Summary and top gaps
 
-25 ✅, 35 🟡, 6 ❌ and 8 ⛔: 74 features. Most 🟡 rows don't lack columns. The schema and query exist and pass on the fixture; the real block just gives the query nothing to work on.
+25 ✅, 35 🟡, 6 ❌ and 8 ⛔, for 74 features. Most 🟡 rows aren't missing columns. The schema and query exist and pass on the fixture, and the real block just gives the query nothing to work on.
 
 | # | Gap | Blocks | What would close it |
 |---|---|---|---|
 | 1 | No real ticket maps to a call site and no call site has bug fixes: no dataset has both a tracker and tracked code, and SZZ runs on Spark only | 17 rows: S2, S4, S5, S7, S15, O5, C2, P3, P5, P6, P7, T1, T3, T4, R1, #3, #6 (and #8) | Known since week 1: the fixture carries the end-to-end story (G7, [02-product](../../docs/02-product.md) Known gaps), and collisions are checked on Spark hunks instead (GRAPH.md) |
 | 2 | 0 `blocked_by`, because 0 `receiver_from` on real data | 6 rows: S3, O4, C3, P4, R3, #1 (plus S15, and O3's "blocked" state) | A tracked method symbol (the week-1 "method-call benchmark"). Hand-check 20 `receiver_from` rows on Django to confirm 0 is right |
-| 3 | Only one run: no `removed` versions, no history | 7 rows: O1, O2, A2, U2, L1, G3, G4 (and P1's replay bar) | A second real run with `--prev-run` once the nightly DAG has a later snapshot (JOIN.md), or 05-test's Django weekly burndown replay |
+| 3 | Only one run: no `removed` versions, no history | 7 rows: O1, O2, A2, U2, L1, G3, G4 (and P1's replay bar) | A second real run with `--prev-run` once the nightly Airflow run has a later snapshot (JOIN.md), or 05-test's Django weekly burndown replay |
 | 4 | Tracking tables not in schema.sql (`suggestion`, `outcome`, `push_alert`; `policy`, `match` not drafted) | 6 rows: U1, U3, push alert outcomes, S13, A1, C4 (and U2) | Move the three tested DDLs into schema.sql the day stage 6 offers its first suggestion, since outcomes can't be backfilled |
 | 5 | `call_edge` covers only callers above tracked symbols; no function signatures | 4 rows: S11, S12, A3, P2 | A whole-repo call graph, a second resolver pass (G3), and a `function(repo, path, scope, params)` table from scan's tree-sitter pass (G4) |
 
@@ -139,31 +139,31 @@ Intake (T8, G5) is ❌ on its own: it needs its own collect source.
 
 ## 1. Finding the work
 
-On Django the block matches both answer keys exactly (the test results are in [Appendix B §1](appendix-quality.md#1-tests)). `staff_headline` gives [289, 0]: 289 present sites on 267 lines, 265 in `.py` files and 2 in `code.sample`, and 0 open mapped tickets, since Django uses Trac. The 265 lines split into 113 imports, 151 calls and 1 alias, as the key says. The resolver finds 542 aliased `_()` calls on 485 lines in 96 files, as the key says, and 30 of 30 rows in `alias_hand_check_30.csv` resolve to the checker's symbol. On the packages, `staff_headline` gives [1237, 0] url() sites in 20 repos, with 1,236 of 1,236 recall (RESOLVER.md).
+On Django the block matches both answer keys exactly ([Appendix B §1](appendix-quality.md#1-tests)). `staff_headline` gives [289, 0]: 289 present sites on 267 lines (265 in `.py` files, 2 in `code.sample`), and 0 open mapped tickets, since Django uses Trac. The 265 lines split into 113 imports, 151 calls and 1 alias. The resolver finds 542 aliased `_()` calls on 485 lines in 96 files, and 30 of 30 rows in `alias_hand_check_30.csv` resolve to the checker's symbol. Both match the key. On the packages, `staff_headline` gives [1237, 0] url() sites in 20 repos, with 1,236 of 1,236 recall (RESOLVER.md).
 
-`derive_blast_radius` for `ugettext` gave depth 1/2/3 = 209 / 241 / 160 against graph's 209 / 241 / 135. The query counted a function once per depth it is reached at and graph's table does not, so depth 3 disagreed for `ugettext` (+25), `ugettext_lazy` (+15) and `ungettext` (+3). graph.py was right, and the query now matches it.
+`derive_blast_radius` for `ugettext` first gave 209 / 241 / 160 at depths 1/2/3, against graph's 209 / 241 / 135. The query counted a function once per depth it's reached at, so depth 3 was too high for `ugettext` (+25), `ugettext_lazy` (+15) and `ungettext` (+3). graph.py was right, and the query now matches it.
 
 ![](figures/blast_radius.png)
 
-*Call sites someone must edit (grey) and the calls that reach them up to 3 deep (colored): a removal reaches far more code than its call-site count.*
+*Call sites someone must edit (grey) next to the calls that reach them up to 3 deep (colored), which are many more.*
 
-For `ugettext`, 93 call sites reach 585 invocations; `ugettext_noop` has 1 site and 29 invocations. Packages are flat, since urlconfs are rarely called, except `django-allauth`, where 86 calls reach `url()` through `default_urlpatterns`.
+For `ugettext`, 93 call sites reach 585 invocations, and `ugettext_noop`'s 1 site reaches 29. The packages are flat because urlconfs are rarely called, except in `django-allauth`, where 86 calls reach `url()` through `default_urlpatterns`.
 
 ## 2. Burndown at the next commit
 
-With one run, `owner_done` and `owner_eta` are quiet, so we compared the block with the next real commit. The conversion commit `c651331b34` edits 267 of 267 site lines; its 285 changed `.py` lines are those 265 plus 20 non-uses. The 20 url() migration commits edit 1,160 of 1,236 lines, and 12 of 20 repos fully.
+With one run, `owner_done` and `owner_eta` have nothing to count, so we compared the block with the next real commit. The conversion commit `c651331b34` edits 267 of 267 site lines. Its 285 changed `.py` lines are those 265 plus 20 that aren't uses. The 20 url() migration commits edit 1,160 of 1,236 lines, and cover 12 of the 20 repos fully.
 
 ![](figures/django_burndown.png)
 
-*The block's 267 Django call-site lines by the date each was last written (blue), and the conversion commit that removes them all (orange): a second run there would show 0 old sites left, plus 4 new ones added on purpose.*
+*The block's 267 Django call-site lines by the date each was last written (blue), and the conversion commit that removes them all (orange).*
 
-The 4 new lines are `test_legacy_aliases` (tests/i18n/tests.py:60–64), which calls all four legacy names; the push replay flags exactly these 4 as P1. So 05-test's "0 at conversion" holds for the 267, not for the file after the commit.
+A second run there would show 0 old sites and 4 new ones added on purpose: `test_legacy_aliases` (tests/i18n/tests.py:60–64) calls all four legacy names, and the push replay flags exactly these 4 as P1. So 05-test's "0 at conversion" holds for the 267, not for the file after the commit.
 
 ![](figures/burndown_next_commit.png)
 
-*Per repo, the block's call-site lines (grey) and how many the next migration commit edited (blue): where the bars match, the block found exactly the lines the real fix touched.*
+*Per repo, the block's call-site lines (grey) next to how many the next migration commit edited (blue).*
 
-Where a migration commit finished the job, the match is exact: oscar 247/247, wagtail 240/240, DRF 182/182, cms 160/160. The gaps are in 8 packages (worst: autocomplete-light 20/67, graphene 3/13, extensions 2/10, import-export 3/7), whose migrations most likely took more than one commit. The 76 leftover lines weren't hand-checked for scanner false positives.
+Where a migration commit finished the job, the match is exact: oscar 247/247, wagtail 240/240, DRF 182/182, cms 160/160. The gaps are in 8 packages (worst: autocomplete-light 20/67, graphene 3/13, extensions 2/10, import-export 3/7), whose migrations probably took more than one commit. We didn't hand-check the 76 leftover lines for scanner false positives.
 
 ## 3. Owner status by team
 
@@ -173,31 +173,31 @@ Where a migration commit finished the job, the match is exact: oscar 247/247, wa
 | `django` at run time | the same 23, all stalled with 3,000+ days (2026 clock) |
 | `packages` | 20 repos, all stalled (1,770–3,792 d), 0 risky |
 
-"Stalled" is historically right: in Feb 2017 nobody was migrating off `ugettext`, which had no deprecation warning yet. But teams are synthetic path prefixes, which 02-product says the screen must admit, and "risky" is always 0 because no call site has a bug-fix count (§5).
+"Stalled" is right for the time. In Feb 2017 nobody was migrating off `ugettext`, which had no deprecation warning yet. But the teams are made-up path prefixes, which 02-product says the screen must admit, and "risky" is always 0 because no call site has a bug-fix count (§5).
 
 ![](figures/django_owner_teams.png)
 
-*Call sites per Django team at the pinned commit, with status and days since the last change: only the test tree changed in the 14 days before the pin, so every other team shows as stalled.*
+*Call sites per Django team at the pinned commit, where only the test tree changed in the 14 days before, so every other team shows as stalled.*
 
 ## 4. Tickets and their link to code
 
-`staff_link_coverage` gives 48.8% block-wide, diluted by GitLab, which can't be mapped.
+`staff_link_coverage` gives 48.8% block-wide, pulled down by GitLab, which can't be mapped.
 
 ![](figures/ticket_mapping.png)
 
-*How tickets reach code (commit key, stack trace, or a path in the text): about 61% of Spark tickets reach a file, and GitLab reaches none because its Ruby code wasn't scanned.*
+*How tickets reach code (commit key, stack trace or a path in the text), with about 61% of Spark tickets and no GitLab tickets reaching a file.*
 
-Commit keys do most of the work (33,351). Stack traces map 4,435 tickets and paths in text 777, but beyond commit keys they add only 2,524 and 263. 23,353 Spark tickets stay unmapped, and GitLab is 0 of 14,524.
+Commit keys do most of the work (33,351). Stack traces map 4,435 tickets and paths in text 777, but only 2,524 and 263 of those aren't already reached by a commit key. 23,353 Spark tickets stay unmapped, and GitLab is 0 of 14,524.
 
-The mapping is to paths, not call sites, so it can't feed P3, P5 or collisions. The best path-level collision rule scores 0.64 on the 50 Spark pairs (32 real; 48 of 50 have both keys mapped to the file). The labels' function-level flag (`inside`) agrees with the verdict 50/50, which is why 05-test wants function scope.
+The mapping goes to paths, not call sites, so it can't feed P3, P5 or collisions. The best path-level collision rule scores 0.64 on the 50 Spark pairs (32 real, and 48 of 50 have both keys mapped to the file). The labels' function-level flag (`inside`) agrees with the verdict 50/50, which is why 05-test wants function scope.
 
-The ticket check adapted to Spark (open, mapped to code, no "done when") fails all 621 of 621 open mapped tickets: Apache Jira never writes "done when", so the check can't tell tickets apart. We tried a check that fits Spark, written down before it was scored ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a Bug with no `{code}` or `{noformat}` block, no stack frame and no "reproduce" or "steps". On the 4,314 Spark Bugs resolved since 2020 as Fixed, Incomplete or Cannot Reproduce, it flags 58%. Of those, 8.5% end Incomplete or Cannot Reproduce, against a 13.2% base rate. Flagging the same number by shortest description gives 6.4%. So it beats description length, but both are worse than chance: a missing reproduction doesn't predict a vague Spark bug, and the check isn't adopted. Of the newest 500 Spark tickets, 48% have an empty description (241), 5.8% have any non-parent link (29), and 0 have `blocked_by`.
+The ticket check adapted to Spark (open, mapped to code, no "done when") fails all 621 of 621 open mapped tickets, because Apache Jira never writes "done when". We tried a check that fits Spark, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a Bug with no `{code}` or `{noformat}` block, no stack frame and no "reproduce" or "steps". On the 4,314 Spark Bugs resolved since 2020 as Fixed, Incomplete or Cannot Reproduce, it flags 58%. Of those, 8.5% end Incomplete or Cannot Reproduce, against a 13.2% base rate, and flagging the same number by shortest description gives 6.4%. So it beats description length, but both do worse than chance, and we didn't adopt it. Of the newest 500 Spark tickets, 48% have an empty description (241), 5.8% have any non-parent link (29), and 0 have `blocked_by`.
 
 ## 5. Fragility
 
 ![](figures/fragility.png)
 
-*Spark files by number of bug-fix commits in the year before the snapshot: files at 3 or more count as risky, but none of the 1,526 call sites is in them, so the risk features can't fire on real data.*
+*Spark files by number of bug-fix commits in the year before the snapshot, where 3 or more counts as risky and none of the 1,526 call sites is in a risky file.*
 
 SZZ gives 180 of 1,492 Spark files 3 or more bug fixes (max 36), with ticket keys attached. P7, "risky" and the fragility freeze stay quiet until one dataset has both bug fixes and call sites.
 
@@ -211,50 +211,50 @@ SZZ gives 180 of 1,492 Spark files 3 or more bug fixes (max 36), with ticket key
 
 ![](figures/graph_and_blocks.png)
 
-*Left, only `untracked` of the graph's row kinds appears on real data (grey is the fixture); right, of GitLab's thousands of "blocked by" links the label rule keeps 116, and only 13 are real cross-team waits.*
+*On real data the graph has only `untracked` rows (left, grey is the fixture), and the label rule keeps 116 of GitLab's "blocked by" links, of which only 13 are real cross-team waits (right).*
 
-Real cross-team waits exist in GitLab, at ticket level. Of its 2,166 `blocked_by` links, 1,890 are live and 1,683 have both ends in the snapshot. The doc's cheap rule ("the two issues carry different `group::` labels") keeps 116. 95 of those are in the model-read gold set, and only 13 are a real written wait (precision 0.14). It finds 13 of the gold set's 43 waits (recall 0.30), though 34 of the 43 have a KB link. The links are there, but group labels can't tell a cross-team wait from a planned sequence. The gold set is model-read: 0 of 262 rows have a human verdict, and the 26-row spot check (21 hold) is by model too.
+Real cross-team waits do exist in GitLab, at ticket level. Of its 2,166 `blocked_by` links, 1,890 are live and 1,683 have both ends in the snapshot. The doc's cheap rule ("the two issues carry different `group::` labels") keeps 116. 95 of those are in the model-read gold set, and only 13 are a real written wait (precision 0.14). It finds 13 of the gold set's 43 waits (recall 0.30), even though 34 of the 43 have a KB link. The gold set is weak too: 0 of 262 rows have a human verdict, and the 26-row spot check (21 hold) was done by a model as well.
 
-We tried adding timing evidence of a real wait to the label rule, written down before it was scored ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): the blocker closes after the link was added, and the blocked issue closes after the blocker or is still open. Counting only `wait` against `no` and `planned` (the gold set's other verdicts left out), the label rule scores 0.27 (13 of 48) and the timed rule 0.25 (10 of 40), with recall down from 0.30 to 0.23. It misses the 0.50 bar, so it isn't adopted. Telling a wait from a planned sequence needs what people write, not when issues close.
+We tried adding timing to the label rule, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): the blocker closes after the link was added, and the blocked issue closes after the blocker or is still open. Counting only `wait` against `no` and `planned`, the label rule scores 0.27 (13 of 48) and the timed rule 0.25 (10 of 40), with recall down from 0.30 to 0.23. That misses the 0.50 bar, so we didn't adopt it. Group labels and close dates can't tell a wait from a planned sequence. That needs what people write.
 
 ## 7. Push check replay
 
-The next commit after each of the 21 pinned SHAs (Django's conversion and the 20 url() migrations) went through `meridian.pushcheck` against this block, once with settings.toml's limits and once with the scope limit lifted. P2–P8 stay at 0 for the reasons in the checklist. `p9_defect_risk` gives 15 lines × 3 files = 45 for `4353640ea9`, and `push_scope_importers` finds 347 Django and 167 package importer pairs.
+We put the next commit after each of the 21 pinned SHAs (Django's conversion and the 20 url() migrations) through `meridian.pushcheck` against this block, once with settings.toml's limits and once with the scope limit lifted. `p9_defect_risk` gives 15 lines × 3 files = 45 for `4353640ea9`, and `push_scope_importers` finds 347 Django and 167 package importer pairs.
 
 ![](figures/push_replay.png)
 
-*How often each push check fired across the 21 real migration commits, with normal limits (blue) and the file-count limit lifted (grey): only P1 and P9 ever fire.*
+*How often each push check fired on the 21 real migration commits, with normal limits (blue) and the file-count limit lifted (grey).*
 
-With the real limits, 2 of 21 pushes are skipped (Django: 129 changed + 100 importers = 229 files; django-cms: 335), 6 get one P9 note, 7 get one P9 note, and 12 are silent. That meets 05-test's "median ≤ 1 alert per push". With the limit lifted, P1 fires 4 times, all true: Django's `test_legacy_aliases` really adds 4 legacy calls.
+Only P1 and P9 ever fire. With the real limits, 2 of 21 pushes are skipped (Django: 129 changed + 100 importers = 229 files; django-cms: 335), 7 get one P9 note, and 12 are silent. That meets 05-test's "median ≤ 1 alert per push". With the limit lifted, P1 fires 4 times, all true: Django's `test_legacy_aliases` really adds 4 legacy calls.
 
-P1 used to fire 11 times here (precision 4/11 = 0.36). The 7 false hits, in DRF (`tests/test_fields.py:1832`) and django-cms (6), were each `self.url = url`, a parameter named `url`: the push check had no resolver. It now runs the pipeline's own resolver on the changed files and drops what the resolver calls a look-alike, as join does. A name the resolver can't follow, such as an import with no Django checkout in CI, is kept. The pass bars were written before the change ran ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)):
-- The 21-commit replay: precision 4/4 = 1.00 against the 0.80 bar, all 4 true hits kept.
-- Held out: the 9 Django commits after the conversion that touch a `ugettext*` line. Two add a real new use (`6eb4996672` adds a `ugettext_noop` test, `d997ab7764` a `ugettext_lazy` import and call), and P1 flags both, 4 sites. The other 7 remove uses or rewrap an import list of names already imported, and P1 stays silent. Recall 2/2, precision 4/4, against 05-test's 100% and 0.95. Nine commits is a small sample. The push there is computed as 05-test defines it, the push check's sites at the commit minus at its parent, because the block only holds the pinned commit.
+P1 used to fire 11 times here (precision 4/11 = 0.36). The 7 false hits, in DRF (`tests/test_fields.py:1832`) and django-cms (6), were each `self.url = url`, a parameter named `url`, because the push check had no resolver. Now it runs the pipeline's own resolver on the changed files and drops look-alikes, as join does. A name the resolver can't follow, such as an import with no Django checkout in CI, is kept. We wrote the pass bars down before the change ran ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)):
+- The 21-commit replay: precision 4/4 = 1.00 against the 0.80 bar, with all 4 true hits kept.
+- Held out: the 9 Django commits after the conversion that touch a `ugettext*` line. Two add a real new use (`6eb4996672` adds a `ugettext_noop` test, `d997ab7764` a `ugettext_lazy` import and call), and P1 flags both, 4 sites. The other 7 remove uses or rewrap an import list of names already imported, and P1 stays silent. That's recall 2/2 and precision 4/4, against 05-test's 100% and 0.95. Nine commits is a small sample. The block only holds the pinned commit, so we computed each push as 05-test defines it: the push check's sites at the commit minus at its parent.
 
 ![](figures/p9_vs_szz.png)
 
-*For 41k Spark commits, the share above each size (lines × files), split into commits SZZ blames for a later bug (orange) and the rest (grey): the 2,000 threshold catches 32% of bug-inducing commits but only 9% of the others.*
+*For 41k Spark commits, the share above each size (lines × files), split into commits SZZ blames for a later bug (orange) and the rest (grey).*
 
-P9 is the one push check with signal outside Django. On the 41,056 Spark first-parent commits since 2015 that have a `commit_file` row (107 of the block's 41,163 have none), a flagged commit is bug-inducing 49% of the time vs a 22% base rate. But SZZ blames changed lines, so big commits are more likely to be blamed by construction. 05-test's real bar ("beats lines × files" with a time split) is still open.
+P9 is the one push check with signal outside Django. Its 2,000 threshold catches 32% of bug-inducing commits but only 9% of the others. On the 41,056 Spark first-parent commits since 2015 that have a `commit_file` row (107 of the block's 41,163 have none), a flagged commit is bug-inducing 49% of the time, against a 22% base rate. This part is weak, though. SZZ blames changed lines, so big commits are more likely to be blamed by construction. 05-test's real bar ("beats lines × files" with a time split) is still open.
 
 ## 8. Stall reasons
 
-`stall_upstream`, `stall_ticket_mismatch` and `stall_fragility_freeze` return 0 at the pin, for lack of blocks, tickets on code and bug fixes. The rest:
+`stall_upstream`, `stall_ticket_mismatch` and `stall_fragility_freeze` return 0 at the pin, because there are no blocks, no tickets on code and no bug fixes. The rest:
 
 | Query | `django@pin` result | Verdict |
 |---|---|---|
 | `stall_never_notified` | all 23 teams (no tracker) | ✅ true, uninformative |
-| `stall_orphaned_owner` | 2 files: `contrib/auth/forms.py` (top author silent 132 d), `tests/i18n/urls_default_unprefixed.py` (90 d). At the 2026 clock: 91 files, i.e. everyone | ✅ at the pin |
+| `stall_orphaned_owner` | 2 files: `contrib/auth/forms.py` (top author silent 132 d), `tests/i18n/urls_default_unprefixed.py` (90 d). At the 2026 clock: 91 files, which is everyone | ✅ at the pin |
 | `stall_semantics_unclear` | 2 sites inside `except`: `contrib/auth/forms.py:35`, `template/defaultfilters.py:849` | ✅ the exact case the manager rewrite asks about |
 | `stall_test_gap` | 57 Django modules (mostly `apps.py`), 196 package modules no test imports | ✅ plausible, not hand-checked |
 | `stall_competing_load` | Django 0 (path teams have no people). Spark: 8 teams "busy elsewhere" | 🟡 fired only because no Spark team has call sites; fixed since, 8 → 0 |
 
-Against `gitlab_stall_reasons.csv` (57 blocked issues, model-read), 41 are "upstream", and 33 of those 41 (0.80) have a `blocked_by` link in the block. So the most common real stall reason is in the data, at ticket level, but the KB's stall queries read call sites and GitLab has none. The other reasons (unknown 7, other 6, owner 2, risk 1) live in comments, which aren't kept (G2).
+Against `gitlab_stall_reasons.csv` (57 blocked issues, model-read), 41 are "upstream", and 33 of those 41 (0.80) have a `blocked_by` link in the block. So the most common real stall reason is in the data, at ticket level. But the KB's stall queries read call sites, and GitLab has none. The other reasons (unknown 7, other 6, owner 2, risk 1) live in comments, which we don't keep (G2).
 
 ## 9. Answer keys in one picture
 
 ![](figures/labels_vs_block.png)
 
-*The block against each answer key, precision (dots) and recall (squares) against the 0.90 bar: the code side clears it, the ticket and cross-team side doesn't yet.*
+*Precision (dots) and recall (squares) of the block against each answer key, with the 0.90 bar.*
 
-The Spark and GitLab keys are model-read, not human-checked, so those scores are provisional.
+The code side clears the bar, and the ticket and cross-team side doesn't yet. The Spark and GitLab keys are model-read, not human-checked, so those scores are provisional.

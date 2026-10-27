@@ -4,7 +4,7 @@ The gap was that no week-1 dataset could test feature #5 (hidden cross-team bloc
 
 ## TL;DR
 
-- **#5 blocks: GitLab reaches the bar, twice over.** Two passes on H1 2025 used different starting points and each confirmed 30. Vishwa's started from issues labelled blocked; ours from "blocked by" links. None of Vishwa's 8 published examples is in our 30, so there are at least 38 distinct waiting issues.
+- **#5 blocks: GitLab reaches the bar, twice over.** Two passes on H1 2025 used different starting points and each confirmed 30. The targeted pass started from issues labelled blocked; this one from "blocked by" links. None of The targeted read's 8 published examples is in our 30, so there are at least 38 distinct waiting issues.
 - **#7 stalls: GitLab is usable.** Of 57 blocked issues read, 50 have a written reason.
 - **Both reports' top picks failed.** Debian's links are reversed and bulk-added. OpenStack had nothing to wait for.
 - **Big caveat:** a model read the evidence, not a person. A human spot-check comes before anything is called gold.
@@ -22,16 +22,16 @@ A stall gets a reason only from a written statement: `upstream`, `owner`, `risk`
 
 | Source | Checked by | Real cross-team waits (#5) | Stalls with a written reason (#7) | Use it for |
 |---|---|---|---|---|
-| [Debian](debian/) | Chaitali | 0 of 13. Links point the wrong way, one person bulk-added them, 97 are cycles | Slow bugs, no reasons | Real dependency edges only |
-| [OpenStack](openstack/) | Chaitali | 0 of 59. Libraries had shipped 1.5–3.5 years before consumers moved | None (median 4 days) | Nothing |
-| [Mozilla](mozilla/) | Chaitali | 3–4, all in the meta bug's "blocks" list | 1 | The lesson: read "blocks", not "depends on" |
-| [GitLab](gitlab/) | Vishwa | 5 of 57 in a random read | **50 of 57** | #7 |
-| [GitLab, targeted read](gitlab/README.md) | Vishwa | **30** (25 from 126 candidates + 5 from the random read) | — | **#5** |
+| [Debian](debian/) | Pair 2 | 0 of 13. Links point the wrong way, one person bulk-added them, 97 are cycles | Slow bugs, no reasons | Real dependency edges only |
+| [OpenStack](openstack/) | Pair 2 | 0 of 59. Libraries had shipped 1.5–3.5 years before consumers moved | None (median 4 days) | Nothing |
+| [Mozilla](mozilla/) | Pair 2 | 3–4, all in the meta bug's "blocks" list | 1 | The lesson: read "blocks", not "depends on" |
+| [GitLab](gitlab/) | Pair 3 | 5 of 57 in a random read | **50 of 57** | #7 |
+| [GitLab, targeted read](gitlab/README.md) | Pair 3 | **30** (25 from 126 candidates + 5 from the random read) | — | **#5** |
 | GitLab, link pass (`gitlab/xt_*.py`) | this pass | **30** (22 written waits + 8 stated prerequisites) | — | **#5** |
 
 ## The GitLab link pass
 
-**Question:** does GitLab hold 30+ real cross-team blocks? This pass starts from every "blocked by" link. Vishwa's [targeted read](gitlab/README.md) starts from blocked labels. 17 of our 30 were in Vishwa's 126 candidates, and 13 weren't, because of the different starting points.
+**Question:** does GitLab hold 30+ real cross-team blocks? This pass starts from every "blocked by" link. The [targeted read](gitlab/README.md) starts from blocked labels. 17 of our 30 were in The targeted read's 126 candidates, and 13 weren't, because of the different starting points.
 
 1. **Population.** All 32,178 issues created Jan–Jun 2025. Dropped the flaky-test bot's 17,502, leaving 14,653 filed by people. Every one's activity log was read, because links get deleted once work is done.
 2. **Links.** 1,649 "blocked by" links on 1,200 issues. All were added by people. 106 point to other projects.
@@ -48,7 +48,7 @@ A stall gets a reason only from a written statement: `upstream`, `owner`, `risk`
 | No: "not a blocker", dependency swapped, or wrong link | 18 |
 | No written evidence | 33 |
 
-- 30 wait + planned, from 18 waiting teams and 18 blocking teams, 26 pairs. Vishwa's 4 others with no formal link make 34.
+- 30 wait + planned, from 18 waiting teams and 18 blocking teams, 26 pairs. The targeted read's 4 others with no formal link make 34.
 - Blocked span (link added → blocker closed, N = 31): median **74 days**, p90 246, max 414.
 - Examples:
   - #537634 vulnerability management: "work has now started, following the resolution of the blocker #543762" (security foundations).
@@ -73,4 +73,4 @@ python xt_pull_notes.py human_iids.txt activity.jsonl ONLY_ACTIVITY      # ~30�
 python xt_edges.py && python xt_enrich.py && python xt_evidence.py      # edges → cross-team + order → comment snippets
 ```
 
-Verdicts go to `gitlab/xt_cross_team_blocks.csv`: one row per link, with an evidence quote and a verdict. It's committed so the team can review it, but the verdicts are unverified. Vishwa's confirmed 30 stay local.
+Verdicts go to `gitlab/xt_cross_team_blocks.csv`: one row per link, with an evidence quote and a verdict. It's committed so the team can review it, but the verdicts are unverified. The targeted read's confirmed 30 stay local.

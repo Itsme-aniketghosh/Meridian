@@ -52,7 +52,7 @@ Django framework source (`ugettext` → `gettext`). Snapshot `4353640ea9`, conve
 ## Next
 
 1. Add the one-hop assignment rule and rerun Q2. Expect 542 of 542.
-2. Update 03-data to 265 edit lines (+2 outside `.py`) and 542 alias calls. Confirm with Aniket that 279 / 110 / 169 is a text search.
+2. Update 03-data to 265 edit lines (+2 outside `.py`) and 542 alias calls. Confirm that 279 / 110 / 169 is a text search.
 3. For method calls, keep unbound name matches labelled unresolved. Retest on typed code or with django-stubs.
 4. Find a method-call deprecation with 100+ uses, so the resolver choice rests on more than 30.
 5. Not run: the optional push replay.

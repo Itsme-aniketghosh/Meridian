@@ -35,7 +35,8 @@
 ## 2. Extract
 
 - **Candidates:** tree-sitter, pinned. Match rules per symbol from config. Parse failure → excluded, counted
-- **Resolver:** pinned, one env per repo from its lockfile. Binds to symbol →
+- **Resolver:** pinned. Resolves against the snapshot (the repo, its dependencies' checkouts,
+  the standard library), nothing installed. Binds to symbol →
   `ast_resolved`. Binds elsewhere → dropped. Can't bind → `ast_unresolved`. Pattern
   hits → `string_url`, `config`
 - **Ownership:** 180 days, no merges, bots, or ignore-revs. `.mailmap` + alias table.
@@ -168,7 +169,7 @@ Read-only. `run_id`, `snapshot_at`, and coverage on every screen.
 
 | What | Where |
 |---|---|
-| Pipeline | Cloud Run Jobs, one per repo, Cloud Scheduler |
+| Pipeline | Airflow: daily update DAG, Sunday rebuild DAG (Docker today, GCP not set up) |
 | Push check | GitHub Actions (free) |
 | Site, API | Cloud Run |
 | DB | SQLite on GCS, Cloud SQL once there's a user |

@@ -1,6 +1,6 @@
 # Join · step 1
 
-Utkarsh's part of the pipeline plan: one block of call sites with owner, bug fixes and status, tickets mapped to code, and a count of everything we missed. Team run 70dd1dabfed544b8, 2026-10-23.
+The join part builds one block of call sites with owner, bug fixes and status, maps tickets to code, and counts everything we missed. Team run 70dd1dabfed544b8, 2026-10-23.
 
 ```
 python -m meridian.join --run-id <run_id> --config meridian.toml                       # first run
@@ -39,25 +39,24 @@ Run time about 20 s, peak 2.4 GB (reading the ticket and commit tables).
 
 - **A call site** is a candidate with a role in `[scanner] edit_roles` (import, call, alias) that the resolver didn't drop. `ast_unresolved` stays. Alias calls like `_("...")` are blast radius, not call sites. `reference` rows (the 315 keyword-argument names) stay in `candidate` only.
 - **call_site_id** = h(repo, symbol, path, scope, normalized line, occurrence). Normalized = all whitespace removed. occurrence = 0, 1, … among sites with the same other five, in line order.
-- **Matching to the last run**, in `[join] match_order`: git's line map from the last SHA to this one, renames followed; else the same symbol, scope and normalized line anywhere in the repo (a moved line, a split file). Unmatched last-run sites get a `removed` version, unless their file is a parse failure this run (they stay present); unmatched new ones a new ID. A removed site's ID can come back, to one site only.
+- **Matching to the last run**, in `[join] match_order`: git's line map from the last SHA to this one, renames followed; else the same symbol, scope and normalized line anywhere in the repo (a moved line, a split file). Unmatched last-run sites get a `removed` version, unless their file is a parse failure this run (then they stay present). Unmatched new ones get a new ID. A removed site's ID can come back, to one site only.
+- **Repos that come and go.** A repo new to `meridian.toml` has no last SHA, so all its sites are new. A repo that left the config while it still has present sites stops the run: writing them `removed` would date a deletion that never happened. Put it back, or run without `--prev-run`.
 - **Append-only.** A version is written only when a field changes. `call_site.jsonl` holds every version so far, so "now" is each site's newest.
-- **effective_date:** present = blame of the line at this SHA (`--first-parent -w`). Removed = the first-parent commit after the last one that still had the line (reverse blame). The date is that commit's `authored_at`; **effective_sha** is the commit itself (`meridian.report` groups changes by it).
-- **owner_team** from `file_owner`, `unowned` if the file has no row. **bug_fixes** from `file_bug_fixes`, 0 if none (Django and the packages have none: SZZ is Spark only).
+- **effective_date:** present = blame of the line at this SHA (`--first-parent -w`). Removed = the first-parent commit after the last one that still had the line (reverse blame). The date is that commit's `authored_at`, and `effective_sha` is the commit itself (`meridian.report` groups changes by it).
+- **owner_team** comes from `file_owner`, `unowned` if the file has no row. **bug_fixes** comes from `file_bug_fixes`, 0 if none (Django and the packages have none: SZZ is Spark only).
 - **ticket_map**, all hits kept: `commit_key` (every file a keyed commit touched that still exists), `path` (a token that is exactly a file path), `stack_trace` (a Java/Scala or Python frame that names exactly one file; on a call site's line it also maps to the site), `symbol` (`module.name` of a tracked symbol → its call sites). No hit → `unmapped`.
-- **coverage:** 14 counts, each with a note. The note is the definition.
+- **coverage:** 12 counts plus one per tracker (14 on the team run), each with a note. The note is the definition.
 
 ## Flags
 
-- **Writer change (made, Aniket to OK, Vishwa to know).** From the second run on, `call_site.jsonl` carries the earlier runs' versions (append-only, as `KNOWLEDGE-BASE.md` reads it). `meridian.writer` now allows earlier run_ids in `call_site` only, and only versions known by this run's `snapshot_at`. Every other table still takes one run_id. Tests: `test_history` `test_call_site_carries_earlier_runs_versions`, `test_join` `test_second_runs_block_loads_with_the_first_runs_versions`.
-- **`--prev-run` is a new argument** to the one command. It's explicit, so no hidden input. CONTRACTS.md's command table needs a line for it.
-- **SQLite version.** This machine has 3.53.1; `meridian.toml` pins 3.50.4. The block loads, but the byte-identical check holds only on the pinned version: the image must have it.
+- **Writer change.** From the second run on, `call_site.jsonl` carries the earlier runs' versions (append-only, as `KNOWLEDGE-BASE.md` reads it). `meridian.writer` allows earlier run_ids in `call_site` only, and only versions known by this run's `snapshot_at`. Every other table still takes one run_id. Tests: `test_history` `test_call_site_carries_earlier_runs_versions`, `test_join` `test_second_runs_block_loads_with_the_first_runs_versions`.
+- **SQLite version.** `meridian.toml` pins 3.50.4. A newer SQLite (3.53.1 on one dev machine) loads the block, but the byte-identical check holds only on the pinned version, so the image must have it.
 - **Removed effective_date** uses `git_commit.seq`, so a site removed by a commit that came in through a merge is dated by the merge, the first-parent commit where it became true.
 
 ## Next
 
 1. Hand-check a sample of `path` and `stack_trace` rows for the 0.90 bar.
 2. A second real run with `--prev-run`, once there's a later snapshot (the nightly DAG).
-3. Hand to Aniket: the graph reads `call_site`, `call_edge`, `ticket_map`.
 
 ## Rerun
 

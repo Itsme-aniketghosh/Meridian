@@ -4,7 +4,7 @@
 #   docker compose -f docker-compose.yaml -f docker-compose.volumes.yaml up -d --build
 #
 # The volumes start empty and outlive `docker compose down` (only `down -v` deletes them): get the data in from inside
-# the container (README, "Run it"). The host's snapshots/ and out/ are hidden from the containers while this is on.
+# the container (README, "Run it with Airflow"). The host's snapshots/ and out/ are hidden from the containers while this is on.
 
 services:
   data-volumes:   # a new volume is root's: hand it to the Airflow user once, before anything writes

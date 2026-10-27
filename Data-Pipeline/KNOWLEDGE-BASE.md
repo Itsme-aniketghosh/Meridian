@@ -2,17 +2,17 @@
 
 The knowledge base (KB) is the one SQLite file each run writes: every table in [schema.sql](schema.sql), filled by the seven parts. Everything Meridian plans to show (the four views, the ticket tools, the push check, the stall reasons, the auditor) has to be answerable from it, because the views are read-only and rules never look anywhere else.
 
-This page checks that claim against everything we planned ([02-product](../docs/02-product.md), [04-architecture](../docs/04-architecture.md), [05-test](../docs/05-test.md)). It also proves it: every query below runs in CI against a fixture KB ([tests/test_kb.py](tests/test_kb.py)) and must return exactly its `-- expect:` line. If the schema loses a column a view needs, or this page claims something the KB can't answer, the test fails.
+This page checks that claim against the plan ([02-product](../docs/02-product.md), [04-architecture](../docs/04-architecture.md), [05-test](../docs/05-test.md)). Every query below runs in CI against a fixture KB ([tests/test_kb.py](tests/test_kb.py)) and must return exactly its `-- expect:` line. If the schema loses a column a view needs, or this page claims something the KB can't answer, the test fails.
 
 ```
 python -m unittest tests.test_kb -v        # from Data-Pipeline/
 ```
 
-**What the proof shows and what it doesn't.** It shows the KB *can carry and answer* each feature. join and graph are built now, but the fixture still fills `call_site`, `ticket_map`, `blocked_by`, `chain` and `blast_radius` by hand, so the proof needs no real data. The `derive_*` queries then show graph can compute its own tables from the inputs the other parts write. It does not show the numbers on real data: that's the [testing plan](#testing-plan) below.
+**What the proof shows and what it doesn't.** It shows the KB can carry and answer each feature. The fixture fills `call_site`, `ticket_map`, `blocked_by`, `chain` and `blast_radius` by hand, so the proof needs no real data, and the `derive_*` queries show graph's tables can be computed from the other parts' inputs. It says nothing about numbers on real data: that's the [testing plan](#testing-plan).
 
 ## What's in it
 
-25 tables in nine layers. v1.1 (this change) adds the five marked **new**: each one is there because a planned feature had nothing to read.
+25 tables in nine layers. v1.1 added the five marked **new**, each because a planned feature had nothing to read.
 
 | Layer | Tables | Written by | What it holds |
 |---|---|---|---|
@@ -94,7 +94,7 @@ python -m unittest tests.test_kb -v        # from Data-Pipeline/
 
 | Check | Status | Reads | Proof |
 |---|---|---|---|
-| P1 Drift: new call site | ✅ | base vs push `call_site` | `p1_drift` |
+| P1 Drift: new call site | ✅ | base vs push `call_site`. At push time the resolver drops look-alikes, as join does: 4 of 4 true on the 21-commit replay | `p1_drift` |
 | P2 Legacy use: new call to a deprecation-marked symbol | ✅ new | `deprecation` (**new**), `resolution.resolved_to` | `p2_legacy_use` |
 | P3 Collision: edits a function mapped to another team's open ticket | ✅ | `ticket_map`, `call_site.scope`, `ticket` | `p3_collision` |
 | P4 New block | ✅ | base vs push `blocked_by` | same pattern as `p1_drift` |
@@ -351,7 +351,7 @@ WHERE f.repo = coalesce(asof.repo, f.repo) AND f.path = :path AND f.bug_fixes >=
 SELECT sum(added + deleted), count(*), sum(added + deleted) * count(*) FROM commit_file WHERE sha = :sha;
 ```
 
-The push check runs on the changed files plus every file that imports them.
+The push check runs on the changed files and every file that imports them.
 
 ```sql
 -- name: push_scope_importers
@@ -535,9 +535,9 @@ The docs already say what success is, and it's the one thing nobody can reconstr
 - "We publish suggestion precision, not coverage: drafted 31 of 52, 29 applied unchanged" (an older draft).
 - The gate for everything after step 1: we only make changes ourselves "once suggestions get applied unchanged" ([01-problem](../docs/01-problem.md), [06-dead-ideas](../docs/06-dead-ideas.md)).
 
-**No separate graph.** Outcomes are facts about the same call sites, tickets and teams, so they go in the same KB as one more layer, keyed by the IDs that already exist. A second store would need its own join back to `call_site`, and the before/after numbers come from `call_site` history anyway.
+**No separate graph.** Outcomes are facts about the same call sites, tickets and teams, so they go in the same KB as one more layer, keyed by the existing IDs. A second store would need its own join back to `call_site`, and the before/after numbers come from `call_site` history anyway.
 
-**Code decides, not clicks.** An outcome is read off later runs, by rule, like every other fact. A diff is "applied" when the call site disappears and the line in its place is the line we drafted. No button, no survey, and it replays: rerun an old snapshot and you get the same verdicts.
+**Code decides, not clicks.** An outcome is read off later runs, by rule, like every other fact. A diff is "applied" when the call site disappears and the line in its place is the line we drafted. No button, no survey. It replays too: rerun an old snapshot and you get the same verdicts.
 
 | Kind | Applied | Edited | Ignored |
 |---|---|---|---|
@@ -631,7 +631,7 @@ SELECT f.team, CASE WHEN f.suggested THEN 'suggested' ELSE 'control' END,
 FROM f ORDER BY f.team;
 ```
 
-**The effect**: the suggested teams' change minus the control teams' change (a difference-in-differences). Here: +1.0 removals per team-month against +0.33 without us. Read it as an effect only once both groups have real N. Teams that get suggestions first may be the ones already moving, so roll suggestions out to teams in a staggered order. And until there's a customer, it's replay ("say so").
+**The effect** is the suggested teams' change minus the control teams' change (a difference-in-differences). Here: +1.0 removals per team-month against +0.33 without us. It's an effect only once both groups have real N. Teams that get suggestions first may be the ones already moving, so roll suggestions out in a staggered order. Until there's a customer, it's replay, and we say so.
 
 ```sql
 -- name: outcome_effect
@@ -659,7 +659,7 @@ SELECT check_id, count(*), sum(outcome = 'fixed'), sum(outcome = 'dismissed'), s
 FROM push_alert GROUP BY check_id ORDER BY check_id;
 ```
 
-**Week 8's question**, "used, or just a dashboard?", is then two of these numbers: anything applied or edited at all, and suggested teams moving faster than control. Here, 3 of 6 suggestions were used, and the suggested teams moved faster. On N = 6, that's a demo, not a result.
+**Week 8's question**, "used, or just a dashboard?", is then two of these numbers: anything applied or edited at all, and suggested teams moving faster than control. Here, 3 of 6 suggestions were used and the suggested teams moved faster. On N = 6 that's a demo, not a result.
 
 ```sql
 -- name: outcome_week8
@@ -706,12 +706,12 @@ What the KB still can't answer, and what closes each.
 
 | Level | What | When | Command | Today |
 |---|---|---|---|---|
-| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | 7 test files, about 100 tests after this change |
-| 2. Goldens | A frozen fixture → exact rows: scan's 15 cases, resolve's edge fixtures, the writer's same-bytes check | Every commit | same | ✅ |
-| 3. KB proof | This page's queries against the fixture KB | Every commit | `python -m unittest tests.test_kb` | ✅ new, 43 queries |
-| 4. Cross-machine | Same run on Windows and Mac (and the Airflow image): every `out/<run_id>/*.jsonl` sha256 equal | Every new run_id | `sha256sum out/<run_id>/*.jsonl` on each, compared | ❌ never done. Five bugs in this change were found by reading code, not by this test. Do it on the new run_id |
+| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | ✅ 22 test files, 293 tests (14 skipped by design) |
+| 2. Goldens | A frozen fixture → exact rows: scan's 15 cases, resolve's edge fixtures, the writer's same-bytes check. On the team run, md5 of the 24 output files against `golden/` | Every commit | same | ✅ |
+| 3. KB proof | This page's queries against the fixture KB | Every commit | `python -m unittest tests.test_kb` | ✅ 44 queries |
+| 4. Cross-machine | Same run on Windows and Mac (and the Airflow image): every `out/<run_id>/*.jsonl` sha256 equal | Every new run_id | `sha256sum out/<run_id>/*.jsonl` on each, compared | ✅ Windows and Docker on a Mac. One difference found, Jedi's folder order, now fixed ([RESOLVER.md](RESOLVER.md)) |
 | 5. Benchmarks | Real data against answer keys | Each new run_id, and weekly once scheduled | per part, below | partly ✅ |
-| 6. End to end | Collect → graph on the new run_id, then the writer; second run → `cmp` identical | D8–D10 | Airflow DAG | ❌ waits on join and graph |
+| 6. End to end | Collect → graph on the new run_id, then the writer; second run → `cmp` identical | D8–D10 | Airflow DAG | ✅ both DAGs on 70dd1dabfed544b8, published ([report](report/REPORT.md)) |
 | 7. Outcomes | Suggestions used, edited, ignored | Continuous, later | — | ⛔ stage 6 |
 
 ### Benchmarks per part (the bars)
@@ -723,23 +723,23 @@ What the KB still can't answer, and what closes each.
 | tickets | 59,491 Spark tickets; bulk-closed share; rollback spot check of 20 tickets against the Jira UI | exact, 20 of 20 | ❌ spot check not done |
 | SZZ | Defects4J 130 labels: beats churn and latest | beats both | ✅ 44% vs 18% vs 16% |
 | scan | Django 265 of 265, 0 false; `code.sample` 2 of 2 | exact | ✅ |
-| resolve | 542 of 542 aliases; packages precision ≥ 0.98, recall 1,059 of 1,059 | as stated | ✅ on the old run |
+| resolve | 542 of 542 aliases; packages precision ≥ 0.98, full recall | as stated | ✅ on 70dd1dabfed544b8: 1,236 of 1,236 (1,059 of 1,059 on the old run) |
 | owners | Spark owner vs next author beats last toucher | > 18% | ✅ 20% vs 18% |
 | owners | Top 20 identity groups + every local-part merge with different names hand-checked | ≥ 19 of 20 right | ❌ |
 | gold set | Human spot check of 10 waits | ≥ 9 of 10 | ❌ 0 of 262 checked |
-| join | Call-site ID fixtures (insert, move, rename, duplicate, split); Django weekly replay | 100%, replay error ≤ 1% | ✅ fixtures (`tests/test_join.py`); replay ❌ |
+| join | Call-site ID fixtures (insert, move, rename, duplicate, split, a repo added to or dropped from the config); Django weekly replay | 100%, replay error ≤ 1% | ✅ fixtures (`tests/test_join.py`, 22 tests); replay ❌ |
 | join | Ticket → code on Spark, fix commits hidden | path, trace precision ≥ 0.90 | ❌ |
 | graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ✅ fixtures (`tests/test_graph.py`); hand checks ❌ |
-| new KB columns | `in_except`, `module_import`, `deprecation`, `receiver_from` on Django: hand-check 20 rows each | 20 of 20 | ❌ after the rerun |
+| new KB columns | `in_except`, `module_import`, `deprecation`, `receiver_from` on Django: hand-check 20 rows each | 20 of 20 | ❌ |
 
-### Order
+### What's left
 
-1. **Now:** the dynamic-config fixes, with level 1–3 green on Windows (and on a Mac).
-2. **New run_id:** collect, history, scan, resolve, owners. Rerun every benchmark above that says "old run". Do the cross-machine check (level 4) once, on two laptops.
-3. **Hand checks** that are still open: rollback spot check, identity groups, gold set waits, the 20-row checks of the new columns.
-4. **join, then graph**, each with its fixtures first (level 1), then its benchmark (level 5).
-5. **End to end** (level 6) and the freeze: CI runs levels 1–3 and the end-to-end golden on every push.
+Done: the dynamic-config fixes, the new run_id (70dd1dabfed544b8), join and graph with their fixtures, the cross-machine check, and the end-to-end run in Airflow. Still open:
+
+1. **Hand checks:** the rollback spot check, the identity groups, the gold-set waits, the 20-row checks of the new columns, and join's ticket → code sample.
+2. **Reruns** of the benchmarks above that still say "old run".
+3. **A second real run** with `--prev-run`, for the Django replay and join's matching on real data.
 
 ### CI
 
-[.github/workflows/ci.yml](../.github/workflows/ci.yml) is the smallest one that holds the line: a GitHub Actions job on `ubuntu-latest` and `windows-latest` with Python 3.11 and the pinned requirements, running `python -m unittest discover -s tests -t .` from `Data-Pipeline/`. Two operating systems on purpose: half of this change's bugs only showed on Windows. The writer's SQLite pin means its byte tests need the same SQLite everywhere: pin it in the image, and in CI install that version, or the writer's byte test skips with the reason.
+[.github/workflows/ci.yml](../.github/workflows/ci.yml) runs `python -m unittest discover -s tests -t .` from `Data-Pipeline/` on `ubuntu-latest` and `windows-latest`, with Python 3.11 and the pinned requirements, plus flake8, the Great Expectations tests and the DAG tests. Two operating systems on purpose: half of the dynamic-config bugs only showed on Windows. The writer's byte tests need the pinned SQLite. The image has it; where it's missing, the test skips and says why.

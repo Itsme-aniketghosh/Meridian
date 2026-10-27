@@ -36,7 +36,7 @@ jobs:
       - run: python -m venv /tmp/gx && /tmp/gx/bin/pip install -r requirements-gx.txt
       - run: /tmp/gx/bin/python -m unittest tests.test_gx -v
 
-  airflow:  # test_dag's last 3 tests: Airflow's own DagBag loads both DAGs, in the image the pipeline runs in
+  airflow:  # test_dag's last 5 tests: Airflow's own DagBag loads both DAGs, in the image the pipeline runs in
     runs-on: ubuntu-latest
     defaults:
       run:

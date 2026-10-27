@@ -1,6 +1,6 @@
-# Handover to Utkarsh: what's left on `report-redteam`
+# Handover: what's left on `report-redteam`
 
-Aniket's session wrote the report, red-teamed the pipeline and fixed what came up, all on branch `report-redteam`. **Don't merge it yet.** It needs the Airflow run below, and your review of the orchestration changes, which are in your area.
+An earlier session wrote the report, red-teamed the pipeline and fixed what came up, all on branch `report-redteam`. **Don't merge it yet.** It needs the Airflow run below, and your review of the orchestration changes, which are in your area.
 
 ## What's on the branch
 
@@ -13,7 +13,7 @@ Aniket's session wrote the report, red-teamed the pipeline and fixed what came u
 
 ## 1. Run Airflow on your Mac (the main thing left)
 
-On Aniket's Windows laptop the run never finished. history and resolve hit their 60-minute timeout on every try, because of the slow Docker folder mount ([Appendix A](../report/appendix-airflow.md)). On a Mac it should take about 12 minutes.
+On a Windows machine the run never finished. history and resolve hit their 60-minute timeout on every try, because of the slow Docker folder mount ([Appendix A](../report/appendix-airflow.md)). On a Mac it should take about 12 minutes.
 
 ```
 cd Data-Pipeline

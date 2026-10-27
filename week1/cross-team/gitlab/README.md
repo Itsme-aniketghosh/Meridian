@@ -210,12 +210,12 @@ sh code_run_all.sh      # copies GitLab's code history (1.2 GB) into data/code, 
 | `tix_*.py` | Closed-but-not-done, code changes naming issues, planned removals |
 | `code_*.py`, `code_run_all.sh` | Owners, risky files, and adding old code (from the code history) |
 
-**Result sheets (CSV), kept on Vishwa's machine only and not in git:**
+**Result sheets (CSV), kept on the analyst's machine only and not in git:**
 - `hand_check_17.csv`, `hand_check_40.csv`: the 57 stuck issues read by hand
 - `cross_hand_check_116.csv`: the team-blocks-team reading, with the 25 confirmed
 - `tix_closed_no_mr_20.csv`: 20 closed bugs read by hand
 
-Ask Vishwa for them.
+Ask the team for them.
 
 **In git:**
 - `labels_table.md`: ticket counts
