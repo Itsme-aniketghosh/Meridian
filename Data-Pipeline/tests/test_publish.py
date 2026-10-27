@@ -123,25 +123,31 @@ class Publish(Base):
         self.assertEqual(self.publish("R2", prev_run="R1")["run_id"], "R2")   # the same run again is no rollback
 
     def test_an_update_keeps_only_the_live_and_prev_runs_data(self):   # and the frozen team run
-        old, prev, new, frozen = "0" * 16, "1" * 16, "2" * 16, "f" * 16
+        old, prev, new, was, was_prev, frozen = "0" * 16, "1" * 16, "2" * 16, "3" * 16, "4" * 16, "f" * 16
         self.settings.write_text(SETTINGS + f'[pipeline]\nrun_id = "{frozen}"\n', encoding="utf-8")
         mirror = self.tmp / "snapshots" / "_cache" / "repos" / "o__r.git"
         mirror.mkdir(parents=True)
         git(mirror, "init", "--quiet")
         git(mirror, "-c", "user.name=t", "-c", "user.email=t@x", "commit", "--quiet", "--allow-empty", "-m", "c")
         sha = git(mirror, "rev-parse", "HEAD").strip()
-        for r in (old, prev, new, frozen):
-            self.block(self.tmp, r)
-            (self.tmp / "snapshots" / r).mkdir(parents=True)
-            git(mirror, "update-ref", f"refs/runs/{r}", sha)
+
+        def runs(*rs):
+            for r in rs:
+                self.block(self.tmp, r)
+                (self.tmp / "snapshots" / r).mkdir(parents=True)
+                git(mirror, "update-ref", f"refs/runs/{r}", sha)
+        runs(was, was_prev, frozen)
+        self.publish(was, prev_run=was_prev)   # live until new publishes: a rebuild of it may be linking its prev now
+        runs(old, prev, new)
         for other in ("snapshots/.staging-" + old, "out/" + old + ".tmp"):
             (self.tmp / other).mkdir()
         self.publish(new, prev_run=prev)
         self.assertEqual(sorted(p.name for p in (self.tmp / "snapshots").iterdir()),
-                         [".staging-" + old, prev, new, "_cache", frozen])
-        self.assertEqual(sorted(p.name for p in (self.tmp / "out").iterdir()), [old + ".tmp", prev, new, frozen])
+                         [".staging-" + old, prev, new, was, was_prev, "_cache", frozen])
+        self.assertEqual(sorted(p.name for p in (self.tmp / "out").iterdir()),
+                         [old + ".tmp", prev, new, was, was_prev, frozen])
         self.assertEqual(git(mirror, "for-each-ref", "--format=%(refname)", "refs/runs/").split(),
-                         [f"refs/runs/{prev}", f"refs/runs/{new}", f"refs/runs/{frozen}"])
+                         [f"refs/runs/{r}" for r in (prev, new, was, was_prev, frozen)])
 
     def test_a_partial_run_needs_allow_partial(self):   # a tracker down: code only
         self.block(self.tmp, status="partial")

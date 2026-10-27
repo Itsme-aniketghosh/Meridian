@@ -30,7 +30,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | S1 · Call sites remaining | ✅ | `staff_headline`: 1,526 present ([§1](#1-finding-the-work)) | |
 | S2 · Open tickets on the API | 🟡 | `staff_headline`: 0 | No real ticket maps to a call site (G7, [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md)) |
 | S3 · Hidden chains, "Jira links N of them" | 🟡 | `staff_chains`, `derive_depends_on`; `test_graph` 13 of 13; 0 `depends_on`, 43 chain rows all `untracked` ([§6](#6-cross-team-blocks-and-chains)) | Needs `blocked_by` and S2. Cross-repo chains on fixtures only |
-| S4 · Collisions | 🟡 | `derive_collides`: 0. Spark proxy: inside rule 32 of 32 pairs, model-read ([§4](#4-tickets-and-their-link-to-code), [GRAPH.md](../GRAPH.md)) | As S2. Function scope only, where 04 says "function or file". The 50 pairs aren't human-checked |
+| S4 · Collisions | 🟡 | `derive_collides`: 0. Spark proxy: inside rule 32 of 32 pairs real, all 50 hand-checked ([§4](#4-tickets-and-their-link-to-code), [GRAPH.md](../GRAPH.md)) | As S2. Function scope only, where 04 says "function or file" |
 | S5 · Duplicates | 🟡 | `derive_duplicates`: 0 | As S2. 05-test's "beats title similarity" not run |
 | S6 · Untracked work | ✅ | `staff_untracked`: 1,526 sites, 43 `untracked` chains, one per team | Right but total: no code dataset has a tracker |
 | S7 · Vague tickets flagged | 🟡 | `staff_vague`: 0, as it reads only tickets mapped to call sites. The data exists: 13,676 Jira tickets `desc_empty`, 6,045 open ones without "done when" | As S2. "Done when" is a `LIKE` heuristic, not yet compared with description length (05-test) |
@@ -259,4 +259,4 @@ Against `gitlab_stall_reasons.csv` (57 blocked issues, model-read), 41 are "upst
 
 *Precision (dots) and recall (squares) of the block against each answer key, with the 0.90 bar.*
 
-The code side clears the bar, and the ticket and cross-team side doesn't yet. The Spark and GitLab keys are model-read, not human-checked, so those scores are provisional.
+The code side clears the bar, and the ticket and cross-team side doesn't yet. The Spark pairs are hand-checked (50 of 50, agreeing with the model's read on all 50). Their 0.64 here is the path-level rule; the function-level inside rule keeps 32 pairs, all real (1.00, [GRAPH.md](../GRAPH.md)). The GitLab keys are model-read, not human-checked, so those scores are provisional.

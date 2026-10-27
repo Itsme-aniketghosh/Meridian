@@ -176,8 +176,8 @@ def push_check(base, repo, checkout, changed, cfg, settings, rng=None):
             versions.append(s | dict(call_site_id=i, detection="ast_unresolved",
                                      owner_team=owner[0][0] if owner else "unowned",
                                      bug_fixes=fixes[0][0] if fixes else 0, status="present"))
-            # shortcut: no resolver at push time, so a new site resolves to what its symbol resolved to in the base
-            # (the most common target). Upgrade with Phase 3's per-file resolve cache
+            # shortcut: the push-time resolver only drops look-alikes, so a new site resolves to what its symbol
+            # resolved to in the base (the most common target). Upgrade with Phase 3's per-file resolve cache
             target = rows(db, "SELECT resolved_to FROM resolution WHERE repo = ? AND symbol = ? "
                               "AND resolved_to IS NOT NULL "
                               "GROUP BY resolved_to ORDER BY count(*) DESC, resolved_to LIMIT 1", (repo, s["symbol"]))

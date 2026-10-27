@@ -706,7 +706,7 @@ What the KB still can't answer, and what closes each.
 
 | Level | What | When | Command | Today |
 |---|---|---|---|---|
-| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | ✅ 22 test files, 293 tests (14 skipped by design) |
+| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | ✅ 22 test files, 310 tests (19 skipped by design on Windows, 18 elsewhere) |
 | 2. Goldens | A frozen fixture → exact rows: scan's 15 cases, resolve's edge fixtures, the writer's same-bytes check. On the team run, md5 of the 24 output files against `golden/` | Every commit | same | ✅ |
 | 3. KB proof | This page's queries against the fixture KB | Every commit | `python -m unittest tests.test_kb` | ✅ 44 queries |
 | 4. Cross-machine | Same run on Windows and Mac (and the Airflow image): every `out/<run_id>/*.jsonl` sha256 equal | Every new run_id | `sha256sum out/<run_id>/*.jsonl` on each, compared | ✅ Windows and Docker on a Mac. One difference found, Jedi's folder order, now fixed ([RESOLVER.md](RESOLVER.md)) |
@@ -729,12 +729,12 @@ What the KB still can't answer, and what closes each.
 | gold set | Human spot check of 10 waits | ≥ 9 of 10 | ❌ 0 of 262 checked |
 | join | Call-site ID fixtures (insert, move, rename, duplicate, split, a repo added to or dropped from the config); Django weekly replay | 100%, replay error ≤ 1% | ✅ fixtures (`tests/test_join.py`, 22 tests); replay ❌ |
 | join | Ticket → code on Spark, fix commits hidden | path, trace precision ≥ 0.90 | ❌ |
-| graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ✅ fixtures (`tests/test_graph.py`); hand checks ❌ |
+| graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ✅ fixtures (`tests/test_graph.py`); ✅ Spark 50 of 50 hand-checked, inside rule 32 of 32 real (1.00); GitLab gold set ❌ 0 of 262 |
 | new KB columns | `in_except`, `module_import`, `deprecation`, `receiver_from` on Django: hand-check 20 rows each | 20 of 20 | ❌ |
 
 ### What's left
 
-Done: the dynamic-config fixes, the new run_id (70dd1dabfed544b8), join and graph with their fixtures, the cross-machine check, and the end-to-end run in Airflow. Still open:
+Done: the dynamic-config fixes, the new run_id (70dd1dabfed544b8), join and graph with their fixtures, the Spark collision hand check, the cross-machine check, and the end-to-end run in Airflow. Still open:
 
 1. **Hand checks:** the rollback spot check, the identity groups, the gold-set waits, the 20-row checks of the new columns, and join's ticket → code sample.
 2. **Reruns** of the benchmarks above that still say "old run".

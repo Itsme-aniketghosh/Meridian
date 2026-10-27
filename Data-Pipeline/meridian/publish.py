@@ -74,8 +74,10 @@ def main(run_id, config=CONFIG, root=None, prev_run=None, from_root=None, settin
                                                                   encoding="utf-8", newline="\n"))
     log(f"published {run_id} -> {dest / name}, {dest / 'latest.json'}")
     if not from_root:   # the rebuild root's snapshots/ and out/<prev> are links into the main root's
-        # and the frozen team run: the golden test and dvc.lock name it, and its refs keep its SHAs from git gc
-        keep = {run_id, doc["prev_run"], load_settings("pipeline", settings).get("run_id")}
+        # and the frozen team run: the golden test and dvc.lock name it, and its refs keep its SHAs from git gc.
+        # And the run live before this one with its prev: a rebuild of it running now links its prev's out/
+        keep = {run_id, doc["prev_run"], load_settings("pipeline", settings).get("run_id"),
+                *((live or {}).get(k) for k in ("run_id", "prev_run"))}
         for d in (base / "snapshots", handoff(cfg, run_id, base).parent):
             for p in d.glob("*"):
                 if re.fullmatch(r"[0-9a-f]{16}", p.name) and p.name not in keep:

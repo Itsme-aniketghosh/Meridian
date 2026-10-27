@@ -99,7 +99,7 @@ It runs daily at 02:00 UTC and on each "Update graph" click: in the UI, on the d
 
 Collect makes whatever run the inputs give, unless the trigger config `{"run_id": "...", "prev_run": "..."}` names one. Naming a run, or `{"force": true}`, skips the check. Run ids must be 16 hex characters, or the task fails before any command runs.
 
-`publish` refuses a run with a data error, a partial run (a tracker was down), and a rollback to an older snapshot, so the last good block stays live. After publishing it deletes old runs' `snapshots/` and `out/`, except the live run, its previous run and the frozen team run. With `[dvc] push = true` it also runs `dvc commit` and `dvc push`.
+`publish` refuses a run with a data error, a partial run (a tracker was down), and a rollback to an older snapshot, so the last good block stays live. After publishing it deletes old runs' `snapshots/` and `out/`, except the live run, its previous run and the frozen team run. With `[dvc] push = true` it also runs `dvc commit` and `dvc push`, but only for the run named in `settings.toml [pipeline] run_id`: it skips other runs and rebuilds, since `dvc.yaml` tracks that run only.
 
 ### meridian_rebuild
 
@@ -155,4 +155,4 @@ A failed task (after its retries), a data error or a warning sends one Slack or 
 python -m unittest discover -s tests -t .      # from Data-Pipeline/
 ```
 
-304 tests, 18 skipped by design on a plain machine (11 need the team data, 5 Airflow, 2 GX). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).
+310 tests, 19 skipped by design on a plain Windows machine (11 need the team data, 5 Airflow, 2 GX, 1 runs off Windows only). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).

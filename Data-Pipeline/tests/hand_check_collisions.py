@@ -17,6 +17,7 @@ import csv
 import re
 import subprocess
 import sys
+import webbrowser
 from collections import Counter
 from pathlib import Path
 
@@ -235,10 +236,7 @@ def ask(prompt):
 
 
 def open_url(url):
-    try:
-        subprocess.run(["open", url], check=False)
-    except FileNotFoundError:
-        pass
+    webbrowser.open(url)
 
 
 def summary(done, total):

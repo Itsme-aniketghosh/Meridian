@@ -19,7 +19,7 @@ python -m meridian.graph --run-id <run_id> --config meridian.toml      # from Da
 | Loads with the writer, same run same bytes | 0 diffs | both, on the KB fixture | ✅ |
 | Run on the team block `70dd1dabfed544b8` | runs without errors | **0** `blocked_by`, **25** `blast_radius`, **43** `chain` (all `untracked`, one per team), 2 s. `call_site.jsonl` sha256 `faff6dfd75931183`, as the team's | ✅ |
 | Precision ≥ 0.90 vs the GitLab gold set | | blocked: 0 of 262 human verdicts, and see Flags | ⏳ |
-| Hand-check 50 Spark collision pairs, generic names dropped first | precision reported | model read of 50 (`tests/collisions.py`, `labels/spark_collision_pairs_50.csv`): hunk headers **0.64**; with the inside rule **1.00** (32 of 32), missing no real pair. Human check of the same 50 still to do | 🟡 |
+| Hand-check 50 Spark collision pairs, generic names dropped first | precision reported | 50 of 50 hand-checked (`tests/hand_check_collisions.py`, `labels/spark_collision_pairs_50.csv`): 32 real, 18 not, and the model's read agrees on all 50. The inside rule keeps 32, all real: **1.00**, missing no real pair. Hunk headers alone would score 0.64 | ✅ |
 
 ## How it decides
 
@@ -52,9 +52,9 @@ python -m meridian.graph --run-id <run_id> --config meridian.toml      # from Da
 
 Week 1's collision check, on the team run: two first-parent Spark commits keyed to different Bug+Fixed tickets, within 30 days, editing the same function. 1,241 fix commits since 2024 → 682 ticket pairs share a file, 144 a function (by git's hunk header), 83 after dropping generic names (`apply`, `__hash__`, …) and names defined more than once in their file.
 
-**Hunk headers name the wrong function a third of the time.** A header is the nearest `def` above a change, so a new method, a class field or a sibling function added after `f` counts as an edit of `f`. In the 50-pair sample, 18 were like that (model read, notes in the CSV). The inside rule keeps an edit only if a changed line is in the function's body: below its def, deeper than it, with nothing in between back at the def's depth. On the same 50 it agrees with the read every time: 32 kept, all real. It leaves 62 pairs, 12 with both tickets open at once (what P3 fires on). The rule was written after reading this sample, and the read is a model's (`checked_by = model`), so a fresh sample or the human check has to confirm it.
+**Hunk headers name the wrong function a third of the time.** A header is the nearest `def` above a change, so a new method, a class field or a sibling function added after `f` counts as an edit of `f`. In the 50-pair sample, 18 were like that (hand-checked, notes in the CSV). The inside rule keeps an edit only if a changed line is in the function's body: below its def, deeper than it, with nothing in between back at the def's depth. On the same 50 it agrees with the hand check every time: 32 kept, all real, precision 1.00 against the 0.90 bar. It leaves 62 pairs, 12 with both tickets open at once (what P3 fires on). The rule was written after a model read this sample, and the person checking (`checked_by` initials) didn't see the model's verdicts, but a fresh sample would still test it on pairs it wasn't written from.
 
-**Proposal for the precision bar** (open): score graph's code-level rules on fixtures (100%) and on these Spark collisions (≥ 0.90 after the human check). The gold set then scores ticket-level chains (`ticket_link` based) once the stall stage builds them.
+**Precision bar:** graph's code-level rules are scored on fixtures (100%) and on these Spark collisions (≥ 0.90; the inside rule gets 1.00). The gold set then scores ticket-level chains (`ticket_link` based) once the stall stage builds them.
 
 ```
 python -m tests.collisions --run-id 70dd1dabfed544b8 --config meridian.toml    # keeps verdicts already filled in
