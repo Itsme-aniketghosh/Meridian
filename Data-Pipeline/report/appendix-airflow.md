@@ -66,4 +66,4 @@ docker compose up -d --build                                    # from Data-Pipe
 python report/gantt.py                                          # redraws the chart from report/airflow_run.csv
 ```
 
-`gantt.py` reads the per-task tries exported from the Airflow API into `report/airflow_run.csv`. The copy in git still holds the earlier Windows attempt, so export the Mac run's tries over it before redrawing.
+`gantt.py` reads the per-task tries exported from the Airflow API into `report/airflow_run.csv`: the Mac run above (`mac_forced_70dd`).

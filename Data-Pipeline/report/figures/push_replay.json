@@ -69,25 +69,21 @@
  "encode/django-rest-framework": {
   "default": {
    "checks": {
-    "P1": 1,
     "P9": 1
    },
    "skipped": null,
    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 46 changed files, 0 importers",
    "sample": [
-    "- **P1 Drift**: new call site of `url` at `tests/test_fields.py:1832`",
     "- **P9 Defect risk**: 505 lines \u00d7 46 files = 23230, over 2000"
    ]
   },
   "uncapped": {
    "checks": {
-    "P1": 1,
     "P9": 1
    },
    "skipped": null,
    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 46 changed files, 0 importers",
    "sample": [
-    "- **P1 Drift**: new call site of `url` at `tests/test_fields.py:1832`",
     "- **P9 Defect risk**: 505 lines \u00d7 46 files = 23230, over 2000"
    ]
   }
@@ -101,18 +97,12 @@
   },
   "uncapped": {
    "checks": {
-    "P1": 6,
     "P9": 1
    },
    "skipped": null,
    "scope": "**Meridian push check** \u00b7 base run `70dd1dabfed544b8` (2026-10-01T01:23:03Z) \u00b7 309 changed files, 26 importers",
    "sample": [
-    "- **P1 Drift**: new call site of `url` at `cms/plugin_base.py:535`",
-    "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:267`",
-    "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:292`",
-    "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:395`",
-    "- **P1 Drift**: new call site of `url` at `cms/toolbar/items.py:418`",
-    "- **P1 Drift**: new call site of `url` at `menus/base.py:42`"
+    "- **P9 Defect risk**: 2225 lines \u00d7 309 files = 687525, over 2000"
    ]
   }
  },

@@ -35,7 +35,7 @@ clone --shared wrote the mirror's absolute path: under Docker's /opt/meridian mo
   cloning fixture/repo
   checkout fixture/repo @ 327aca8975
 fix
-snapshots/79bd27343af076b2 already exists: same inputs, same run
+snapshots/a54fd30304de5c7b already exists: same inputs, same run
 ok
 test_follows_the_branch_and_pulls_only_what_changed (tests.test_collect.Collect.test_follows_the_branch_and_pulls_only_what_changed)
 #14-#16: a branch ref moves with the branch, snapshot_at is the pull time, and Jira is asked only for ... fix
@@ -46,7 +46,7 @@ fix
 fix
   checkout fixture/repo @ e9adde4d10
 fix
-snapshots/4061ea279b332e00 already exists: same inputs, same run
+snapshots/e4b7c5aa94bf25c1 already exists: same inputs, same run
 fix
   checkout fixture/repo @ e9adde4d10
 ok
@@ -68,7 +68,7 @@ test_run_id_follows_config_values_not_comments (tests.test_collect.Collect.test_
   cloning fixture/repo
   checkout fixture/repo @ 327aca8975
 fix
-snapshots/e1e4743be6a4f55a already exists: same inputs, same run
+snapshots/3ad2976c233ad4fe already exists: same inputs, same run
 fix
   checkout fixture/repo @ 327aca8975
 ok
@@ -80,7 +80,7 @@ test_same_inputs_same_run (tests.test_collect.Collect.test_same_inputs_same_run)
   cloning fixture/repo
   checkout fixture/repo @ 327aca8975
 fix
-snapshots/6cb8d48e967cbb7f already exists: same inputs, same run
+snapshots/6e169d72b7ce50ae already exists: same inputs, same run
 ok
 test_snapshot_at_in_the_future_is_refused (tests.test_collect.Collect.test_snapshot_at_in_the_future_is_refused) ... fix
   cloning fixture/repo
@@ -104,6 +104,7 @@ test_every_table_a_part_reads_is_written_upstream (tests.test_dag.Spec.test_ever
 test_fresh_refuses_the_main_data_root (tests.test_dag.Spec.test_fresh_refuses_the_main_data_root) ... ok
 test_fresh_replaces_last_weeks_real_prev_dir (tests.test_dag.Spec.test_fresh_replaces_last_weeks_real_prev_dir) ... ok
 test_gx_is_weekly_beside_bias_and_never_gates (tests.test_dag.Spec.test_gx_is_weekly_beside_bias_and_never_gates) ... ok
+test_only_a_run_id_reaches_a_command (tests.test_dag.Spec.test_only_a_run_id_reaches_a_command) ... ok
 test_publish_only_after_validate_and_bias_only_weekly (tests.test_dag.Spec.test_publish_only_after_validate_and_bias_only_weekly) ... ok
 test_renders_with_every_query_answered (tests.test_dashboard.Dashboard.test_renders_with_every_query_answered) ... ok
 test_every_username_is_scrubbed_any_case_words_too (tests.test_gold.Gold.test_every_username_is_scrubbed_any_case_words_too) ... ok
@@ -159,6 +160,8 @@ test_split_file_keeps_the_moved_sites_id (tests.test_join.TwoRuns.test_split_fil
 test_ticket_map_methods (tests.test_join.TwoRuns.test_ticket_map_methods) ... ok
 test_a_file_that_stops_parsing_keeps_its_sites (tests.test_join.Units.test_a_file_that_stops_parsing_keeps_its_sites) ... ok
 test_a_removed_id_comes_back_to_one_site_only (tests.test_join.Units.test_a_removed_id_comes_back_to_one_site_only) ... ok
+test_a_repo_new_to_the_config_has_only_new_sites (tests.test_join.Units.test_a_repo_new_to_the_config_has_only_new_sites) ... ok
+test_a_repo_that_left_the_config_stops (tests.test_join.Units.test_a_repo_that_left_the_config_stops) ... ok
 test_a_site_in_an_unparsed_file_is_not_handed_another_files_identical_line (tests.test_join.Units.test_a_site_in_an_unparsed_file_is_not_handed_another_files_identical_line) ... ok
 test_line_map (tests.test_join.Units.test_line_map) ... ok
 test_only_edit_roles_the_resolver_kept (tests.test_join.Units.test_only_edit_roles_the_resolver_kept) ... ok
@@ -235,12 +238,14 @@ test_a_partial_run_needs_allow_partial (tests.test_publish.Publish.test_a_partia
 test_a_rebuild_never_rolls_back_a_newer_run (tests.test_publish.Publish.test_a_rebuild_never_rolls_back_a_newer_run) ... ok
 test_a_rebuild_publishes_beside_the_update_never_over_it (tests.test_publish.Publish.test_a_rebuild_publishes_beside_the_update_never_over_it) ... ok
 test_a_validated_run_is_copied_and_becomes_latest (tests.test_publish.Publish.test_a_validated_run_is_copied_and_becomes_latest) ... ok
-test_bias_json_ships_beside_the_block_and_latest_has_the_config_hash (tests.test_publish.Publish.test_bias_json_ships_beside_the_block_and_latest_has_the_config_hash) ... ok
+test_an_update_keeps_only_the_live_and_prev_runs_data (tests.test_publish.Publish.test_an_update_keeps_only_the_live_and_prev_runs_data) ... ok
+test_an_update_never_rolls_back_a_newer_run (tests.test_publish.Publish.test_an_update_never_rolls_back_a_newer_run) ... ok
 test_dvc_only_for_the_run_dvc_yaml_tracks (tests.test_publish.Publish.test_dvc_only_for_the_run_dvc_yaml_tracks) ... ok
 test_errors_or_no_validate_refuse_and_the_last_good_block_stays_live (tests.test_publish.Publish.test_errors_or_no_validate_refuse_and_the_last_good_block_stays_live) ... ok
+test_only_the_block_ships_and_latest_has_the_config_hash (tests.test_publish.Publish.test_only_the_block_ships_and_latest_has_the_config_hash) ... ok
 test_a_new_repo_or_a_config_edit_is_new (tests.test_publish.Status.test_a_new_repo_or_a_config_edit_is_new) ... ok
 test_a_push_since_the_last_collect_is_seen (tests.test_publish.Status.test_a_push_since_the_last_collect_is_seen) ... ok
-test_an_old_publish_is_new_for_the_tickets (tests.test_publish.Status.test_an_old_publish_is_new_for_the_tickets) ... ok
+test_an_old_publish_is_new_for_the_tickets_once_a_repo_follows_a_branch (tests.test_publish.Status.test_an_old_publish_is_new_for_the_tickets_once_a_repo_follows_a_branch) ... ok
 test_new_commits_since_the_published_sha_are_new (tests.test_publish.Status.test_new_commits_since_the_published_sha_are_new) ... ok
 test_nothing_published_is_new (tests.test_publish.Status.test_nothing_published_is_new) ... ok
 test_the_tip_published_and_a_fresh_publish_is_nothing_new (tests.test_publish.Status.test_the_tip_published_and_a_fresh_publish_is_nothing_new) ... ok
@@ -250,6 +255,7 @@ test_command_line (tests.test_pushcheck.PushCheck.test_command_line) ... ok
 test_limits (tests.test_pushcheck.PushCheck.test_limits) ... ok
 test_never_writes_the_block (tests.test_pushcheck.PushCheck.test_never_writes_the_block) ... ok
 test_p1_drift_new_call_sites (tests.test_pushcheck.PushCheck.test_p1_drift_new_call_sites) ... ok
+test_p1_drops_a_look_alike_the_resolver_lands_elsewhere (tests.test_pushcheck.PushCheck.test_p1_drops_a_look_alike_the_resolver_lands_elsewhere) ... ok
 test_p2_legacy_use_new_calls_to_a_deprecated_symbol (tests.test_pushcheck.PushCheck.test_p2_legacy_use_new_calls_to_a_deprecated_symbol) ... ok
 test_p3_collision_edited_function_and_importer_but_not_own_team (tests.test_pushcheck.PushCheck.test_p3_collision_edited_function_and_importer_but_not_own_team) ... ok
 test_p4_new_block (tests.test_pushcheck.PushCheck.test_p4_new_block) ... ok
@@ -373,6 +379,6 @@ test_missing_values_warn_but_the_run_goes_on (tests.test_validate.Validate.test_
 test_one_query_per_table_gives_the_same_statistics_as_one_per_column (tests.test_validate.Validate.test_one_query_per_table_gives_the_same_statistics_as_one_per_column) ... ok
 
 ----------------------------------------------------------------------
-Ran 287 tests in 19.942s
+Ran 293 tests in 22.586s
 
 OK (skipped=14)

@@ -162,6 +162,14 @@ class PushCheck(unittest.TestCase):
         self.assertEqual([l.split(" at ")[1] for l in self.found("P1")],
                          ["`pay/charge.py:5`", "`search/q.py:2`", "`shared/client.py:2`"])
 
+    def test_p1_drops_a_look_alike_the_resolver_lands_elsewhere(self):   # the replay's `self.url = url`
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "pay").mkdir()
+            (Path(tmp) / "pay" / "hook.py").write_text("def wrap(verify_token):\n    return verify_token()\n\n"
+                                                       "def call():\n    verify_token()\n")
+            sites, _ = P.head_sites(REPO, Path(tmp), ["pay/hook.py"], CFG)
+        self.assertEqual(sorted(s["line"] for s in sites.values()), [5])   # the parameter's call is dropped
+
     def test_p2_legacy_use_new_calls_to_a_deprecated_symbol(self):
         self.assertEqual(len(self.found("P2")), 3)
         self.assertIn("`pay/charge.py:5` calls `verify_token`, marked `DeprecationWarning`", self.found("P2")[0])
