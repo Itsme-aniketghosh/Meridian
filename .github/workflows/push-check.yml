@@ -12,7 +12,7 @@
 #
 # Settings are Data-Pipeline/settings.toml [push_check], read from the Meridian checkout. No base block (the URL is
 # empty, or the fetch fails) = no comment (04-architecture §10). PRs from forks get a read-only token from GitHub, so
-# they get no comment either.
+# their check goes to the job's summary page instead of a comment.
 name: push-check
 
 on:
@@ -85,7 +85,7 @@ jobs:
           --checkout "$GITHUB_WORKSPACE/target" > "$RUNNER_TEMP/comment.md"
 
       - name: Post or update the one comment
-        if: steps.base.outputs.found
+        if: steps.base.outputs.found && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -107,3 +107,7 @@ jobs:
           else
             gh api -X POST "repos/$REPO/issues/$PR/comments" -F "body=@$body" > /dev/null
           fi
+
+      - name: A fork's PR - its token can't comment, so the check goes to the job's summary
+        if: steps.base.outputs.found && github.event.pull_request.head.repo.full_name != github.repository
+        run: cat "$RUNNER_TEMP/comment.md" >> "$GITHUB_STEP_SUMMARY"

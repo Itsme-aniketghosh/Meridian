@@ -38,7 +38,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from meridian import alert, publish                 # noqa: E402  (needs the path above)
 from meridian.common import data_root, load_config, load_settings, log   # noqa: E402
-from pipeline_spec import DAGS, GATES, checked_run, command   # noqa: E402
+from pipeline_spec import DAGS, GATES, alerted, checked_run, command   # noqa: E402
 
 PIPELINE, ORCH, SPECS = load_settings("pipeline"), load_settings("orchestration"), load_settings("dags")
 GX_PYTHON = load_settings("gx").get("python") or ORCH["python"]   # the GX audit's own environment
@@ -52,22 +52,26 @@ HANDOFF = load_config(HERE / PIPELINE["config"])["run"]["handoff_dir"]
 # update publishing mid-rebuild can't switch the run under it. checked() lets only a run_id (or '') into a command:
 # {"run_id": "../.."} would rm -rf the data root
 COLLECT = "checked(dag_run.conf.get('run_id')) or 'new'"
-FRESH = ("checked(dag_run.conf.get('run_id') or published('run_id') or params.run_id)",
-         "checked(dag_run.conf.get('prev_run') or published('prev_run') or params.prev_run)")
+# settings.toml [pipeline] run_id and prev_run are inlined, not params: the Trigger form fills conf from params
+FRESH = (f"checked(dag_run.conf.get('run_id') or published('run_id') or {PIPELINE['run_id']!r})",
+         f"checked(dag_run.conf.get('prev_run') or published('prev_run') or {PIPELINE.get('prev_run', '')!r})")
 RUN = {"update": "checked(dag_run.conf.get('run_id') or (ti.xcom_pull(task_ids='collect') or '').split('=')[-1])",
        "rebuild": "checked((ti.xcom_pull(task_ids='fresh') or '').split(' ')[0].split('=')[-1])"}
 # A trigger that names a run ({"run_id": ...}) or says {"force": true} wants that run made: anything_new doesn't get a
 # say (a rerun after a code fix, or of an older run: collect replays an existing snapshot's SHAs and snapshot_at)
 FORCE = "{{ checked(dag_run.conf.get('run_id')) or ('force' if dag_run.conf.get('force') else '') }}"
 # A rerun of the published run (forced) keeps its prev_run: matched against itself it would lose its history
-PREV = {"update": "checked(dag_run.conf.get('prev_run') or params.prev_run or "
+PREV = {"update": f"checked(dag_run.conf.get('prev_run') or {PIPELINE.get('prev_run', '')!r} or "
                   "(published('prev_run') if published('run_id') == r else published('run_id')))",
         "rebuild": "checked((ti.xcom_pull(task_ids='fresh') or '').split(' ')[-1].split('=')[-1])"}
 FIRST = {("update", "collect"): (COLLECT, "''"), ("rebuild", "fresh"): FRESH}   # the tasks that name the run
 
 
 def on_failure(context):
-    """Alert once a task has failed for good (after its retries)."""
+    """Alert once a task has failed for good (after its retries), unless the part already sent its own (exit code
+    ALERTED)."""
+    if alerted(context.get("exception")):
+        return
     ti = context["task_instance"]
     alert.send(f"meridian: {ti.dag_id}.{ti.task_id} failed (try {ti.try_number})",
                [str(context.get("exception") or ""), f"log: {ti.log_url}"], "failure")
@@ -82,7 +86,7 @@ def gate(cmd, go, stop, force=""):
     p = subprocess.run(cmd, shell=True, cwd=HERE, capture_output=True, text=True)
     log(f"{p.stdout}\n{p.stderr}")
     if p.returncode not in (go, stop):
-        raise RuntimeError(f"exit {p.returncode}: {cmd}")
+        raise RuntimeError(f"exit code {p.returncode}: {cmd}")   # = alerted()'s form
     return p.returncode == go
 
 
@@ -103,7 +107,7 @@ def build(name, description):
         catchup=False,
         max_active_runs=1,                           # two runs would write the same out/<run_id>/ files
         max_active_tasks=ORCH.get("max_active_tasks", 4),
-        params={"run_id": PIPELINE["run_id"], "prev_run": PIPELINE.get("prev_run", "")},
+        params={"run_id": "", "prev_run": "", "force": False},   # the Trigger form's conf: empty = the usual run
         user_defined_macros={"published": lambda key: publish.latest(MAIN).get(key) or "", "checked": checked_run},
         default_args={
             "retries": ORCH.get("retries", 2),

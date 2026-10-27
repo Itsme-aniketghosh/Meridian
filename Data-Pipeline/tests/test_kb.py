@@ -13,6 +13,8 @@ import json
 import re
 import sqlite3
 import sys
+import time
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -264,6 +266,65 @@ class KnowledgeBase(unittest.TestCase):
         self.assertEqual({str(d): n for d, n in db.execute(q["derive_blast_radius"])}, json.loads(row["by_depth"]))
         db.execute("UPDATE asof SET symbol = NULL")  # NULL: every symbol
         self.assertEqual(db.execute(q["staff_headline"]).fetchall(), [(9, 5)])
+
+    def test_query_literals_are_meridian_toml_values(self):
+        """SQLite can't read meridian.toml, so the queries spell its values out: each must still be its key's."""
+        cfg = tomllib.loads((DOC.parent / "meridian.toml").read_text(encoding="utf-8"))
+        r, risky = cfg["rules"], cfg["graph"]["risky_bug_fixes"]
+        done = "(" + ", ".join(f"'{s.lower()}'" for s in r["done_statuses"]) + ")"
+        q = {name: sql for name, sql, _, _ in blocks()}
+        for name, text in [
+                ("setup", f"lower(status) NOT IN {done}"),                                    # done_statuses
+                ("stall_ticket_mismatch", f"lower(t.status) IN {done}"),
+                ("owner_teams", f"days >= {r['stall_days']}"),
+                ("owner_teams", f"s.bug_fixes >= {risky}"),                                   # [graph] risky_bug_fixes
+                ("p7_risky_edit", f"f.bug_fixes >= {risky}"),
+                ("stall_fragility_freeze", f"min(bug_fixes) >= {risky}"),
+                ("owner_eta", f"removed < {r['eta_min_removals']}"),
+                ("owner_eta", f"left_ * {float(r['eta_window_days'])} / removed"),
+                ("owner_eta", f"julianday(asof.at) - {r['eta_window_days']}) AS removed"),
+                ("stall_orphaned_owner", f">= {cfg['ownership']['orphan_silent_days']};"),
+                ("stall_competing_load", f"julianday(asof.at) - {r['stall_days']}) AS recent"),
+                ("stall_competing_load", f"julianday(asof.at) - {r['stall_days']} AND EXISTS"),
+                ("stall_competing_load",                                    # the usual window, per stall_days
+                 f"- {r['competing_load_usual_days'] + r['stall_days']} AND julianday(asof.at) - {r['stall_days']}) "
+                 f"/ {r['competing_load_usual_days'] / r['stall_days']} AS usual"),
+                ("stall_competing_load", f"recent >= {r['competing_load_ratio']} * usual")]:
+            with self.subTest(name=name, text=text):
+                self.assertIn(text, q[name], f"{name} no longer matches meridian.toml: change both together")
+
+    def test_derive_blocked_by_leaves_out_unowned_like_graph(self):
+        db, q = build(), {name: sql for name, sql, _, _ in blocks()}
+        db.execute("UPDATE call_site SET owner_team = 'unowned' WHERE call_site_id = 'S_shared'")
+        db.executescript(q["setup"])
+        self.assertEqual(db.execute(q["derive_blocked_by"]).fetchall(), [])
+
+    def test_same_path_in_another_repo_is_another_file(self):
+        """acme/other has a cart/pricing.py too, with its own test: no collision with acme/shop's, and acme/shop's
+        cart/pricing.py still has no test."""
+        db, q = build(), {name: sql for name, sql, _, _ in blocks()}
+        db.execute("INSERT INTO call_site VALUES ('S_o', 'R2', 'acme/other', 'cart/pricing.py', 214, 4, 'price', ?, "
+                   "'call', 'ast_resolved', 'none', 0, 'ops', 0, 'present', ?, ?, ?)", (SYMBOL, R2[1], "e" * 40, R2[1]))
+        db.execute("INSERT INTO ticket_map VALUES ('R2', 'OPS-1', 'call_site', 'S_o', 'symbol')")
+        db.execute("INSERT INTO module_import (run_id, repo, path, line, module, name, is_test) "
+                   "VALUES ('R2', 'acme/other', 'tests/test_pricing.py', 1, 'cart.pricing', 'price', 1)")
+        db.execute("UPDATE asof SET repo = NULL")  # NULL: every repo
+        db.executescript(q["setup"])
+        expect = {name: e for name, _, _, e in blocks()}
+        for name in ("derive_collides", "stall_test_gap"):
+            with self.subTest(name):
+                self.assertEqual([list(r) for r in db.execute(q[name]).fetchall()], expect[name])
+
+    def test_order_of_work_ends_on_a_blocked_by_cycle(self):
+        db, q = build(), {name: sql for name, sql, _, _ in blocks()}
+        db.executemany("INSERT INTO blocked_by VALUES ('R2', ?, ?, 'f', 1, 'resolved')",
+                       [("S_c1", "S_c3"), ("S_c3", "S_c1")])
+        db.executescript(q["setup"])
+        stop = time.monotonic() + 10
+        db.set_progress_handler(lambda: time.monotonic() > stop, 10000)  # the old query never ends: interrupt it
+        got = [i for (i,) in db.execute(q["order_of_work"])]
+        present = [i for (i,) in db.execute("SELECT call_site_id FROM site_now WHERE status = 'present'")]
+        self.assertEqual(sorted(got), sorted(present))
 
 
 if __name__ == "__main__":

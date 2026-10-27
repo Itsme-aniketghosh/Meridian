@@ -19,9 +19,11 @@ meridian.writer), stats.json and anomalies.json. Neither JSON is a table: the wr
    dates      a time before the earliest plausible date, or after the run's snapshot_at, above its allowance  warn
    outliers   a number column's share of values beyond Q1 - k*IQR or Q3 + k*IQR above the limit               warn
    drift      since --prev-run, a table of min_rows or more moved past the limit, or a column became one value  warn
-An error exits 1, so Airflow fails the task and alerts; warnings alert and the run goes on. Both go to meridian.alert.
+An error alerts and exits 4 (ALERTED), so Airflow fails the task and its on_failure doesn't alert again; warnings
+alert and the run goes on. Both go to meridian.alert.
 """
 import json
+import logging
 import math
 import re
 import sqlite3
@@ -32,6 +34,7 @@ from meridian import alert
 from meridian.common import CONFIG, data_root, handoff, load_config, load_settings, log, parser
 
 NUMERIC = ("INTEGER", "REAL")
+ALERTED = 4   # exit code of a task that sent its own alert: the DAG's on_failure skips its own
 
 
 def column_stats(db, table, cols, top_n):
@@ -135,7 +138,11 @@ def check(db, spec, stats, exp, prev):
 
     for metric, floor in sorted(exp.get("coverage", {}).items()):
         row = db.execute("SELECT numerator, denominator FROM coverage WHERE metric = ?", (metric,)).fetchone()
-        if row and row[1] and row[0] / row[1] < floor:
+        if not row and db.execute("SELECT 1 FROM run WHERE status = 'partial'").fetchone():
+            continue   # a tracker-down run has no ticket metrics; publish still needs --allow-partial
+        if not row or not row[1]:   # every call site gone, or no tickets at all: nothing covered is no pass
+            add("error", "coverage", metric, "no such metric" if not row else f"0 of 0, floor {floor}")
+        elif row[0] / row[1] < floor:
             add("error", "coverage", metric, f"{row[0]:,} / {row[1]:,} = {row[0] / row[1]:.3f}, floor {floor}")
 
     limits = exp.get("missing", {})
@@ -171,6 +178,14 @@ def check(db, spec, stats, exp, prev):
     return found
 
 
+def alerted(why):
+    """SystemExit(why) that exits ALERTED. An int code prints nothing, so why is logged first."""
+    log(why, level=logging.ERROR)
+    e = SystemExit(why)
+    e.code = ALERTED
+    return e
+
+
 def main(run_id, config=CONFIG, root=None, prev_run=None, settings=None):
     cfg = load_config(config)
     out = handoff(cfg, run_id, Path(root or data_root()))
@@ -188,7 +203,7 @@ def main(run_id, config=CONFIG, root=None, prev_run=None, settings=None):
         alert.send(f"meridian {run_id}: {why}", [str(e)], "error", settings)
         (out / "anomalies.json").write_text(json.dumps([["error", kind, "", str(e)]], indent=1) + "\n",
                                             encoding="utf-8", newline="\n")
-        raise SystemExit(f"{kind}: {e}")
+        raise alerted(f"{kind}: {e}")
 
     spec = W.tables(W.SCHEMA.read_text(encoding="utf-8"))
     with sqlite3.connect(out / "meridian.sqlite") as db:
@@ -218,7 +233,7 @@ def main(run_id, config=CONFIG, root=None, prev_run=None, settings=None):
                    [f"{sev} {kind} {where}: {msg}" for sev, kind, where, msg in found],
                    "error" if errors else "warn", settings)
     if errors:
-        raise SystemExit(f"{len(errors)} data errors: see {out / 'anomalies.json'}")
+        raise alerted(f"{len(errors)} data errors: see {out / 'anomalies.json'}")
     return stats, found
 
 

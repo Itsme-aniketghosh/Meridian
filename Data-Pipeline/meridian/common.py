@@ -177,6 +177,18 @@ class Cache:
         atomic_write(self.path, lambda tmp: tmp.write_text(json.dumps(self.new, ensure_ascii=False), encoding="utf-8"))
 
 
+def read_env(path):
+    """{KEY: value} from a .env file, {} if there is none. '#' lines are skipped; spaces around KEY and value, and one
+    pair of quotes around the value, are stripped (KEY = "v" is v, as docker compose reads it)."""
+    env = {}
+    for line in Path(path).read_text(encoding="utf-8").splitlines() if Path(path).exists() else []:
+        key, eq, v = line.partition("=")
+        if eq and not line.lstrip().startswith("#"):
+            v = v.strip()
+            env[key.strip()] = v[1:-1] if len(v) > 1 and v[0] == v[-1] and v[0] in "\"'" else v
+    return env
+
+
 def handoff(cfg, run_id, root=None):
     """out/<run_id>/: one <table>.jsonl per table, loaded by the writer."""
     return Path(root or data_root()) / cfg["run"]["handoff_dir"].format(run_id=run_id)

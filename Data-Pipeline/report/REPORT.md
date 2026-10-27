@@ -50,7 +50,7 @@ The weak spot is the cross-team part. None of our public datasets has both a tic
 
 ### 2.3 Test modules
 
-310 unit tests (`unittest`), one test file per part, all passing. 19 are skipped on a plain Windows machine: 18 need Airflow, GX or the team's private data, and 1 runs on Mac and Linux only. Those run in their own CI jobs, in CI's Linux job, or with the team data. Edge cases are built into the fixtures: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
+339 unit tests (`unittest`), one test file per part, all passing. 19 are skipped on a plain Windows machine: 18 need Airflow, GX or the team's private data, and 1 runs on Mac and Linux only. Those run in their own CI jobs, in CI's Linux job, or with the team data. Edge cases are built into the fixtures: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
 
 ```
 python -m unittest discover -s tests -t .        # from Data-Pipeline/
@@ -204,7 +204,7 @@ What still falls short:
 
 - No real alert channel yet, and the DVC remote is a placeholder.
 - The cross-team features only show their full value on the fixture, because no public dataset has both tickets and tracked code. With one run there's no burndown yet either.
-- Two weaker signals didn't make it. We wrote the pass bars down before running them ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a "bug with no reproduction" check didn't predict Spark's vague bugs, and timing evidence didn't lift the GitLab cross-team rule (precision 0.25 against a 0.50 bar).
+- Two weaker signals didn't make it. We wrote the pass bars down before running them ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a "bug with no reproduction" check didn't predict Spark's vague bugs, and timing evidence didn't lift the GitLab cross-team rule (precision 0.25 against a 0.50 bar, by model labels; 2 of 10 on the 50 model-drafted, person-reviewed rows).
 
 ## Appendices
 

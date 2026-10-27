@@ -152,7 +152,7 @@ SELECT DISTINCT repo, path, replace(CASE WHEN path LIKE '%/__init__.py' THEN sub
                                          ELSE substr(path, 1, length(path) - 3) END, '/', '.') AS module FROM site_now;
 -- module m is imported by a row that names it, or by `from parent import leaf`
 CREATE TEMP VIEW imports_of AS
-SELECT f.path AS imported, f.module, i.path AS importer, i.is_test
+SELECT f.repo, f.path AS imported, f.module, i.path AS importer, i.is_test
 FROM file_module f JOIN module_import i ON i.repo = f.repo AND (i.module = f.module OR i.module || '.' || i.name = f.module);
 ```
 
@@ -408,8 +408,8 @@ SELECT owner_team FROM site_now WHERE status = 'present' GROUP BY owner_team HAV
 ```sql
 -- name: stall_test_gap
 -- expect: [["billing", "billing.invoice"], ["checkout", "cart.pricing"], ["payments", "pay.charge"], ["platform", "shared.client"]]
-SELECT DISTINCT s.owner_team, f.module FROM site_now s JOIN file_module f ON f.path = s.path
-WHERE s.status = 'present' AND s.path NOT IN (SELECT imported FROM imports_of WHERE is_test = 1)
+SELECT DISTINCT s.owner_team, f.module FROM site_now s JOIN file_module f ON f.repo = s.repo AND f.path = s.path
+WHERE s.status = 'present' AND (s.repo, s.path) NOT IN (SELECT repo, imported FROM imports_of WHERE is_test = 1)
 ORDER BY s.owner_team;
 ```
 
@@ -441,7 +441,8 @@ SELECT team, recent, usual FROM w WHERE on_sites = 0 AND usual > 0 AND recent >=
 SELECT a.call_site_id, b.call_site_id, 1
 FROM site_now a JOIN resolution r ON r.repo = a.repo AND r.path = a.path AND r.line = a.line AND r.col = a.col
 JOIN site_now b ON r.receiver_from = b.repo || ':' || b.path || ':' || b.scope
-WHERE a.status = 'present' AND b.status = 'present' AND a.owner_team != b.owner_team;
+WHERE a.status = 'present' AND b.status = 'present' AND a.owner_team != b.owner_team
+  AND 'unowned' NOT IN (a.owner_team, b.owner_team);
 ```
 
 ```sql
@@ -480,7 +481,7 @@ Collides: two open tickets mapped to the same function that don't already share 
 -- expect: [["CHK-298", "CHK-311", "cart/pricing.py:price"], ["CHK-298", "PAY-12", "cart/pricing.py:price"]]
 SELECT DISTINCT a.key, b.key, sa.path || ':' || sa.scope
 FROM ticket_map a JOIN site_now sa ON sa.call_site_id = a.target
-JOIN ticket_map b ON b.key > a.key JOIN site_now sb ON sb.call_site_id = b.target AND sb.path = sa.path AND sb.scope = sa.scope
+JOIN ticket_map b ON b.key > a.key JOIN site_now sb ON sb.call_site_id = b.target AND sb.repo = sa.repo AND sb.path = sa.path AND sb.scope = sa.scope
 WHERE a.target_kind = 'call_site' AND b.target_kind = 'call_site'
   AND a.key IN (SELECT key FROM ticket_open) AND b.key IN (SELECT key FROM ticket_open)
   AND NOT EXISTS (SELECT 1 FROM ticket_map x JOIN ticket_map y ON x.target = y.target WHERE x.key = a.key AND y.key = b.key)
@@ -500,7 +501,8 @@ JOIN ticket_map ma ON ma.target = b.call_site_id JOIN ticket_map mb ON mb.target
 WITH RECURSIVE lvl(id, n) AS (
   SELECT call_site_id, 0 FROM site_now WHERE status = 'present'
   UNION ALL
-  SELECT b.call_site_id, l.n + 1 FROM blocked_by b JOIN lvl l ON l.id = b.blocker_id)
+  SELECT b.call_site_id, l.n + 1 FROM blocked_by b JOIN lvl l ON l.id = b.blocker_id
+  WHERE l.n < (SELECT count(*) FROM blocked_by))   -- a blocked_by cycle stops: no chain is longer than the edges
 SELECT s.call_site_id FROM site_now s JOIN (SELECT id, max(n) AS n FROM lvl GROUP BY id) v ON v.id = s.call_site_id
 ORDER BY v.n, s.bug_fixes DESC, s.call_site_id;
 ```
@@ -706,7 +708,7 @@ What the KB still can't answer, and what closes each.
 
 | Level | What | When | Command | Today |
 |---|---|---|---|---|
-| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | ✅ 22 test files, 310 tests (19 skipped by design on Windows, 18 elsewhere) |
+| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | ✅ 22 test files, 339 tests (19 skipped by design on Windows, 18 elsewhere) |
 | 2. Goldens | A frozen fixture → exact rows: scan's 15 cases, resolve's edge fixtures, the writer's same-bytes check. On the team run, md5 of the 24 output files against `golden/` | Every commit | same | ✅ |
 | 3. KB proof | This page's queries against the fixture KB | Every commit | `python -m unittest tests.test_kb` | ✅ 44 queries |
 | 4. Cross-machine | Same run on Windows and Mac (and the Airflow image): every `out/<run_id>/*.jsonl` sha256 equal | Every new run_id | `sha256sum out/<run_id>/*.jsonl` on each, compared | ✅ Windows and Docker on a Mac. One difference found, Jedi's folder order, now fixed ([RESOLVER.md](RESOLVER.md)) |
@@ -726,7 +728,7 @@ What the KB still can't answer, and what closes each.
 | resolve | 542 of 542 aliases; packages precision ≥ 0.98, full recall | as stated | ✅ on 70dd1dabfed544b8: 1,236 of 1,236 (1,059 of 1,059 on the old run) |
 | owners | Spark owner vs next author beats last toucher | > 18% | ✅ 20% vs 18% |
 | owners | Top 20 identity groups + every local-part merge with different names hand-checked | ≥ 19 of 20 right | ❌ |
-| gold set | Human spot check of 10 waits | ≥ 9 of 10 | ❌ 0 of 262 checked |
+| gold set | Human spot check of 10 waits | ≥ 9 of 10 | ❌ the check done is a random 50 of 262 rows, model-drafted and person-reviewed, not 10 picked waits. In the 50, the model's `wait` rows hold 4 of 7; its 1 `planned` and 3 `partial` all hold (`unclear` 2 of 20, `no` 9 of 14, `no_evidence` 0 of 5 match). The model agrees with the reviewed verdict on 18 of 50 |
 | join | Call-site ID fixtures (insert, move, rename, duplicate, split, a repo added to or dropped from the config); Django weekly replay | 100%, replay error ≤ 1% | ✅ fixtures (`tests/test_join.py`, 22 tests); replay ❌ |
 | join | Ticket → code on Spark, fix commits hidden | path, trace precision ≥ 0.90 | ❌ |
 | graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ✅ fixtures (`tests/test_graph.py`); ✅ Spark 50 of 50 hand-checked, inside rule 32 of 32 real (1.00); GitLab gold set ❌ 0 of 262 |
@@ -736,10 +738,10 @@ What the KB still can't answer, and what closes each.
 
 Done: the dynamic-config fixes, the new run_id (70dd1dabfed544b8), join and graph with their fixtures, the Spark collision hand check, the cross-machine check, and the end-to-end run in Airflow. Still open:
 
-1. **Hand checks:** the rollback spot check, the identity groups, the gold-set waits, the 20-row checks of the new columns, and join's ticket → code sample.
+1. **Hand checks:** the rollback spot check, the identity groups, more gold-set rows (50 of 262 checked, the model's waits hold only 4 of 7), the 20-row checks of the new columns, and join's ticket → code sample.
 2. **Reruns** of the benchmarks above that still say "old run".
 3. **A second real run** with `--prev-run`, for the Django replay and join's matching on real data.
 
 ### CI
 
-[.github/workflows/ci.yml](../.github/workflows/ci.yml) runs `python -m unittest discover -s tests -t .` from `Data-Pipeline/` on `ubuntu-latest` and `windows-latest`, with Python 3.11 and the pinned requirements, plus flake8, the Great Expectations tests and the DAG tests. Two operating systems on purpose: half of the dynamic-config bugs only showed on Windows. The writer's byte tests need the pinned SQLite. The image has it; where it's missing, the test skips and says why.
+[.github/workflows/ci.yml](../.github/workflows/ci.yml) runs `python -m unittest discover -s tests -t .` from `Data-Pipeline/` on `ubuntu-latest` and `windows-latest`, with Python 3.11 and the pinned requirements, plus flake8, the Great Expectations tests and the DAG tests. Two operating systems on purpose: half of the dynamic-config bugs only showed on Windows. The golden tests compare table rows, not the .sqlite file, so the SQLite version doesn't matter.

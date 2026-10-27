@@ -18,7 +18,7 @@ python -m meridian.graph --run-id <run_id> --config meridian.toml      # from Da
 | The KB's hand-filled rows | exact | graph computes the KB fixture's `blocked_by`, `blast_radius` and `chain` rows exactly, from that fixture's inputs | ✅ |
 | Loads with the writer, same run same bytes | 0 diffs | both, on the KB fixture | ✅ |
 | Run on the team block `70dd1dabfed544b8` | runs without errors | **0** `blocked_by`, **25** `blast_radius`, **43** `chain` (all `untracked`, one per team), 2 s. `call_site.jsonl` sha256 `faff6dfd75931183`, as the team's | ✅ |
-| Precision ≥ 0.90 vs the GitLab gold set | | blocked: 0 of 262 human verdicts, and see Flags | ⏳ |
+| Precision ≥ 0.90 vs the GitLab gold set | | blocked: 50 of 262 rows model-drafted, person-reviewed, and the original model verdict agrees with the reviewed one on 18 of 50. See Flags | ⏳ |
 | Hand-check 50 Spark collision pairs, generic names dropped first | precision reported | 50 of 50 hand-checked (`tests/hand_check_collisions.py`, `labels/spark_collision_pairs_50.csv`): 32 real, 18 not, and the model's read agrees on all 50. The inside rule keeps 32, all real: **1.00**, missing no real pair. Hunk headers alone would score 0.64 | ✅ |
 
 ## How it decides

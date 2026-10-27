@@ -58,16 +58,19 @@ def local_part(email):
 
 
 def name_words(name):
-    """Lowercase words, accents dropped: 'Doe, Jane (CONT)' -> doe jane cont; an email as a name -> its local part."""
+    """Lowercase words, accents and (parts) dropped: 'Doe, Jane (CONT)' -> doe jane; an email as a name -> its local
+    part."""
     name = "".join(c for c in unicodedata.normalize("NFKD", name.split("@")[0].lower()) if not unicodedata.combining(c))
-    return re.findall(r"[^\W_]+", name)   # \w without _: snake_case splits, as before
+    return re.findall(r"[^\W_]+", re.sub(r"\([^)]*\)", " ", name))   # \w without _: snake_case splits, as before
 
 
 def surnames_clash(a, b):
     """Two full names that can't be one person: neither one's last word is in the other ('Omar Pell', 'Omar Wyndham').
-    Swapped order ('Xiang Li', 'Li Xiang') doesn't clash, and a one-word name (a handle) clashes with nothing."""
+    Swapped order ('Xiang Li', 'Li Xiang') doesn't clash, an initial matches its word ('Jane D.', 'Jane Doe'), and a
+    one-word name (a handle) clashes with nothing."""
     wa, wb = name_words(a), name_words(b)
-    return len(wa) > 1 and len(wb) > 1 and wa[-1] not in wb and wb[-1] not in wa
+    has = lambda last, words: any(w == last or len(last) == 1 and w.startswith(last) for w in words)
+    return len(wa) > 1 and len(wb) > 1 and not has(wa[-1], wb) and not has(wb[-1], wa)
 
 
 def read_people(co, sha):

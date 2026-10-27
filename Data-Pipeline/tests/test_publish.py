@@ -31,8 +31,9 @@ SETTINGS = """\
 [publish]
 dir = "published"
 [status]
-mirrors = "mirrors"
 stale_after_hours = 24
+[collect]
+mirrors = "mirrors"
 [dvc]
 push = false
 """
@@ -105,13 +106,16 @@ class Publish(Base):
 
     def test_a_rebuild_never_rolls_back_a_newer_run(self):
         self.block(self.tmp)
-        self.block(self.tmp / "rebuild")
+        self.block(self.tmp / "rebuild", db=b"rebuilt")
         self.publish("R1")
         self.block(self.tmp, "R2")
         self.publish("R2", prev_run="R1")
         with self.assertRaisesRegex(SystemExit, "R2 is live now"):
             self.publish("R1", from_root=self.tmp / "rebuild")
         self.assertEqual(Pub.latest(self.tmp, self.settings)["run_id"], "R2")
+        # refused before the swap: the update's out/R1 is untouched, and no tmp is left
+        self.assertEqual((self.tmp / "out" / "R1" / "meridian.sqlite").read_bytes(), b"block")
+        self.assertEqual(sorted(p.name for p in (self.tmp / "out").iterdir()), ["R1", "R2"])
 
     def test_an_update_never_rolls_back_a_newer_run(self):   # an older run_id triggered, or a slow update
         self.block(self.tmp, "R2", snapshot_at="2026-10-02T00:00:00Z")
@@ -125,7 +129,7 @@ class Publish(Base):
     def test_an_update_keeps_only_the_live_and_prev_runs_data(self):   # and the frozen team run
         old, prev, new, was, was_prev, frozen = "0" * 16, "1" * 16, "2" * 16, "3" * 16, "4" * 16, "f" * 16
         self.settings.write_text(SETTINGS + f'[pipeline]\nrun_id = "{frozen}"\n', encoding="utf-8")
-        mirror = self.tmp / "snapshots" / "_cache" / "repos" / "o__r.git"
+        mirror = self.tmp / "mirrors" / "o__r.git"
         mirror.mkdir(parents=True)
         git(mirror, "init", "--quiet")
         git(mirror, "-c", "user.name=t", "-c", "user.email=t@x", "commit", "--quiet", "--allow-empty", "-m", "c")
@@ -138,16 +142,24 @@ class Publish(Base):
                 git(mirror, "update-ref", f"refs/runs/{r}", sha)
         runs(was, was_prev, frozen)
         self.publish(was, prev_run=was_prev)   # live until new publishes: a rebuild of it may be linking its prev now
+        pub = self.tmp / "published"
+        for f in (f"{old}.sqlite", f"{old}.rebuild.sqlite", f"{frozen}.sqlite", f"gx/{old}/index.html"):
+            (pub / f).parent.mkdir(parents=True, exist_ok=True)
+            (pub / f).write_bytes(b"block")
         runs(old, prev, new)
         for other in ("snapshots/.staging-" + old, "out/" + old + ".tmp"):
             (self.tmp / other).mkdir()
         self.publish(new, prev_run=prev)
         self.assertEqual(sorted(p.name for p in (self.tmp / "snapshots").iterdir()),
-                         [".staging-" + old, prev, new, was, was_prev, "_cache", frozen])
+                         [".staging-" + old, prev, new, was, was_prev, frozen])
         self.assertEqual(sorted(p.name for p in (self.tmp / "out").iterdir()),
                          [old + ".tmp", prev, new, was, was_prev, frozen])
         self.assertEqual(git(mirror, "for-each-ref", "--format=%(refname)", "refs/runs/").split(),
                          [f"refs/runs/{r}" for r in (prev, new, was, was_prev, frozen)])
+        # published blocks too, never latest.json or the GX docs
+        self.assertEqual(sorted(p.name for p in pub.iterdir()),
+                         [f"{new}.sqlite", f"{was}.sqlite", f"{frozen}.sqlite", "gx", "latest.json"])
+        self.assertTrue((pub / "gx" / old / "index.html").exists())
 
     def test_a_partial_run_needs_allow_partial(self):   # a tracker down: code only
         self.block(self.tmp, status="partial")
@@ -172,6 +184,12 @@ class Publish(Base):
             self.settings.write_text(self.settings.read_text().replace("R0", "R1"), encoding="utf-8")
             self.publish("R1")
         self.assertEqual([c.args[0][3] for c in run.call_args_list], ["commit", "push"])
+        # a failed push after latest.json is written: alerted, the publish stays live and the task succeeds
+        with mock.patch("subprocess.run", side_effect=Pub.subprocess.CalledProcessError(1, "dvc push")), \
+                mock.patch.object(alert, "send") as sent:
+            self.assertEqual(self.publish("R1")["run_id"], "R1")
+        self.assertEqual((sent.call_args.args[0], sent.call_args.args[2]), ("meridian R1: published, but dvc failed",
+                                                                            "warn"))
 
 
 class Compare(Base):
@@ -321,10 +339,10 @@ class Status(Base):
 
 class Trigger(Base):
     """The Update graph button: Airflow's REST API, the login from .env, at most one queued run."""
-    def click(self, queued):
+    def click(self, queued, env="# login\nAF_USER=admin\nAF_PASSWORD=pw\n"):
         self.settings.write_text(SETTINGS + '[dags.update]\ndag_id = "u"\napi = "http://af/api/v1"\n'
                                  'api_user_env = "AF_USER"\napi_password_env = "AF_PASSWORD"\n', encoding="utf-8")
-        (self.tmp / ".env").write_text("# login\nAF_USER=admin\nAF_PASSWORD=pw\n", encoding="utf-8")
+        (self.tmp / ".env").write_text(env, encoding="utf-8")
         answers = iter([{"dag_runs": queued}, {"dag_run_id": "manual__1"}])
         reply = lambda req, timeout: mock.MagicMock(
             **{"__enter__.return_value": io.BytesIO(json.dumps(next(answers)).encode())})
@@ -344,6 +362,13 @@ class Trigger(Base):
     def test_a_second_click_while_one_is_queued_adds_nothing(self):
         said, reqs = self.click([{"dag_run_id": "manual__0"}])
         self.assertEqual((said, len(reqs)), ("already queued: manual__0", 1))
+
+    def test_quotes_and_spaces_in_env_are_not_the_login_and_its_port_is_used(self):   # was 401: '"pw"' sent
+        for env in ('AF_USER = admin\nAF_PASSWORD="pw"\n', "AF_USER='admin'\nAF_PASSWORD = pw \n"):
+            reqs = self.click([], env)[1]
+            self.assertEqual(reqs[1].get_header("Authorization"), "Basic YWRtaW46cHc=")   # admin:pw
+        self.assertEqual(self.click([], 'AIRFLOW_PORT = "8091"\n')[1][0].full_url,
+                         "http://af:8091/api/v1/dags/u/dagRuns?state=queued")   # docker-compose.yaml's port
 
 
 if __name__ == "__main__":

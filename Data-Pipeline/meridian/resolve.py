@@ -425,7 +425,7 @@ def resolve_aliases(run_id, repo, repo_dir, symbols, skip=(), r=None, paths=None
     rows = []
     for path in py_files(repo_dir, skip) if paths is None else paths:
         src, root = r.parse(path)
-        binds = bindings(root, set(symbols))
+        binds = bindings(root, set(symbols)) if not root.has_error else {}  # scan excludes it: a parse_failure
         if not binds:
             continue
         for line, col, alias in alias_calls(root, src, binds):
@@ -554,7 +554,7 @@ def call_sites(r, files):
     index = {}
     for path in files:
         src, root = r.parse(path)
-        for node in walk(root):
+        for node in walk(root) if not root.has_error else ():  # scan excludes it: a parse_failure
             if node.type == "call":
                 fn = node.child_by_field_name("function")
                 if fn is not None and fn.type == "attribute":

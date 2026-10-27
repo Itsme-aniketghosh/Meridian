@@ -9,15 +9,17 @@ under the data root's [publish] dir:
 2. latest.json -> that file: run_id, prev_run, snapshot_at, repo_shas, config_hash, file, published_at. The views and
    meridian.status read it, so a failed or refused publish leaves the last good block live.
 Both are written to a tmp file, then renamed: a reader sees the old file or the new one, never half of one. Never a
-rollback: refused, just before latest.json is written, if the live run's snapshot_at is later than this run's, or for a
-rebuild if another run is live. Older published runs are never deleted, but after an update's publish the main data
-root keeps snapshots/ and out/ (and the mirrors' refs/runs/) only for the live run and its prev run. --from-root
-publishes a run computed under another data root (the weekly rebuild) as <run_id>.rebuild.sqlite, so the update's copy
-of the same run stays, and swaps its out/<run_id>/ (no gx_project/) in for the update's, which the next update's join
-reads as its prev run. [dvc] push = true: dvc commit and push after, for the main data root and [pipeline] run_id only
-(what dvc.yaml tracks).
+rollback: refused, before anything live changes, if the live run's snapshot_at is later than this run's, or for a
+rebuild if another run is live. After an update's publish the main data root keeps snapshots/, out/, the published
+<run_id>(.rebuild).sqlite files (and the mirrors' refs/runs/) only for this run and its prev, the run live before it and
+its prev, and the frozen [pipeline] run_id. --from-root publishes a run computed under another data root (the weekly
+rebuild) as <run_id>.rebuild.sqlite, so the update's copy of the same run stays, and swaps its out/<run_id>/ (no
+gx_project/) in for the update's (the old one renamed aside, then deleted), which the next update's join reads as its
+prev run. [dvc] push = true: dvc commit and push after, for the main data root and [pipeline] run_id only (what
+dvc.yaml tracks); a dvc failure alerts ("warn"), the publish is live by then.
 """
 import json
+import logging
 import re
 import shutil
 import subprocess
@@ -25,6 +27,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from meridian import alert
 from meridian.common import (CONFIG, HERE, atomic_write, data_root, git, handoff, load_config, load_settings, log,
                              parser, read_jsonl)
 
@@ -58,18 +61,24 @@ def main(run_id, config=CONFIG, root=None, prev_run=None, from_root=None, settin
     atomic_write(dest / name, lambda tmp: shutil.copyfile(out / "meridian.sqlite", tmp))
     if from_root:   # the update's out/ was wrong, and the next update's join reads it as its prev run
         main_out = handoff(cfg, run_id, base)
-        tmp = main_out.with_name(main_out.name + ".tmp")
+        tmp, old = main_out.with_name(main_out.name + ".tmp"), main_out.with_name(main_out.name + ".old")
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.copytree(out, tmp, ignore=shutil.ignore_patterns("gx_project"))
-        shutil.rmtree(main_out, ignore_errors=True)
-        tmp.rename(main_out)
     doc = {"run_id": run_id, "prev_run": prev_run or "", "snapshot_at": run["snapshot_at"],
            "repo_shas": json.loads(run["repo_shas"]), "config_hash": run["config_hash"], "file": name,
            "published_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     # here, not before the copies: an update can publish while a rebuild copies
     live = latest(root, settings)
     if live and (live["snapshot_at"] > run["snapshot_at"] or from_root and live["run_id"] != run_id):
+        if from_root:
+            shutil.rmtree(tmp, ignore_errors=True)
         raise SystemExit(f"{live['run_id']} is live now: publishing {run_id} would roll it back")
+    if from_root:   # moved aside, not deleted first: a crash in between leaves one whole out/<run_id>, never none
+        shutil.rmtree(old, ignore_errors=True)
+        if main_out.exists():
+            main_out.rename(old)
+        tmp.rename(main_out)
+        shutil.rmtree(old, ignore_errors=True)
     atomic_write(dest / "latest.json", lambda tmp: tmp.write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n",
                                                                   encoding="utf-8", newline="\n"))
     log(f"published {run_id} -> {dest / name}, {dest / 'latest.json'}")
@@ -82,6 +91,9 @@ def main(run_id, config=CONFIG, root=None, prev_run=None, from_root=None, settin
             for p in d.glob("*"):
                 if re.fullmatch(r"[0-9a-f]{16}", p.name) and p.name not in keep:
                     shutil.rmtree(p, ignore_errors=True)
+        for p in dest.glob("*.sqlite"):   # never latest.json or gx/
+            if (m := re.fullmatch(r"([0-9a-f]{16})(\.rebuild)?\.sqlite", p.name)) and m[1] not in keep:
+                p.unlink(missing_ok=True)
         for m in (base / load_settings("collect", settings).get("mirrors", "snapshots/_cache/repos")).glob("*.git"):
             for ref in git(m, "for-each-ref", "--format=%(refname:lstrip=2)", "refs/runs/").split():
                 if ref not in keep:
@@ -92,8 +104,12 @@ def main(run_id, config=CONFIG, root=None, prev_run=None, from_root=None, settin
         elif run_id != load_settings("pipeline", settings).get("run_id"):
             log(f"dvc: skipped, dvc.yaml tracks [pipeline] run_id only, not {run_id}")
         else:
-            for args in (["commit", "--force", "--quiet"], ["push"]):
-                subprocess.run([sys.executable, "-m", "dvc", *args], cwd=HERE, check=True)
+            try:   # latest.json is written: the publish is live, a failed upload is news, not a failed publish
+                for args in (["commit", "--force", "--quiet"], ["push"]):
+                    subprocess.run([sys.executable, "-m", "dvc", *args], cwd=HERE, check=True)
+            except (subprocess.CalledProcessError, OSError) as e:
+                log(f"dvc: {e}", level=logging.WARNING)
+                alert.send(f"meridian {run_id}: published, but dvc failed", [str(e)], "warn", settings)
     return doc
 
 

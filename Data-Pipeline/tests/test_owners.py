@@ -296,6 +296,14 @@ class Merge(unittest.TestCase):
                 ("jnunez@b.example", "jnunez@b.example", "Jose Nunez", [])]
         self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 1)
 
+    def test_an_initial_or_an_employer_in_brackets_doesnt_make_surnames_clash(self):
+        for a, b in (("Mira Tolvan", "Mira T."), ("Mira Tolvan (Initech)", "Mira Tolvan (Globex)")):
+            self.assertFalse(O.surnames_clash(a, b), (a, b))
+            recs = [("mtolvan@a.example", "mtolvan@a.example", a, []),
+                    ("mtolvan@b.example", "mtolvan@b.example", b, [])]
+            self.assertEqual(len({x["person_id"] for x in O.merge(recs, self.ident)[1]}), 1, (a, b))
+        self.assertTrue(O.surnames_clash("Mira Tolvan", "Mira K."))   # another initial still clashes
+
     def test_no_reply_is_generic(self):
         _, alias, _ = O.merge([("no-reply@a.example", "no-reply@a.example", "Isaac", []),
                                ("isaac@b.example", "isaac@b.example", "Isaac", [])], self.ident)

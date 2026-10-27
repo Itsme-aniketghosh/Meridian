@@ -127,7 +127,10 @@ def frame(metrics, y_true, y_pred, by, b):
 
     metrics = {share metric, "n": count}. Each slice gets its Wilson 95% interval (ci_low, ci_high) and is judged when
     n >= min_n: flagged when ci_high < overall - max_gap, a gap its own noise can't explain. Fairlearn's difference
-    (max - min) and ratio (min / max) are over the judged slices only: an N = 1 slice would make both meaningless."""
+    (max - min) and ratio (min / max) are over the judged slices only: an N = 1 slice would make both meaningless.
+    None when there are no rows: MetricFrame refuses an empty slicing."""
+    if not len(y_true):
+        return None
     mf = MetricFrame(metrics=metrics, y_true=y_true, y_pred=y_pred, sensitive_features=by)
     metric = next(m for m in metrics if m != "n")
     line = mf.overall[metric] - b["max_gap"]
@@ -177,7 +180,9 @@ def owner_report(df, unassigned, variants, b):
     for name, (pred, truth) in preds.items():
         kept = pred != "unowned"
         ok = kept & (truth != unassigned)
-        r = frame(acc, truth[ok], pred[ok], df.loc[ok, "module"], b)
+        # nothing scored (every next author unassigned): no slices, accuracy 0.0 as below
+        r = (frame(acc, truth[ok], pred[ok], df.loc[ok, "module"], b)
+             or {"overall": {"accuracy": 0.0}, "by_group": {}, "flagged": []})
         report["mitigations"][name] = {
             "files_owned": int(kept.sum()), "of": len(df), "accuracy_assigned": r["overall"]["accuracy"],
             "accuracy": round(float((pred[kept] == truth[kept]).mean()), 4) if kept.any() else 0.0,   # owners.py's
@@ -237,6 +242,8 @@ def resolver_report(cfg, out, b):
     det = {(r["repo"], r["path"], r["line"], r["col"]): r["detection"] for r in stream(out / "resolution.jsonl")}
     rows = [{"repo": c["repo"], "kept": int(det.get((c["repo"], c["path"], c["line"], c["col"])) != "dropped")}
             for c in stream(out / "candidate.jsonl", lambda c: c["role"] in roles)]
+    if not rows:   # no edit-role candidates: nothing to slice
+        return {}
     df = pd.DataFrame(rows)
     return {"kept_share_by_repo": frame({"kept_share": selection_rate, "n": count}, df["kept"], df["kept"],
                                         df["repo"], b)}

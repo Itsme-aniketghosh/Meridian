@@ -107,7 +107,7 @@ class Specs(unittest.TestCase):
         with mock.patch.object(G, "audit", return_value=(5, [], broken, site)), mock.patch.object(G.alert,
                                                                                                   "send") as send, \
              redirect_stdout(io.StringIO()):
-            self.assertEqual(run([], broken), 1)                                       # a broken audit is never "clean"
+            self.assertEqual(run([], broken), 4)   # never "clean"; 4: alerted, so the DAG's on_failure doesn't again
             self.assertEqual(send.call_args.args[2], "error")
         self.assertEqual((tmp / "published" / "gx" / "R" / "index.html").read_text(), "docs")
         self.assertEqual(json.loads((tmp / "published" / "gx" / "latest.json").read_text())["index"], "R/index.html")

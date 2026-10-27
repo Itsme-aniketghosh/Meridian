@@ -11,7 +11,8 @@ the Data Docs site to <publish root>/<[publish] dir>/gx/<run_id>/ (index.html), 
 It never gates. meridian.validate is the gate, on every update; nothing downstream of gx waits for it.
 - A failed expectation: an alert ("warn") listing it, and the task still succeeds.
 - A check GX couldn't evaluate (an exception inside GX, reported as a plain failure with no counts): an alert
-  ("error") and exit 1, so a broken audit is never read as clean data. The rebuild goes on without it.
+  ("error") and exit 4 (validate.ALERTED: alerted already), so a broken audit is never read as clean data. The
+  rebuild goes on without it.
 
 The checks come from [validate], the same settings validate reads: rows, missing, formats, ranges and dates. The
 domain checks stay in meridian.validate only: coverage floors, outliers, drift, sorted JSON lists.
@@ -26,6 +27,7 @@ from pathlib import Path
 
 from meridian import alert
 from meridian.common import CONFIG, data_root, handoff, load_config, load_settings, log, parser
+from meridian.validate import ALERTED
 
 TIME = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -189,7 +191,7 @@ def main(run_id, config=CONFIG, root=None, publish_root=None, settings=None):
     if broken:
         alert.send(f"meridian GX {run_id}: {len(broken)} checks couldn't run",
                    [f"{b['check']} {b['where']}" for b in broken] + [f"docs: {index}"], "error")
-        return 1
+        return ALERTED
     return 0
 
 

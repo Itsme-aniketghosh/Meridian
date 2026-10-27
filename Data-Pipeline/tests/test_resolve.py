@@ -230,6 +230,18 @@ class Aliases(unittest.TestCase):
         rows = R.resolve_aliases(RUN, "fix/app", self.repo_dir, SYMBOLS, ["docs/"], r)
         self.assertEqual({row["detection"] for row in rows if row["path"] == "app/assigns.py"}, {"dropped"})
 
+    def test_a_file_that_doesnt_parse_has_no_alias_or_call_rows(self):   # scan made it a parse_failure
+        with tempfile.TemporaryDirectory() as tmp:
+            for rel, text in {"lib/__init__.py": "", "lib/translation.py": FILES["lib/translation.py"],
+                              "app/broken.py": "from lib.translation import ugettext as _\ntitle = _('Hi')\ndef (:\n"
+                              }.items():
+                (Path(tmp) / rel).parent.mkdir(parents=True, exist_ok=True)
+                (Path(tmp) / rel).write_text(text, encoding="utf-8")
+            r = R.Repo(Path(tmp), SYMBOLS)
+            self.assertTrue(r.parse("app/broken.py")[1].has_error)
+            self.assertEqual(R.resolve_aliases(RUN, "fix/app", Path(tmp), SYMBOLS, r=r, paths=["app/broken.py"]), [])
+            self.assertEqual(R.call_sites(r, ["app/broken.py"]), {})
+
     def test_bindings(self):
         src = b"from x import ugettext as _, ugettext_lazy\nT = ugettext_lazy\nfrom y import ugettext as ugettext\n"
         binds = R.bindings(R.PY.parse(src).root_node, {"ugettext", "ugettext_lazy"})

@@ -3,9 +3,9 @@
     python -m meridian.writer --run-id <run_id> --config meridian.toml        # -> out/<run_id>/meridian.sqlite
     python -m meridian.writer --run-id dev --db /tmp/dev.sqlite
 
-Same rows + same SQLite version -> the same bytes. To get there, every row is checked against the schema
-(column names, types, NOT NULL, run_id, duplicate keys) before anything is written. Then rows go in sorted by
-primary key, tables in name order, in one transaction, into a fresh file, which is VACUUMed and moved into place.
+Every row is checked against the schema (column names, types, NOT NULL, run_id, duplicate keys) before anything is
+written. Then rows go in sorted by primary key, tables in name order, in one transaction, into a fresh file, which is
+VACUUMed and moved into place.
 Any bad row stops the load with its file and line: a half-right database is worse than none.
 
 Every row carries the folder's run_id, except in an append-only table (call_site): it holds every version so far,
@@ -16,7 +16,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from meridian.common import CONFIG, SCHEMA, handoff, load_config, log, parser
+from meridian.common import SCHEMA, handoff, load_config, log, parser
 
 PY_TYPES = {"TEXT": (str,), "INTEGER": (int,), "REAL": (int, float)}
 APPEND_ONLY = {"call_site"}  # versions from earlier runs ride along; known_at says when each was written
@@ -82,14 +82,6 @@ def read_rows(path, cols, run_id, snapshot_at=None):
     return [(where, r) for _, where, r in rows]
 
 
-def check_sqlite(config=CONFIG):
-    """The command refuses a SQLite other than the pinned one: the file header records the version, so the bytes differ.
-    write() itself doesn't check, so tests prove same-rows-same-bytes on whatever SQLite the machine has."""
-    pinned = load_config(config)["run"].get("sqlite_version")
-    if pinned and sqlite3.sqlite_version != pinned:
-        raise SystemExit(f"SQLite is {sqlite3.sqlite_version}, meridian.toml pins {pinned}: the bytes would differ")
-
-
 def write(src, db=None, schema=SCHEMA, complete=False):
     """complete: every table's file must be there (validate's block). Off, a part's tests load just their tables."""
     src = Path(src)
@@ -142,7 +134,6 @@ if __name__ == "__main__":
     ap = parser(__doc__, "loads out/<run_id>/")
     ap.add_argument("--db", help="default: out/<run_id>/meridian.sqlite")
     a = ap.parse_args()
-    check_sqlite(a.config)
     try:
         counts = write(handoff(load_config(a.config), a.run_id), a.db)
     except BadRow as e:

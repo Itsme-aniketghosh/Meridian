@@ -39,7 +39,7 @@ Run time about 20 s, peak 2.4 GB (reading the ticket and commit tables).
 
 - **A call site** is a candidate with a role in `[scanner] edit_roles` (import, call, alias) that the resolver didn't drop. `ast_unresolved` stays. Alias calls like `_("...")` are blast radius, not call sites. `reference` rows (the 315 keyword-argument names) stay in `candidate` only.
 - **call_site_id** = h(repo, symbol, path, scope, normalized line, occurrence). Normalized = all whitespace removed. occurrence = 0, 1, … among sites with the same other five, in line order.
-- **Matching to the last run**, in `[join] match_order`: git's line map from the last SHA to this one, renames followed; else the same symbol, scope and normalized line anywhere in the repo (a moved line, a split file). Unmatched last-run sites get a `removed` version, unless their file is a parse failure this run (then they stay present). Unmatched new ones get a new ID. A removed site's ID can come back, to one site only.
+- **Matching to the last run**, in `[join] match_order`: git's line map from the last SHA to this one, renames followed; else the same symbol, scope and normalized line anywhere in the repo (a moved line, a split file); else the same path, scope and symbol, in line order (an edited line, such as an import that gained a name). Unmatched last-run sites get a `removed` version, unless their file is a parse failure this run (then they stay present). Unmatched new ones get a new ID. A removed site's ID can come back, to one site only.
 - **Repos that come and go.** A repo new to `meridian.toml` has no last SHA, so all its sites are new. A repo that left the config while it still has present sites stops the run: writing them `removed` would date a deletion that never happened. Put it back, or run without `--prev-run`.
 - **Append-only.** A version is written only when a field changes. `call_site.jsonl` holds every version so far, so "now" is each site's newest.
 - **effective_date:** present = blame of the line at this SHA (`--first-parent -w`). Removed = the first-parent commit after the last one that still had the line (reverse blame). The date is that commit's `authored_at`, and `effective_sha` is the commit itself (`meridian.report` groups changes by it).
@@ -50,7 +50,7 @@ Run time about 20 s, peak 2.4 GB (reading the ticket and commit tables).
 ## Flags
 
 - **Writer change.** From the second run on, `call_site.jsonl` carries the earlier runs' versions (append-only, as `KNOWLEDGE-BASE.md` reads it). `meridian.writer` allows earlier run_ids in `call_site` only, and only versions known by this run's `snapshot_at`. Every other table still takes one run_id. Tests: `test_history` `test_call_site_carries_earlier_runs_versions`, `test_join` `test_second_runs_block_loads_with_the_first_runs_versions`.
-- **SQLite version.** `meridian.toml` pins 3.50.4. A newer SQLite (3.53.1 on one dev machine) loads the block, but the byte-identical check holds only on the pinned version, so the image must have it.
+- **SQLite version.** Not pinned: the golden tests compare table rows, not the `.sqlite` file, whose header holds the version. `run.image_digest` records the version a run used.
 - **Removed effective_date** uses `git_commit.seq`, so a site removed by a commit that came in through a merge is dated by the merge, the first-parent commit where it became true.
 
 ## Next

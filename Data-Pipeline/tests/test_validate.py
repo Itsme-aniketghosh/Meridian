@@ -5,8 +5,10 @@ The block is the KB fixture after graph (tests/test_dashboard.py's fixture_block
 """
 import io
 import json
+import os
 import shutil
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import textwrap
@@ -110,6 +112,15 @@ class Validate(unittest.TestCase):
         self.assertIn(["error", "formats", "call_site.call_site_id"], [f[:3] for f in found])
         sent.assert_called_once()
 
+    def test_an_alerted_error_exits_4_with_its_reason_so_the_dag_doesnt_alert_again(self):
+        self.run_it(IDS)   # settings.toml with the format error, alerts logged only
+        r = subprocess.run([sys.executable, "-m", "meridian.validate", "--run-id", "R2", "--config",
+                            str(self.tmp / "meridian.toml")], cwd=Path(__file__).resolve().parents[1],
+                           capture_output=True, text=True, env={**os.environ, "MERIDIAN_DATA": str(self.tmp),
+                                                                "MERIDIAN_SETTINGS": str(self.tmp / "settings.toml")})
+        self.assertEqual(r.returncode, 4, r.stderr)
+        self.assertIn("data errors: see", r.stdout)
+
     def test_a_schema_violation_stops_before_anything_else(self):
         with open(self.out / "ticket_map.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps({"run_id": "R2", "key": "X-1", "target_kind": "fuzzy", "target": "",
@@ -122,6 +133,21 @@ class Validate(unittest.TestCase):
         failed, found, _ = self.run_it(floor=0.9)   # 6 of 7 tickets mapped
         self.assertIsNotNone(failed)
         self.assertIn(["error", "coverage", "tickets_mapped"], [f[:3] for f in found])
+
+    def test_a_missing_or_0_of_0_coverage_metric_is_an_error(self):   # every call site gone, or no tickets at all
+        zero = {"run_id": "R2", "metric": "tickets_mapped", "numerator": 0, "denominator": 0}
+        for rows, said in (("", "no such metric"), (json.dumps(zero) + "\n", "0 of 0, floor 0.5")):
+            (self.out / "coverage.jsonl").write_text(rows)
+            failed, found, _ = self.run_it()
+            self.assertIn("data errors", failed)
+            self.assertIn(["error", "coverage", "tickets_mapped", said], found)
+
+    def test_a_partial_run_without_ticket_metrics_isnt_a_coverage_error(self):   # tracker down: publish decides
+        run = self.out / "run.jsonl"
+        run.write_text(run.read_text().replace('"status": "complete"', '"status": "partial"'))
+        (self.out / "coverage.jsonl").write_text("")
+        _, found, _ = self.run_it()
+        self.assertEqual([f for f in found if f[1] == "coverage"], [])
 
     def test_missing_values_warn_but_the_run_goes_on(self):
         failed, found, sent = self.run_it(missing=0.0)
@@ -154,8 +180,10 @@ class Validate(unittest.TestCase):
         sent = mock.Mock(side_effect=lambda *a: self.assertFalse((self.out / "anomalies.json").exists()))
         with redirect_stdout(io.StringIO()), mock.patch.object(V.W, "write",
                                                                side_effect=OSError("No space left on device")), \
-                mock.patch.object(alert, "send", sent), self.assertRaisesRegex(SystemExit, "^write: No space left"):
+                mock.patch.object(alert, "send", sent), \
+                self.assertRaisesRegex(SystemExit, "^write: No space left") as e:
             V.main("R2", self.tmp / "meridian.toml", self.tmp, None, self.tmp / "settings.toml")
+        self.assertEqual(e.exception.code, 4)   # alerted: the DAG's on_failure doesn't alert again
         self.assertEqual(json.loads((self.out / "anomalies.json").read_text()),
                          [["error", "write", "", "No space left on device"]])
         self.assertIn("could not write the block", sent.call_args[0][0])

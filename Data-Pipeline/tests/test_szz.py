@@ -95,8 +95,9 @@ class Blame(unittest.TestCase):
         self.assertIn("1 root commits skipped", out.getvalue())
 
 
-def commit(sha, at="2026-06-01T00:00:00Z", fp=1, merge=0):
-    return {"repo": "r", "sha": sha, "parent_sha": "p", "first_parent": fp, "is_merge": merge, "authored_at": at}
+def commit(sha, at="2026-06-01T00:00:00Z", fp=1, merge=0, subject="B-1 fix it"):
+    return {"repo": "r", "sha": sha, "parent_sha": "p", "first_parent": fp, "is_merge": merge, "authored_at": at,
+            "subject": subject}
 
 
 def ticket(key, typ="Bug", res="Fixed", bulk=0):
@@ -109,12 +110,14 @@ class Fixes(unittest.TestCase):
     def test_which_commits_are_fixes(self):
         commits = [commit("ok"), commit("old", at="2014-12-31T23:59:59Z"), commit("side", fp=0),
                    commit("merge", merge=1),
-                   commit("feature"), commit("wontfix"), commit("bulk"), commit("two")]
+                   commit("feature"), commit("wontfix"), commit("bulk"), commit("two"),
+                   commit("revert", subject='Revert "[B-1] fix it"')]
         tickets = [ticket("B-1"), ticket("F-1", typ="Improvement"), ticket("W-1", res="Won't Fix"),
                    ticket("B-2", bulk=1), ticket("B-3")]
         ct = [{"repo": "r", "sha": s, "key": k}
               for s, k in [("ok", "B-1"), ("old", "B-1"), ("side", "B-1"), ("merge", "B-1"),
-                           ("feature", "F-1"), ("wontfix", "W-1"), ("bulk", "B-2"), ("two", "B-3"), ("two", "B-1")]]
+                           ("feature", "F-1"), ("wontfix", "W-1"), ("bulk", "B-2"), ("two", "B-3"), ("two", "B-1"),
+                           ("revert", "B-1")]]
         got = {sha: keys
                for (_, sha), (_, keys) in S.fixes(commits, tickets, ct, self.RULE, CFG["szz"]["fix_since"]).items()}
         self.assertEqual(got, {"ok": ["B-1"], "two": ["B-1", "B-3"]})
