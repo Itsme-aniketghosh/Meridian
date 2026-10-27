@@ -21,7 +21,8 @@ way, so the trade-off is on record: lower min_shares, longer lookbacks for a per
 last toucher's team where the rule says 'unowned'. The best one is picked one window earlier and confirmed on the
 current cut (held_out). They are proposals: applying one changes meridian.toml (or owners.py), which means a new run_id.
 
-Reads out/<run_id>/ tables and settings.toml [bias]. Writes out/<run_id>/bias.json. Never writes a table.
+Reads out/<run_id>/ tables and settings.toml [bias] (and [validate.dates], what a valid date is). Writes
+out/<run_id>/bias.json. Never writes a table.
 """
 import json
 import re
@@ -214,21 +215,24 @@ def held_out(early, now, unassigned, variants, reps=1000, seed=0):
             "delta": num(acc(ok1, r1) - acc(ok0, r0)), "delta_ci": [num(lo), num(hi)], "bootstrap": reps, "seed": seed}
 
 
-def mapping_report(out, b):
+def mapping_report(out, b, earliest):
     """Share of Spark tickets with a code target, by component, issue type and the year it was filed (old tickets'
     files are often gone by the pinned SHA, so the year shows whether a component's gap is just its age). A ticket
-    with several components counts once in each, so the component slicings' overall is over (ticket, component)."""
+    with several components counts once in each, so the component slicings' overall is over (ticket, component).
+    An invalid created_at (validate's dates check: before earliest or after snapshot_at, like the 289 Spark tickets
+    Jira dates 0010-0012) puts the ticket in no year slice; it still counts by component and type."""
     mapped = {r["key"] for r in stream(out / "ticket_map.jsonl", lambda r: r["target_kind"] != "unmapped")}
     rows = [{"component": json.loads(t["components"]) or ["(none)"], "type": t["effective_type"],
-             "year": t["created_at"][:4], "mapped": int(t["key"] in mapped)}
+             "at": t["created_at"], "year": t["created_at"][:4], "mapped": int(t["key"] in mapped)}
             for t in stream(out / "ticket.jsonl", lambda t: t["tracker"] == "jira")]
     if not rows:   # no Jira tickets (a dataset without a tracker): nothing to slice, like owner_rule without owners
         return {}
     df = pd.DataFrame(rows)
+    dated = df[df["at"].between(earliest, next(stream(out / "run.jsonl"))["snapshot_at"])]
     comp = df.explode("component", ignore_index=True)
     share = {"mapped_share": selection_rate, "n": count}
     report = {f"mapped_share_by_{by}": frame(share, d["mapped"], d["mapped"], d[by], b)
-              for by, d in (("component", comp), ("type", df), ("year", df))}
+              for by, d in (("component", comp), ("type", df), ("year", dated))}
     if since := b.get("recent_since"):   # the same slices on recent tickets only: what's left once age is held fixed
         recent = comp[comp["year"] >= since]
         report[f"mapped_share_by_component_since_{since}"] = frame(share, recent["mapped"], recent["mapped"],
@@ -271,7 +275,7 @@ def main(run_id, config=CONFIG, root=None, settings=None):
         early, _, early_cut = owner_rows(cfg, out, root, run_id, variants, earlier=1)
         report["owner_rule"]["held_out"] = held_out(early, df, unassigned, variants) | {"cut": early_cut,
                                                                                         "files": len(early)}
-    report["ticket_mapping"] = mapping_report(out, b)
+    report["ticket_mapping"] = mapping_report(out, b, load_settings("validate", settings)["dates"]["earliest"])
     report["resolver"] = resolver_report(cfg, out, b)
     frames = [(part, name, r) for part in ("owner_rule", "ticket_mapping", "resolver")
               for name, r in sorted(report.get(part, {}).items()) if isinstance(r, dict) and "by_group" in r]

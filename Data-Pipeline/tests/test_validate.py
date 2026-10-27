@@ -238,19 +238,21 @@ class Outliers(unittest.TestCase):
 
 
 class Dates(unittest.TestCase):
-    def test_a_date_before_earliest_or_after_the_snapshot_warns(self):
+    def test_a_date_before_earliest_or_after_the_snapshot_is_invalid_and_warns_every_run(self):
         db = sqlite3.connect(":memory:")
         db.executescript("CREATE TABLE run (snapshot_at TEXT); INSERT INTO run VALUES ('2026-10-01T00:00:00Z');"
-                         "CREATE TABLE ticket (created_at TEXT); INSERT INTO ticket VALUES ('0010-12-17T12:12:00Z'),"
-                         "('2014-01-01T00:00:00Z'), ('2027-01-01T00:00:00Z'), ('');")
-        exp = {"dates": {"columns": ".*_at", "earliest": "2000-01-01T00:00:00Z"}}
-        found = V.check(db, {"run": [], "ticket": [("created_at", "TEXT", 0, 0, 0)]}, {}, exp, None)
-        self.assertEqual([f[:3] for f in found], [["warn", "dates", "ticket.created_at"]])
-        self.assertIn("2 dates", found[0][3])
-        exp["dates"]["allow"] = {"ticket.created_at": 2}   # the known bad ones: no alert every day
-        self.assertEqual(V.check(db, {"run": [], "ticket": [("created_at", "TEXT", 0, 0, 0)]}, {}, exp, None), [])
-        db.execute("INSERT INTO ticket VALUES ('1999-01-01T00:00:00Z')")   # one more than allowed: news again
-        self.assertEqual(len(V.check(db, {"run": [], "ticket": [("created_at", "TEXT", 0, 0, 0)]}, {}, exp, None)), 1)
+                         "CREATE TABLE ticket (run_id TEXT, key TEXT, created_at TEXT); INSERT INTO ticket VALUES "
+                         "('R', 'SPARK-7', '0010-12-17T12:12:00Z'), ('R', 'SPARK-1', '2014-01-01T00:00:00Z'),"
+                         "('R', 'SPARK-9', '2027-01-01T00:00:00Z'), ('R', 'SPARK-2', '');")
+        # a leftover per-column allowance (the old settings had 289 for these) no longer hides them
+        exp = {"dates": {"columns": ".*_at", "earliest": "2000-01-01T00:00:00Z", "allow": {"ticket.created_at": 2}}}
+        spec = {"run": [], "ticket": [("run_id", "TEXT", 1, 0, 1), ("key", "TEXT", 1, 0, 2),
+                                      ("created_at", "TEXT", 1, 0, 0)]}
+        found = V.check(db, spec, {}, exp, None)
+        self.assertEqual([f[:3] for f in found], [["warn", "dates", "ticket.created_at"]])   # warns: the run goes on
+        self.assertIn("2 invalid dates", found[0][3])
+        self.assertIn("excluded", found[0][3])
+        self.assertTrue(found[0][3].endswith("e.g. SPARK-7, SPARK-9"))   # example keys, oldest first, run_id left out
 
 
 class Alert(unittest.TestCase):
