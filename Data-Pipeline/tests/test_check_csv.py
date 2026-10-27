@@ -47,6 +47,12 @@ class Check(unittest.TestCase):
         self.assertEqual(self.check(f"id,evidence_quote\n1,{'x' * 200}\n"), [])
         self.assertEqual(self.check(f"id,evidence_quote\n1,{'x' * 201}\n"), ["line 2: quote is 201 chars (max 200)"])
 
+    def test_checked_by_is_model_or_initials(self):
+        (self.tmp / "labels").mkdir()
+        p = self.tmp / "labels" / "t.csv"
+        p.write_text("id,checked_by\n1,model\n2,ZQ\n3,\n4,ZQ (read a draft)\n", encoding="utf-8")
+        self.assertEqual(check_csv.check(p), ["line 5: checked_by 'ZQ (read a draft)' (write model or initials)"])
+
 
 if __name__ == "__main__":
     unittest.main()

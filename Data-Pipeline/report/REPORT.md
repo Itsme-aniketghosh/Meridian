@@ -204,7 +204,7 @@ What still falls short:
 
 - No real alert channel yet, and the DVC remote is a placeholder.
 - The cross-team features only show their full value on the fixture, because no public dataset has both tickets and tracked code. With one run there's no burndown yet either.
-- Two weaker signals didn't make it. We wrote the pass bars down before running them ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a "bug with no reproduction" check didn't predict Spark's vague bugs, and timing evidence didn't lift the GitLab cross-team rule (precision 0.25 against a 0.50 bar).
+- Two weaker signals didn't make it. We wrote the pass bars down before running them ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a "bug with no reproduction" check didn't predict Spark's vague bugs, and timing evidence didn't lift the GitLab cross-team rule (precision 0.25 against a 0.50 bar, by model labels; 2 of 10 on the 50 human-checked rows).
 
 ## Appendices
 

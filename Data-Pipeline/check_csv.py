@@ -19,6 +19,7 @@ EMAIL = re.compile(r"[\w.+-]+@([\w-]+\.[\w.-]+)")
 RESERVED = re.compile(r"(^|\.)(example\.(com|org|net)|[\w-]+\.(test|example|invalid|localhost))$", re.I)
 HANDLE = re.compile(r"(?<![\w@])@(?!user\b)[A-Za-z0-9_][\w.-]*")
 QUOTE_COLS = re.compile(r"(quote|evidence_text|snippet|comment)", re.I)
+CHECKER = re.compile(r"model|[A-Z]{1,4}")  # rule 6: checked_by is model or the checker's initials
 
 csv.field_size_limit(MAX_BYTES)
 
@@ -50,6 +51,9 @@ def check(path):
         if words(col) not in OK_COLUMNS and PEOPLE.search(words(col)):
             problems.append(f"people column '{col}'")
     quote_idx = [i for i, c in enumerate(header) if QUOTE_COLS.search(c)]
+    # shortcut: labels/ only, as week1/cross-team/gitlab/xt_cross_team_blocks.csv predates rule 6; widen once it's fixed
+    in_labels = "labels" in os.path.normpath(path).split(os.sep)
+    by_idx = header.index("checked_by") if in_labels and "checked_by" in header else -1
     for n, row in enumerate(rows[1:], 2):
         for i, cell in enumerate(row):
             if any(not RESERVED.search(m.group(1)) for m in EMAIL.finditer(cell)):
@@ -58,6 +62,8 @@ def check(path):
                 problems.append(f"line {n}: @handle '{HANDLE.search(cell).group()}' (write @user)")
             if i in quote_idx and len(cell) > MAX_QUOTE:
                 problems.append(f"line {n}: quote is {len(cell)} chars (max {MAX_QUOTE})")
+            if i == by_idx and cell and not CHECKER.fullmatch(cell):
+                problems.append(f"line {n}: checked_by '{cell}' (write model or initials)")
     return problems
 
 

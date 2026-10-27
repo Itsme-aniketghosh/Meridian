@@ -143,7 +143,7 @@ Why: Spark has no team field, but 98% of tickets carry a component, the closest 
 | D3 | `person`, `person_alias` | Spark: 3,381 emails → about 2,926 people. 0 merges on `generic_names`. Top 20 groups hand-checked |
 | D4 | `team_map` (Spark people) | Every person has one team, `unassigned` counted |
 | D5 | `team_map` (Django, packages), `file_owner` for all three | Beats last toucher on Spark (week 1: 20% vs 18%). Report the person-level number too |
-| D6 | GitLab gold set: `labels/gitlab_cross_team_blocks.csv` and `labels/gitlab_stall_reasons.csv`, columns in [CSV-POLICY.md](CSV-POLICY.md) | ≥ 38 distinct issues · ≥ 9 of 10 waits hold · `check_csv.py` passes |
+| D6 | GitLab gold set: `labels/gitlab_cross_team_blocks.csv` and `labels/gitlab_stall_reasons.csv`, columns in [CSV-POLICY.md](CSV-POLICY.md) | ≥ 38 distinct issues · the random 50 human-checked: model waits hold 4 of 7 (bar not met) · `check_csv.py` passes |
 
 Identity merging started from week 1's `merge_people()` (name + email local part, generic names skipped), plus `.mailmap` and the bot patterns. The owner-vs-last-toucher test is in the `week1/pair2/` README.
 
