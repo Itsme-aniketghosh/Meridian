@@ -179,7 +179,30 @@ The README's steps set up and run the pipeline on another machine. The pipeline 
 - The weekly rebuild matched the update byte for byte.
 - CI checks a small fixture's hashes on Linux and Windows on every push.
 
-For a TA, `python run_demo.py short` runs in about 10 seconds with no private data and no Docker, one guideline item at a time on the fixture. `python run_demo.py long` runs everything, Airflow included. Both check free RAM and disk before heavy steps and skip with a reason rather than crash.
+**One file for a TA: [reproduce.py](../reproduce.py).** It needs only Python 3.11+ and git. Pick one option.
+
+**Option 1: quick check (about 2 minutes, no data needed).** Download the script into an empty folder and run it. It clones the repo, makes a virtual environment from `requirements.txt`, runs every unit test and the fixture demo, and prints a PASS/FAIL summary.
+
+```
+curl -O https://raw.githubusercontent.com/Itsme-aniketghosh/Meridian/main/Data-Pipeline/reproduce.py
+python3 reproduce.py
+```
+
+**Option 2: the real team run (about 30 minutes more, 6 GB of disk).** The only input that isn't on GitHub is the raw Jira and GitLab ticket pulls of Oct 1, which a fresh pull today can't give again. They're one zip, `meridian-raw-973531f7fd4cfd5e.zip` (145 MB), on **[Google Drive](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link)**.
+
+1. Clone the repo.
+2. Download the zip from the Drive link into `Meridian/Data-Pipeline/shared-snapshot/`. Keep its name, and don't unzip it: the script does.
+3. Run the script from the folder you cloned into.
+
+```
+git clone https://github.com/Itsme-aniketghosh/Meridian.git
+# download the zip from the Drive link into Meridian/Data-Pipeline/shared-snapshot/
+python3 Meridian/Data-Pipeline/reproduce.py
+```
+
+That's all the TA does by hand. The script finds the zip, checks its sha256 and unzips it into `snapshots/`. Then it clones the 22 code repos from GitHub at their pinned SHAs, runs every task in the order the DAG does, and prints a PASS/FAIL summary. It checks that collect gave `run_id=c5118b019d642a9b` and that the 24 outputs match `golden/c5118b019d642a9b.json`. Run natively, `commit_file` can differ by git version, and the script says so if it does. The Airflow run in Docker is in the [README](../README.md).
+
+Underneath, `python run_demo.py short` runs in about 10 seconds with no private data and no Docker, one guideline item at a time on the fixture. `python run_demo.py long` runs everything, Airflow included. Both check free RAM and disk before heavy steps and skip with a reason rather than crash.
 
 ### 4.4 Code style
 
@@ -201,14 +224,14 @@ We tested this by breaking things on purpose: 27 injected faults and 42 scenario
 | 1 | Proper documentation | §4.1, §4.2, [README](../README.md) | ✅ |
 | 2 | Modular syntax and code | §2.2, §4.4 | ✅ |
 | 3 | Pipeline orchestration (Airflow DAGs) | §2.4, [A](appendix-airflow.md) | ✅ |
-| 4 | Tracking and logging | §2.6, §4.5 | ✅ (alerts logged; no real Slack or email channel yet) |
-| 5 | Data version control (DVC) | §2.5 | ✅ (remote is a placeholder) |
+| 4 | Tracking and logging | §2.6, §4.5 | ✅ Python logging in every part, a log per task try in Airflow |
+| 5 | Data version control (DVC) | §2.5 | 🟡 Partial: `dvc.yaml` and `dvc.lock` pin every stage, but the remote is a placeholder, so `dvc pull` doesn't work. The team zip and `reproduce.py` stand in for it (§4.3) |
 | 6 | Pipeline flow optimization | §2.9, [A](appendix-airflow.md) | ✅ |
 | 7 | Schema and statistics generation | §2.7, [B](appendix-quality.md) | ✅ |
-| 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | ✅ |
-| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ |
+| 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | 🟡 Partial: detection is live and tested. Alerts go to the log; the Slack and email senders are tested with mocks, but no real channel is set up |
+| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ Detection on 136 slices. Five mitigations measured, none adopted; flags ship instead (§3.3) |
 | 10 | Test modules | §2.3, [B](appendix-quality.md) | ✅ |
-| 11 | Reproducibility | §4.3, [D](appendix-testing.md) | ✅ |
+| 11 | Reproducibility | §4.3, [D](appendix-testing.md) | ✅ Same run_id and same bytes from the pinned inputs; `reproduce.py` checks both |
 | 12 | Error handling and logging | §4.5, [D](appendix-testing.md) | ✅ |
 
 What still falls short:
