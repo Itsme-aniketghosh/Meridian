@@ -44,7 +44,7 @@ Each step is its own module, run as `python -m meridian.<part> --run-id <id> --c
 | `join` | The features: call sites with owner, bug-fix count, status and a stable id, tickets mapped to code, and coverage |
 | `graph` | Which call site waits on which, how far each call reaches (blast radius), and ticket chains |
 
-Does it work? On Django's `ugettext*` the block finds all 265 lines in a hand-checked answer key, with 0 false hits. It resolves 542 of 542 aliased `_()` calls. The commit where Django actually migrated edits exactly the 267 lines we found. The push check, which now runs the resolver on the changed files, flagged only real new calls: 4 of 4 on 21 replayed commits and 2 of 2 on 9 later Django commits it hadn't seen. On Spark, 61% of 59,491 tickets map to code.
+Does it work? On Django's `ugettext*` the block finds all 265 lines in a hand-checked answer key, with 0 false hits. It resolves 542 of 542 aliased `_()` calls. The commit where Django actually migrated edits exactly the 267 lines we found. The push check, which now runs the resolver on the changed files, flagged only real new calls: 4 of 4 on 21 replayed commits and 2 of 2 on 9 later Django commits it hadn't seen. On Spark, 61% of 59,491 tickets map to code, and a person found 49 of 50 random commit-to-ticket links right.
 
 The weak spot is the cross-team part. None of our public datasets has both a ticket tracker and tracked code, so on real data 0 tickets map to a call site and the "who blocks whom" table is empty. A small hand-built repo (`acme/shop`) runs the whole cross-team story instead, and all 43 product queries pass on it. [Appendix C](appendix-real-data.md) goes feature by feature.
 
