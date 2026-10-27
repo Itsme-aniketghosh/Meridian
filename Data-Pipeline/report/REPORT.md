@@ -224,14 +224,14 @@ We tested this by breaking things on purpose: 27 injected faults and 42 scenario
 | 1 | Proper documentation | §4.1, §4.2, [README](../README.md) | ✅ |
 | 2 | Modular syntax and code | §2.2, §4.4 | ✅ |
 | 3 | Pipeline orchestration (Airflow DAGs) | §2.4, [A](appendix-airflow.md) | ✅ |
-| 4 | Tracking and logging | §2.6, §4.5 | ✅ (alerts logged; no real Slack or email channel yet) |
-| 5 | Data version control (DVC) | §2.5 | ✅ (remote is a placeholder) |
+| 4 | Tracking and logging | §2.6, §4.5 | ✅ Python logging in every part, a log per task try in Airflow |
+| 5 | Data version control (DVC) | §2.5 | 🟡 Partial: `dvc.yaml` and `dvc.lock` pin every stage, but the remote is a placeholder, so `dvc pull` doesn't work. The team zip and `reproduce.py` stand in for it (§4.3) |
 | 6 | Pipeline flow optimization | §2.9, [A](appendix-airflow.md) | ✅ |
 | 7 | Schema and statistics generation | §2.7, [B](appendix-quality.md) | ✅ |
-| 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | ✅ |
-| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ |
+| 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | 🟡 Partial: detection is live and tested. Alerts go to the log; the Slack and email senders are tested with mocks, but no real channel is set up |
+| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ Detection on 136 slices. Five mitigations measured, none adopted; flags ship instead (§3.3) |
 | 10 | Test modules | §2.3, [B](appendix-quality.md) | ✅ |
-| 11 | Reproducibility | §4.3, [D](appendix-testing.md) | ✅ |
+| 11 | Reproducibility | §4.3, [D](appendix-testing.md) | ✅ Same run_id and same bytes from the pinned inputs; `reproduce.py` checks both |
 | 12 | Error handling and logging | §4.5, [D](appendix-testing.md) | ✅ |
 
 What still falls short:
