@@ -11,7 +11,7 @@ Everyone has to work on the same run, or our tables won't join. Collect can clon
 | run_id | `c5118b019d642a9b` (replaces v1 `70dd1dabfed544b8` on 2026-10-27: same snapshot and zip, new `meridian.toml`) |
 | snapshot_at | `2026-10-01T01:23:03Z` |
 | status | `complete`: all 22 repos pinned. Built 2026-10-23, replacing `973531f7fd4cfd5e` |
-| zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB, team only |
+| zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB, [Google Drive](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link) |
 | sha256 | `d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523` |
 
 The zip holds real names ([CSV-POLICY.md](../CSV-POLICY.md)), so it's not in git. Ask the team for the link, and don't share it outside the team.

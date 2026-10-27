@@ -179,7 +179,30 @@ The README's steps set up and run the pipeline on another machine. The pipeline 
 - The weekly rebuild matched the update byte for byte.
 - CI checks a small fixture's hashes on Linux and Windows on every push.
 
-For a TA, `python run_demo.py short` runs in about 10 seconds with no private data and no Docker, one guideline item at a time on the fixture. `python run_demo.py long` runs everything, Airflow included. Both check free RAM and disk before heavy steps and skip with a reason rather than crash.
+**One file for a TA: [reproduce.py](../reproduce.py).** It needs only Python 3.11+ and git. Pick one option.
+
+**Option 1: quick check (about 2 minutes, no data needed).** Download the script into an empty folder and run it. It clones the repo, makes a virtual environment from `requirements.txt`, runs every unit test and the fixture demo, and prints a PASS/FAIL summary.
+
+```
+curl -O https://raw.githubusercontent.com/Itsme-aniketghosh/Meridian/main/Data-Pipeline/reproduce.py
+python3 reproduce.py
+```
+
+**Option 2: the real team run (about 30 minutes more, 6 GB of disk).** The only input that isn't on GitHub is the raw Jira and GitLab ticket pulls of Oct 1, which a fresh pull today can't give again. They're one zip, `meridian-raw-973531f7fd4cfd5e.zip` (145 MB), on **[Google Drive](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link)**.
+
+1. Clone the repo.
+2. Download the zip from the Drive link into `Meridian/Data-Pipeline/shared-snapshot/`. Keep its name.
+3. Run the script from the folder you cloned into.
+
+```
+git clone https://github.com/Itsme-aniketghosh/Meridian.git
+# download the zip from the Drive link into Meridian/Data-Pipeline/shared-snapshot/
+python3 Meridian/Data-Pipeline/reproduce.py
+```
+
+The script finds the zip and checks its sha256. It clones the 22 code repos from GitHub at their pinned SHAs, runs every task in the order the DAG does, and prints a PASS/FAIL summary. It checks that collect gave `run_id=c5118b019d642a9b` and that the 24 outputs match `golden/c5118b019d642a9b.json`. Run natively, `commit_file` can differ by git version, and the script says so if it does. The Airflow run in Docker is in the [README](../README.md).
+
+Underneath, `python run_demo.py short` runs in about 10 seconds with no private data and no Docker, one guideline item at a time on the fixture. `python run_demo.py long` runs everything, Airflow included. Both check free RAM and disk before heavy steps and skip with a reason rather than crash.
 
 ### 4.4 Code style
 
