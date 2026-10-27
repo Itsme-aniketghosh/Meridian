@@ -5,7 +5,7 @@
 Week 1's check (week1/pair2/spark/collisions.py) on the team run: a pair is two first-parent Spark commits since
 SINCE, keyed to different Bug+Fixed tickets ([szz] fix), within WINDOW days, that edit the same function. A function
 is (path, the name in git's hunk header), Scala named by a funcname driver passed on the command line: nothing is
-written into the snapshot. Dropped first (notes/PIPELINE-PLAN.md): generic names, and a name defined more than once
+written into the snapshot. Dropped first (GRAPH.md): generic names, and a name defined more than once
 in its file, where the header can't say which one was edited.
 
 Writes labels/spark_collision_pairs_50.csv: a seeded sample of 50 same-function pairs, hash(run_id, pair) order. A

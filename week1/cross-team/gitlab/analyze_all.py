@@ -70,7 +70,7 @@ for i in blocked:
         h={l["title"] for l in b["labels"]["nodes"] if l["title"].startswith("group::")}
         c["no group" if not gi or not h else "same" if gi&h else "cross"]+=1
 print(f"  blocked issues with a blocked-by link now: {sum(bool(iss[i]['blockedByIssues']['nodes']) for i in blocked)} of {len(blocked)}; edges {dict(c)}")
-print("\n== Open 90+ days (NEXT-STEPS stall definition)")
+print("\n== Open 90+ days (stall definition)")
 op=[i for i in iss if iss[i]["state"]=="opened"]
 print(f"  open at snapshot {len(op)} of {N}; all are 15+ months old. Of them ever blocked {sum(i in blocked for i in op)}, never in dev {sum(i not in first_dev for i in op)}")
 if not os.environ.get("HUMAN"): json.dump({"spells":[{**s,"start":s["start"].isoformat(),"end":s["end"].isoformat()} for s in spells],

@@ -74,5 +74,3 @@ python xt_edges.py && python xt_enrich.py && python xt_evidence.py      # edges 
 ```
 
 Verdicts go to `gitlab/xt_cross_team_blocks.csv`: one row per link, with an evidence quote and a verdict. It's committed so the team can review it, but the verdicts are unverified. Vishwa's confirmed 30 stay local.
-
-What to do next is in [../NEXT-STEPS.md](../NEXT-STEPS.md).

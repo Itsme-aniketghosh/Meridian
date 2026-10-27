@@ -1,6 +1,6 @@
 # Join · step 1
 
-Utkarsh's part of the [pipeline plan](notes/PIPELINE-PLAN.md): one block of call sites with owner, bug fixes and status, tickets mapped to code, and a count of everything we missed. Team run 70dd1dabfed544b8, 2026-10-23.
+Utkarsh's part of the pipeline plan: one block of call sites with owner, bug fixes and status, tickets mapped to code, and a count of everything we missed. Team run 70dd1dabfed544b8, 2026-10-23.
 
 ```
 python -m meridian.join --run-id <run_id> --config meridian.toml                       # first run

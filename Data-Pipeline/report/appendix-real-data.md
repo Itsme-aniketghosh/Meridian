@@ -28,7 +28,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | Feature | Status | Evidence on 70dd | Gap |
 |---|---|---|---|
 | S1 · Call sites remaining | ✅ | `staff_headline`: 1,526 present ([§1](#1-finding-the-work)) | |
-| S2 · Open tickets on the API | 🟡 | `staff_headline`: 0 | No real ticket maps to a call site (G7, [HANDOFF.md](../notes/HANDOFF.md) "What's empty") |
+| S2 · Open tickets on the API | 🟡 | `staff_headline`: 0 | No real ticket maps to a call site (G7, [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md)) |
 | S3 · Hidden chains, "Jira links N of them" | 🟡 | `staff_chains`, `derive_depends_on`; `test_graph` 13 of 13; 0 `depends_on`, 43 chain rows all `untracked` ([§6](#6-cross-team-blocks-and-chains)) | Needs `blocked_by` and S2. Cross-repo chains on fixtures only |
 | S4 · Collisions | 🟡 | `derive_collides`: 0. Spark proxy: inside rule 32 of 32 pairs, model-read ([§4](#4-tickets-and-their-link-to-code), [GRAPH.md](../GRAPH.md)) | As S2. Function scope only, where 04 says "function or file". The 50 pairs aren't human-checked |
 | S5 · Duplicates | 🟡 | `derive_duplicates`: 0 | As S2. 05-test's "beats title similarity" not run |
@@ -84,7 +84,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | T8 · Intake: Slack, support, GitHub issues → drafts | ❌ | none | Nothing collects intake (G5) |
 | R1 · Risky: `bug_fixes` ≥ 3 | 🟡 | `owner_teams`: 0 | As O5 |
 | R2 · Stall: present, no change in 14 days | ✅ | `owner_teams`: stalled teams, days from blame ([§3](#3-owner-status-by-team)) | |
-| R3 · Order: topological on `blocked_by`, then `bug_fixes`, then ID | 🟡 | `order_of_work`: 1,526 rows, by ID only | No cycle guard ([OPEN-POINTS](../../OPEN-POINTS.md)); 0 `blocked_by` |
+| R3 · Order: topological on `blocked_by`, then `bug_fixes`, then ID | 🟡 | `order_of_work`: 1,526 rows, by ID only | No cycle guard; 0 `blocked_by` |
 | R4 · Fragility ships with ticket IDs | ✅ | `p7_risky_edit`; SZZ 44% vs churn 18% vs latest 16% on Defects4J; 1,492 Spark files, 26,559 `bug_inducing` ([§5](#5-fragility)) | Spark only |
 | R5 · Thresholds and "done" statuses in config | ✅ | `meridian.toml [rules]` (G8, done) | |
 
@@ -130,7 +130,7 @@ Eight features belong to later stages, and the pipeline only supplies their fact
 | # | Gap | Blocks | What would close it |
 |---|---|---|---|
 | 1 | No real ticket maps to a call site and no call site has bug fixes: no dataset has both a tracker and tracked code, and SZZ runs on Spark only | 17 rows: S2, S4, S5, S7, S15, O5, C2, P3, P5, P6, P7, T1, T3, T4, R1, #3, #6 (and #8) | Known since week 1: the fixture carries the end-to-end story (G7, [02-product](../../docs/02-product.md) Known gaps), and collisions are checked on Spark hunks instead (GRAPH.md) |
-| 2 | 0 `blocked_by`, because 0 `receiver_from` on real data | 6 rows: S3, O4, C3, P4, R3, #1 (plus S15, and O3's "blocked" state) | A tracked method symbol (the week-1 "method-call benchmark"). Hand-check 20 `receiver_from` rows on Django to confirm 0 is right (OPEN-POINTS) |
+| 2 | 0 `blocked_by`, because 0 `receiver_from` on real data | 6 rows: S3, O4, C3, P4, R3, #1 (plus S15, and O3's "blocked" state) | A tracked method symbol (the week-1 "method-call benchmark"). Hand-check 20 `receiver_from` rows on Django to confirm 0 is right |
 | 3 | Only one run: no `removed` versions, no history | 7 rows: O1, O2, A2, U2, L1, G3, G4 (and P1's replay bar) | A second real run with `--prev-run` once the nightly DAG has a later snapshot (JOIN.md), or 05-test's Django weekly burndown replay |
 | 4 | Tracking tables not in schema.sql (`suggestion`, `outcome`, `push_alert`; `policy`, `match` not drafted) | 6 rows: U1, U3, push alert outcomes, S13, A1, C4 (and U2) | Move the three tested DDLs into schema.sql the day stage 6 offers its first suggestion, since outcomes can't be backfilled |
 | 5 | `call_edge` covers only callers above tracked symbols; no function signatures | 4 rows: S11, S12, A3, P2 | A whole-repo call graph, a second resolver pass (G3), and a `function(repo, path, scope, params)` table from scan's tree-sitter pass (G4) |

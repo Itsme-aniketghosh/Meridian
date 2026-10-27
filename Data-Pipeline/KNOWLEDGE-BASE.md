@@ -531,8 +531,8 @@ WHERE c.repo = coalesce(asof.repo, c.repo) AND c.symbol = coalesce(asof.symbol, 
 The docs already say what success is, and it's the one thing nobody can reconstruct later:
 
 - "Diffs and drafts used, edited, or ignored. Burndown before vs after us. Ignored and flat by week 8 = we built a dashboard" ([02-product](../docs/02-product.md), scoping §10–12).
-- "Outcome labels … never existed as data until we wrote it down" ([archive/06](../docs/archive/06-self-improvement.md)): git and Jira can be re-parsed, outcomes can't. So recording starts the day the first suggestion goes out, not later.
-- "We publish suggestion precision, not coverage: drafted 31 of 52, 29 applied unchanged" ([archive/meridian-v1](../docs/archive/meridian-v1.md)).
+- "Outcome labels … never existed as data until we wrote it down" (an older draft): git and Jira can be re-parsed, outcomes can't. So recording starts the day the first suggestion goes out, not later.
+- "We publish suggestion precision, not coverage: drafted 31 of 52, 29 applied unchanged" (an older draft).
 - The gate for everything after step 1: we only make changes ourselves "once suggestions get applied unchanged" ([01-problem](../docs/01-problem.md), [06-dead-ideas](../docs/06-dead-ideas.md)).
 
 **No separate graph.** Outcomes are facts about the same call sites, tickets and teams, so they go in the same KB as one more layer, keyed by the IDs that already exist. A second store would need its own join back to `call_site`, and the before/after numbers come from `call_site` history anyway.
@@ -734,7 +734,7 @@ What the KB still can't answer, and what closes each.
 
 ### Order
 
-1. **Now:** the fixes in [FIXES.md](notes/FIXES.md), with level 1–3 green on Windows (and on a Mac).
+1. **Now:** the dynamic-config fixes, with level 1–3 green on Windows (and on a Mac).
 2. **New run_id:** collect, history, scan, resolve, owners. Rerun every benchmark above that says "old run". Do the cross-machine check (level 4) once, on two laptops.
 3. **Hand checks** that are still open: rollback spot check, identity groups, gold set waits, the 20-row checks of the new columns.
 4. **join, then graph**, each with its fixtures first (level 1), then its benchmark (level 5).

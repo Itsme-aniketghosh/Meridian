@@ -17,5 +17,3 @@ its risk, hidden cross-team chains between tickets, and why work stalled.
 | [04 Architecture](docs/04-architecture.md) | Exact rules per stage |
 | [05 Test](docs/05-test.md) | Tests, pass bars, week-1 checks |
 | [06 Dead ideas](docs/06-dead-ideas.md) | Rejected, and why |
-
-Older drafts: [docs/archive/](docs/archive/).

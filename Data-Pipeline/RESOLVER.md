@@ -1,6 +1,6 @@
 # Resolver · step 1
 
-Rochan's part of the [pipeline plan](notes/PIPELINE-PLAN.md): what each candidate really is, and who calls it. Team run **70dd1dabfed544b8**, 2026-10-23 (after dynamic-config). The earlier run 973531f7fd4cfd5e is noted where its numbers differ.
+Rochan's part of the pipeline plan: what each candidate really is, and who calls it. Team run **70dd1dabfed544b8**, 2026-10-23 (after dynamic-config). The earlier run 973531f7fd4cfd5e is noted where its numbers differ.
 
 ```
 python -m meridian.resolve --run-id <run_id> --config meridian.toml      # from Data-Pipeline/

@@ -9,7 +9,7 @@ line that commit changed is a real use. Some migrations weren't finished (graphe
 left tests and examples behind), so a line the commit didn't touch is a real use too when it is the import, or a
 url(...) call, in a file that imports url from django.conf.urls. That rule is plain text, so it doesn't lean on Jedi.
 
-    precision  resolved rows that are real uses / resolved rows                  (bar: >= 0.98, notes/PIPELINE-PLAN.md)
+    precision  resolved rows that are real uses / resolved rows                  (bar: >= 0.98, docs/05-test.md)
     recall     real uses that are resolved / real uses (import and call rows only)
 """
 import json
