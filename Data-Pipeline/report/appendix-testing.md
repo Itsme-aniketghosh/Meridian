@@ -29,4 +29,4 @@ Every bug we found is fixed, with a regression test in `tests/`. They fell into 
 - The change report credits a moved or renamed line to the commit that last wrote its text, not the one that moved it. The data stays consistent.
 - `blocked_by`, P4 and chains run on fixtures only. No tracked symbol is called through an object on real data.
 - The bias flags aren't corrected for 133 tests at once. Under Bonferroni (the 5% error rate divided by the number of tests), 23 of 29 hold.
-- Alerts are delivered end to end only to local Slack-style and SMTP servers, in a test and the demo. The team's channel isn't connected yet.
+- Email alerts are delivered only to a local SMTP server (no team mailbox). Slack is connected.
