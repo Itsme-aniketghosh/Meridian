@@ -22,7 +22,6 @@ even when it is an English word), quotes <= 200.
 """
 import csv
 import gzip
-import hashlib
 import json
 import re
 import sys
@@ -89,6 +88,13 @@ def put(rows, r):
     lose = old if win is r else r
     rows[key] = {k: win[k] or lose[k]
                  for k in win} | {"source": old["source"] if old["source"] == r["source"] else "both"}
+
+
+def keep_spot_check(blocks, path):
+    """A rebuild keeps the spot-check: each pair's human_verdict and checked_by come back from the existing CSV."""
+    done = {(r["blocked_ref"], r["blocker_ref"]): (r["human_verdict"], r["checked_by"]) for r in read_csv(path)}
+    for r in blocks:
+        r["human_verdict"], r["checked_by"] = done.get((r["blocked_ref"], r["blocker_ref"]), ("", r["checked_by"]))
 
 
 def main(src, run):
@@ -175,11 +181,8 @@ def main(src, run):
             if (k := (r["blocked_ref"], r["blocker_ref"])) in again and again[k] != r["verdict"]:
                 r["verdict"] = again[k]
                 ruled["model recheck"] = ruled.get("model recheck", 0) + 1
-    if (HERE / "gitlab_cross_team_blocks.csv").exists():  # a rebuild keeps the spot-check
-        done = {(r["blocked_ref"], r["blocker_ref"]): r["human_verdict"]
-                for r in read_csv(HERE / "gitlab_cross_team_blocks.csv")}
-        for r in blocks:
-            r["human_verdict"] = done.get((r["blocked_ref"], r["blocker_ref"]), "")
+    if (HERE / "gitlab_cross_team_blocks.csv").exists():
+        keep_spot_check(blocks, HERE / "gitlab_cross_team_blocks.csv")
     stall_rows = []
     for r in stalls:
         a = f"{GL}#{r['iid']}"
@@ -209,23 +212,17 @@ def main(src, run):
     print(f"gitlab_stall_reasons.csv  {len(stall_rows)} stalls · reasons {by(stall_rows, 'reason')} · "
           f"ended_by {by(stall_rows, 'ended_by')}")
 
-    # The spot-check: 10 wait, 5 planned, 5 partial, one per waiting issue, picked by hash so anyone gets the same 20
-    # A wait or planned case holds if the person finds a wait or planned; a partial one if they find any real dependency
+    # The spot-check is the rows with a human_verdict (the team task's random.seed(1) sample of 50), per model verdict.
+    # A wait or planned case holds if the person finds a wait or planned; a partial one if they find any real
+    # dependency; any other verdict only if they find the same one
     holds = {"wait": {"wait", "planned"}, "planned": {"wait", "planned"}, "partial": {"wait", "planned", "partial"}}
-    print("\nspot-check (fill human_verdict in gitlab_cross_team_blocks.csv):")
-    for verdict, n in (("wait", 10), ("planned", 5), ("partial", 5)):
-        seen, picked = set(), []
-        for r in sorted((r for r in blocks if r["verdict"] == verdict and r["blocker_ref"]),
-                        key=lambda r: hashlib.sha256(f"{r['blocked_ref']}\x1f{r['blocker_ref']}".encode()).hexdigest()):
-            if r["blocked_ref"] not in seen and len(picked) < n:
-                seen.add(r["blocked_ref"])
-                picked.append(r)
-        held = [r for r in picked if r["human_verdict"]]
-        print(f"  {verdict}: {len(held)} of {len(picked)} checked, "
-              f"{sum(r['human_verdict'] in holds[verdict] for r in held)} hold")
-        for r in picked:
-            print(f"    {r['human_verdict'] or '____':12} {r['blocked_ref']} waits on {r['blocker_ref']}  "
-                  f"{r['evidence_url']}")
+    checked = [r for r in blocks if r["human_verdict"]]
+    print(f"\nspot-check: {len(checked)} checked, model agrees on "
+          f"{sum(r['human_verdict'] == r['verdict'] for r in checked)}")
+    for verdict in RANK:
+        rs = [r for r in checked if r["verdict"] == verdict]
+        print(f"  {verdict}: {len(rs)} checked, "
+              f"{sum(r['human_verdict'] in holds.get(verdict, {verdict}) for r in rs)} hold")
 
 
 if __name__ == "__main__":

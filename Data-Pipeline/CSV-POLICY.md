@@ -49,7 +49,7 @@ Both are in `Data-Pipeline/labels/`, built by [labels/build_gitlab_gold.py](labe
 | `evidence_url` | link to the note or description |
 | `evidence_quote` | ≤ 200 characters, `@user` |
 | `checked_by` | `model`, or initials |
-| `human_verdict` | blank until the spot-check, then the same values as `verdict`. 0 of 262 filled so far |
+| `human_verdict` | the same values as `verdict`. Filled on a random 50 of 262 (`random.Random(1).sample(rows, 50)`; model drafted, a person reviewed each), blank on the rest |
 
 **`gitlab_stall_reasons.csv`**: the 57 stall reads.
 

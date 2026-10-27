@@ -726,7 +726,7 @@ What the KB still can't answer, and what closes each.
 | resolve | 542 of 542 aliases; packages precision ≥ 0.98, full recall | as stated | ✅ on 70dd1dabfed544b8: 1,236 of 1,236 (1,059 of 1,059 on the old run) |
 | owners | Spark owner vs next author beats last toucher | > 18% | ✅ 20% vs 18% |
 | owners | Top 20 identity groups + every local-part merge with different names hand-checked | ≥ 19 of 20 right | ❌ |
-| gold set | Human spot check of 10 waits | ≥ 9 of 10 | ❌ 0 of 262 checked |
+| gold set | Human spot check of 10 waits | ≥ 9 of 10 | ❌ the check done is a random 50 of 262 rows, not 10 picked waits. In the 50, the model's `wait` rows hold 4 of 7; its 1 `planned` and 3 `partial` all hold (`unclear` 2 of 20, `no` 9 of 14, `no_evidence` 0 of 5 match). The model agrees with the person on 18 of 50 |
 | join | Call-site ID fixtures (insert, move, rename, duplicate, split, a repo added to or dropped from the config); Django weekly replay | 100%, replay error ≤ 1% | ✅ fixtures (`tests/test_join.py`, 22 tests); replay ❌ |
 | join | Ticket → code on Spark, fix commits hidden | path, trace precision ≥ 0.90 | ❌ |
 | graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ✅ fixtures (`tests/test_graph.py`); hand checks ❌ |
@@ -736,7 +736,7 @@ What the KB still can't answer, and what closes each.
 
 Done: the dynamic-config fixes, the new run_id (70dd1dabfed544b8), join and graph with their fixtures, the cross-machine check, and the end-to-end run in Airflow. Still open:
 
-1. **Hand checks:** the rollback spot check, the identity groups, the gold-set waits, the 20-row checks of the new columns, and join's ticket → code sample.
+1. **Hand checks:** the rollback spot check, the identity groups, more gold-set rows (50 of 262 checked, the model's waits hold only 4 of 7), the 20-row checks of the new columns, and join's ticket → code sample.
 2. **Reruns** of the benchmarks above that still say "old run".
 3. **A second real run** with `--prev-run`, for the Django replay and join's matching on real data.
 

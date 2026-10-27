@@ -47,6 +47,16 @@ class Gold(unittest.TestCase):
         checked = {(r["blocked_ref"], r["blocker_ref"]) for r in rows if r["human_verdict"]}
         self.assertEqual(checked, sample)
 
+    def test_rebuild_keeps_human_verdict_and_checked_by(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "old.csv").write_text("blocked_ref,blocker_ref,checked_by,human_verdict\ng#1,g#2,ZQ,wait\n",
+                                     encoding="utf-8")
+        row = lambda blocked: {"blocked_ref": blocked, "blocker_ref": "g#2", "checked_by": "model", "human_verdict": ""}
+        blocks = [row("g#1"), row("g#3")]
+        G.keep_spot_check(blocks, tmp / "old.csv")
+        self.assertEqual([(r["checked_by"], r["human_verdict"]) for r in blocks], [("ZQ", "wait"), ("model", "")])
+
     def test_no_raw_dump_stops(self):
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, True)

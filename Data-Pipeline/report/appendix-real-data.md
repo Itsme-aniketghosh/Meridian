@@ -100,7 +100,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | #6 Fragility freeze | 🟡 | `stall_fragility_freeze`: 0 | As O5; the "busy elsewhere" half isn't in the query |
 | #7 Test gap | ✅ | `stall_test_gap`: 250 (team, module) rows | `module_import` hand check open |
 | #8 Competing load | 🟡 | `stall_competing_load`: 8 rows, all Spark teams; 0 since the fix that counts only teams owning call sites | Spark teams own no call sites (G7) |
-| Ranking and verdict data | 🟡 | 3,031 `blocked_by` links (2,646 live), 111,003 status events | Ranking is stage 5. Reasons written in comments aren't kept (G2). The gold set has 0 of 262 human verdicts |
+| Ranking and verdict data | 🟡 | 3,031 `blocked_by` links (2,646 live), 111,003 status events | Ranking is stage 5. Reasons written in comments aren't kept (G2). The GitLab gold set has 50 of 262 rows human-checked, and the model agrees with 18 of them |
 
 ### Replay, outcomes and the update graph
 
@@ -211,11 +211,13 @@ SZZ gives 180 of 1,492 Spark files 3 or more bug fixes (max 36), with ticket key
 
 ![](figures/graph_and_blocks.png)
 
-*On real data the graph has only `untracked` rows (left, grey is the fixture), and the label rule keeps 116 of GitLab's "blocked by" links, of which only 13 are real cross-team waits (right).*
+*On real data the graph has only `untracked` rows (left, grey is the fixture), and the label rule keeps 116 of GitLab's "blocked by" links, of which the model's verdicts call only 13 real cross-team waits (right).*
 
-Real cross-team waits do exist in GitLab, at ticket level. Of its 2,166 `blocked_by` links, 1,890 are live and 1,683 have both ends in the snapshot. The doc's cheap rule ("the two issues carry different `group::` labels") keeps 116. 95 of those are in the model-read gold set, and only 13 are a real written wait (precision 0.14). It finds 13 of the gold set's 43 waits (recall 0.30), even though 34 of the 43 have a KB link. The gold set is weak too: 0 of 262 rows have a human verdict, and the 26-row spot check (21 hold) was done by a model as well.
+Real cross-team waits do exist in GitLab, at ticket level. Of its 2,166 `blocked_by` links, 1,890 are live and 1,683 have both ends in the snapshot. The doc's cheap rule ("the two issues carry different `group::` labels") keeps 116. 95 of those are in the gold set. By the model's verdicts only 13 are a real written wait (precision 0.14), and the rule finds 13 of the model's 43 waits (recall 0.30), even though 34 of the 43 have a KB link. Those numbers are against model labels, which agree with the person 18 of 50.
 
-We tried adding timing to the label rule, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): the blocker closes after the link was added, and the blocked issue closes after the blocker or is still open. Counting only `wait` against `no` and `planned`, the label rule scores 0.27 (13 of 48) and the timed rule 0.25 (10 of 40), with recall down from 0.30 to 0.23. That misses the 0.50 bar, so we didn't adopt it. Group labels and close dates can't tell a wait from a planned sequence. That needs what people write.
+A person has now checked a random 50 of the 262 rows (model drafted, a person reviewed each). The rule keeps 18 of the 50. Counting `wait` or `planned` as real (the builder's `holds`), 8 of the 18 are real: precision 0.44 (Wilson 95% 0.25 to 0.66, N = 18), and 6 more are `partial`. It finds 8 of the 15 real pairs in the 50 (recall 0.53). Counting only `wait`, it's 2 of 18 and 2 of 7. The 26-row spot check in `gitlab_spot_check_model.csv` (21 hold) is a model's.
+
+We tried adding timing to the label rule, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): the blocker closes after the link was added, and the blocked issue closes after the blocker or is still open. Counting only `wait` against `no` and `planned`, the label rule scores 0.27 (13 of 48) and the timed rule 0.25 (10 of 40), with recall down from 0.30 to 0.23. That misses the 0.50 bar, so we didn't adopt it. On the 50 human-checked rows, with the bar's own counting, the label rule scores 2 of 12 (0.17) and the timed rule 2 of 10 (0.20, Wilson 95% 0.06 to 0.51). Counting `planned` as real too, 8 of 18 and 8 of 16 (0.50, 0.28 to 0.72): timing drops 2 checked pairs, both `no`. N is small and both intervals span the bar. Group labels and close dates can't tell a wait from a planned sequence. That needs what people write.
 
 ## 7. Push check replay
 
@@ -257,4 +259,4 @@ Against `gitlab_stall_reasons.csv` (57 blocked issues, model-read), 41 are "upst
 
 *Precision (dots) and recall (squares) of the block against each answer key, with the 0.90 bar.*
 
-The code side clears the bar, and the ticket and cross-team side doesn't yet. The Spark and GitLab keys are model-read, not human-checked, so those scores are provisional.
+The code side clears the bar, and the ticket and cross-team side doesn't yet. The Spark key is model-read. The GitLab key has 50 of 262 rows human-checked, and the figure's GitLab dot uses the model's verdicts, which agree with the person 18 of 50, so those scores are provisional.
