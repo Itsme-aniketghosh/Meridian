@@ -4,7 +4,7 @@ Team run `c5118b019d642a9b`: Django, 20 Django packages, Spark with its Apache J
 
 ## 1. Overview
 
-Meridian helps a company retire an internal API. When a platform team removes something like `AuthClient.verify_token`, someone has to find every call to it, work out which team owns each one, and spot the calls that are risky or that block another team. Today people do that by hand, with Jira tickets that drift away from the code. Meridian works it out from the code, git history and tickets ([docs/02-product.md](../../docs/02-product.md)).
+Meridian does the cross-codebase review an engineer would do. It joins a company's code, git history and tickets to show every call to an API, who owns it, how risky it is, which teams block each other, and which tickets have drifted from the code. It starts with the hardest case, retiring an internal API across many teams, and is step one toward self-maintaining APIs: software that updates its own callers when an API changes. When a platform team removes something like `AuthClient.verify_token`, someone has to find every call to it, work out which team owns each one, and spot the calls that are risky or that block another team. Today people do that by hand, with Jira tickets that drift away from the code. Meridian works it out from the code, git history and tickets ([docs/02-product.md](../../docs/02-product.md)).
 
 This pipeline builds the data behind it: one SQLite file (the "block") that every view and check reads. It's two Airflow DAGs, a daily update and a weekly rebuild from scratch that checks the update:
 
