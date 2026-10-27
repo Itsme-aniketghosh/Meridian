@@ -19,7 +19,7 @@ cd "Data-Pipeline"
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 339 tests ... OK (skipped=19)` (Windows, Python 3.11, Oct 27): 11 skipped need the team run, 5 need Airflow (`test_dag.Dag`), 2 need Great Expectations (`test_gx.Audit`), and 1 runs off Windows only (`test_resolve.ReexportLoop`, a re-export loop overflows Windows' C stack), so Mac and Linux skip 18. CI runs this on Linux and Windows for every pull request and push to main, after flake8 at 120 characters (`Data-Pipeline/setup.cfg`). The Airflow and GX tests run in their own jobs, and `test_pushcheck` runs with only the packages `push-check.yml` installs ([ci.yml](.github/workflows/ci.yml)).
+Expect `Ran 340 tests ... OK (skipped=19)` (Windows, Python 3.11, Oct 27): 11 skipped need the team run, 5 need Airflow (`test_dag.Dag`), 2 need Great Expectations (`test_gx.Audit`), and 1 runs off Windows only (`test_resolve.ReexportLoop`, a re-export loop overflows Windows' C stack), so Mac and Linux skip 18. CI runs this on Linux and Windows for every pull request and push to main, after flake8 at 120 characters (`Data-Pipeline/setup.cfg`). The Airflow and GX tests run in their own jobs, and `test_pushcheck` runs with only the packages `push-check.yml` installs ([ci.yml](.github/workflows/ci.yml)).
 
 ## Every test, the team run included
 
@@ -33,7 +33,7 @@ export MERIDIAN_RUN_ID=c5118b019d642a9b                   # Mac, Linux
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 339 tests ... OK (skipped=7)` on Mac and Linux, 8 on Windows. The extra 11 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines), the packages' precision and recall, the golden files, and every real call edge.
+Expect `Ran 340 tests ... OK (skipped=7)` on Mac and Linux, 8 on Windows. The extra 11 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines), the packages' precision and recall, the golden files, and every real call edge.
 
 ## The golden files
 
@@ -63,7 +63,7 @@ No database is needed. The image build needs about 3 GB of free memory.
 python -m unittest tests.test_graph -v
 ```
 
-Each part has its own file (`test_collect`, `test_history`, `test_scan`, and so on), and `test_publish` also covers compare and status. A few cut across parts: `test_kb` (the knowledge base's queries), `test_cache` (a cache on gives the same bytes as off), `test_dag`, `test_pushcheck` (P1–P9) and `test_golden`.
+Each part has its own file (`test_collect`, `test_history`, `test_scan`, and so on), and `test_publish` also covers compare and status. A few cut across parts: `test_kb` (the knowledge base's queries), `test_cache` (a cache on gives the same bytes as off), `test_validate.Alert` (an alert really reaches a local Slack-style webhook and SMTP server, from `tests/alert_sinks.py`), `test_dag`, `test_pushcheck` (P1–P9) and `test_golden`.
 
 ## Seeing the data
 
