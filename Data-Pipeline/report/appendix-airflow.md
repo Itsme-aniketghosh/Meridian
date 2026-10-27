@@ -17,7 +17,7 @@ We ran the daily DAG (Airflow's graph of tasks), `meridian_update`, in Docker De
 | validate | 39 s | 1,788,375 rows in 25 tables, 0 errors, 0 warnings (the 289 known Jira dates in year 0010 are allowed in `settings.toml`) |
 | report, publish | 1 s, 1 s | `published/c5118b019d642a9b.sqlite`, `latest.json` |
 
-Back to back the tasks take 1,183 s, so running scan and resolve beside history saved 240 s (20%). history is the longest branch, so it caps the saving.
+Back to back the tasks take 1,183 s, so running scan and resolve beside history saved 240 s (20%). History is the longest branch, so it caps the saving.
 
 ![](figures/airflow_ui_graph_update.jpg)
 
@@ -27,7 +27,7 @@ Back to back the tasks take 1,183 s, so running scan and resolve beside history 
 
 ## Why it takes 943 s
 
-Natively the same parts take about 7 minutes. In Docker every git and file read goes through the folder mount, several times slower on macOS and Windows, and history reads the most (`git log --numstat`, blame for SZZ). A Linux host or a Docker volume (`-f docker-compose.volumes.yaml`) removes that cost. A warm SZZ cache also brings history from 312 s to 74 s natively ([Appendix D](appendix-testing.md)).
+Natively the same parts take about 7 minutes. In Docker every git and file read goes through the folder mount, which is several times slower on macOS and Windows, and history reads the most (`git log --numstat`, blame for SZZ). A Linux host or a Docker volume (`-f docker-compose.volumes.yaml`) removes that cost. A warm SZZ cache also brings history from 312 s to 74 s natively.
 
 An earlier run on a Windows laptop never finished:
 
@@ -52,8 +52,6 @@ The error handling still worked: timeouts, retries 5 minutes apart, a log per tr
 | compare | 2 s | 0 differences between the rebuild and the update |
 | publish | skipped | Nothing to correct, so nothing republished, as designed |
 
-On the real data, the from-scratch rebuild matches the incremental update byte for byte.
-
 ![](figures/airflow_ui_graph_rebuild.jpg)
 
 *The rebuild run, all green except publish, which is pink because compare found nothing to correct.*
@@ -66,4 +64,4 @@ docker compose up -d --build                                    # from Data-Pipe
 python report/gantt.py                                          # redraws the chart from report/airflow_run.csv
 ```
 
-`report/airflow_run.csv` holds the Mac run's per-task tries (`new_run_c511_b`), exported from the Airflow API.
+`report/airflow_run.csv` holds the update's per-task tries (`new_run_c511_b`), exported from the Airflow API. The Gantt chart and the 1,183 s and 20% above come from it.
