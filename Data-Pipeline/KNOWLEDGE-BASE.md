@@ -8,7 +8,7 @@ This page checks that claim against the plan ([02-product](../docs/02-product.md
 python -m unittest tests.test_kb -v        # from Data-Pipeline/
 ```
 
-**What the proof shows and what it doesn't.** It shows the KB can carry and answer each feature. The fixture fills `call_site`, `ticket_map`, `blocked_by`, `chain` and `blast_radius` by hand, so the proof needs no real data, and the `derive_*` queries show graph's tables can be computed from the other parts' inputs. It says nothing about numbers on real data: that's the [testing plan](#testing-plan).
+The proof shows the KB can carry and answer each feature. The fixture fills `call_site`, `ticket_map`, `blocked_by`, `chain` and `blast_radius` by hand, so the proof needs no real data, and the `derive_*` queries show graph's tables can be computed from the other parts' inputs. It says nothing about numbers on real data: that's the [testing plan](#testing-plan).
 
 ## What's in it
 
@@ -533,13 +533,13 @@ WHERE c.repo = coalesce(asof.repo, c.repo) AND c.symbol = coalesce(asof.symbol, 
 The docs already say what success is, and it's the one thing nobody can reconstruct later:
 
 - "Diffs and drafts used, edited, or ignored. Burndown before vs after us. Ignored and flat by week 8 = we built a dashboard" ([02-product](../docs/02-product.md), scoping §10–12).
-- "Outcome labels … never existed as data until we wrote it down" (an older draft): git and Jira can be re-parsed, outcomes can't. So recording starts the day the first suggestion goes out, not later.
+- "Outcome labels … never existed as data until we wrote it down" (an older draft): git and Jira can be re-parsed, outcomes can't. So recording starts with the first suggestion.
 - "We publish suggestion precision, not coverage: drafted 31 of 52, 29 applied unchanged" (an older draft).
 - The gate for everything after step 1: we only make changes ourselves "once suggestions get applied unchanged" ([01-problem](../docs/01-problem.md), [06-dead-ideas](../docs/06-dead-ideas.md)).
 
-**No separate graph.** Outcomes are facts about the same call sites, tickets and teams, so they go in the same KB as one more layer, keyed by the existing IDs. A second store would need its own join back to `call_site`, and the before/after numbers come from `call_site` history anyway.
+No separate graph. Outcomes are facts about the same call sites, tickets and teams, so they go in the same KB as one more layer, keyed by the existing IDs. A second store would need its own join back to `call_site`, and the before/after numbers come from `call_site` history anyway.
 
-**Code decides, not clicks.** An outcome is read off later runs, by rule, like every other fact. A diff is "applied" when the call site disappears and the line in its place is the line we drafted. No button, no survey. It replays too: rerun an old snapshot and you get the same verdicts.
+Code decides, not clicks. An outcome is read off later runs, by rule, like every other fact. A diff is "applied" when the call site disappears and the line in its place is the line we drafted. No button, no survey. It replays too: rerun an old snapshot and you get the same verdicts.
 
 | Kind | Applied | Edited | Ignored |
 |---|---|---|---|
@@ -549,7 +549,7 @@ The docs already say what success is, and it's the one thing nobody can reconstr
 | Stall reason | 04 §9's verdict rules (block removed ≤ 7 days before resumption, …), or a person's call, logged with who | | No verdict in the window: no match |
 | Push alert | `fixed`: the merged SHA doesn't have the flagged row | `dismissed`: the comment was resolved with no change | `ignored`: merged with it |
 
-**Proposed tables** (03-data named `suggestion` and `push_alert`; this fixes their columns and adds `outcome`). They move into schema.sql when stage 6 starts writing suggestions. The proof below runs on exactly this DDL.
+Proposed tables (03-data named `suggestion` and `push_alert`; this fixes their columns and adds `outcome`). They move into schema.sql when stage 6 starts writing suggestions. The proof below runs on exactly this DDL.
 
 ```sql
 -- name: schema_outcomes
@@ -590,7 +590,7 @@ CREATE TABLE push_alert (
 
 In the fixture, R1 offered six suggestions. Checkout and payments got diffs, billing a ticket draft, `CHK-311` a rewrite. Search, platform and fulfillment got nothing: they are the control group.
 
-**Precision per kind**, the number we publish. N first, always.
+Precision per kind, the number we publish. N first, always.
 
 ```sql
 -- name: outcome_precision
@@ -602,7 +602,7 @@ SELECT s.kind, count(*), sum(l.outcome = 'applied'), sum(l.outcome = 'edited'), 
 FROM suggestion s JOIN last l ON l.suggestion_id = s.suggestion_id GROUP BY s.kind ORDER BY s.kind;
 ```
 
-**The auto-apply gate.** A kind earns "we make the change ourselves" only at N ≥ `auto_apply_min_n` and an applied-unchanged share ≥ `auto_apply_min_share`. Until then, it says why not.
+The auto-apply gate: a kind earns "we make the change ourselves" only at N ≥ `auto_apply_min_n` and an applied-unchanged share ≥ `auto_apply_min_share`. Until then, it says why not.
 
 ```sql
 -- name: auto_apply_gate
@@ -615,7 +615,7 @@ FROM (SELECT s.kind, count(*) AS n, round(1.0 * sum(o.outcome = 'applied') / cou
 ORDER BY kind;
 ```
 
-**Burndown before vs after us, per team.** Removals in the 30 days before a team's first suggestion vs the 30 days after. A team that got nothing is measured around the first suggestion anyone got: that's the control.
+Burndown before vs after us, per team: removals in the 30 days before a team's first suggestion vs the 30 days after. A team that got nothing is measured around the first suggestion anyone got: that's the control.
 
 ```sql
 -- name: outcome_before_after
@@ -633,7 +633,7 @@ SELECT f.team, CASE WHEN f.suggested THEN 'suggested' ELSE 'control' END,
 FROM f ORDER BY f.team;
 ```
 
-**The effect** is the suggested teams' change minus the control teams' change (a difference-in-differences). Here: +1.0 removals per team-month against +0.33 without us. It's an effect only once both groups have real N. Teams that get suggestions first may be the ones already moving, so roll suggestions out in a staggered order. Until there's a customer, it's replay, and we say so.
+The effect is the suggested teams' change minus the control teams' change (a difference-in-differences). Here: +1.0 removals per team-month against +0.33 without us. It's an effect only once both groups have real N. Teams that get suggestions first may be the ones already moving, so roll suggestions out in a staggered order. Until there's a customer, it's replay, and we say so.
 
 ```sql
 -- name: outcome_effect
@@ -652,7 +652,7 @@ WITH f AS (SELECT t.team, coalesce(min(s.offered_at), (SELECT min(offered_at) FR
 SELECT grp, count(*), round(avg(before), 2), round(avg(after), 2) FROM r GROUP BY grp ORDER BY grp;
 ```
 
-**Push alerts**: did the note change the merge? 05-test's bar (precision ≥ 0.80, median ≤ 1 alert per push) says whether an alert was right. This says whether anyone acted on it.
+Push alerts: did the note change the merge? 05-test's bar (precision ≥ 0.80, median ≤ 1 alert per push) says whether an alert was right. This says whether anyone acted on it.
 
 ```sql
 -- name: push_alert_outcomes
@@ -661,7 +661,7 @@ SELECT check_id, count(*), sum(outcome = 'fixed'), sum(outcome = 'dismissed'), s
 FROM push_alert GROUP BY check_id ORDER BY check_id;
 ```
 
-**Week 8's question**, "used, or just a dashboard?", is then two of these numbers: anything applied or edited at all, and suggested teams moving faster than control. Here, 3 of 6 suggestions were used and the suggested teams moved faster. On N = 6 that's a demo, not a result.
+Week 8's question, "used, or just a dashboard?", is then two of these numbers: anything applied or edited at all, and suggested teams moving faster than control. Here, 3 of 6 suggestions were used and the suggested teams moved faster. On N = 6 that's a demo, not a result.
 
 ```sql
 -- name: outcome_week8
@@ -670,7 +670,7 @@ SELECT CASE WHEN sum(outcome IN ('applied', 'edited')) = 0 THEN 'dashboard' ELSE
        sum(outcome IN ('applied', 'edited')), count(*) FROM outcome;
 ```
 
-**Charts.** Not new graphs: four views over these queries.
+Charts: no new graphs, just four views over these queries.
 
 | Chart | Shows | From |
 |---|---|---|
@@ -679,7 +679,7 @@ SELECT CASE WHEN sum(outcome IN ('applied', 'edited')) = 0 THEN 'dashboard' ELSE
 | Before vs after, with control | One dot pair per team, suggested and control side by side | `outcome_before_after` |
 | Push alert outcomes per check | fixed / dismissed / ignored per P1–P9 | `push_alert_outcomes` |
 
-**Until there's a customer (replay).** Offer the suggestions on an old snapshot and score them against what the project really did later. Django is built for it: draft diffs at `4353640ea9`, the parent of the conversion commit, and compare them with `c651331b34`'s after-lines. That's 05-test's "Diffs: draft from parent vs real after-line ≥ 90% match", and it fills `outcome` with `rule = 'replay'`, so replay and live numbers never mix.
+Until there's a customer, we replay: offer the suggestions on an old snapshot and score them against what the project really did later. Django is built for it: draft diffs at `4353640ea9`, the parent of the conversion commit, and compare them with `c651331b34`'s after-lines. That's 05-test's "Diffs: draft from parent vs real after-line ≥ 90% match", and it fills `outcome` with `rule = 'replay'`, so replay and live numbers never mix.
 
 ## Gaps
 
@@ -713,7 +713,7 @@ What the KB still can't answer, and what closes each.
 | 3. KB proof | This page's queries against the fixture KB | Every commit | `python -m unittest tests.test_kb` | ✅ 44 queries |
 | 4. Cross-machine | Same run on Windows and Mac (and the Airflow image): every `out/<run_id>/*.jsonl` sha256 equal | Every new run_id | `sha256sum out/<run_id>/*.jsonl` on each, compared | ✅ Windows and Docker on a Mac. One difference found, Jedi's folder order, now fixed ([RESOLVER.md](RESOLVER.md)) |
 | 5. Benchmarks | Real data against answer keys | Each new run_id, and weekly once scheduled | per part, below | partly ✅ |
-| 6. End to end | Collect → graph on the new run_id, then the writer; second run → `cmp` identical | D8–D10 | Airflow DAG | ✅ both DAGs on 70dd1dabfed544b8, published ([report](report/REPORT.md)) |
+| 6. End to end | Collect → graph on the new run_id, then the writer; second run → `cmp` identical | D8–D10 | Airflow DAG | ✅ both DAGs on c5118b019d642a9b, published ([report](report/REPORT.md)) |
 | 7. Outcomes | Suggestions used, edited, ignored | Continuous, later | — | ⛔ stage 6 |
 
 ### Benchmarks per part (the bars)
@@ -725,22 +725,22 @@ What the KB still can't answer, and what closes each.
 | tickets | 59,491 Spark tickets; bulk-closed share; rollback spot check of 20 tickets against the Jira UI | exact, 20 of 20 | ❌ spot check not done |
 | SZZ | Defects4J 130 labels: beats churn and latest | beats both | ✅ 44% vs 18% vs 16% |
 | scan | Django 265 of 265, 0 false; `code.sample` 2 of 2 | exact | ✅ |
-| resolve | 542 of 542 aliases; packages precision ≥ 0.98, full recall | as stated | ✅ on 70dd1dabfed544b8: 1,236 of 1,236 (1,059 of 1,059 on the old run) |
+| resolve | 542 of 542 aliases; packages precision ≥ 0.98, full recall | as stated | ✅ on the team run: 1,236 of 1,236 (1,059 of 1,059 on the old run) |
 | owners | Spark owner vs next author beats last toucher | > 18% | ✅ 20% vs 18% |
 | owners | Top 20 identity groups + every local-part merge with different names hand-checked | ≥ 19 of 20 right | ❌ |
 | gold set | Human spot check of 10 waits | ≥ 9 of 10 | ❌ the check done is a random 50 of 262 rows, model-drafted and person-reviewed, not 10 picked waits. In the 50, the model's `wait` rows hold 4 of 7; its 1 `planned` and 3 `partial` all hold (`unclear` 2 of 20, `no` 9 of 14, `no_evidence` 0 of 5 match). The model agrees with the reviewed verdict on 18 of 50 |
 | join | Call-site ID fixtures (insert, move, rename, duplicate, split, a repo added to or dropped from the config); Django weekly replay | 100%, replay error ≤ 1% | ✅ fixtures (`tests/test_join.py`, 22 tests); replay ❌ |
 | join | Ticket → code on Spark, fix commits hidden | path, trace precision ≥ 0.90 | ❌ |
-| graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ✅ fixtures (`tests/test_graph.py`); ✅ Spark 50 of 50 hand-checked, inside rule 32 of 32 real (1.00); GitLab gold set ❌ 0 of 262 |
+| graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ✅ fixtures (`tests/test_graph.py`); ✅ Spark 50 of 50 hand-checked, inside rule 32 of 32 real (1.00); GitLab gold set ❌ (50 of 262 reviewed, bar not met) |
 | new KB columns | `in_except`, `module_import`, `deprecation`, `receiver_from` on Django: hand-check 20 rows each | 20 of 20 | ❌ |
 
 ### What's left
 
-Done: the dynamic-config fixes, the new run_id (70dd1dabfed544b8), join and graph with their fixtures, the Spark collision hand check, the cross-machine check, and the end-to-end run in Airflow. Still open:
+Done: the dynamic-config fixes, the team run (c5118b019d642a9b; v1 was 70dd1dabfed544b8), join and graph with their fixtures, the Spark collision hand check, the cross-machine check, and the end-to-end run in Airflow. Still open:
 
-1. **Hand checks:** the rollback spot check, the identity groups, more gold-set rows (50 of 262 checked, the model's waits hold only 4 of 7), the 20-row checks of the new columns, and join's ticket → code sample.
-2. **Reruns** of the benchmarks above that still say "old run".
-3. **A second real run** with `--prev-run`, for the Django replay and join's matching on real data.
+1. Hand checks: the rollback spot check, the identity groups, more gold-set rows (50 of 262 checked, the model's waits hold only 4 of 7), the 20-row checks of the new columns, and join's ticket → code sample.
+2. Reruns of the benchmarks above that still say "old run".
+3. A second real run with `--prev-run`, for the Django replay and join's matching on real data.
 
 ### CI
 

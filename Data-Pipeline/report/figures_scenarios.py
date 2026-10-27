@@ -2,7 +2,8 @@
 "situations") against a real run's meridian.sqlite, one dataset at a time, scores the block against the hand-checked
 labels, replays the pinned repos' next commit through the push check, and draws the signal charts.
 
-    python report/figures_scenarios.py --db <meridian.sqlite> [--mirrors ../snapshots/_cache/repos] [--replay]
+    python report/figures_scenarios.py --db <meridian.sqlite> [--run-id c5118b019d642a9b]
+        [--mirrors ../snapshots/_cache/repos] [--replay]
 
 Reads the block read-only. Writes report/figures/*.png and report/figures/scenarios.json (every number the appendix
 quotes). --replay reruns the push-check replay (git checkouts, slow); otherwise its cached JSON is reused.
@@ -23,7 +24,12 @@ sys.path.insert(0, str(DP))
 DJ = "repo = 'django/django'"
 PK = "repo NOT IN ('django/django', 'apache/spark')"
 SP = "repo = 'apache/spark'"
-RUN_AT = "2026-10-01T01:23:03Z"  # run 70dd1dabfed544b8 snapshot_at
+# The committed figures come from 70dd1dabfed544b8's block, whose call-site tables equal c5118b019d642a9b's
+RUN = "c5118b019d642a9b"  # --run-id
+# each run's snapshot_at (main() checks it against the block's run table). shortcut: SCOPES and PARAMS take RUN_AT at
+# import, so a run with another snapshot_at needs them built in main()
+SNAPSHOT_AT = {"c5118b019d642a9b": "2026-10-01T01:23:03Z", "70dd1dabfed544b8": "2026-10-01T01:23:03Z"}
+RUN_AT = SNAPSHOT_AT[RUN]
 SCOPES = {
     # asof = the run's time for all: call_site.known_at is when the run learned a fact, so any earlier moment sees nothing
     # (Django's code is pinned at 4353640ea9, 2017-02-03, but the block only knows it since 2026-10-01)
@@ -99,7 +105,7 @@ def scoped(db_path, scope):
         db.execute(f"CREATE TEMP VIEW {t} AS " + scope.get("views", {}).get(t, f"SELECT * FROM main.{t} WHERE {w}"))
     db.execute("CREATE TEMP TABLE asof (run_id TEXT, at TEXT, repo TEXT, symbol TEXT)")
     # the views above scope the data; scope's repo and symbol are labels ("20 django packages"), never asof filters
-    db.execute("INSERT INTO asof VALUES ('70dd1dabfed544b8', ?, NULL, NULL)", (scope["at"],))
+    db.execute("INSERT INTO asof VALUES (?, ?, NULL, NULL)", (RUN, scope["at"]))
     return db
 
 
@@ -148,7 +154,7 @@ def blast_radius_real(db_path):
         mine = None
         if repo == "django/django":
             db.execute("DELETE FROM asof")
-            db.execute("INSERT INTO asof VALUES ('70dd1dabfed544b8', ?, ?, ?)", (RUN_AT, repo, symbol.rsplit(".", 1)[-1]))
+            db.execute("INSERT INTO asof VALUES (?, ?, ?, ?)", (RUN, RUN_AT, repo, symbol.rsplit(".", 1)[-1]))
             mine = {d: n for d, n in db.execute(sql)}
         out[f"{repo}:{symbol}"] = dict(direct=direct, invocations=inv, files=files, by_depth=json.loads(by_depth), kb_query=mine)
     db.close()
@@ -574,11 +580,19 @@ def charts(R):
 
 
 def main(argv=None):
+    global RUN
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--db", required=True, help="a run's meridian.sqlite (opened read-only)")
     ap.add_argument("--mirrors", default=str(DP.parent / "snapshots/_cache/repos"), help="collect's bare git mirrors")
     ap.add_argument("--replay", action="store_true", help="rerun the push-check replay instead of reading its cached JSON")
+    ap.add_argument("--run-id", default=RUN, choices=SNAPSHOT_AT, help="the run in --db (default: the team run)")
     a = ap.parse_args(argv)
+    RUN = a.run_id
+    db = connect(a.db)
+    at = db.execute("SELECT snapshot_at FROM run WHERE run_id = ?", (RUN,)).fetchone()
+    db.close()
+    if at != (SNAPSHOT_AT[RUN],):
+        sys.exit(f"{a.db}: run {RUN} has snapshot_at {at}, expected {SNAPSHOT_AT[RUN]}: pass the block's --run-id")
     FIG.mkdir(parents=True, exist_ok=True)
     cache = FIG / "push_replay.json"
     if a.replay or not cache.exists():

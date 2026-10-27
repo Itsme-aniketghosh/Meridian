@@ -1,14 +1,12 @@
 # Meridian data pipeline
 
-MLOps data pipeline submission. Team run `c5118b019d642a9b`: Django, 20 Django packages, Spark with its Apache Jira tickets, and GitLab issues. 1,788,375 rows in 25 tables.
-
-The sections follow the order of the assignment's guidelines. Appendices A to D hold the evidence.
+Team run `c5118b019d642a9b`: Django, 20 Django packages, Spark with its Apache Jira tickets, and GitLab issues, 1,788,375 rows in 25 tables. The sections follow the assignment's guidelines in order. Appendices A to D hold the evidence.
 
 ## 1. Overview
 
-Meridian helps a company retire an internal API. When a platform team removes something like `AuthClient.verify_token`, someone has to find every call to it, work out which team owns each one, and spot the calls that are risky or that block another team. Today that's done by hand, with Jira tickets that drift away from what the code says. Meridian does it from the code, git history and tickets ([docs/02-product.md](../../docs/02-product.md)).
+Meridian helps a company retire an internal API. When a platform team removes something like `AuthClient.verify_token`, someone has to find every call to it, work out which team owns each one, and spot the calls that are risky or that block another team. Today people do that by hand, with Jira tickets that drift away from the code. Meridian works it out from the code, git history and tickets ([docs/02-product.md](../../docs/02-product.md)).
 
-This pipeline builds the data behind it: one SQLite file (the "block") that every view and check reads. It's two Airflow DAGs, a daily update and a weekly from-scratch rebuild that checks the update:
+This pipeline builds the data behind it: one SQLite file (the "block") that every view and check reads. It's two Airflow DAGs, a daily update and a weekly rebuild from scratch that checks the update:
 
 ```
 meridian_update (click, daily 02:00 UTC)
@@ -21,66 +19,77 @@ meridian_rebuild (Sunday 04:00 UTC): fresh ── collect ── … ── vali
                                                                         └── gx (never gates)
 ```
 
-There's no trained model at this stage. The pipeline's "models" are three rules: who owns a file, which ticket maps to which code, and which name really is the retired API. We test and slice those rules the way you would a model.
+There's no trained model at this stage. The pipeline's "models" are three rules (who owns a file, which ticket maps to which code, which name really is the retired API), and we test and slice them the way you would a model.
 
 ## 2. Key components
 
 ### 2.1 Data acquisition
 
-`meridian/collect.py` gets everything and freezes it. It clones 22 public repos and checks each one out at a pinned commit (`meridian.toml`). It pulls Spark's tickets from the Apache Jira REST API and GitLab's issues from the GitLab API, and keeps the raw responses. Everything it read goes into a manifest, and the run id is a hash of that manifest. Same inputs, same run id, on any machine.
+`meridian/collect.py` fetches everything and freezes it. It clones 22 public repos at pinned commits (`meridian.toml`), pulls Spark's tickets from the Apache Jira REST API and GitLab's issues from the GitLab API, and keeps the raw responses. The run id is a hash of the manifest of everything it read, so the same inputs give the same run id on any machine.
 
-Dependencies are pinned in `requirements.txt`, and the GX audit has its own `requirements-gx.txt`. The raw ticket pulls have real names in them, so they're not in git. DVC tracks them instead (`snapshots/_cache/*.dvc`, section 2.5). Someone without team access can pull them fresh from the public APIs with `python run_demo.py download --public-pull`. That gives a run of their own with different numbers.
+Dependencies are pinned in `requirements.txt`, and the GX audit has its own `requirements-gx.txt`. The raw ticket pulls contain real names, so DVC tracks them instead of git (`snapshots/_cache/*.dvc`, §2.5). Without team access, `python run_demo.py download --public-pull` makes a run of your own from the public APIs, with different numbers.
 
 ### 2.2 Data preprocessing
 
-Each step is its own module, run as `python -m meridian.<part> --run-id <id> --config meridian.toml`. All settings that change a row live in `meridian.toml`. [CONTRACTS.md](../CONTRACTS.md) lists what each part reads and writes.
+Each step is its own module, run as `python -m meridian.<part> --run-id <id> --config meridian.toml`. Every setting that changes a row lives in `meridian.toml`, so adjusting a rule means editing one file. [CONTRACTS.md](../CONTRACTS.md) lists what each part reads and writes.
 
 | Step | What it does |
 |---|---|
 | `history` | Commits and changed files from git, tickets as they were at the snapshot, commit-to-ticket links from ticket keys, and SZZ (tracing each bug fix back to the commit that caused it) |
 | `scan` | tree-sitter finds every place a tracked name shows up, with its role (import, call, alias) and the function it's in |
 | `resolve` | Jedi checks what each name really refers to, so a look-alike `_()` or `url()` gets dropped |
-| `owners` | Merges a person's several emails into one identity, gives people teams from Jira components, and gives each file an owner team |
+| `owners` | Merges a person's emails into one identity (bots and shared addresses aren't people), gives people teams from Jira components, and gives each file an owner team |
 | `join` | The features: call sites with owner, bug-fix count, status and a stable id, tickets mapped to code, and coverage |
 | `graph` | Which call site waits on which, how far each call reaches (blast radius), and ticket chains |
 
-Does it work? On Django's `ugettext*` the block finds all 265 lines in a hand-checked answer key, with 0 false hits. It resolves 542 of 542 aliased `_()` calls. The commit where Django actually migrated edits exactly the 267 lines we found. The push check, which now runs the resolver on the changed files, flagged only real new calls: 4 of 4 on 21 replayed commits and 2 of 2 on 9 later Django commits it hadn't seen. On Spark, 61% of 59,491 tickets map to code, and a person found 49 of 50 random commit-to-ticket links right.
+Against answer keys: on Django's `ugettext*` the block finds all 265 lines in a hand-checked key with 0 false hits and resolves 542 of 542 aliased `_()` calls. On Spark, 61% of 59,491 tickets map to code, and a person found 49 of 50 random commit-to-ticket links right ([Appendix C](appendix-real-data.md)).
 
-The weak spot is the cross-team part. None of our public datasets has both a ticket tracker and tracked code, so on real data 0 tickets map to a call site and the "who blocks whom" table is empty. A small hand-built repo (`acme/shop`) runs the whole cross-team story instead, and all 43 product queries pass on it. [Appendix C](appendix-real-data.md) goes feature by feature.
+#### Cross-team blocks use the same machinery
+
+A block between teams is the same problem as one between people. An owner team is an aggregate of the people who change a file: `owners` gives each person a team (in Spark, the Jira component of their keyed commits) and sums commit shares per team. So who touches what, who calls whose code and which ticket maps to which code work the same for either unit. The real data is also multi-team in practice. On v1's block (`70dd1dabfed544b8`, the same git snapshot and tickets as the team run):
+
+| | Spark | Django |
+|---|---|---|
+| First-parent commits whose committer isn't the author | 33,148 of 44,567 (74%): 122 committers merge the work of 2,954 authors | 3,682 of 22,445 (16%) |
+| Files per commit: median, 90th percentile, share over 10 | 2, 11, 10.2% | 1, 6, 4.5% |
+| Owned files with authors from 2+ teams in the 180-day window | 1,268 of 5,708 (22%) | path-prefix teams only |
+| Distinct authors per call-site file, all history | no call sites | median 13; 94% of 116 files have 2+ |
+
+And 10,647 of 59,491 Spark tickets (18%) name more than one component. In Spark a committer's name usually stands for someone else's work, and a fifth of owned files mix teams. Django's committer gap is small, so that point holds for Spark only. The limit stays: no public dataset has both a tracker and tracked code, so on real data 0 tickets map to a call site and the block and chain tables are empty. The hand-built repo `acme/shop` runs the cross-team story end to end, and all 43 product queries pass on it.
 
 ### 2.3 Test modules
 
-339 unit tests (`unittest`), one test file per part, all passing. 19 are skipped on a plain Windows machine: 18 need Airflow, GX or the team's private data, and 1 runs on Mac and Linux only. Those run in their own CI jobs, in CI's Linux job, or with the team data. Edge cases are built into the fixtures: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
+339 unit tests (`unittest`), one test file per part, all passing. On a plain Windows machine 19 are skipped: 18 need Airflow, GX or the team's private data, and 1 runs on Mac and Linux only. Those run in their own CI jobs or with the team data. The fixtures carry the edge cases: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
 
 ```
 python -m unittest discover -s tests -t .        # from Data-Pipeline/
 ```
 
-CI runs this on Linux and Windows on every push, plus an Airflow job and a GX job. Details are in [Appendix B §1](appendix-quality.md#1-tests) and [TESTING.md](../../TESTING.md).
+CI runs this on Linux and Windows on every push, plus an Airflow job and a GX job ([Appendix B §1](appendix-quality.md#1-tests), [TESTING.md](../../TESTING.md)).
 
 ### 2.4 Pipeline orchestration (Airflow DAGs)
 
-Both DAGs come from one spec, `dags/pipeline_spec.py`, and `test_dag` checks them against it. Each task is one of the commands above. The update starts with `anything_new`, which stops the run in about 2 s when nothing changed since the last publish. `publish` only runs after `validate` passes, so a bad run never replaces the last good block.
+Both DAGs come from one spec, `dags/pipeline_spec.py`, and `test_dag` checks them against it. They cover the whole workflow: `collect` downloads, each later task is one of the steps above, and `publish` writes the final block. `anything_new` stops the update in about 2 s when nothing changed since the last publish, and `publish` only runs after `validate` passes, so a bad run never replaces the last good block.
 
-We ran both on the real data in Docker on a Mac. The update passed every task first try in 943 s. The rebuild then recomputed everything from scratch with caches off, and compare found 0 differences from the update. Screenshots and timings are in [Appendix A](appendix-airflow.md).
+We ran both on the real data in Docker on a Mac. The update passed every task on the first try in 943 s. The rebuild recomputed everything with caches off in 902 s, and compare found 0 differences from the update ([Appendix A](appendix-airflow.md)).
 
 ### 2.5 Data versioning with DVC
 
-`dvc.yaml` has one stage per part, with the code, settings and tables each one depends on. `dvc.lock` is in git, so every commit pins the exact data its code produced. `dvc repro` reruns only the stages whose inputs changed. The raw Jira and GitLab pulls are pinned with `.dvc` files.
+`dvc.yaml` has one stage per part, with the code, settings and tables each one depends on. `dvc.lock` is in git, so every commit pins the exact data its code produced, and `dvc repro` reruns only the stages whose inputs changed. The raw Jira and GitLab pulls are pinned with `.dvc` files.
 
-The run_id is a hash of the inputs, so a change to `meridian.toml` means a new team run. That happened once. v1, `70dd1dabfed544b8`, became `c5118b019d642a9b` on Oct 27, after fixes to the owner merge rule, SZZ (reverts skipped) and stack-trace mapping. It has the same snapshot: the same pinned SHAs, ticket pulls and snapshot time. Only the people, owner, bug-inducing and ticket-mapping tables changed (8,378 → 8,442 people, 26,559 → 26,302 bug-inducing commits, 36,138 → 36,198 Spark tickets mapped). Every call-site table is byte for byte the same apart from its run_id, so the Django and push-check results hold unchanged. `golden/70dd1dabfed544b8.json` stays as the v1 record.
+The run_id hashes the inputs, so changing `meridian.toml` means a new team run. On Oct 27 v1, `70dd1dabfed544b8`, became `c5118b019d642a9b`: the owner surname rule, `donotreply` as a shared address, a third join match step and no SQLite pin. Code fixes (SZZ skips reverts, stack-trace mapping) changed outputs too. The snapshot is the same. People went from 8,378 to 8,442, bug-inducing rows from 26,559 to 26,302 and mapped Spark tickets from 36,138 to 36,198, while the call-site tables are byte for byte the same apart from the run_id. `golden/70dd1dabfed544b8.json` stays as the v1 record.
 
-One gap: the remote is a placeholder GCS bucket, so `dvc pull` doesn't work for anyone yet. Until it's set up, the team shares the raw data as a checksummed zip.
+The remote is still a placeholder GCS bucket, so `dvc pull` doesn't work yet; the team shares the raw data as a checksummed zip.
 
 ### 2.6 Tracking and logging
 
-Every part logs counts as it goes through Python's `logging`. Airflow keeps one log file per task try, in the UI and in `logs/`. `report` writes what changed since the last published run and which commit caused it. `status` prints how stale the data is, for example "data 2 days old · 14 new commits".
+Every part logs counts as it goes through Python's `logging`, and Airflow keeps one log file per task try, in the UI and in `logs/`. A failed task or a data anomaly sends an alert (§2.8). `report` writes what changed since the last published run and which commit caused it, and `status` prints how stale the data is, for example "data 2 days old · 14 new commits".
 
 ### 2.7 Data schema and statistics generation
 
-`schema.sql` defines every table: columns, types, keys and allowed values. The writer refuses any row that breaks it. `validate` then computes statistics per column (rows, missing, distinct values, min, max, mean, common values) into `stats.json`, and the next run compares against them.
+`schema.sql` defines every table: columns, types, keys and allowed values, and the writer refuses any row that breaks it. `validate` computes statistics per column (rows, missing, distinct values, min, max, mean, common values) into `stats.json`, and the next run compares against them, so quality is checked over time and not just once.
 
-Every Sunday a Great Expectations suite re-checks the block on its own and publishes Data Docs. On `c5118b019d642a9b` it ran 308 expectations and none failed. It never blocks a run; `validate` is the gate. See [Appendix B §2 and §4](appendix-quality.md#2-schema-and-statistics).
+Every Sunday a Great Expectations suite re-checks the block on its own and publishes Data Docs. On `c5118b019d642a9b` it ran 308 expectations and none failed. It never blocks a run; `validate` is the gate ([Appendix B §2 and §4](appendix-quality.md#2-schema-and-statistics)).
 
 ### 2.8 Anomaly detection and alerts
 
@@ -89,21 +98,21 @@ Every Sunday a Great Expectations suite re-checks the block on its own and publi
 - Errors fail the task and stop the publish: too few rows, bad formats (UTC times, ids, SHAs, paths, ticket keys), numbers out of range, coverage below its floor, schema violations.
 - Warnings send an alert and the run goes on: too many missing values, impossible dates, outliers past the IQR fences, a row count that drifted from the last run, a column that collapsed to a single value.
 
-On `c5118b019d642a9b` there are 0 errors and 0 warnings. 289 Spark tickets are dated in the years 0010 to 0012. Apache Jira really has those dates, so we keep them, and `settings.toml` allows exactly that many: a 290th would warn.
+On `c5118b019d642a9b` there are 0 errors and 0 warnings. 289 Spark tickets really are dated 0010 to 0012 in Apache Jira, so we keep them, and `settings.toml` allows exactly that many: a 290th would warn.
 
-`alert.py` sends one message to Slack or email for a failed task, a data error or a data warning. We haven't set up a real channel yet, so for now alerts go to the log. The sending code is tested with mocks. See [Appendix B §3](appendix-quality.md#3-anomalies).
+`alert.py` sends one message to Slack or email per failed task, data error or data warning. No real channel is set up yet, so alerts go to the log for now; the sending code is tested with mocks ([Appendix B §3](appendix-quality.md#3-anomalies)).
 
 ### 2.9 Pipeline flow optimization
 
-The Gantt chart from the real Airflow run showed where the time goes. The tasks add up to 1,183 s run one after another, and the DAG took 943 s, because `scan` and `resolve` run beside `history`. That's 20% saved.
+The Gantt chart of the team run's update shows where the time goes. Run one after another, the tasks add up to 1,183 s. The DAG took 943 s, because `scan` and `resolve` run beside `history`, which saves 20%.
 
-`history` is the bottleneck: it walks all of Spark's git history for SZZ. It already runs one process per CPU, and a cache brings a warm run from 312 s down to 74 s. Most of what's left is Docker's folder mount on a Mac, which makes git about three times slower than native. A Docker volume or a Linux host fixes that. [Appendix A](appendix-airflow.md) has the chart.
+`history` is the bottleneck: it walks all of Spark's git history for SZZ. It already runs one process per CPU, and its cache brings a warm run from 312 s down to 74 s ([Appendix D](appendix-testing.md)). Most of what's left is Docker's folder mount on a Mac, which makes git about three times slower than native. A Docker volume or a Linux host fixes that ([Appendix A](appendix-airflow.md)).
 
 ## 3. Data bias detection using data slicing
 
 ### 3.1 Detecting bias
 
-We don't have demographic data, and we don't want it. What we can check is whether the pipeline serves some teams worse than others. A team the rules get wrong gets sent the wrong work, or looks idle when it isn't. So we check three rules:
+We don't have demographic data, and we don't want it. What we can check is whether the pipeline serves some teams worse than others, since a team the rules get wrong is sent the wrong work or looks idle when it isn't. So we check three rules:
 
 - the owner rule (does a file's owner team predict who edits it next?)
 - the ticket mapping (does a ticket reach the code it's about?)
@@ -113,9 +122,9 @@ We don't have demographic data, and we don't want it. What we can check is wheth
 
 `meridian/bias.py` slices each rule with Fairlearn's `MetricFrame`: by module, team, Jira component, ticket type, year filed and repo. The one people-level slice is how many commits the next author had made before. We don't slice by email domain or any other personal detail.
 
-A slice counts when it has at least 30 rows. It gets flagged when its whole 95% Wilson interval (a confidence range for a rate) sits more than 0.10 below the overall value. 136 slices were judged and 32 flagged. The main findings:
+A slice counts when it has at least 30 rows. It's flagged when its whole 95% Wilson interval (a confidence range for a rate) sits more than 0.10 below the overall value. 136 slices were judged and 32 flagged:
 
-- The owner rule is right 49.6% of the time where it can be scored. A quarter of next authors have no team at all (none of their commits in the last 180 days names a ticket with a Jira component), so the rule can't score them. That's a coverage gap, not a skew.
+- The owner rule is right 49.6% of the time where it can be scored. A quarter of next authors have no team (none of their commits in the last 180 days names a ticket with a Jira component), so the rule can't score them. That's a coverage gap, not a skew.
 - Ticket mapping depends mostly on age. Tickets from before 2014 point at files that are gone by our pinned commit. Kubernetes and Spark Docker stay low even on recent tickets, because their code lives in other Apache repos we didn't snapshot.
 - The resolver treats every repo the same: 98.1% kept overall, no repo flagged.
 
@@ -123,15 +132,15 @@ A slice counts when it has at least 30 rows. It gets flagged when its whole 95% 
 
 We scored each fix on the same files, then checked the best one on held-out data.
 
-- Lowering the owner threshold (min_share 0.30 to 0.20 or 0.10) changed nothing. Files are unowned because their authors have no team, not because shares sit near the line.
-- Falling back to the last person who touched the file owns 65% more files but is wrong more often (0.395). That's coverage bought with accuracy, so we didn't take it.
-- Taking a person's team from their last 730 days instead of 180 looked best: accuracy 0.496 to 0.545, and unassigned authors 24.7% down to 16.0%. But when we picked the variant on an earlier cut and checked it on the current one, it lost to the current rule (0.502 vs 0.505). So we didn't adopt it.
+- Lowering the owner threshold (min_share 0.30 to 0.20 or 0.10) changed nothing: files are unowned because their authors have no team, not because shares sit near the line.
+- Falling back to the last person who touched the file owns 65% more files but is wrong more often (0.395), so we didn't take it.
+- Taking a person's team from their last 730 days instead of 180 looked best: accuracy 0.496 to 0.545, and unassigned authors 24.7% down to 16.0%. But picked on an earlier cut and checked on the current one, it lost to the current rule (0.502 vs 0.505). So we didn't adopt it.
 
-What we did ship: every slice in `bias.json` carries its size, interval and flag. The views can show "low coverage" next to a flagged team or module, so an unmapped team doesn't look idle. For ticket mapping the fix is more data, not fuzzy matching: add the two missing Apache repos in the next team run.
+What we shipped: every slice in `bias.json` carries its size, interval and flag, so the views can show "low coverage" next to a flagged team or module and an unmapped team doesn't look idle. For ticket mapping the fix is more data, not fuzzy matching: add the two missing Apache repos in the next team run.
 
 ### 3.4 Documenting bias mitigation
 
-[BIAS.md](../BIAS.md) has every slice, the mitigation table and the held-out check. [Appendix B §5](appendix-quality.md#5-bias-data-slicing) has the charts. The trade-offs, in short:
+[BIAS.md](../BIAS.md) has every slice, the mitigation table and the held-out check, and [Appendix B §5](appendix-quality.md#5-bias-data-slicing) has the charts. The trade-offs:
 
 - The longer lookback gives more people a team, but a two-year-old team can be wrong for someone who moved.
 - The flags aren't corrected for testing 136 slices at once. Under a Bonferroni check 26 of the 32 still hold.
@@ -156,7 +165,7 @@ Data-Pipeline/
 └── README.md
 ```
 
-The data (the guidelines' `data/`) sits at the repo root, in `snapshots/` for inputs, `out/` for outputs and `published/` for the live block. It's git-ignored and versioned by DVC, because it's several GB and has real names in it.
+The data (the guidelines' `data/`) sits at the repo root: `snapshots/` for inputs, `out/` for outputs and `published/` for the live block. It's git-ignored and versioned by DVC, because it's several GB and has real names in it.
 
 ### 4.2 README documentation
 
@@ -164,17 +173,17 @@ The data (the guidelines' `data/`) sits at the repo root, in `snapshots/` for in
 
 ### 4.3 Reproducibility
 
-The pipeline never reads the clock after `collect`. Ids are content hashes, output is sorted, and every setting that changes a row is hashed into the run id. So the same snapshot gives the same bytes:
+The README's steps set up and run the pipeline on another machine. The pipeline never reads the clock after `collect`: ids are content hashes, output is sorted, and every setting that changes a row is hashed into the run id. So the same snapshot gives the same bytes:
 
-- The 24 output files of `c5118b019d642a9b` match their frozen hashes (`tests/test_golden.py`), and the 'same inputs, same run_id' check holds: collect rebuilds the same run_id from the pinned SHAs, ticket pulls and `meridian.toml`.
+- The 24 output files of `c5118b019d642a9b` match their frozen hashes (`tests/test_golden.py`), and collect rebuilds the same run_id from the pinned SHAs, ticket pulls and `meridian.toml`.
 - The weekly rebuild matched the update byte for byte.
 - CI checks a small fixture's hashes on Linux and Windows on every push.
 
-For a TA, `python run_demo.py short` runs in about 10 seconds with no private data and no Docker. It walks through the pipeline on the fixture, one guideline item at a time. `python run_demo.py long` runs everything, Airflow included. Both check free RAM and disk before heavy steps, and skip with a reason rather than crash.
+For a TA, `python run_demo.py short` runs in about 10 seconds with no private data and no Docker, one guideline item at a time on the fixture. `python run_demo.py long` runs everything, Airflow included. Both check free RAM and disk before heavy steps and skip with a reason rather than crash.
 
 ### 4.4 Code style
 
-One module per part, each with a docstring saying what it reads and writes. flake8 (PEP 8, with lines up to 120 characters, set in `setup.cfg`) is clean and runs in CI.
+One module per part, each with a docstring saying what it reads and writes. flake8 (PEP 8, lines up to 120 characters, set in `setup.cfg`) is clean and runs in CI.
 
 ### 4.5 Error handling and logging
 
@@ -183,7 +192,7 @@ One module per part, each with a docstring saying what it reads and writes. flak
 - Parts are idempotent, so a retry is safe. `publish` refuses a partial run and refuses to roll the live block back to an older run.
 - A trigger's run id is checked before it reaches any shell command.
 
-We tested all this by breaking things on purpose: 27 injected faults and 42 scenario tests. [Appendix D](appendix-testing.md) lists what broke and what we fixed.
+We tested this by breaking things on purpose: 27 injected faults and 42 scenario tests. [Appendix D](appendix-testing.md) lists what broke and what we fixed.
 
 ## 5. Evaluation criteria
 
@@ -205,12 +214,12 @@ We tested all this by breaking things on purpose: 27 injected faults and 42 scen
 What still falls short:
 
 - No real alert channel yet, and the DVC remote is a placeholder.
-- The cross-team features only show their full value on the fixture, because no public dataset has both tickets and tracked code. With one run there's no burndown yet either.
-- Two weaker signals didn't make it. We wrote the pass bars down before running them ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a "bug with no reproduction" check didn't predict Spark's vague bugs, and timing evidence didn't lift the GitLab cross-team rule (precision 0.25 against a 0.50 bar, by model labels; 2 of 10 on the 50 model-drafted, person-reviewed rows).
+- The cross-team features only show their full value on the fixture, because no public dataset has both tickets and tracked code (§2.2). With one run there's no burndown yet either.
+- Two weaker signals missed bars we wrote down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a "bug with no reproduction" check, and timing in the GitLab cross-team rule (precision 0.25 against 0.50 by model labels; 2 of 10 on the 50 model-drafted, person-reviewed rows).
 
 ## Appendices
 
-- [A. Airflow run and Gantt](appendix-airflow.md): both DAGs in Docker on the real data, and where the time goes.
-- [B. Data quality and bias](appendix-quality.md): tests, schema, statistics, anomalies, the GX audit, bias and mitigation.
-- [C. The real data, feature by feature](appendix-real-data.md): what each proposed feature gets from the real block, with charts.
-- [D. Testing the pipeline against itself](appendix-testing.md): what we test and how, what broke and what's still open.
+- [A. Airflow run and Gantt](appendix-airflow.md)
+- [B. Data quality and bias](appendix-quality.md): tests, schema, statistics, anomalies, GX, bias
+- [C. The real data, feature by feature](appendix-real-data.md)
+- [D. Testing the pipeline against itself](appendix-testing.md)

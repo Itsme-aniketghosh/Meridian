@@ -37,7 +37,7 @@ You need Python 3.11, git and about 5 GB free.
    certutil -hashfile "Data-Pipeline\shared-snapshot\meridian-raw-973531f7fd4cfd5e.zip" SHA256      # Windows
    ```
 
-4. Unzip it into `snapshots/` from the repo root, in the terminal.
+4. Unzip it into `snapshots/` from the repo root.
 
    ```
    unzip "Data-Pipeline/shared-snapshot/meridian-raw-973531f7fd4cfd5e.zip" -d snapshots             # Mac / Linux
@@ -77,7 +77,7 @@ Pass `--run-id c5118b019d642a9b` to every part, never `--run-id new`, which make
 ## What collect keeps between runs
 
 - `snapshots/_cache/repos/<owner>__<name>.git`: one mirror per repo, cloned once and then fetched (`mirrors` in [settings.toml](../settings.toml)). Every snapshot's checkout borrows its objects, so don't move or delete it.
-- `snapshots/_cache/jira/SPARK/` and `snapshots/_cache/gitlab/`: the base pull, plus a `delta-<time>/` folder per later pull of changed tickets. Collect pulls a delta only once some repo's `ref` names a branch, which v1 never does.
+- `snapshots/_cache/jira/SPARK/` and `snapshots/_cache/gitlab/`: the base pull, plus a `delta-<time>/` folder per later pull of changed tickets. Collect pulls a delta only once some repo's `ref` names a branch, which the team run doesn't.
 
 ## When the run changes
 

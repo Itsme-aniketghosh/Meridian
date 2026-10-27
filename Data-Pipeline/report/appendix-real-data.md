@@ -1,19 +1,21 @@
 # Appendix C: The real data, feature by feature
 
-Can the block serve each feature the team proposed ([02-product](../../docs/02-product.md), [04-architecture](../../docs/04-architecture.md), [project-scoping](../../scoping/project-scoping.md))? Each one is a named SQL query in [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md), tested in CI on the hand-built fixture `acme/shop`. Here we run the same queries, unchanged, on team run `70dd1dabfed544b8` (snapshot 2026-10-01: Django at `4353640ea9`, Spark with Apache Jira, 20 Django packages, GitLab issues). We also score the block against the answer keys in [labels/](../labels/) and replay real commits through the push check. Ideas the team dropped ([06-dead-ideas](../../docs/06-dead-ideas.md)) are left out.
+Can the block serve each feature the team proposed ([02-product](../../docs/02-product.md), [04-architecture](../../docs/04-architecture.md), [project-scoping](../../scoping/project-scoping.md))? Each one is a named SQL query in [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md), tested in CI on the hand-built fixture `acme/shop`. Here we run the same queries, unchanged, on the real block (snapshot 2026-10-01: Django at `4353640ea9`, Spark with Apache Jira, 20 Django packages, GitLab issues). We also score it against the answer keys in [labels/](../labels/) and replay real commits through the push check. Ideas the team dropped ([06-dead-ideas](../../docs/06-dead-ideas.md)) are left out.
+
+Which run: the queries, charts and `figures/scenarios.json` are from v1, `70dd1dabfed544b8`. The team run `c5118b019d642a9b` has the same snapshot and call-site tables, so every Django, package, call-site and push-check number holds. People, owners, SZZ and ticket mapping moved. For those we quote c5118's 36,198 mapped Spark tickets (37,817 unmapped, 48.9% block-wide), its stack-trace counts in §4, 26,302 `bug_inducing` rows and 1,788,375 rows. The other Spark numbers are v1's: §5's file counts, P9 against SZZ (§7), the 621 open mapped tickets, the Spark stall rows, `files_owned` and the orphaned-owner count.
 
 The short version: the code side is exact and the ticket side has real signal on Spark, but the two never meet in one dataset. Django has no Jira, Spark has no tracked symbol, and GitLab has no Python (G7). So every feature that joins a ticket to a call site comes back empty on real data. That's the data's shape, not a broken feature.
 
 ## How the queries were run
 
 ```
-python report/figures_scenarios.py --db <run c5118…>/meridian.sqlite    # from Data-Pipeline/, read-only
+python report/figures_scenarios.py --db <run>/meridian.sqlite    # from Data-Pipeline/, read-only
 ```
 
-It needs matplotlib, plus tree-sitter for the push replay (`--replay` reruns the cached `figures/push_replay.json`). Every number in §1–§9 is in `figures/scenarios.json`.
+It needs matplotlib, plus tree-sitter for the push replay (`--replay` reruns the cached `figures/push_replay.json`). Every v1 number in §1–§9 is in `figures/scenarios.json`.
 
 - On the fixture, `tests.test_kb` and `tests.test_pushcheck` pass 18 of 18: all 43 `-- expect:` queries, two KB regression tests and the 15 push-check tests. With `test_graph`, `test_join` and `test_report` it's 56 of 56.
-- The checklist counts each query on the whole block, with the parameters `tests/dashboard.py` picks. §1–§9 run each dataset (`django`, `packages`, `spark`, `gitlab`) on its own through TEMP views, because the queries mixed datasets at the time. That bug and three more we found here are fixed now ([Appendix D](appendix-testing.md)). Numbers from before a fix say so.
+- The checklist counts each query on the whole block, with the parameters `tests/dashboard.py` picks. §1–§9 run each dataset on its own through TEMP views, because the queries mixed datasets at the time. That bug and three more we found here are fixed ([Appendix D](appendix-testing.md)), and numbers from before a fix say so.
 - `asof` is the run's time (2026-10-01), so every Django team looks stalled for years. The `django@pin` scenario moves `known_at` to the pinned commit's date (2017-02-03).
 - The block is one run, so no call site can be `removed` yet. We check burndown against the next real commit instead.
 
@@ -25,7 +27,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### Staff engineer
 
-| Feature | Status | Evidence on c511 | Gap |
+| Feature | Status | Evidence | Gap |
 |---|---|---|---|
 | S1 · Call sites remaining | ✅ | `staff_headline`: 1,526 present ([§1](#1-finding-the-work)) | |
 | S2 · Open tickets on the API | 🟡 | `staff_headline`: 0 | No real ticket maps to a call site (G7, [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md)) |
@@ -38,12 +40,12 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | S10 · Teams not connected | ✅ | `stall_never_notified`: 43 of 43 teams | All teams, by the data. Show "unknown" for under-mapped components |
 | S11 · Legacy radar: deprecated symbols with callers | 🟡 | `radar_deprecated_with_callers`: 52 `deprecation` rows (19 in Django), 0 with callers | `call_edge` only covers callers above tracked symbols (G3) |
 | S12 · Legacy radar: old high fan-in files | ❌ | none | No whole-repo call graph (G3) |
-| S14 · Blast radius | ✅ | `test_graph`; 25 rows, 1,526 sites → 2,331 invocations (Django `ugettext` 93 → 585) ([§1](#1-finding-the-work)) | The 5-edge Windows vs Mac gap (2,293 vs 2,288) was Jedi's folder order, now fixed ([Appendix D](appendix-testing.md)) |
+| S14 · Blast radius | ✅ | `test_graph`; 25 rows, 1,526 sites → 2,331 invocations (Django `ugettext` 93 → 585) ([§1](#1-finding-the-work)) | A 5-edge Windows vs Mac gap was Jedi's folder order, now fixed ([Appendix D](appendix-testing.md)) |
 | S15 · Per cross-team ticket: link, order, owners, risk, done condition | 🟡 | Composite of S3, R3, O5 | Inherits their gaps; the diff is ⛔ (C4) |
 
 ### API owner and consumer
 
-| Feature | Status | Evidence on c511 | Gap |
+| Feature | Status | Evidence | Gap |
 |---|---|---|---|
 | O1 · N of M done | 🟡 | `owner_done`: 0 of 1,526. The next real commits edit 267 of 267 Django lines and 1,160 of 1,236 package lines ([§2](#2-burndown-at-the-next-commit)) | One run, so no `removed` version yet (top gap 3) |
 | O2 · ETA | 🟡 | `owner_eta`: NULL (0 removals in 28 days, under 3) | As O1 |
@@ -56,7 +58,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### Developer push check ([pushcheck.py](../meridian/pushcheck.py))
 
-| Feature | Status | Evidence on c511 | Gap |
+| Feature | Status | Evidence | Gap |
 |---|---|---|---|
 | P1 · Drift | ✅ | `p1_drift` with the resolver at push time; replay of 21 real commits: 4 of 4 hits true, and 2 of 2 on 9 held-out Django commits ([§7](#7-push-check-replay)) | The held-out set is small (9 commits) |
 | P2 · Legacy use | 🟡 | `p2_legacy_use`: 0 tracked sites resolve to a deprecated qualname. `ugettext` isn't deprecation-marked at the pinned SHA; the 19 Django deprecations are other functions | Scan sees tracked names only, so it misses new calls to other deprecated functions (G3) |
@@ -73,10 +75,10 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### Ticket tools, rules and order of work
 
-| Feature | Status | Evidence on c511 | Gap |
+| Feature | Status | Evidence | Gap |
 |---|---|---|---|
 | T1 · Manager: facts for a rewrite | 🟡 | `manager_facts`: 0 for `SPARK-48763` | As S2 |
-| T2 · Check: unmapped | ✅ | 37,877 unmapped rows | |
+| T2 · Check: unmapped | ✅ | 37,817 unmapped rows | |
 | T3 · Check: no done condition, bug without repro | 🟡 | `staff_vague` (done condition only). On Spark it fails all 621 open mapped tickets ([§4](#4-tickets-and-their-link-to-code)) | No repro query; as S7 |
 | T4 · Check: spans teams, duplicate, wrong owner | 🟡 | `derive_duplicates`, `check_wrong_owner`: 0 | As S2; "spans teams" has no named query |
 | T5 · Check: stale (30 days, code changed) | 🟡 | No query ("not in the fixture") | The data is there: 235,252 events, 208,551 path-level maps |
@@ -90,7 +92,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### Stall reasons
 
-| Feature | Status | Evidence on c511 | Gap |
+| Feature | Status | Evidence | Gap |
 |---|---|---|---|
 | #1 Upstream block | 🟡 | `stall_upstream`: 0 ([§8](#8-stall-reasons)) | As O4 |
 | #2 Never notified | ✅ | `stall_never_notified`: 43 teams | As S10 |
@@ -104,7 +106,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### Replay, outcomes and the update graph
 
-| Feature | Status | Evidence on c511 | Gap |
+| Feature | Status | Evidence | Gap |
 |---|---|---|---|
 | A2 · Replay with `known_at` ≤ stall time | 🟡 | `replay_as_of`: 1,526 present, 0 removed. At t = 2017 it returns `[null, null]`, so the leak guard holds ([§2](#2-burndown-at-the-next-commit)) | One run: nothing to replay yet |
 | A3 · Explore: same-signature twin gaining callers | ❌ | none | No function signatures (G4) |
@@ -112,11 +114,11 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | U2 · Burndown before vs after, with control | 🟡 | `outcome_before_after`, `outcome_effect`: runs, 43 control teams, 0 removals | Needs U1's table and more than one run |
 | U3 · Auto-apply gate, week-8 review | ❌ | `auto_apply_gate`, `outcome_week8` on the fixture only | G1 |
 | G1 · Staleness line ("data 2 days old · 14 new commits") | ✅ | `meridian/status.py`; `test_publish` | |
-| G2 · "Update graph" click → `meridian_update` | ✅ | `status.py --update`; `test_dag`, `test_publish`; ran end to end in Airflow on c511 ([Appendix A](appendix-airflow.md)) | |
+| G2 · "Update graph" click → `meridian_update` | ✅ | `status.py --update`; `test_dag`, `test_publish`; ran end to end in Airflow on the team run ([Appendix A](appendix-airflow.md)) | |
 | G3 · Incremental collect: mirrors, cursors, branches followed | 🟡 | `meridian/collect.py`; `test_collect` | No second real run yet |
-| G4 · Weekly rebuild equals the updates (0 diffs) | 🟡 | `meridian/compare.py`; `test_publish`. On c511 in Airflow the rebuild equals the update, 0 differences ([Appendix A](appendix-airflow.md)) | Not yet compared across two real runs, where the update is incremental |
+| G4 · Weekly rebuild equals the updates (0 diffs) | 🟡 | `meridian/compare.py`; `test_publish`. On the team run in Airflow the rebuild equals the update, 0 differences ([Appendix A](appendix-airflow.md)) | Not yet compared across two real runs, where the update is incremental |
 | G5 · Change report: what changed, which commit | ✅ | `meridian/report.py`; `test_report`; first run, all added | Removed edges aren't attributed to a commit, and moved lines are credited to an older one ([Appendix D](appendix-testing.md#still-open)) |
-| G6 · Publish only if validate passes | ✅ | `meridian/publish.py`; `test_publish`; 1,788,242 rows, 0 errors | |
+| G6 · Publish only if validate passes | ✅ | `meridian/publish.py`; `test_publish`; 1,788,375 rows, 0 errors | |
 | G7 · `run_id`, `snapshot_at`, coverage on every screen | ✅ | `coverage` (14 metrics): `call_sites_resolved` 1,525 of 1,526, `files_owned` 22,060 of 43,870 | |
 
 ### Later stages (⛔)
@@ -141,7 +143,7 @@ Intake (T8, G5) is ❌ on its own: it needs its own collect source.
 
 On Django the block matches both answer keys exactly ([Appendix B §1](appendix-quality.md#1-tests)). `staff_headline` gives [289, 0]: 289 present sites on 267 lines (265 in `.py` files, 2 in `code.sample`), and 0 open mapped tickets, since Django uses Trac. The 265 lines split into 113 imports, 151 calls and 1 alias. The resolver finds 542 aliased `_()` calls on 485 lines in 96 files, and 30 of 30 rows in `alias_hand_check_30.csv` resolve to the checker's symbol. Both match the key. On the packages, `staff_headline` gives [1237, 0] url() sites in 20 repos, with 1,236 of 1,236 recall (RESOLVER.md).
 
-`derive_blast_radius` for `ugettext` first gave 209 / 241 / 160 at depths 1/2/3, against graph's 209 / 241 / 135. The query counted a function once per depth it's reached at, so depth 3 was too high for `ugettext` (+25), `ugettext_lazy` (+15) and `ungettext` (+3). graph.py was right, and the query now matches it.
+`derive_blast_radius` first counted a function once per depth it's reached at, so for `ugettext` depth 3 read 160 against graph's 135. graph.py was right, and the query now matches it.
 
 ![](figures/blast_radius.png)
 
@@ -181,7 +183,7 @@ Where a migration commit finished the job, the match is exact: oscar 247/247, wa
 
 ## 4. Tickets and their link to code
 
-`staff_link_coverage` gives 48.8% block-wide, pulled down by GitLab, which can't be mapped.
+`staff_link_coverage` gives 48.9% block-wide, pulled down by GitLab, which can't be mapped.
 
 ![](figures/ticket_mapping.png)
 
@@ -189,11 +191,11 @@ Where a migration commit finished the job, the match is exact: oscar 247/247, wa
 
 Commit keys do most of the work (33,351). Stack traces map 4,529 tickets and paths in text 777, but only 2,584 and 263 of those aren't already reached by a commit key. 23,293 Spark tickets stay unmapped, and GitLab is 0 of 14,524.
 
-Are the commit keys right? A person checked 50 random commit-to-ticket links ([labels/commit_ticket_hand_check_50.csv](../labels/commit_ticket_hand_check_50.csv), seed 1): 49 are right, 0.98 against the 0.95 bar in [05-test](../../docs/05-test.md). Follow-up and hotfix commits on a ticket's own code count as right. The one wrong link, SPARK-3723, is a typo by the commit's author: the ticket asks for DecisionTree measurements, and the commit renames PySpark type names. Links trust the key in the message, so a typo gets through. A date rule would catch this one (the commit came 2.5 years after the ticket closed), but it would also drop real late follow-ups, so we don't use one.
+Are the commit keys right? A person checked 50 random commit-to-ticket links ([labels/commit_ticket_hand_check_50.csv](../labels/commit_ticket_hand_check_50.csv), seed 1): 49 are right, 0.98 against the 0.95 bar in [05-test](../../docs/05-test.md). Follow-up and hotfix commits on a ticket's own code count as right. The one wrong link, SPARK-3723, is a typo by the commit's author: the ticket asks for DecisionTree measurements, and the commit renames PySpark type names. Links trust the key in the message, so a typo gets through. A date rule would catch this one (the commit came 2.5 years after the ticket closed) but would also drop real late follow-ups, so we don't use one.
 
 The mapping goes to paths, not call sites, so it can't feed P3, P5 or collisions. The best path-level collision rule scores 0.64 on the 50 Spark pairs (32 real, and 48 of 50 have both keys mapped to the file). The labels' function-level flag (`inside`) agrees with the verdict 50/50, which is why 05-test wants function scope.
 
-The ticket check adapted to Spark (open, mapped to code, no "done when") fails all 621 of 621 open mapped tickets, because Apache Jira never writes "done when". We tried a check that fits Spark, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a Bug with no `{code}` or `{noformat}` block, no stack frame and no "reproduce" or "steps". On the 4,314 Spark Bugs resolved since 2020 as Fixed, Incomplete or Cannot Reproduce, it flags 58%. Of those, 8.5% end Incomplete or Cannot Reproduce, against a 13.2% base rate, and flagging the same number by shortest description gives 6.4%. So it beats description length, but both do worse than chance, and we didn't adopt it. Of the newest 500 Spark tickets, 48% have an empty description (241), 5.8% have any non-parent link (29), and 0 have `blocked_by`.
+The ticket check adapted to Spark (open, mapped to code, no "done when") fails all 621 of 621 open mapped tickets, because Apache Jira never writes "done when". We tried a check that fits Spark, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a Bug with no `{code}` or `{noformat}` block, no stack frame and no "reproduce" or "steps". On the 4,314 Spark Bugs resolved since 2020 as Fixed, Incomplete or Cannot Reproduce, it flags 58%, and 8.5% of those end Incomplete or Cannot Reproduce against a 13.2% base rate (6.4% when flagging as many by shortest description). It beats description length, but both do worse than chance, so we didn't adopt it. Of the newest 500 Spark tickets, 48% have an empty description (241), 5.8% have any non-parent link (29), and 0 have `blocked_by`.
 
 ## 5. Fragility
 
@@ -201,7 +203,7 @@ The ticket check adapted to Spark (open, mapped to code, no "done when") fails a
 
 *Spark files by number of bug-fix commits in the year before the snapshot, where 3 or more counts as risky and none of the 1,526 call sites is in a risky file.*
 
-SZZ gives 180 of 1,492 Spark files 3 or more bug fixes (max 36), with ticket keys attached. P7, "risky" and the fragility freeze stay quiet until one dataset has both bug fixes and call sites.
+On v1, SZZ gives 180 of 1,492 Spark files 3 or more bug fixes (max 36), with ticket keys attached. P7, "risky" and the fragility freeze stay quiet until one dataset has both bug fixes and call sites.
 
 ## 6. Cross-team blocks and chains
 
@@ -215,11 +217,11 @@ SZZ gives 180 of 1,492 Spark files 3 or more bug fixes (max 36), with ticket key
 
 *On real data the graph has only `untracked` rows (left, grey is the fixture), and the label rule keeps 116 of GitLab's "blocked by" links, of which the model's verdicts call only 13 real cross-team waits (right).*
 
-Real cross-team waits do exist in GitLab, at ticket level. Of its 2,166 `blocked_by` links, 1,890 are live and 1,683 have both ends in the snapshot. The doc's cheap rule ("the two issues carry different `group::` labels") keeps 116. 95 of those are in the gold set. By the model's verdicts only 13 are a real written wait (precision 0.14), and the rule finds 13 of the model's 43 waits (recall 0.30), even though 34 of the 43 have a KB link. Those numbers are against model labels, which agree with the reviewed verdicts 18 of 50.
+Real cross-team waits do exist in GitLab, at ticket level. Of its 2,166 `blocked_by` links, 1,890 are live and 1,683 have both ends in the snapshot. The doc's cheap rule ("the two issues carry different `group::` labels") keeps 116. 95 of those are in the gold set. By the model's verdicts only 13 are a real written wait (precision 0.14), and the rule finds 13 of the model's 43 waits (recall 0.30), even though 34 of the 43 have a KB link. Model labels agree with the reviewed verdicts on 18 of 50.
 
-A random 50 of the 262 rows now have a reviewed verdict: a model drafted each and a person reviewed it, changing 2 of 50. That is weaker than a blind hand check. The rule keeps 18 of the 50. Counting `wait` or `planned` as real (the builder's `holds`), 8 of the 18 are real: precision 0.44 (Wilson 95% 0.25 to 0.66, N = 18), and 6 more are `partial`. It finds 8 of the 15 real pairs in the 50 (recall 0.53). Counting only `wait`, it's 2 of 18 and 2 of 7. The 26-row spot check in `gitlab_spot_check_model.csv` (21 hold) is a model's.
+A random 50 of the 262 rows have a reviewed verdict: a model drafted each and a person reviewed it, changing 2 of 50. That's model-drafted and person-reviewed, not a blind hand check. The rule keeps 18 of the 50. Counting `wait` or `planned` as real (the builder's `holds`), 8 of the 18 are real: precision 0.44 (Wilson 95% 0.25 to 0.66, N = 18), and 6 more are `partial`. It finds 8 of the 15 real pairs in the 50 (recall 0.53). Counting only `wait`, it's 2 of 18 and 2 of 7. The 26-row spot check in `gitlab_spot_check_model.csv` (21 hold) is a model's.
 
-We tried adding timing to the label rule, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): the blocker closes after the link was added, and the blocked issue closes after the blocker or is still open. Counting only `wait` against `no` and `planned`, the label rule scores 0.27 (13 of 48) and the timed rule 0.25 (10 of 40), with recall down from 0.30 to 0.23. That misses the 0.50 bar, so we didn't adopt it. On the 50 reviewed rows, with the bar's own counting, the label rule scores 2 of 12 (0.17) and the timed rule 2 of 10 (0.20, Wilson 95% 0.06 to 0.51). Counting `planned` as real too, 8 of 18 and 8 of 16 (0.50, 0.28 to 0.72): timing drops 2 checked pairs, both `no`. N is small and both intervals span the bar. Group labels and close dates can't tell a wait from a planned sequence. That needs what people write.
+We tried adding timing to the label rule, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): the blocker closes after the link was added, and the blocked issue closes after the blocker or is still open. Counting only `wait` against `no` and `planned`, the label rule scores 0.27 (13 of 48) and the timed rule 0.25 (10 of 40), with recall down from 0.30 to 0.23. That misses the 0.50 bar, so we didn't adopt it. On the 50 reviewed rows, with the bar's own counting, the label rule scores 2 of 12 (0.17) and the timed rule 2 of 10 (0.20, Wilson 95% 0.06 to 0.51). Counting `planned` as real too, 8 of 18 and 8 of 16 (0.50, 0.28 to 0.72): timing drops 2 checked pairs, both `no`. N is small and both intervals span the bar. Labels and close dates can't tell a wait from a planned sequence; that needs what people write.
 
 ## 7. Push check replay
 
@@ -233,13 +235,13 @@ Only P1 and P9 ever fire. With the real limits, 2 of 21 pushes are skipped (Djan
 
 P1 used to fire 11 times here (precision 4/11 = 0.36). The 7 false hits, in DRF (`tests/test_fields.py:1832`) and django-cms (6), were each `self.url = url`, a parameter named `url`, because the push check had no resolver. Now it runs the pipeline's own resolver on the changed files and drops look-alikes, as join does. A name the resolver can't follow, such as an import with no Django checkout in CI, is kept. We wrote the pass bars down before the change ran ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)):
 - The 21-commit replay: precision 4/4 = 1.00 against the 0.80 bar, with all 4 true hits kept.
-- Held out: the 9 Django commits after the conversion that touch a `ugettext*` line. Two add a real new use (`6eb4996672` adds a `ugettext_noop` test, `d997ab7764` a `ugettext_lazy` import and call), and P1 flags both, 4 sites. The other 7 remove uses or rewrap an import list of names already imported, and P1 stays silent. That's recall 2/2 and precision 4/4, against 05-test's 100% and 0.95. Nine commits is a small sample. The block only holds the pinned commit, so we computed each push as 05-test defines it: the push check's sites at the commit minus at its parent.
+- Held out: the 9 Django commits after the conversion that touch a `ugettext*` line. Two add a real new use (`6eb4996672` adds a `ugettext_noop` test, `d997ab7764` a `ugettext_lazy` import and call), and P1 flags both, 4 sites. The other 7 remove uses or rewrap an import list of names already imported, and P1 stays silent. That's recall 2/2 and precision 4/4, against 05-test's 100% and 0.95, on a small sample. The block only holds the pinned commit, so we computed each push as 05-test defines it: the push check's sites at the commit minus at its parent.
 
 ![](figures/p9_vs_szz.png)
 
 *For 41k Spark commits, the share above each size (lines × files), split into commits SZZ blames for a later bug (orange) and the rest (grey).*
 
-P9 is the one push check with signal outside Django. Its 2,000 threshold catches 32% of bug-inducing commits but only 9% of the others. On the 41,056 Spark first-parent commits since 2015 that have a `commit_file` row (107 of the block's 41,163 have none), a flagged commit is bug-inducing 49% of the time, against a 22% base rate. This part is weak, though. SZZ blames changed lines, so big commits are more likely to be blamed by construction. 05-test's real bar ("beats lines × files" with a time split) is still open.
+P9 is the one push check with signal outside Django (v1's SZZ). Its 2,000 threshold catches 32% of bug-inducing commits but only 9% of the others. On the 41,056 Spark first-parent commits since 2015 that have a `commit_file` row (107 of the block's 41,163 have none), a flagged commit is bug-inducing 49% of the time, against a 22% base rate. This part is weak, though. SZZ blames changed lines, so big commits are more likely to be blamed by construction. 05-test's real bar ("beats lines × files" with a time split) is still open.
 
 ## 8. Stall reasons
 
@@ -261,4 +263,4 @@ Against `gitlab_stall_reasons.csv` (57 blocked issues, model-read), 41 are "upst
 
 *Precision (dots) and recall (squares) of the block against each answer key, with the 0.90 bar.*
 
-The code side clears the bar, and the ticket and cross-team side doesn't yet. The Spark pairs are hand-checked (50 of 50, agreeing with the model's read on all 50). Their 0.64 here is the path-level rule; the function-level inside rule keeps 32 pairs, all real (1.00, [GRAPH.md](../GRAPH.md)). The GitLab key has 50 of 262 rows model-drafted and person-reviewed, and the figure's GitLab dot uses the model's verdicts, which agree with the reviewed verdicts 18 of 50, so those scores are provisional.
+The code side clears the bar, and the ticket and cross-team side doesn't yet. The Spark pairs are hand-checked (50 of 50, and the model's read agrees on all 50). Their 0.64 is the path-level rule; the function-level inside rule keeps 32 pairs, all real ([GRAPH.md](../GRAPH.md)). The GitLab dot uses the model's verdicts (§6), so it's provisional.

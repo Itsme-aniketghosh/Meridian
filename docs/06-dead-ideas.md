@@ -14,7 +14,7 @@
 | Burndown as resolver proof | Grep finds all 265 too | Never |
 | tree-sitter alone | No name resolution | Never |
 | Incremental-only parsing | Resolution crosses files | Never |
-| Kafka for the ticket join | 62% keyed | Robustness tests |
+| Kafka for the ticket join | 62% keyed | Weaker-keying tests |
 | Raw "Incomplete" as vague label | 3,214 of 3,359 bulk-closed | Never |
 | Jira links as chain truth | 5% linked, 0 "Blocks" | Never |
 | Debian py2removal links as block truth | Reversed, bulk-added from the dependency graph | Never |
