@@ -425,7 +425,7 @@ def situations():
 def next_steps():
     port = "8080"
     print(textwrap.dedent(f"""\
-        - report/REPORT.md       the rubric checklist (section 3) with where each item lives, results on the team run
+        - report/REPORT.md       in the guidelines' order; section 5 maps each criterion to where it lives
         - README.md              setup, run, folder structure, DVC, data quality, alerts, bias, flow
         - BIAS.md                bias findings, mitigation and trade-offs;   TESTING.md: every test and how to run it
         - Airflow UI (needs Docker, ~3 GB free RAM), from Data-Pipeline/:
