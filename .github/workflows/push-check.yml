@@ -60,8 +60,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install the scanner (the check's only packages outside the standard library)
-        run: grep -E '^tree-sitter' meridian/Data-Pipeline/requirements.txt | pip install -r /dev/stdin
+      - name: Install the scanner and the resolver (the check's only packages outside the standard library)
+        run: grep -E '^(tree-sitter|jedi|parso)' meridian/Data-Pipeline/requirements.txt | pip install -r /dev/stdin
 
       - name: Fetch the last published block
         id: base

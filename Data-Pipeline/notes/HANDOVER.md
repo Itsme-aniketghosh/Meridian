@@ -92,6 +92,18 @@ Then fill in the numbers marked "rerun" in [BIAS.md](../BIAS.md) and [Appendix B
 - **DVC remote:** the GCS bucket is still a placeholder, so `dvc pull` works for nobody yet.
 - **Slack alerts:** no channel is configured. A test webhook in `.env` plus one forced warning would give the report a real alert screenshot.
 
+## 6. Next team run (new run_id) and DVC
+
+The owners merge rule changed `meridian.toml`, and the run_id hashes it, so 70dd can no longer be made from main. The next team run gets a new id. Do steps 3 and 4 on the Mac or in the Docker image, not on Windows, so every hash in `dvc.lock` comes from one kind of machine.
+
+1. `python -m meridian.collect --run-id new --config meridian.toml`. Its last line is `run_id=<new_run_id>`.
+2. Set `settings.toml [pipeline] run_id` to it. Publish only runs DVC for that run, and `dvc.yaml` reads it from there.
+3. Run `meridian_update` (trigger config `{"run_id": "<new_run_id>", "force": true}`), then `meridian_rebuild`, and check compare finds 0 differences.
+4. `dvc commit --force`, or set `[dvc] push = true` before step 3 and publish does it (and the push in step 6).
+5. Freeze `golden/<new_run_id>.json` from that `dvc.lock` and point `tests/test_golden.py` `TEAM_RUN` at it. Keep `golden/70dd1dabfed544b8.json` as the v1 record.
+6. Remote: the GCS bucket in `.dvc/config` is still a placeholder. Until it's real, `dvc remote add -d --local <name> <path>`. Then `dvc push`.
+7. Update the docs that name 70dd as the live run: the README's reproducibility line, `run_demo.py`, REPORT.md and TESTING.md.
+
 ## Known open items
 
 These are listed in [Appendix D](../report/appendix-testing.md):

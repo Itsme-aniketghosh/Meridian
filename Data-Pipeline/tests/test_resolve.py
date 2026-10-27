@@ -839,8 +839,8 @@ class PackagesScore(unittest.TestCase):
 OUT = data_root() / "out" / RUN_ID
 
 
-@unittest.skipUnless((OUT / "call_edge.jsonl").exists() and (OUT / "resolution.jsonl").exists(),
-                     f"no resolve output in out/{RUN_ID}/")
+@unittest.skipUnless((OUT / "call_edge.jsonl").exists() and (OUT / "resolution.jsonl").exists() and SNAP.is_dir(),
+                     f"no resolve output in out/{RUN_ID}/ or no snapshots/{RUN_ID}/")
 class TeamRunEdges(unittest.TestCase):
     """Every call_edge row of a real run, checked by plain text and the rows, not by Jedi or tree-sitter."""
 

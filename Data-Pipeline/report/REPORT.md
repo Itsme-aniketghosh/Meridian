@@ -50,7 +50,7 @@ The weak spot is the cross-team part. None of our public datasets has both a tic
 
 ### 2.3 Test modules
 
-293 unit tests (`unittest`), one test file per part, all passing. 14 are skipped on a plain machine because they need Airflow, GX or the team's private data. Those run in their own CI jobs or with the team data. Edge cases are built into the fixtures: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
+310 unit tests (`unittest`), one test file per part, all passing. 19 are skipped on a plain Windows machine: 18 need Airflow, GX or the team's private data, and 1 runs on Mac and Linux only. Those run in their own CI jobs, in CI's Linux job, or with the team data. Edge cases are built into the fixtures: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
 
 ```
 python -m unittest discover -s tests -t .        # from Data-Pipeline/

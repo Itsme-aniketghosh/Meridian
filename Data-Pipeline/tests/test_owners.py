@@ -263,9 +263,9 @@ class Merge(unittest.TestCase):
         self.assertEqual(stats["risky"], {O.h("alee@b.example")})
 
     def test_first_name_local_part_with_different_surnames_doesnt_merge(self):
-        # the hand check's 4 false merges: joel@ for Joel Pitt and Joel Whitaker
-        recs = [("joel@a.example", "joel@a.example", "Joel Pitt", []),
-                ("joel@b.example", "joel@b.example", "Joel Whitaker", [])]
+        # the hand check's 4 false merges: omar@ for Omar Pell and Omar Wyndham
+        recs = [("omar@a.example", "omar@a.example", "Omar Pell", []),
+                ("omar@b.example", "omar@b.example", "Omar Wyndham", [])]
         self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 2)
         off = {**self.ident, "local_part_same_surname": False}
         self.assertEqual(len({a["person_id"] for a in O.merge(recs, off)[1]}), 1)
@@ -276,22 +276,33 @@ class Merge(unittest.TestCase):
         self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 1)
 
     def test_a_handle_and_one_full_name_still_merge(self):
-        recs = [("jpitt@a.example", "jpitt@a.example", "Joel Pitt", []),
-                ("jpitt@b.example", "jpitt@b.example", "jp", [])]  # a handle: no surname to clash with
+        recs = [("opell@a.example", "opell@a.example", "Omar Pell", []),
+                ("opell@b.example", "opell@b.example", "op", [])]  # a handle: no surname to clash with
         self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 1)
 
     def test_a_handle_between_two_surnames_joins_neither(self):
-        ident = {**self.ident, "local_part_max_names": 3}  # 3 names on jakub@, so the 3+ names rule doesn't block it
-        _, alias, _ = O.merge([("jakub@a.example", "jakub@a.example", "Jakub Paczkowski", []),
-                               ("jakub@b.example", "jakub@b.example", "Jakub Roztocil", []),
-                               ("jakub@c.example", "jakub@c.example", "jk", [])], ident)
+        ident = {**self.ident, "local_part_max_names": 3}  # 3 names on pavel@, so the 3+ names rule doesn't block it
+        _, alias, _ = O.merge([("pavel@a.example", "pavel@a.example", "Pavel Quorn", []),
+                               ("pavel@b.example", "pavel@b.example", "Pavel Ostrand", []),
+                               ("pavel@c.example", "pavel@c.example", "pq", [])], ident)
         self.assertEqual(len({a["person_id"] for a in alias}), 3)
+
+    def test_punctuation_an_email_as_a_name_and_accents_dont_make_surnames_clash(self):
+        for other in ("Doe, Jane (CONT)", "jane.doe@x.example", "Jané Döe"):
+            recs = [("jdoe@a.example", "jdoe@a.example", "Jane Doe", []),
+                    ("jdoe@b.example", "jdoe@b.example", other, [])]
+            self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 1, other)
+        recs = [("jnunez@a.example", "jnunez@a.example", "José Núñez", []),
+                ("jnunez@b.example", "jnunez@b.example", "Jose Nunez", [])]
+        self.assertEqual(len({a["person_id"] for a in O.merge(recs, self.ident)[1]}), 1)
 
     def test_no_reply_is_generic(self):
         _, alias, _ = O.merge([("no-reply@a.example", "no-reply@a.example", "Isaac", []),
                                ("isaac@b.example", "isaac@b.example", "Isaac", [])], self.ident)
         self.assertEqual(len({a["person_id"] for a in alias}), 2)
         self.assertEqual({a["email"]: a["generic"] for a in alias}["no-reply@a.example"], 1)
+        self.assertEqual(O.merge([("do-not-reply@a.example", "do-not-reply@a.example", "Isaac", [])],
+                                 self.ident)[1][0]["generic"], 1)
 
     def test_generic_name_with_real_email_not_merged_on_name(self):
         _, alias, _ = O.merge([("alice@a.example", "alice@a.example", "jenkins", []),

@@ -24,8 +24,8 @@ Identities, as [identity] in meridian.toml says:
   merge_people(), plus .mailmap.
 - A local part seen under more than local_part_max_names names (chris@, contact@) never joins: across 18 repos it
   chained 112 strangers into one person.
-- With local_part_same_surname, a shared local part joins only emails whose surnames agree: joel@ for Joel Pitt and
-  Joel Whitaker stays two people. The hand check of 30 merged groups found 4 such false merges, all first names.
+- With local_part_same_surname, a shared local part joins only emails whose surnames agree: omar@ for Omar Pell and
+  Omar Wyndham stays two people. The hand check of 30 merged groups found 4 such false merges, all first names.
 - Generic names and bots never join on name or local part. Only .mailmap, which a human wrote, can join them.
 - person_id = h(smallest email in the group). It stays while that email stays the smallest: an added email that sorts
   first, or two groups merging, gives a new person_id.
@@ -37,6 +37,7 @@ pinned SHA (git's %aN / %aE apply that commit's .mailmap). The author emails mus
 import json
 import re
 import subprocess
+import unicodedata
 from collections import Counter, defaultdict
 from fractions import Fraction
 from pathlib import Path
@@ -57,11 +58,13 @@ def local_part(email):
 
 
 def name_words(name):
-    return [norm_name(w) for w in re.split(r"[\s._-]+", name.strip()) if w]
+    """Lowercase words, accents dropped: 'Doe, Jane (CONT)' -> doe jane cont; an email as a name -> its local part."""
+    name = "".join(c for c in unicodedata.normalize("NFKD", name.split("@")[0].lower()) if not unicodedata.combining(c))
+    return re.findall(r"[^\W_]+", name)   # \w without _: snake_case splits, as before
 
 
 def surnames_clash(a, b):
-    """Two full names that can't be one person: neither one's last word is in the other ('Joel Pitt', 'Joel Whitaker').
+    """Two full names that can't be one person: neither one's last word is in the other ('Omar Pell', 'Omar Wyndham').
     Swapped order ('Xiang Li', 'Li Xiang') doesn't clash, and a one-word name (a handle) clashes with nothing."""
     wa, wb = name_words(a), name_words(b)
     return len(wa) > 1 and len(wb) > 1 and wa[-1] not in wb and wb[-1] not in wa
@@ -128,8 +131,8 @@ def merge(records, ident):
         if len(local_part(e)) >= ident["local_part_min_length"] and local_part(e) not in shared:
             on_local[local_part(e)].append(e)
 
-    # A shared local part joins its emails, unless their names say they're different people (joel@ for Joel Pitt and
-    # Joel Whitaker). Full names go into clusters where no two clash; if that makes more than one, a one-word name (a
+    # A shared local part joins its emails, unless their names say they're different people (omar@ for Omar Pell and
+    # Omar Wyndham). Full names go into clusters where no two clash; if that makes more than one, a one-word name (a
     # handle) is ambiguous and joins none of them
     via_local = Counter()
     for lp, es in on_local.items():

@@ -110,10 +110,10 @@ local_part_max_names = 2               # a local part seen under 3+ names (chris
                                        # Without it, 18 repos chain 112 strangers into one group
 lowercase_emails = true
 local_part_min_length = 4             # shorter local parts (jo@, li@) are never merged on
-local_part_same_surname = true         # joel@ for Joel Pitt and Joel Whitaker never merges: a shared first-name local
+local_part_same_surname = true         # omar@ for Omar Pell and Omar Wyndham never merges: a shared first-name local
                                        # part made all 4 false merges in the hand check of 30 groups
 generic_names = ["root", "ubuntu", "unknown", "user", "admin", "spark", "localhost", "none", "test", "jenkins",
-                 "noreply"]            # no-reply@ is a shared address, not a person (matched on the local part too)
+                 "noreply", "donotreply"]   # no-reply@ is a shared address, not a person (matched on the local part too)
 bot_patterns = ['\[bot\]$', '^dependabot', '^github-actions', '^renovate', '^noreply@github\.com$']
 use_author_not_committer = true
 coauthors_count = false                # Co-authored-by kept in data, not in ownership
