@@ -100,7 +100,7 @@ Every Sunday a Great Expectations suite re-checks the block on its own and publi
 
 On `c5118b019d642a9b` there are 0 errors and 1 warning. 289 Spark tickets are dated 0010 to 0012, as Apache Jira has them from its 2013 import. A date before 2000 or after the snapshot is invalid, so every run warns with the count, the range and example keys, and no part uses those dates as dates. The run goes on, because they're the source's own data.
 
-`alert.py` sends one message to Slack or email per failed task, data error or data warning. A test and the demo's step 8 send a real alert, an HTTP POST and an SMTP session, to local Slack-style and SMTP servers and check what arrived ([Appendix B §3](appendix-quality.md#3-anomalies)). The team's own channel is a webhook URL in `.env` (`MERIDIAN_SLACK_WEBHOOK`), and it isn't connected yet.
+`alert.py` sends one message to Slack or email per failed task, data error or data warning. A test and the demo's step 8 send a real alert, an HTTP POST and an SMTP session, to local Slack-style and SMTP servers and check what arrived ([Appendix B §3](appendix-quality.md#3-anomalies)). The team's Slack is connected through a webhook URL in `.env` (`MERIDIAN_SLACK_WEBHOOK`, never in git), and validate's alerts arrive there: [join the workspace](https://join.slack.com/t/meridian-flg4799/shared_invite/zt-4ekm8ksh1-WYMNCqG_ECL5jr17~Gzaxg) to see them.
 
 ### 2.9 Pipeline flow optimization
 
@@ -205,7 +205,7 @@ We tested this by breaking things on purpose: 27 injected faults and 42 scenario
 | 5 | Data version control (DVC) | §2.5 | ✅ (remote is a placeholder) |
 | 6 | Pipeline flow optimization | §2.9, [A](appendix-airflow.md) | ✅ |
 | 7 | Schema and statistics generation | §2.7, [B](appendix-quality.md) | ✅ |
-| 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | ✅ (delivered to local Slack and SMTP servers; the team's channel isn't connected yet) |
+| 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | ✅ (delivered to the team's Slack; email tested against a local SMTP server) |
 | 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ |
 | 10 | Test modules | §2.3, [B](appendix-quality.md) | ✅ |
 | 11 | Reproducibility | §4.3, [D](appendix-testing.md) | ✅ |
@@ -213,7 +213,7 @@ We tested this by breaking things on purpose: 27 injected faults and 42 scenario
 
 What still falls short:
 
-- Alerts have reached only local test servers: the team's Slack webhook isn't set in `.env` yet. The DVC remote is a placeholder.
+- Email alerts are tested against a local SMTP server only; no team mailbox is configured. The DVC remote is a placeholder.
 - The cross-team features only show their full value on the fixture, because no public dataset has both tickets and tracked code (§2.2). With one run there's no burndown yet either.
 - Two weaker signals missed bars we wrote down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a "bug with no reproduction" check, and timing in the GitLab cross-team rule (precision 0.25 against 0.50 by model labels; 2 of 10 on the 50 model-drafted, person-reviewed rows).
 
