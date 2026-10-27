@@ -189,10 +189,9 @@ columns = ["commit_file.added", "commit_file.deleted", "file_bug_fixes.bug_fixes
 # nothing; on a log scale only the truly huge ones are
 log_scale = ["added", "deleted", "invocations", "direct_sites", "n_commits", "bug_fixes"]
 
-[validate.dates]                      # a time before earliest, or after the run's snapshot_at, is a warning. On 70dd:
-columns = '.*_at|at'                  # 289 Spark tickets filed in the years 0010-0012, as Apache Jira itself has them
-earliest = "2000-01-01T00:00:00Z"     # (the 2013 import from Spark's old tracker): the source is wrong, not us
-allow = {"ticket.created_at" = 289}  # known bad dates per column: warn only above this many, so the alert stays news
+[validate.dates]                      # a time before earliest, or after the run's snapshot_at, is invalid: a warning
+columns = '.*_at|at'                  # every run, and bias puts it in no year slice. On 70dd: 289 Spark tickets filed
+earliest = "2000-01-01T00:00:00Z"     # in 0010-0012, as Apache Jira has them (its 2013 import of Spark's old tracker)
 
 [validate.drift]                      # with prev_run: a table's row count moving more than this is a warning
 max_row_change = 0.2

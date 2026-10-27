@@ -16,7 +16,8 @@ meridian.writer), stats.json and anomalies.json. Neither JSON is a table: the wr
    ranges     a number outside its allowed range (share in 0..1, line >= 1, ...)                                error
    coverage   a coverage metric below its floor                           error
    missing    a column's share of NULL or '' above its limit              warn
-   dates      a time before the earliest plausible date, or after the run's snapshot_at, above its allowance  warn
+   dates      a time before the earliest plausible date, or after the run's snapshot_at: invalid, kept out of
+              bias's year slices (the source's own data, so every run warns and goes on)          warn
    outliers   a number column's share of values beyond Q1 - k*IQR or Q3 + k*IQR above the limit               warn
    drift      since --prev-run, a table of min_rows or more moved past the limit, or a column became one value  warn
 An error alerts and exits 4 (ALERTED), so Airflow fails the task and its on_failure doesn't alert again; warnings
@@ -126,15 +127,19 @@ def check(db, spec, stats, exp, prev):
                         add("error", "ranges", f"{table}.{col}", f"{bad:,} values outside {lo}..{hi}")
 
     dates = exp.get("dates", {})
-    allow = dates.get("allow", {})  # bad dates the source itself has: warn only above this many, so an alert stays news
     if dates and (now := db.execute("SELECT snapshot_at FROM run").fetchone()):
         for table, cols in sorted(spec.items()):
+            key = ", ".join(f'"{c[0]}"' for c in sorted(cols, key=lambda c: c[4])
+                            if c[4] and c[0] != "run_id") or "rowid"   # the example rows' keys, as the table has them
             for col in [c[0] for c in cols if re.fullmatch(dates["columns"], c[0])]:
-                bad = db.execute(f'SELECT count(*), min("{col}"), max("{col}") FROM "{table}" WHERE "{col}" != \'\' '
-                                 f'AND ("{col}" < ? OR "{col}" > ?)', (dates["earliest"], now[0])).fetchone()
-                if bad[0] > allow.get(f"{table}.{col}", 0):
-                    add("warn", "dates", f"{table}.{col}", f"{bad[0]:,} dates before {dates['earliest'][:10]} or after "
-                        f"snapshot_at, from {bad[1]} to {bad[2]}")
+                bad = f'FROM "{table}" WHERE "{col}" != \'\' AND ("{col}" < ? OR "{col}" > ?)'
+                args = (dates["earliest"], now[0])
+                n, lo, hi = db.execute(f'SELECT count(*), min("{col}"), max("{col}") {bad}', args).fetchone()
+                if n:   # the source's own data, so a warning on every run, not an error that stops every run
+                    eg = [" ".join(map(str, r)) for r in db.execute(
+                        f'SELECT {key} {bad} ORDER BY "{col}", {key} LIMIT 5', args)]
+                    add("warn", "dates", f"{table}.{col}", f"{n:,} invalid dates (before {dates['earliest'][:10]} or "
+                        f"after snapshot_at), from {lo} to {hi}: excluded from date slices, e.g. {', '.join(eg)}")
 
     for metric, floor in sorted(exp.get("coverage", {}).items()):
         row = db.execute("SELECT numerator, denominator FROM coverage WHERE metric = ?", (metric,)).fetchone()
