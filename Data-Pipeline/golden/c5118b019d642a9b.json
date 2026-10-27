@@ -1,0 +1,98 @@
+{
+  "blast_radius.jsonl": {
+    "md5": "e7f9e52dcb9808163f90086d2f41fedd",
+    "size": 4626
+  },
+  "blocked_by.jsonl": {
+    "md5": "d41d8cd98f00b204e9800998ecf8427e",
+    "size": 0
+  },
+  "bug_inducing.jsonl": {
+    "md5": "29fead91866da014efee155f99f0a981",
+    "size": 7306235
+  },
+  "call_edge.jsonl": {
+    "md5": "0c3c29f621010940ec371e5927ca3110",
+    "size": 804159
+  },
+  "call_site.jsonl": {
+    "md5": "8873ef43bfc792db9eba1fbc47d70443",
+    "size": 770593
+  },
+  "candidate.jsonl": {
+    "md5": "c760b7930298dbc8bffc6865d3f30bed",
+    "size": 1012206
+  },
+  "chain.jsonl": {
+    "md5": "b08f3919cdf732db6786e831923cda6a",
+    "size": 39263
+  },
+  "commit_file.jsonl": {
+    "md5": "f4a8ce0bb9b2775e8749f3cf18650878",
+    "size": 188506164
+  },
+  "commit_ticket.jsonl": {
+    "md5": "99c0aa2a4affaa7ae9ee99587c3f1401",
+    "size": 6279065
+  },
+  "coverage.jsonl": {
+    "md5": "cda46850e30fafb6e79a65027f9fc982",
+    "size": 2321
+  },
+  "deprecation.jsonl": {
+    "md5": "add63f5ab7dafee60ad336498bd0039d",
+    "size": 13697
+  },
+  "file_bug_fixes.jsonl": {
+    "md5": "406d1c10474e0134fca7122934f7c12b",
+    "size": 423268
+  },
+  "file_owner.jsonl": {
+    "md5": "11fa5c9bcb66a807438fd3a40975a8e1",
+    "size": 12451385
+  },
+  "git_commit.jsonl": {
+    "md5": "f28a39fe794d93af513a812f154a3163",
+    "size": 57991639
+  },
+  "module_import.jsonl": {
+    "md5": "64f812b2f9ae441958010ea596cf25cf",
+    "size": 6789317
+  },
+  "parse_failure.jsonl": {
+    "md5": "5118ba988a9ffd53818dcf4d864b2955",
+    "size": 1533
+  },
+  "person.jsonl": {
+    "md5": "f5a992b5f21dcaa19db2039cd7b007a8",
+    "size": 853141
+  },
+  "person_alias.jsonl": {
+    "md5": "d7863a3a45870ec9e5e330ba2a07feb3",
+    "size": 1558545
+  },
+  "resolution.jsonl": {
+    "md5": "dd137fa2117b0fa47500d5df9b499e9d",
+    "size": 1124796
+  },
+  "team_map.jsonl": {
+    "md5": "2e5de21f4f5bd9e965733c395be3d31c",
+    "size": 489918
+  },
+  "ticket.jsonl": {
+    "md5": "e104345d26582d2c797afcc48f7f6232",
+    "size": 129255751
+  },
+  "ticket_event.jsonl": {
+    "md5": "ba25b19a8e9f97f9e29f06888d66f7ec",
+    "size": 44054710
+  },
+  "ticket_link.jsonl": {
+    "md5": "9c88e0ea0953b930ec052d33a4c9b667",
+    "size": 10214686
+  },
+  "ticket_map.jsonl": {
+    "md5": "0e383ce733f7206174b3b6ae43dd591b",
+    "size": 45862132
+  }
+}

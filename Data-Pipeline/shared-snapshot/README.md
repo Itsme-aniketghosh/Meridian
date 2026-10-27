@@ -8,7 +8,7 @@ Everyone has to work on the same run, or our tables won't join. Collect can clon
 
 | | |
 |---|---|
-| run_id | `70dd1dabfed544b8` (v1, frozen) |
+| run_id | `c5118b019d642a9b` (replaces v1 `70dd1dabfed544b8` on 2026-10-27: same snapshot and zip, new `meridian.toml`) |
 | snapshot_at | `2026-10-01T01:23:03Z` |
 | status | `complete`: all 22 repos pinned. Built 2026-10-23, replacing `973531f7fd4cfd5e` |
 | zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB, team only |
@@ -50,15 +50,15 @@ You need Python 3.11, git and about 5 GB free.
 
    ```
    cd "Data-Pipeline"
-   python3 -m meridian.collect --run-id 70dd1dabfed544b8 --config meridian.toml
+   python3 -m meridian.collect --run-id c5118b019d642a9b --config meridian.toml
    ```
 
-6. The last line must say `run_id=70dd1dabfed544b8`. If it says anything else, or fails, stop and tell the team.
+6. The last line must say `run_id=c5118b019d642a9b`. If it says anything else, or fails, stop and tell the team.
 
 7. Build the commit and ticket tables.
 
    ```
-   python3 -m meridian.history --run-id 70dd1dabfed544b8 --config meridian.toml
+   python3 -m meridian.history --run-id c5118b019d642a9b --config meridian.toml
    ```
 
    Expect these rows, and a log line with `94.0% from the subject` for the last 1,000 Spark commits and `3 dead keys`.
@@ -72,7 +72,7 @@ You need Python 3.11, git and about 5 GB free.
    | `ticket_link` | 61,615 |
    | `commit_ticket` | 42,191 |
 
-Pass `--run-id 70dd1dabfed544b8` to every part, never `--run-id new`, which makes a run of your own. The rest is in [the pipeline README](../README.md).
+Pass `--run-id c5118b019d642a9b` to every part, never `--run-id new`, which makes a run of your own. The rest is in [the pipeline README](../README.md).
 
 ## What collect keeps between runs
 

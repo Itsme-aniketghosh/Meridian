@@ -1,6 +1,6 @@
 # Appendix B: Data quality and bias
 
-Everything here comes from team run `70dd1dabfed544b8` in the Airflow run of Oct 26 ([Appendix A](appendix-airflow.md)): its `stats.json`, `anomalies.json`, `bias.json` and `meridian.sqlite`, plus the unit tests run the same day (macOS, Python 3.11). The charts come from `python report/figures_quality.py <dir with the three json files>`, run from `Data-Pipeline/`.
+Everything here comes from team run `c5118b019d642a9b` in the Airflow runs of Oct 27 ([Appendix A](appendix-airflow.md)): its `stats.json`, `anomalies.json`, `bias.json` and `meridian.sqlite`, plus the unit tests run the same day (macOS, Python 3.11). The charts come from `python report/figures_quality.py <dir with the three json files>`, run from `Data-Pipeline/`.
 
 ## 1. Tests
 
@@ -16,7 +16,7 @@ There's one test file per pipeline part, plus files for the DAG (Airflow's task 
 |---|---:|---|---|---|
 | `test_dag.Dag.*` (DagBag load, spec, settings, trigger, templates) | 5 | Airflow isn't on the host | Airflow 2.10.5; CI's `airflow` job in the Docker image | ✅ 13 of 13 in `test_dag` |
 | `test_gx.Audit.*` (suite on a block, Data Docs) | 2 | GX has its own `[gx]` environment | GX 1.24.1; CI's `gx` job | ✅ 7 of 7 in `test_gx` |
-| `test_golden.TeamRun`, `test_resolve.DjangoAnswerKey` ×2, `test_resolve.PackagesScore`, `test_scan.DjangoAnswerKey` ×3 | 7 | Need the private team data | With `MERIDIAN_RUN_ID=70dd1dabfed544b8` | ✅ below |
+| `test_golden.TeamRun`, `test_resolve.DjangoAnswerKey` ×2, `test_resolve.PackagesScore`, `test_scan.DjangoAnswerKey` ×3 | 7 | Need the private team data | With `MERIDIAN_RUN_ID=c5118b019d642a9b` | ✅ below |
 
 With the team data the whole suite is 293 tests, OK, 7 skipped. The team-run tests ran on the Airflow run's outputs (`tests_team.txt`: 62 tests, 40 s, OK):
 
@@ -25,13 +25,13 @@ With the team data the whole suite is 293 tests, OK, 7 skipped. The team-run tes
 | `test_scan.DjangoAnswerKey`: 265 of 265 edit lines, 0 false; 2 lines outside `.py`; no tracked name lost to parse failures | ✅ 3 of 3 |
 | `test_resolve.DjangoAnswerKey`: 542 of 542 aliased `_()` calls; every edit line resolves | ✅ 2 of 2 |
 | `test_resolve.PackagesScore`: precision and recall on the 20 Django packages | ✅ 1 of 1 |
-| `test_golden.TeamRun`: md5 of the 24 `.jsonl` outputs vs `golden/70dd1dabfed544b8.json` | ✅ 24 of 24 |
+| `test_golden.TeamRun`: md5 of the 24 `.jsonl` outputs vs `golden/c5118b019d642a9b.json` | ✅ 24 of 24 |
 
 On Windows on Oct 25 the golden check was 20 of 24. Jedi's folder order changed `resolution`, `call_edge` and `blast_radius`, the git version changed `commit_file` ([Appendix D](appendix-testing.md), round 5), and `call_site` on disk predated join's "no stolen matches" fix. The fixture half, which hashes all 25 tables, runs everywhere and passes.
 
 ## 2. Schema and statistics
 
-`meridian.validate` checks the block against `schema.sql` (types, NOT NULL, allowed values, keys, one `run_id`) and writes statistics for each column to `stats.json`. On 70dd: 25 tables, 1,788,242 rows, 0 schema violations, 0 data errors.
+`meridian.validate` checks the block against `schema.sql` (types, NOT NULL, allowed values, keys, one `run_id`) and writes statistics for each column to `stats.json`. On `c5118b019d642a9b`: 25 tables, 1,788,375 rows, 0 schema violations, 0 data errors.
 
 ![](figures/rows_per_table.png)
 
@@ -45,7 +45,7 @@ The biggest are `commit_file` (849,643) and `ticket_map` (246,428). The output i
 
 Limits are in `settings.toml [validate.missing]`, and unlisted columns allow none. The high shares are empty by design. `commit_file.old_path` (94.9%) is only set on renames, `file_owner.top_person_id` (74.6%) is empty for path- and repo-owned files, `ticket.parent_key` (77.3%) is only for sub-tasks, and `resolution.receiver_from` (100%) is for a call pattern that doesn't occur on 70dd. The near-zero ones are single real rows: 23 root commits without a parent, 1 commit with an empty author email, and 5 tickets and 18 events by deleted accounts.
 
-Coverage floors are in `[validate.coverage]`. 1,525 of 1,526 call sites resolved (floor 0.95), 1,526 of 1,526 owned (floor 0.95), and 36,138 of 59,491 Jira tickets mapped to code, 0.61 (floor 0.50). The 14,524 GitLab tickets map to nothing by design, because GitLab is Ruby and outside the snapshot.
+Coverage floors are in `[validate.coverage]`. 1,525 of 1,526 call sites resolved (floor 0.95), 1,526 of 1,526 owned (floor 0.95), and 36,198 of 59,491 Jira tickets mapped to code, 0.61 (floor 0.50). The 14,524 GitLab tickets map to nothing by design, because GitLab is Ruby and outside the snapshot.
 
 ## 3. Anomalies
 
@@ -61,7 +61,7 @@ The warning is on `ticket.created_at`: 289 dates before 2000-01-01, from 0010-04
 
 It never gates. A failed expectation alerts as a warning and the task succeeds. An expectation GX couldn't evaluate alerts as an error and exits 1, so a broken audit can't pass for clean data.
 
-On 70dd it ran 308 expectations over the 25 tables, 0 failed, and published its Data Docs to `published/gx/70dd1dabfed544b8/index.html`.
+On `c5118b019d642a9b` it ran 308 expectations over the 25 tables, 0 failed, and published its Data Docs to `published/gx/c5118b019d642a9b/index.html`.
 
 ![](figures/gx_data_docs.jpg)
 
@@ -81,7 +81,7 @@ Owner rule (Spark): does a file's owner team predict its next author's team? Cou
 
 *Share of Spark tickets that map to code by component, by component since 2020, by type and by year.*
 
-Ticket to code mapping is 0.608 per ticket (N = 59,491), or 0.612 over N = 71,845 (ticket, component) pairs. 11 of 36 judged components are flagged, among them EC2 0.083, Spark Docker 0.209 and Kubernetes 0.389. Age explains a lot of it. Tickets from before 2014 map under 25% of the time because their files are gone, and from 2014 on 0.52–0.72. Holding age fixed doesn't close the gap, though. Since 2020 (0.676, N = 35,285), EC2 and Mesos are too few to judge, and 8 of 32 judged components stay flagged, Kubernetes 0.372 (N = 1,762) among them. Wish, Brainstorming and Question tickets (0.12–0.16) don't carry code by nature.
+Ticket to code mapping is 0.608 per ticket (N = 59,491), or 0.613 over N = 71,845 (ticket, component) pairs. 11 of 36 judged components are flagged, among them EC2 0.087, Spark Docker 0.209 and Kubernetes 0.390. Age explains a lot of it. Tickets from before 2014 map under 25% of the time because their files are gone, and from 2014 on 0.52–0.72. Holding age fixed doesn't close the gap, though. Since 2020 (0.677, N = 35,285), EC2 and Mesos are too few to judge, and 8 of 32 judged components stay flagged, Kubernetes 0.372 (N = 1,762) among them. Wish, Brainstorming and Question tickets (0.12–0.16) don't carry code by nature.
 
 ![](figures/bias_resolver.png)
 

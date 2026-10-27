@@ -1,22 +1,19 @@
-"""Golden tests: v1 is frozen on run 70dd1dabfed544b8. Any change to an output's bytes fails here until it is meant.
+"""Golden tests: the team run is c5118b019d642a9b (v1 was 70dd1dabfed544b8). Any change to an output's bytes fails here
+until it is meant.
 
 1. Everywhere (CI too): the KB fixture through graph and the writer gives exactly the bytes in golden/fixture.json,
    the sha256 of every jsonl and of every SQLite table's rows (not the .sqlite file: its header holds the SQLite
    version).
-2. The team run, only with MERIDIAN_RUN_ID=70dd1dabfed544b8 and out/70dd1dabfed544b8/ present: every jsonl has the
-   md5 and size in golden/70dd1dabfed544b8.json, which are dvc.lock's Mac values (run.jsonl left out: its
-   image_digest differs per machine by design). Every mismatching file is listed, not just the first.
+2. The team run, only with MERIDIAN_RUN_ID=c5118b019d642a9b and out/c5118b019d642a9b/ present: every jsonl has the
+   md5 and size in golden/c5118b019d642a9b.json, which are dvc.lock's values from the pipeline image (run.jsonl left
+   out: its image_digest differs per machine by design). Every mismatching file is listed, not just the first.
 
     python -m unittest tests.test_golden -v                 # from Data-Pipeline/
     python -m tests.test_golden --update                    # rewrites golden/fixture.json: only for a meant change
 
-golden/70dd1dabfed544b8.json is never regenerated: a new contract means a new team run_id and a new golden file.
-One exception, before v1 reached main: schema v1.2 added call_site.effective_sha and call_edge.introduced_sha without
-changing the run_id (the run_id hashes meridian.toml, not schema.sql), so call_site and call_edge were recorded again
-from the regenerated dvc.lock. Every other file kept its hash.
-A second, after v1.2: the golden is the pipeline image's output (CONTRACTS.md: one image). commit_file was recorded
-again from the Docker run, where git 2.39 detects the renames of three small Django template files differently from
-the Mac's git 2.50 (9 of 849,643 rows). A native run with another git can differ in commit_file only.
+A team run's golden file is never regenerated: a new contract means a new team run_id and a new golden file.
+golden/70dd1dabfed544b8.json stays as the v1 record. c5118b019d642a9b is the same snapshot (pinned SHAs and ticket
+pulls) under the meridian.toml of the Oct 27 fixes (owner merge rule, join, SZZ reverts).
 """
 import hashlib
 import json
@@ -38,7 +35,7 @@ from tests.test_dashboard import fixture_block
 from tests.test_graph import CONFIG
 
 GOLDEN = HERE / "golden"
-TEAM_RUN = "70dd1dabfed544b8"
+TEAM_RUN = "c5118b019d642a9b"
 
 
 def fixture_hashes():

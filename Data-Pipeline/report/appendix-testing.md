@@ -3,7 +3,7 @@
 | Level | What it checks | How | Result |
 |---|---|---|---|
 | Unit tests | each part on its own fixture, edge cases included | `python -m unittest discover -s tests -t .`, in CI on Linux and Windows | 293 pass, 14 skipped by design ([B §1](appendix-quality.md#1-tests)) |
-| Answer keys | the block against hand-checked labels | `MERIDIAN_RUN_ID=70dd1dabfed544b8`, the team data | Django 265/265 lines, 542/542 aliases, packages' precision and recall |
+| Answer keys | the block against hand-checked labels | `MERIDIAN_RUN_ID=c5118b019d642a9b`, the team data | Django 265/265 lines, 542/542 aliases, packages' precision and recall |
 | Golden | the same inputs give the same bytes | md5 of the 24 output files vs the known-good sums in `golden/` | 24 of 24 |
 | Rebuild | the incremental update equals a run from scratch | `meridian_rebuild` in Airflow, `compare` | 0 differences ([A](appendix-airflow.md)) |
 | Scenarios | 42 situations the pipeline will meet, each answer written down before the run | 5 rounds, below | 24 passed first time, 13 bugs found and fixed, 4 open, 1 machine difference |

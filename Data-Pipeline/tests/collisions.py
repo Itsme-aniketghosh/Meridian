@@ -1,6 +1,6 @@
 """D6 graph check: Spark collision pairs, with 50 sampled for a hand-check (05-test "Blocking, chains", P3).
 
-    python -m tests.collisions --run-id 70dd1dabfed544b8 --config meridian.toml      # from Data-Pipeline/
+    python -m tests.collisions --run-id c5118b019d642a9b --config meridian.toml      # from Data-Pipeline/
 
 Week 1's check (week1/pair2/spark/collisions.py) on the team run: a pair is two first-parent Spark commits since
 SINCE, keyed to different Bug+Fixed tickets ([szz] fix), within WINDOW days, that edit the same function. A function

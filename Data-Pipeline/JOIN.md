@@ -31,7 +31,7 @@ Run time about 20 s, peak 2.4 GB (reading the ticket and commit tables).
 |---|---|
 | `call_site` | 1,526: 1,163 calls, 362 imports, 1 alias. Django 289 (267 lines), packages 1,237. 1 `ast_unresolved` (django-debug-toolbar `panels/staticfiles.py:34`), kept |
 | `ticket_map` | 246,428 rows: 184,713 `commit_key`, 22,812 `stack_trace`, 1,026 `path`, 37,877 `unmapped` |
-| Tickets mapped | Spark 36,138 of 59,491 (61%). GitLab 0 of 14,524: Ruby, no code in the snapshot |
+| Tickets mapped | Spark 36,198 of 59,491 (61%). GitLab 0 of 14,524: Ruby, no code in the snapshot |
 | Not call sites | 30 look-alikes the resolver dropped, 1,640 definitions, attributes and references (still in `candidate`) |
 | Gaps counted | 9 parse failures of 6,557 files · 58,191 of 256,185 keyed-commit file links point at files gone by the pinned SHA · 134 of 82,833 stack frames name more than one file · 21,810 Spark files unowned |
 

@@ -42,7 +42,6 @@ GB = 1024 ** 3
 PY = sys.executable
 ZIP_NAME = "meridian-raw-973531f7fd4cfd5e.zip"
 ZIP_SHA = "d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523"
-TEAM_CONFIG = "271a5b0"   # the last commit whose meridian.toml hashes to the team run's config (99f417d changed it)
 RESULTS = []          # (step, PASS/SKIP/FAIL, note)
 ARGS = TMP = None
 STATE = {}
@@ -556,7 +555,7 @@ def download():
             zf.extractall(root / "snapshots")
         if not raw_present(root):
             raise SystemExit("unzipped, but snapshots/_cache/jira/SPARK/.pull.json is still missing")
-        saw("the team zip, checksum verified, unzipped into snapshots/: the exact raw pulls of run 70dd1dabfed544b8.")
+        saw("the team zip, checksum verified, unzipped into snapshots/: the exact raw pulls of run c5118b019d642a9b.")
         return "team zip, sha256 ok"
     print("    not given")
 
@@ -567,7 +566,7 @@ def download():
               f"(~120 MB), then clones the 22 repos (~2.5 GB), all into {root / 'snapshots'}. "
               "Resumable: rerun after a stop.\n"
               "    Today's tickets differ from the team's, so this makes a run of your own: another run_id, "
-              "other numbers than 70dd1dabfed544b8 in REPORT.md.")
+              "other numbers than c5118b019d642a9b in REPORT.md.")
         rc, out = run([PY, "-m", "meridian.collect", "--run-id", "new", "--config", "meridian.toml"])
         if rc:
             raise SystemExit(f"collect exited {rc}: rerun to resume")
@@ -594,16 +593,9 @@ def collect():
     guard(ram=1, disk=5, disk_at=root, hosts=("github.com",))
     if not shutil.which("git"):
         raise Skip("git isn't installed")
-    # shortcut: the team run's own config until a team run is made with today's meridian.toml; then drop TEAM_CONFIG
-    config = TMP / "meridian.team.toml"
-    p = subprocess.run(["git", "show", f"{TEAM_CONFIG}:Data-Pipeline/meridian.toml"], cwd=HERE, capture_output=True)
-    if p.returncode:
-        raise Skip(f"needs git history back to {TEAM_CONFIG} (a full clone): {p.stderr.decode().strip()}")
-    config.write_bytes(p.stdout)
     print(f"  clones the 22 repos at the SHAs in meridian.toml (~2.5 GB) into {root / 'snapshots'}; reads the raw "
-          f"pulls, never contacts Jira or GitLab. It uses meridian.toml as of commit {TEAM_CONFIG}, the config {run_id}"
-          " was made with: today's has changed since, and would hash to another run")
-    rc, out = run([PY, "-m", "meridian.collect", "--run-id", run_id, "--config", str(config)])
+          "pulls, never contacts Jira or GitLab")
+    rc, out = run([PY, "-m", "meridian.collect", "--run-id", run_id, "--config", "meridian.toml"])
     if rc or f"run_id={run_id}" not in out.strip().splitlines()[-1]:
         raise SystemExit(f"collect exit {rc}; its last line must say run_id={run_id}")
     saw(f"data acquisition: the same code SHAs + raw pulls + meridian.toml gave the same run_id={run_id} "
@@ -615,7 +607,7 @@ def team_tests():
     run_id = os.environ.get("MERIDIAN_RUN_ID")
     root = data_root()
     if not run_id or not (root / "snapshots" / run_id).is_dir() or not (root / "out" / run_id).is_dir():
-        raise Skip("the team run's data is private (team only): set MERIDIAN_RUN_ID=70dd1dabfed544b8 with "
+        raise Skip("the team run's data is private (team only): set MERIDIAN_RUN_ID=c5118b019d642a9b with "
                    "snapshots/ and out/ of that run present (TESTING.md)")
     guard(ram=3, disk=5)
     rc, _ = run([PY, "-m", "unittest", "tests.test_golden", "tests.test_scan", "tests.test_resolve", "-v"],

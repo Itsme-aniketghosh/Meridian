@@ -1,6 +1,6 @@
 # Meridian data pipeline
 
-MLOps data pipeline submission. Team run `70dd1dabfed544b8`: Django, 20 Django packages, Spark with its Apache Jira tickets, and GitLab issues. 1,788,242 rows in 25 tables.
+MLOps data pipeline submission. Team run `c5118b019d642a9b`: Django, 20 Django packages, Spark with its Apache Jira tickets, and GitLab issues. 1,788,375 rows in 25 tables.
 
 The sections follow the order of the assignment's guidelines. Appendices A to D hold the evidence.
 
@@ -62,11 +62,13 @@ CI runs this on Linux and Windows on every push, plus an Airflow job and a GX jo
 
 Both DAGs come from one spec, `dags/pipeline_spec.py`, and `test_dag` checks them against it. Each task is one of the commands above. The update starts with `anything_new`, which stops the run in about 2 s when nothing changed since the last publish. `publish` only runs after `validate` passes, so a bad run never replaces the last good block.
 
-We ran both on the real data in Docker on a Mac. The update passed every task first try in 1,268 s. The rebuild then recomputed everything from scratch with caches off, and compare found 0 differences from the update. Screenshots and timings are in [Appendix A](appendix-airflow.md).
+We ran both on the real data in Docker on a Mac. The update passed every task first try in 943 s. The rebuild then recomputed everything from scratch with caches off, and compare found 0 differences from the update. Screenshots and timings are in [Appendix A](appendix-airflow.md).
 
 ### 2.5 Data versioning with DVC
 
 `dvc.yaml` has one stage per part, with the code, settings and tables each one depends on. `dvc.lock` is in git, so every commit pins the exact data its code produced. `dvc repro` reruns only the stages whose inputs changed. The raw Jira and GitLab pulls are pinned with `.dvc` files.
+
+The run_id is a hash of the inputs, so a change to `meridian.toml` means a new team run. That happened once. v1, `70dd1dabfed544b8`, became `c5118b019d642a9b` on Oct 27, after fixes to the owner merge rule, SZZ (reverts skipped) and stack-trace mapping. It has the same snapshot: the same pinned SHAs, ticket pulls and snapshot time. Only the people, owner, bug-inducing and ticket-mapping tables changed (8,378 → 8,442 people, 26,559 → 26,302 bug-inducing commits, 36,138 → 36,198 Spark tickets mapped). Every call-site table is byte for byte the same apart from its run_id, so the Django and push-check results hold unchanged. `golden/70dd1dabfed544b8.json` stays as the v1 record.
 
 One gap: the remote is a placeholder GCS bucket, so `dvc pull` doesn't work for anyone yet. Until it's set up, the team shares the raw data as a checksummed zip.
 
@@ -78,7 +80,7 @@ Every part logs counts as it goes through Python's `logging`. Airflow keeps one 
 
 `schema.sql` defines every table: columns, types, keys and allowed values. The writer refuses any row that breaks it. `validate` then computes statistics per column (rows, missing, distinct values, min, max, mean, common values) into `stats.json`, and the next run compares against them.
 
-Every Sunday a Great Expectations suite re-checks the block on its own and publishes Data Docs. On 70dd it ran 308 expectations and none failed. It never blocks a run; `validate` is the gate. See [Appendix B §2 and §4](appendix-quality.md#2-schema-and-statistics).
+Every Sunday a Great Expectations suite re-checks the block on its own and publishes Data Docs. On `c5118b019d642a9b` it ran 308 expectations and none failed. It never blocks a run; `validate` is the gate. See [Appendix B §2 and §4](appendix-quality.md#2-schema-and-statistics).
 
 ### 2.8 Anomaly detection and alerts
 
@@ -87,13 +89,13 @@ Every Sunday a Great Expectations suite re-checks the block on its own and publi
 - Errors fail the task and stop the publish: too few rows, bad formats (UTC times, ids, SHAs, paths, ticket keys), numbers out of range, coverage below its floor, schema violations.
 - Warnings send an alert and the run goes on: too many missing values, impossible dates, outliers past the IQR fences, a row count that drifted from the last run, a column that collapsed to a single value.
 
-On 70dd there are 0 errors and one warning: 289 Spark tickets dated in the years 0010 to 0012. Apache Jira really has those dates, so we report them and don't fix them.
+On `c5118b019d642a9b` there are 0 errors and 0 warnings. 289 Spark tickets are dated in the years 0010 to 0012. Apache Jira really has those dates, so we keep them, and `settings.toml` allows exactly that many: a 290th would warn.
 
 `alert.py` sends one message to Slack or email for a failed task, a data error or a data warning. We haven't set up a real channel yet, so for now alerts go to the log. The sending code is tested with mocks. See [Appendix B §3](appendix-quality.md#3-anomalies).
 
 ### 2.9 Pipeline flow optimization
 
-The Gantt chart from the real Airflow run showed where the time goes. The tasks add up to 1,599 s run one after another, and the DAG took 1,268 s, because `scan` and `resolve` run beside `history`. That's 21% saved.
+The Gantt chart from the real Airflow run showed where the time goes. The tasks add up to 1,183 s run one after another, and the DAG took 943 s, because `scan` and `resolve` run beside `history`. That's 20% saved.
 
 `history` is the bottleneck: it walks all of Spark's git history for SZZ. It already runs one process per CPU, and a cache brings a warm run from 312 s down to 74 s. Most of what's left is Docker's folder mount on a Mac, which makes git about three times slower than native. A Docker volume or a Linux host fixes that. [Appendix A](appendix-airflow.md) has the chart.
 
@@ -164,7 +166,7 @@ The data (the guidelines' `data/`) sits at the repo root, in `snapshots/` for in
 
 The pipeline never reads the clock after `collect`. Ids are content hashes, output is sorted, and every setting that changes a row is hashed into the run id. So the same snapshot gives the same bytes:
 
-- The 24 output files of 70dd match their frozen hashes (`tests/test_golden.py`).
+- The 24 output files of `c5118b019d642a9b` match their frozen hashes (`tests/test_golden.py`), and the 'same inputs, same run_id' check holds: collect rebuilds the same run_id from the pinned SHAs, ticket pulls and `meridian.toml`.
 - The weekly rebuild matched the update byte for byte.
 - CI checks a small fixture's hashes on Linux and Windows on every push.
 

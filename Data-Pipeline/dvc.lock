@@ -1,7 +1,7 @@
 schema: '2.0'
 stages:
   collect:
-    cmd: python -m meridian.collect --run-id 70dd1dabfed544b8 --config 
+    cmd: python -m meridian.collect --run-id c5118b019d642a9b --config 
       meridian.toml
     deps:
     - path: ../snapshots/_cache/gitlab
@@ -16,550 +16,713 @@ stages:
       nfiles: 599
     - path: meridian.toml
       hash: md5
-      md5: ca3460f5390db8c99c1a01071925cad3
-      size: 12910
+      md5: 3a16d8fac4a65b0069026d5c6e99c802
+      size: 13175
     - path: meridian/collect.py
       hash: md5
-      md5: 632aa878dd898d5b3ce5fa32a353a401
-      size: 30977
+      md5: db085c7a5bf1fab1b92c40af7283c435
+      size: 32225
     - path: meridian/common.py
       hash: md5
-      md5: b4f29f2ecb1f793574ee3b565f36e015
-      size: 7084
+      md5: 374f9ce4fbb3f5ad359d6a1be31eb789
+      size: 9667
     outs:
-    - path: ../out/70dd1dabfed544b8/run.jsonl
+    - path: ../out/c5118b019d642a9b/run.jsonl
       hash: md5
-      md5: 9ba7f7776bd9b31c9b0a4070ec0190f2
+      md5: 2a041cca743fe449872022261247a7ad
       size: 2398
-    - path: ../snapshots/70dd1dabfed544b8/manifest.json
+    - path: ../snapshots/c5118b019d642a9b/manifest.json
       hash: md5
-      md5: bb018188ec6f6fab43ec8dc6cef94b49
+      md5: c3775e72d05f137f37f991609e39034c
       size: 2082
   history:
-    cmd: python -m meridian.history --run-id 70dd1dabfed544b8 --config 
+    cmd: python -m meridian.history --run-id c5118b019d642a9b --config 
       meridian.toml
     deps:
-    - path: ../snapshots/70dd1dabfed544b8/manifest.json
+    - path: ../snapshots/c5118b019d642a9b/manifest.json
       hash: md5
-      md5: bb018188ec6f6fab43ec8dc6cef94b49
+      md5: c3775e72d05f137f37f991609e39034c
       size: 2082
     - path: meridian.toml
       hash: md5
-      md5: ca3460f5390db8c99c1a01071925cad3
-      size: 12910
+      md5: 3a16d8fac4a65b0069026d5c6e99c802
+      size: 13175
     - path: meridian/common.py
       hash: md5
-      md5: b4f29f2ecb1f793574ee3b565f36e015
-      size: 7084
+      md5: 374f9ce4fbb3f5ad359d6a1be31eb789
+      size: 9667
     - path: meridian/history.py
       hash: md5
-      md5: cb397317d972acd5479a9fbe8a0398b5
-      size: 6788
+      md5: e8361babb4b900a49375b27500813cbe
+      size: 6884
     - path: meridian/szz.py
       hash: md5
-      md5: e4c55f55721876df10b2be0521ad992f
-      size: 8598
+      md5: 376a438dc2ec2faf93cdb1ec6e9d26e6
+      size: 8833
     - path: meridian/tickets.py
       hash: md5
-      md5: 1535c9d301d8c1a9d583aec8d8d99c0d
-      size: 22963
+      md5: 28d2e77b81517cb047c6afd4a1b09fbb
+      size: 23212
     outs:
-    - path: ../out/70dd1dabfed544b8/bug_inducing.jsonl
+    - path: ../out/c5118b019d642a9b/bug_inducing.jsonl
       hash: md5
-      md5: ad4430da2129390326af5af3d7253df8
-      size: 7377921
-    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+      md5: 29fead91866da014efee155f99f0a981
+      size: 7306235
+    - path: ../out/c5118b019d642a9b/commit_file.jsonl
       hash: md5
-      md5: a017b5cb780f64adc064c8686f620032
+      md5: f4a8ce0bb9b2775e8749f3cf18650878
       size: 188506164
-    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+    - path: ../out/c5118b019d642a9b/commit_ticket.jsonl
       hash: md5
-      md5: a6968bd564b1a29f1c95592debbef8d8
+      md5: 99c0aa2a4affaa7ae9ee99587c3f1401
       size: 6279065
-    - path: ../out/70dd1dabfed544b8/file_bug_fixes.jsonl
+    - path: ../out/c5118b019d642a9b/file_bug_fixes.jsonl
       hash: md5
-      md5: 1150e2c97ce8f41b0ff24d34b1681148
-      size: 423269
-    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+      md5: 406d1c10474e0134fca7122934f7c12b
+      size: 423268
+    - path: ../out/c5118b019d642a9b/git_commit.jsonl
       hash: md5
-      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      md5: f28a39fe794d93af513a812f154a3163
       size: 57991639
-    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+    - path: ../out/c5118b019d642a9b/ticket.jsonl
       hash: md5
-      md5: 70454ae4331143def20fd112c3b6d185
+      md5: e104345d26582d2c797afcc48f7f6232
       size: 129255751
-    - path: ../out/70dd1dabfed544b8/ticket_event.jsonl
+    - path: ../out/c5118b019d642a9b/ticket_event.jsonl
       hash: md5
-      md5: 1753845e74620421f29ca1078408d4fc
+      md5: ba25b19a8e9f97f9e29f06888d66f7ec
       size: 44054710
-    - path: ../out/70dd1dabfed544b8/ticket_link.jsonl
+    - path: ../out/c5118b019d642a9b/ticket_link.jsonl
       hash: md5
-      md5: f92fbd8bb0a4a29e355251ed4a5a723d
+      md5: 9c88e0ea0953b930ec052d33a4c9b667
       size: 10214686
   scan:
-    cmd: python -m meridian.scan --run-id 70dd1dabfed544b8 --config 
+    cmd: python -m meridian.scan --run-id c5118b019d642a9b --config 
       meridian.toml
     deps:
-    - path: ../snapshots/70dd1dabfed544b8/manifest.json
+    - path: ../snapshots/c5118b019d642a9b/manifest.json
       hash: md5
-      md5: bb018188ec6f6fab43ec8dc6cef94b49
+      md5: c3775e72d05f137f37f991609e39034c
       size: 2082
     - path: meridian.toml
       hash: md5
-      md5: ca3460f5390db8c99c1a01071925cad3
-      size: 12910
+      md5: 3a16d8fac4a65b0069026d5c6e99c802
+      size: 13175
     - path: meridian/common.py
       hash: md5
-      md5: b4f29f2ecb1f793574ee3b565f36e015
-      size: 7084
+      md5: 374f9ce4fbb3f5ad359d6a1be31eb789
+      size: 9667
     - path: meridian/scan.py
       hash: md5
-      md5: 4295470639e5bb2a9924e12deb5c8434
-      size: 21900
+      md5: 85c130222a99dd125c98f47b093b8b9c
+      size: 22061
     outs:
-    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+    - path: ../out/c5118b019d642a9b/candidate.jsonl
       hash: md5
-      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      md5: c760b7930298dbc8bffc6865d3f30bed
       size: 1012206
-    - path: ../out/70dd1dabfed544b8/deprecation.jsonl
+    - path: ../out/c5118b019d642a9b/deprecation.jsonl
       hash: md5
-      md5: 57ecda275785d0bb3c473484e5346e2a
+      md5: add63f5ab7dafee60ad336498bd0039d
       size: 13697
-    - path: ../out/70dd1dabfed544b8/module_import.jsonl
+    - path: ../out/c5118b019d642a9b/module_import.jsonl
       hash: md5
-      md5: d4f4edfc51ffa019700fcf5aa1ccdb73
+      md5: 64f812b2f9ae441958010ea596cf25cf
       size: 6789317
-    - path: ../out/70dd1dabfed544b8/parse_failure.jsonl
+    - path: ../out/c5118b019d642a9b/parse_failure.jsonl
       hash: md5
-      md5: 9b12b15c93dde40ffd2dac2c9c313ca4
+      md5: 5118ba988a9ffd53818dcf4d864b2955
       size: 1533
   resolve:
-    cmd: python -m meridian.resolve --run-id 70dd1dabfed544b8 --config 
+    cmd: python -m meridian.resolve --run-id c5118b019d642a9b --config 
       meridian.toml
     deps:
-    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+    - path: ../out/c5118b019d642a9b/candidate.jsonl
       hash: md5
-      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      md5: c760b7930298dbc8bffc6865d3f30bed
       size: 1012206
-    - path: ../snapshots/70dd1dabfed544b8/manifest.json
+    - path: ../snapshots/c5118b019d642a9b/manifest.json
       hash: md5
-      md5: bb018188ec6f6fab43ec8dc6cef94b49
+      md5: c3775e72d05f137f37f991609e39034c
       size: 2082
     - path: meridian.toml
       hash: md5
-      md5: ca3460f5390db8c99c1a01071925cad3
-      size: 12910
+      md5: 3a16d8fac4a65b0069026d5c6e99c802
+      size: 13175
     - path: meridian/common.py
       hash: md5
-      md5: b4f29f2ecb1f793574ee3b565f36e015
-      size: 7084
+      md5: 374f9ce4fbb3f5ad359d6a1be31eb789
+      size: 9667
     - path: meridian/join.py
       hash: md5
-      md5: bbf107f0444e83a2287ac3708116bc45
-      size: 27742
+      md5: 148c0a2b4103ee7084e90be415286b68
+      size: 29338
     - path: meridian/resolve.py
       hash: md5
-      md5: 907bfc579898244776be9861adff1641
-      size: 39008
+      md5: 31a1cf1b951e67a4e956a11abeb96aab
+      size: 39604
     - path: meridian/scan.py
       hash: md5
-      md5: 4295470639e5bb2a9924e12deb5c8434
-      size: 21900
+      md5: 85c130222a99dd125c98f47b093b8b9c
+      size: 22061
     outs:
-    - path: ../out/70dd1dabfed544b8/call_edge.jsonl
+    - path: ../out/c5118b019d642a9b/call_edge.jsonl
       hash: md5
-      md5: 8f21c3d025f820aa72deda0e54c5b2b7
+      md5: 0c3c29f621010940ec371e5927ca3110
       size: 804159
-    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+    - path: ../out/c5118b019d642a9b/resolution.jsonl
       hash: md5
-      md5: 69ea8ece406afadf4d4bf5281e08d9f4
+      md5: dd137fa2117b0fa47500d5df9b499e9d
       size: 1124796
   owners:
-    cmd: python -m meridian.owners --run-id 70dd1dabfed544b8 --config 
+    cmd: python -m meridian.owners --run-id c5118b019d642a9b --config 
       meridian.toml
     deps:
-    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+    - path: ../out/c5118b019d642a9b/commit_file.jsonl
       hash: md5
-      md5: a017b5cb780f64adc064c8686f620032
+      md5: f4a8ce0bb9b2775e8749f3cf18650878
       size: 188506164
-    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+    - path: ../out/c5118b019d642a9b/commit_ticket.jsonl
       hash: md5
-      md5: a6968bd564b1a29f1c95592debbef8d8
+      md5: 99c0aa2a4affaa7ae9ee99587c3f1401
       size: 6279065
-    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+    - path: ../out/c5118b019d642a9b/git_commit.jsonl
       hash: md5
-      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      md5: f28a39fe794d93af513a812f154a3163
       size: 57991639
-    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+    - path: ../out/c5118b019d642a9b/ticket.jsonl
       hash: md5
-      md5: 70454ae4331143def20fd112c3b6d185
+      md5: e104345d26582d2c797afcc48f7f6232
       size: 129255751
-    - path: ../snapshots/70dd1dabfed544b8/manifest.json
+    - path: ../snapshots/c5118b019d642a9b/manifest.json
       hash: md5
-      md5: bb018188ec6f6fab43ec8dc6cef94b49
+      md5: c3775e72d05f137f37f991609e39034c
       size: 2082
     - path: meridian.toml
       hash: md5
-      md5: ca3460f5390db8c99c1a01071925cad3
-      size: 12910
+      md5: 3a16d8fac4a65b0069026d5c6e99c802
+      size: 13175
     - path: meridian/common.py
       hash: md5
-      md5: b4f29f2ecb1f793574ee3b565f36e015
-      size: 7084
+      md5: 374f9ce4fbb3f5ad359d6a1be31eb789
+      size: 9667
     - path: meridian/owners.py
       hash: md5
-      md5: 68df5c11720c83daa3455d79e5260896
-      size: 21430
+      md5: 1e0ffbfab393fbc3ea8761fd0a405c4c
+      size: 23665
     outs:
-    - path: ../out/70dd1dabfed544b8/file_owner.jsonl
+    - path: ../out/c5118b019d642a9b/file_owner.jsonl
       hash: md5
-      md5: 53335a8b177719c71f334d8dfc8e6c68
+      md5: 11fa5c9bcb66a807438fd3a40975a8e1
       size: 12451385
-    - path: ../out/70dd1dabfed544b8/person.jsonl
+    - path: ../out/c5118b019d642a9b/person.jsonl
       hash: md5
-      md5: dae0d5fe60102d7850a3a578102269bb
-      size: 846567
-    - path: ../out/70dd1dabfed544b8/person_alias.jsonl
+      md5: f5a992b5f21dcaa19db2039cd7b007a8
+      size: 853141
+    - path: ../out/c5118b019d642a9b/person_alias.jsonl
       hash: md5
-      md5: bdf6f8b6240879e881e14514c770f12c
-      size: 1558937
-    - path: ../out/70dd1dabfed544b8/team_map.jsonl
+      md5: d7863a3a45870ec9e5e330ba2a07feb3
+      size: 1558545
+    - path: ../out/c5118b019d642a9b/team_map.jsonl
       hash: md5
-      md5: 86139809118a640341d8653dac61b934
-      size: 489602
+      md5: 2e5de21f4f5bd9e965733c395be3d31c
+      size: 489918
   join:
-    cmd: python -m meridian.join --run-id 70dd1dabfed544b8 --config 
+    cmd: python -m meridian.join --run-id c5118b019d642a9b --config 
       meridian.toml
     deps:
-    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+    - path: ../out/c5118b019d642a9b/candidate.jsonl
       hash: md5
-      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      md5: c760b7930298dbc8bffc6865d3f30bed
       size: 1012206
-    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+    - path: ../out/c5118b019d642a9b/commit_file.jsonl
       hash: md5
-      md5: a017b5cb780f64adc064c8686f620032
+      md5: f4a8ce0bb9b2775e8749f3cf18650878
       size: 188506164
-    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+    - path: ../out/c5118b019d642a9b/commit_ticket.jsonl
       hash: md5
-      md5: a6968bd564b1a29f1c95592debbef8d8
+      md5: 99c0aa2a4affaa7ae9ee99587c3f1401
       size: 6279065
-    - path: ../out/70dd1dabfed544b8/file_bug_fixes.jsonl
+    - path: ../out/c5118b019d642a9b/file_bug_fixes.jsonl
       hash: md5
-      md5: 1150e2c97ce8f41b0ff24d34b1681148
-      size: 423269
-    - path: ../out/70dd1dabfed544b8/file_owner.jsonl
+      md5: 406d1c10474e0134fca7122934f7c12b
+      size: 423268
+    - path: ../out/c5118b019d642a9b/file_owner.jsonl
       hash: md5
-      md5: 53335a8b177719c71f334d8dfc8e6c68
+      md5: 11fa5c9bcb66a807438fd3a40975a8e1
       size: 12451385
-    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+    - path: ../out/c5118b019d642a9b/git_commit.jsonl
       hash: md5
-      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      md5: f28a39fe794d93af513a812f154a3163
       size: 57991639
-    - path: ../out/70dd1dabfed544b8/parse_failure.jsonl
+    - path: ../out/c5118b019d642a9b/parse_failure.jsonl
       hash: md5
-      md5: 9b12b15c93dde40ffd2dac2c9c313ca4
+      md5: 5118ba988a9ffd53818dcf4d864b2955
       size: 1533
-    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+    - path: ../out/c5118b019d642a9b/resolution.jsonl
       hash: md5
-      md5: 69ea8ece406afadf4d4bf5281e08d9f4
+      md5: dd137fa2117b0fa47500d5df9b499e9d
       size: 1124796
-    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+    - path: ../out/c5118b019d642a9b/ticket.jsonl
       hash: md5
-      md5: 70454ae4331143def20fd112c3b6d185
+      md5: e104345d26582d2c797afcc48f7f6232
       size: 129255751
-    - path: ../snapshots/70dd1dabfed544b8/manifest.json
+    - path: ../snapshots/c5118b019d642a9b/manifest.json
       hash: md5
-      md5: bb018188ec6f6fab43ec8dc6cef94b49
+      md5: c3775e72d05f137f37f991609e39034c
       size: 2082
     - path: meridian.toml
       hash: md5
-      md5: ca3460f5390db8c99c1a01071925cad3
-      size: 12910
+      md5: 3a16d8fac4a65b0069026d5c6e99c802
+      size: 13175
     - path: meridian/common.py
       hash: md5
-      md5: b4f29f2ecb1f793574ee3b565f36e015
-      size: 7084
+      md5: 374f9ce4fbb3f5ad359d6a1be31eb789
+      size: 9667
     - path: meridian/join.py
       hash: md5
-      md5: bbf107f0444e83a2287ac3708116bc45
-      size: 27742
+      md5: 148c0a2b4103ee7084e90be415286b68
+      size: 29338
     - path: meridian/scan.py
       hash: md5
-      md5: 4295470639e5bb2a9924e12deb5c8434
-      size: 21900
+      md5: 85c130222a99dd125c98f47b093b8b9c
+      size: 22061
     outs:
-    - path: ../out/70dd1dabfed544b8/call_site.jsonl
+    - path: ../out/c5118b019d642a9b/call_site.jsonl
       hash: md5
-      md5: ac22c89d1f628ab3523b31ec4bac3f20
+      md5: 8873ef43bfc792db9eba1fbc47d70443
       size: 770593
-    - path: ../out/70dd1dabfed544b8/coverage.jsonl
+    - path: ../out/c5118b019d642a9b/coverage.jsonl
       hash: md5
-      md5: 7e260024e292acd0ce4cabc08ab26264
+      md5: cda46850e30fafb6e79a65027f9fc982
       size: 2321
-    - path: ../out/70dd1dabfed544b8/ticket_map.jsonl
+    - path: ../out/c5118b019d642a9b/ticket_map.jsonl
       hash: md5
-      md5: 17731006c888286cf4f737842d5cb909
-      size: 45808002
+      md5: 0e383ce733f7206174b3b6ae43dd591b
+      size: 45862132
   graph:
-    cmd: python -m meridian.graph --run-id 70dd1dabfed544b8 --config 
+    cmd: python -m meridian.graph --run-id c5118b019d642a9b --config 
       meridian.toml
     deps:
-    - path: ../out/70dd1dabfed544b8/call_edge.jsonl
+    - path: ../out/c5118b019d642a9b/call_edge.jsonl
       hash: md5
-      md5: 8f21c3d025f820aa72deda0e54c5b2b7
+      md5: 0c3c29f621010940ec371e5927ca3110
       size: 804159
-    - path: ../out/70dd1dabfed544b8/call_site.jsonl
+    - path: ../out/c5118b019d642a9b/call_site.jsonl
       hash: md5
-      md5: ac22c89d1f628ab3523b31ec4bac3f20
+      md5: 8873ef43bfc792db9eba1fbc47d70443
       size: 770593
-    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+    - path: ../out/c5118b019d642a9b/resolution.jsonl
       hash: md5
-      md5: 69ea8ece406afadf4d4bf5281e08d9f4
+      md5: dd137fa2117b0fa47500d5df9b499e9d
       size: 1124796
-    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+    - path: ../out/c5118b019d642a9b/ticket.jsonl
       hash: md5
-      md5: 70454ae4331143def20fd112c3b6d185
+      md5: e104345d26582d2c797afcc48f7f6232
       size: 129255751
-    - path: ../out/70dd1dabfed544b8/ticket_map.jsonl
+    - path: ../out/c5118b019d642a9b/ticket_map.jsonl
       hash: md5
-      md5: 17731006c888286cf4f737842d5cb909
-      size: 45808002
+      md5: 0e383ce733f7206174b3b6ae43dd591b
+      size: 45862132
     - path: meridian.toml
       hash: md5
-      md5: ca3460f5390db8c99c1a01071925cad3
-      size: 12910
+      md5: 3a16d8fac4a65b0069026d5c6e99c802
+      size: 13175
     - path: meridian/common.py
       hash: md5
-      md5: b4f29f2ecb1f793574ee3b565f36e015
-      size: 7084
+      md5: 374f9ce4fbb3f5ad359d6a1be31eb789
+      size: 9667
     - path: meridian/graph.py
       hash: md5
-      md5: bd3bbbfdeb6905bd8d8a25e895555572
-      size: 10303
+      md5: 76d44f856e2a06322cf5d995704fd786
+      size: 10454
     - path: meridian/join.py
       hash: md5
-      md5: bbf107f0444e83a2287ac3708116bc45
-      size: 27742
+      md5: 148c0a2b4103ee7084e90be415286b68
+      size: 29338
     outs:
-    - path: ../out/70dd1dabfed544b8/blast_radius.jsonl
+    - path: ../out/c5118b019d642a9b/blast_radius.jsonl
       hash: md5
-      md5: 9a49fb0ed5b5f12c933e6162631cadf2
+      md5: e7f9e52dcb9808163f90086d2f41fedd
       size: 4626
-    - path: ../out/70dd1dabfed544b8/blocked_by.jsonl
+    - path: ../out/c5118b019d642a9b/blocked_by.jsonl
       hash: md5
       md5: d41d8cd98f00b204e9800998ecf8427e
       size: 0
-    - path: ../out/70dd1dabfed544b8/chain.jsonl
+    - path: ../out/c5118b019d642a9b/chain.jsonl
       hash: md5
-      md5: c6f932e07bde79aab07689003d4fea1c
+      md5: b08f3919cdf732db6786e831923cda6a
       size: 39263
   validate:
-    cmd: python -m meridian.validate --run-id 70dd1dabfed544b8 --config 
+    cmd: python -m meridian.validate --run-id c5118b019d642a9b --config 
       meridian.toml
     deps:
-    - path: ../out/70dd1dabfed544b8/blast_radius.jsonl
+    - path: ../out/c5118b019d642a9b/blast_radius.jsonl
       hash: md5
-      md5: 9a49fb0ed5b5f12c933e6162631cadf2
+      md5: e7f9e52dcb9808163f90086d2f41fedd
       size: 4626
-    - path: ../out/70dd1dabfed544b8/blocked_by.jsonl
+    - path: ../out/c5118b019d642a9b/blocked_by.jsonl
       hash: md5
       md5: d41d8cd98f00b204e9800998ecf8427e
       size: 0
-    - path: ../out/70dd1dabfed544b8/bug_inducing.jsonl
+    - path: ../out/c5118b019d642a9b/bug_inducing.jsonl
       hash: md5
-      md5: ad4430da2129390326af5af3d7253df8
-      size: 7377921
-    - path: ../out/70dd1dabfed544b8/call_edge.jsonl
+      md5: 29fead91866da014efee155f99f0a981
+      size: 7306235
+    - path: ../out/c5118b019d642a9b/call_edge.jsonl
       hash: md5
-      md5: 8f21c3d025f820aa72deda0e54c5b2b7
+      md5: 0c3c29f621010940ec371e5927ca3110
       size: 804159
-    - path: ../out/70dd1dabfed544b8/call_site.jsonl
+    - path: ../out/c5118b019d642a9b/call_site.jsonl
       hash: md5
-      md5: ac22c89d1f628ab3523b31ec4bac3f20
+      md5: 8873ef43bfc792db9eba1fbc47d70443
       size: 770593
-    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+    - path: ../out/c5118b019d642a9b/candidate.jsonl
       hash: md5
-      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      md5: c760b7930298dbc8bffc6865d3f30bed
       size: 1012206
-    - path: ../out/70dd1dabfed544b8/chain.jsonl
+    - path: ../out/c5118b019d642a9b/chain.jsonl
       hash: md5
-      md5: c6f932e07bde79aab07689003d4fea1c
+      md5: b08f3919cdf732db6786e831923cda6a
       size: 39263
-    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+    - path: ../out/c5118b019d642a9b/commit_file.jsonl
       hash: md5
-      md5: a017b5cb780f64adc064c8686f620032
+      md5: f4a8ce0bb9b2775e8749f3cf18650878
       size: 188506164
-    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+    - path: ../out/c5118b019d642a9b/commit_ticket.jsonl
       hash: md5
-      md5: a6968bd564b1a29f1c95592debbef8d8
+      md5: 99c0aa2a4affaa7ae9ee99587c3f1401
       size: 6279065
-    - path: ../out/70dd1dabfed544b8/coverage.jsonl
+    - path: ../out/c5118b019d642a9b/coverage.jsonl
       hash: md5
-      md5: 7e260024e292acd0ce4cabc08ab26264
+      md5: cda46850e30fafb6e79a65027f9fc982
       size: 2321
-    - path: ../out/70dd1dabfed544b8/deprecation.jsonl
+    - path: ../out/c5118b019d642a9b/deprecation.jsonl
       hash: md5
-      md5: 57ecda275785d0bb3c473484e5346e2a
+      md5: add63f5ab7dafee60ad336498bd0039d
       size: 13697
-    - path: ../out/70dd1dabfed544b8/file_bug_fixes.jsonl
+    - path: ../out/c5118b019d642a9b/file_bug_fixes.jsonl
       hash: md5
-      md5: 1150e2c97ce8f41b0ff24d34b1681148
-      size: 423269
-    - path: ../out/70dd1dabfed544b8/file_owner.jsonl
+      md5: 406d1c10474e0134fca7122934f7c12b
+      size: 423268
+    - path: ../out/c5118b019d642a9b/file_owner.jsonl
       hash: md5
-      md5: 53335a8b177719c71f334d8dfc8e6c68
+      md5: 11fa5c9bcb66a807438fd3a40975a8e1
       size: 12451385
-    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+    - path: ../out/c5118b019d642a9b/git_commit.jsonl
       hash: md5
-      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      md5: f28a39fe794d93af513a812f154a3163
       size: 57991639
-    - path: ../out/70dd1dabfed544b8/module_import.jsonl
+    - path: ../out/c5118b019d642a9b/module_import.jsonl
       hash: md5
-      md5: d4f4edfc51ffa019700fcf5aa1ccdb73
+      md5: 64f812b2f9ae441958010ea596cf25cf
       size: 6789317
-    - path: ../out/70dd1dabfed544b8/parse_failure.jsonl
+    - path: ../out/c5118b019d642a9b/parse_failure.jsonl
       hash: md5
-      md5: 9b12b15c93dde40ffd2dac2c9c313ca4
+      md5: 5118ba988a9ffd53818dcf4d864b2955
       size: 1533
-    - path: ../out/70dd1dabfed544b8/person.jsonl
+    - path: ../out/c5118b019d642a9b/person.jsonl
       hash: md5
-      md5: dae0d5fe60102d7850a3a578102269bb
-      size: 846567
-    - path: ../out/70dd1dabfed544b8/person_alias.jsonl
+      md5: f5a992b5f21dcaa19db2039cd7b007a8
+      size: 853141
+    - path: ../out/c5118b019d642a9b/person_alias.jsonl
       hash: md5
-      md5: bdf6f8b6240879e881e14514c770f12c
-      size: 1558937
-    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+      md5: d7863a3a45870ec9e5e330ba2a07feb3
+      size: 1558545
+    - path: ../out/c5118b019d642a9b/resolution.jsonl
       hash: md5
-      md5: 69ea8ece406afadf4d4bf5281e08d9f4
+      md5: dd137fa2117b0fa47500d5df9b499e9d
       size: 1124796
-    - path: ../out/70dd1dabfed544b8/team_map.jsonl
+    - path: ../out/c5118b019d642a9b/team_map.jsonl
       hash: md5
-      md5: 86139809118a640341d8653dac61b934
-      size: 489602
-    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+      md5: 2e5de21f4f5bd9e965733c395be3d31c
+      size: 489918
+    - path: ../out/c5118b019d642a9b/ticket.jsonl
       hash: md5
-      md5: 70454ae4331143def20fd112c3b6d185
+      md5: e104345d26582d2c797afcc48f7f6232
       size: 129255751
-    - path: ../out/70dd1dabfed544b8/ticket_event.jsonl
+    - path: ../out/c5118b019d642a9b/ticket_event.jsonl
       hash: md5
-      md5: 1753845e74620421f29ca1078408d4fc
+      md5: ba25b19a8e9f97f9e29f06888d66f7ec
       size: 44054710
-    - path: ../out/70dd1dabfed544b8/ticket_link.jsonl
+    - path: ../out/c5118b019d642a9b/ticket_link.jsonl
       hash: md5
-      md5: f92fbd8bb0a4a29e355251ed4a5a723d
+      md5: 9c88e0ea0953b930ec052d33a4c9b667
       size: 10214686
-    - path: ../out/70dd1dabfed544b8/ticket_map.jsonl
+    - path: ../out/c5118b019d642a9b/ticket_map.jsonl
       hash: md5
-      md5: 17731006c888286cf4f737842d5cb909
-      size: 45808002
-    - path: ../snapshots/70dd1dabfed544b8/manifest.json
+      md5: 0e383ce733f7206174b3b6ae43dd591b
+      size: 45862132
+    - path: ../snapshots/c5118b019d642a9b/manifest.json
       hash: md5
-      md5: bb018188ec6f6fab43ec8dc6cef94b49
+      md5: c3775e72d05f137f37f991609e39034c
       size: 2082
     - path: meridian.toml
       hash: md5
-      md5: ca3460f5390db8c99c1a01071925cad3
-      size: 12910
+      md5: 3a16d8fac4a65b0069026d5c6e99c802
+      size: 13175
     - path: meridian/alert.py
       hash: md5
-      md5: 02cb0e8f059e5168a4b06b62da36dfdf
-      size: 2507
+      md5: bbb216bdafcdc0819edde8a29f56de35
+      size: 2678
     - path: meridian/common.py
       hash: md5
-      md5: b4f29f2ecb1f793574ee3b565f36e015
-      size: 7084
+      md5: 374f9ce4fbb3f5ad359d6a1be31eb789
+      size: 9667
     - path: meridian/validate.py
       hash: md5
-      md5: 3f8f110e7f549da4c0d3740c0417298a
-      size: 12864
+      md5: b278e60f81f5748c35e02b5c2af789dc
+      size: 13898
     - path: meridian/writer.py
       hash: md5
-      md5: 91116bd6629979958162630457e24749
-      size: 7424
+      md5: ab89cf667f130a7d166166d5888b61bf
+      size: 6932
     - path: schema.sql
       hash: md5
       md5: 23621b3d4f3f05c965ab44d9bd2cf232
       size: 16842
-    - path: settings.toml
-      hash: md5
-      md5: 776fc80ffd90e8b2c045500a64be6932
-      size: 17554
+    params:
+      settings.toml:
+        pipeline.prev_run: ''
+        validate:
+          top_values: 10
+          rows:
+            run: 1
+            git_commit: 1
+            commit_file: 1
+            candidate: 1
+            resolution: 1
+            file_owner: 1
+            call_site: 1
+            coverage: 1
+            ticket: 1
+            ticket_event: 1
+            ticket_link: 1
+            ticket_map: 1
+            commit_ticket: 1
+            file_bug_fixes: 1
+            bug_inducing: 1
+            person: 1
+            person_alias: 1
+            team_map: 1
+            call_edge: 1
+            module_import: 1
+            blast_radius: 1
+          coverage:
+            call_sites_resolved: 0.95
+            call_sites_owned: 0.95
+            tickets_mapped_jira: 0.5
+          missing:
+            default: 0.0
+            commit_file.old_path: 1.0
+            commit_file.added: 0.2
+            commit_file.deleted: 0.2
+            file_owner.top_person_id: 1.0
+            file_owner.last_commit_at: 0.001
+            git_commit.parent_sha: 0.001
+            git_commit.author_email: 0.0001
+            person_alias.email: 0.0002
+            team_map.subject: 0.001
+            module_import.name: 0.2
+            resolution.resolved_to: 0.2
+            resolution.receiver_from: 1.0
+            chain.to_key: 1.0
+            ticket.parent_key: 1.0
+            ticket.resolution: 0.5
+            ticket.resolved_at: 0.3
+            ticket.assignee: 0.6
+            ticket.reporter: 0.0005
+            ticket.description: 0.4
+            ticket_event.from_value: 0.7
+            ticket_event.to_value: 0.1
+            ticket_event.author: 0.0005
+            ticket_link.added_at: 0.6
+            ticket_link.removed_at: 1.0
+            ticket_map.target: 0.3
+          outliers:
+            iqr_k: 3.0
+            max_share: 0.05
+            columns:
+            - commit_file.added
+            - commit_file.deleted
+            - file_bug_fixes.bug_fixes
+            - file_owner.n_commits
+            - call_site.bug_fixes
+            - blast_radius.invocations
+            - blast_radius.direct_sites
+            log_scale:
+            - added
+            - deleted
+            - invocations
+            - direct_sites
+            - n_commits
+            - bug_fixes
+          dates:
+            columns: .*_at|at
+            earliest: '2000-01-01T00:00:00Z'
+            allow:
+              ticket.created_at: 289
+          drift:
+            max_row_change: 0.2
+            min_rows: 100
+          ranges:
+            '*.line':
+            - 1
+            - 100000000
+            '*.col':
+            - 0
+            - 1000000
+            '*.depth':
+            - 1
+            - 100
+            '*.bug_fixes':
+            - 0
+            - 10000
+            '*.seq':
+            - 0
+            - 100000000
+            file_owner.share:
+            - 0.0
+            - 1.0
+            file_owner.n_commits:
+            - 0
+            - 100000000
+            commit_file.added:
+            - 0
+            - 100000000
+            commit_file.deleted:
+            - 0
+            - 100000000
+            coverage.numerator:
+            - 0
+            - 100000000000
+            coverage.denominator:
+            - 0
+            - 100000000000
+            '*.invocations':
+            - 0
+            - 100000000
+            '*.direct_sites':
+            - 0
+            - 100000000
+            blast_radius.files:
+            - 0
+            - 100000000
+          formats:
+          - name: UTC times YYYY-MM-DDTHH:MM:SSZ
+            columns: .*_at|at|effective_date|window_start|window_end
+            pattern: 
+              \d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\dZ
+          - name: 16-hex content IDs
+            columns: call_site_id|blocker_id|person_id|top_person_id
+            pattern: '[0-9a-f]{16}'
+          - name: 40-hex git SHAs
+            columns: 
+              sha|parent_sha|fix_sha|inducing_sha|effective_sha|introduced_sha
+            pattern: '[0-9a-f]{40}'
+          - name: "'owner/name' repos"
+            columns: repo|callee_repo
+            pattern: '[^/\s]+/[^/\s]+'
+          - name: repo-relative POSIX paths
+            columns: path|old_path|caller_path|callee_path
+            pattern: (?!/)(?!(?:.*/)?\.\.(?:/|$))[^\\]+
+          - name: 'ticket keys: Jira PROJ-N, GitLab owner/name#N or epic group&N'
+            columns: key|other_key|parent_key
+            tables:
+            - ticket
+            - ticket_event
+            - ticket_link
+            - ticket_map
+            - commit_ticket
+            pattern: '[A-Z][A-Z0-9_]*-\d+|[^\s#&]+/[^\s#&]+#\d+|[^\s#&]+&\d+'
+          - name: sorted JSON lists
+            columns: components|fix_keys|evidence
+            pattern: sorted_json_list
     outs:
-    - path: ../out/70dd1dabfed544b8/anomalies.json
+    - path: ../out/c5118b019d642a9b/anomalies.json
       hash: md5
       md5: 58e0494c51d30eb3494f7c9198986bb9
       size: 3
-    - path: ../out/70dd1dabfed544b8/stats.json
+    - path: ../out/c5118b019d642a9b/stats.json
       hash: md5
-      md5: 70662ab3c19c7348e05bdf2ff21ed2b0
-      size: 27269
+      md5: 9097d46b87049e82608d83703693a8c9
+      size: 27268
   bias:
-    cmd: python -m meridian.bias --run-id 70dd1dabfed544b8 --config 
+    cmd: python -m meridian.bias --run-id c5118b019d642a9b --config 
       meridian.toml
     deps:
-    - path: ../out/70dd1dabfed544b8/candidate.jsonl
+    - path: ../out/c5118b019d642a9b/candidate.jsonl
       hash: md5
-      md5: 4f0b4ab3bd3e2852d6b9d7b199be2b20
+      md5: c760b7930298dbc8bffc6865d3f30bed
       size: 1012206
-    - path: ../out/70dd1dabfed544b8/commit_file.jsonl
+    - path: ../out/c5118b019d642a9b/commit_file.jsonl
       hash: md5
-      md5: a017b5cb780f64adc064c8686f620032
+      md5: f4a8ce0bb9b2775e8749f3cf18650878
       size: 188506164
-    - path: ../out/70dd1dabfed544b8/commit_ticket.jsonl
+    - path: ../out/c5118b019d642a9b/commit_ticket.jsonl
       hash: md5
-      md5: a6968bd564b1a29f1c95592debbef8d8
+      md5: 99c0aa2a4affaa7ae9ee99587c3f1401
       size: 6279065
-    - path: ../out/70dd1dabfed544b8/git_commit.jsonl
+    - path: ../out/c5118b019d642a9b/git_commit.jsonl
       hash: md5
-      md5: 83aae8ea578d8d295f830ebf32ed2a19
+      md5: f28a39fe794d93af513a812f154a3163
       size: 57991639
-    - path: ../out/70dd1dabfed544b8/person.jsonl
+    - path: ../out/c5118b019d642a9b/person.jsonl
       hash: md5
-      md5: dae0d5fe60102d7850a3a578102269bb
-      size: 846567
-    - path: ../out/70dd1dabfed544b8/person_alias.jsonl
+      md5: f5a992b5f21dcaa19db2039cd7b007a8
+      size: 853141
+    - path: ../out/c5118b019d642a9b/person_alias.jsonl
       hash: md5
-      md5: bdf6f8b6240879e881e14514c770f12c
-      size: 1558937
-    - path: ../out/70dd1dabfed544b8/resolution.jsonl
+      md5: d7863a3a45870ec9e5e330ba2a07feb3
+      size: 1558545
+    - path: ../out/c5118b019d642a9b/resolution.jsonl
       hash: md5
-      md5: 69ea8ece406afadf4d4bf5281e08d9f4
+      md5: dd137fa2117b0fa47500d5df9b499e9d
       size: 1124796
-    - path: ../out/70dd1dabfed544b8/ticket.jsonl
+    - path: ../out/c5118b019d642a9b/ticket.jsonl
       hash: md5
-      md5: 70454ae4331143def20fd112c3b6d185
+      md5: e104345d26582d2c797afcc48f7f6232
       size: 129255751
-    - path: ../out/70dd1dabfed544b8/ticket_map.jsonl
+    - path: ../out/c5118b019d642a9b/ticket_map.jsonl
       hash: md5
-      md5: 17731006c888286cf4f737842d5cb909
-      size: 45808002
-    - path: ../snapshots/70dd1dabfed544b8/manifest.json
+      md5: 0e383ce733f7206174b3b6ae43dd591b
+      size: 45862132
+    - path: ../snapshots/c5118b019d642a9b/manifest.json
       hash: md5
-      md5: bb018188ec6f6fab43ec8dc6cef94b49
+      md5: c3775e72d05f137f37f991609e39034c
       size: 2082
     - path: meridian.toml
       hash: md5
-      md5: ca3460f5390db8c99c1a01071925cad3
-      size: 12910
+      md5: 3a16d8fac4a65b0069026d5c6e99c802
+      size: 13175
     - path: meridian/bias.py
       hash: md5
-      md5: e8b4a9112ccd22601f3acfc61ef42392
-      size: 18535
+      md5: 0c7973919e5133eb691d705102fda846
+      size: 19248
     - path: meridian/common.py
       hash: md5
-      md5: b4f29f2ecb1f793574ee3b565f36e015
-      size: 7084
+      md5: 374f9ce4fbb3f5ad359d6a1be31eb789
+      size: 9667
     - path: meridian/owners.py
       hash: md5
-      md5: 68df5c11720c83daa3455d79e5260896
-      size: 21430
-    - path: settings.toml
-      hash: md5
-      md5: 776fc80ffd90e8b2c045500a64be6932
-      size: 17554
+      md5: 1e0ffbfab393fbc3ea8761fd0a405c4c
+      size: 23665
+    params:
+      settings.toml:
+        bias:
+          min_n: 30
+          max_gap: 0.1
+          min_shares:
+          - 0.3
+          - 0.2
+          - 0.1
+          team_lookback_days:
+          - 180
+          - 365
+          - 730
+          recent_since: '2020'
     outs:
-    - path: ../out/70dd1dabfed544b8/bias.json
+    - path: ../out/c5118b019d642a9b/bias.json
       hash: md5
-      md5: 3080315f2cd7f7b1b51af460f67d593a
-      size: 34699
+      md5: fe12f69d6cdfe7b9b2323962014a4034
+      size: 34694

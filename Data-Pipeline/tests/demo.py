@@ -1,6 +1,6 @@
 """A terminal walk through the pipeline on one run: each part, what it does, the rows it wrote, and one of them.
 
-    python -m tests.demo --run-id 70dd1dabfed544b8 --config meridian.toml      # from Data-Pipeline/
+    python -m tests.demo --run-id c5118b019d642a9b --config meridian.toml      # from Data-Pipeline/
 
 A part whose tables aren't in out/<run_id>/ yet is run first, with its own command. Sample rows come only from
 tables without people in them; the people tables show counts.

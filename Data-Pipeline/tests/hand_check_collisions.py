@@ -313,7 +313,7 @@ def merge(initials):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--initials", required=True, help="2-3 letters, e.g. RS (no names: CSV-POLICY.md)")
-    p.add_argument("--run-id", default="70dd1dabfed544b8", help="the team run whose Spark checkout to read")
+    p.add_argument("--run-id", default="c5118b019d642a9b", help="the team run whose Spark checkout to read")
     p.add_argument("--browser", action="store_true", help="also open both commits on GitHub")
     p.add_argument("--redo", type=int, nargs="*", default=[], help="row numbers to clear and check again")
     p.add_argument("--merge", action="store_true", help="write the finished answers into the label file")

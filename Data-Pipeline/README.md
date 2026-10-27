@@ -117,24 +117,23 @@ The update ran in Docker on a Mac in 1,268 s. Running `scan` and `resolve` besid
 
 ## Run it without Airflow
 
-Each task is one command. From `Data-Pipeline/`, in the order above. Only collect checks the config against the run_id, but every part computes from it, so they all take the team file:
+Each task is one command. From `Data-Pipeline/`, in the order above. Only collect checks the config against the run_id, but every part computes from it:
 
 ```
-git show 271a5b0:Data-Pipeline/meridian.toml > meridian.team.toml   # the config 70dd was made with (99f417d changed it)
-python -m meridian.collect --run-id 70dd1dabfed544b8 --config meridian.team.toml
-python -m meridian.history --run-id 70dd1dabfed544b8 --config meridian.team.toml
+python -m meridian.collect --run-id c5118b019d642a9b --config meridian.toml
+python -m meridian.history --run-id c5118b019d642a9b --config meridian.toml
 ...                                                   # scan, resolve, owners, join, graph
-python -m meridian.validate --run-id 70dd1dabfed544b8 --config meridian.team.toml
-python -m meridian.bias --run-id 70dd1dabfed544b8 --config meridian.team.toml
-python -m meridian.report --run-id 70dd1dabfed544b8 --config meridian.team.toml
-python -m meridian.publish --run-id 70dd1dabfed544b8 --config meridian.team.toml     # -> published/, if validate passed
+python -m meridian.validate --run-id c5118b019d642a9b --config meridian.toml
+python -m meridian.bias --run-id c5118b019d642a9b --config meridian.toml
+python -m meridian.report --run-id c5118b019d642a9b --config meridian.toml
+python -m meridian.publish --run-id c5118b019d642a9b --config meridian.toml     # -> published/, if validate passed
 ```
 
-Or let DVC run whatever changed: `dvc repro`. `python -m tests.demo --run-id 70dd1dabfed544b8 --config meridian.toml` prints each part's tables, and `python -m tests.dashboard` with the same arguments writes one HTML page.
+Or let DVC run whatever changed: `dvc repro`. `python -m tests.demo --run-id c5118b019d642a9b --config meridian.toml` prints each part's tables, and `python -m tests.dashboard` with the same arguments writes one HTML page.
 
 ## Reproducibility and DVC
 
-Collect's last line must say `run_id=70dd1dabfed544b8`. The same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and the same bytes from every part. Until a team run is made with today's `meridian.toml`, collect 70dd with the config it was made with, `git show 271a5b0:Data-Pipeline/meridian.toml` (run_demo.py does this). `tests/test_golden.py` checks all 24 outputs against [golden/70dd1dabfed544b8.json](golden/70dd1dabfed544b8.json), and all 24 match ([TESTING.md](../TESTING.md) has the two known exceptions). Don't pass `--run-id new` for the team run: that makes a run of your own.
+Collect's last line must say `run_id=c5118b019d642a9b`. The same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and the same bytes from every part. Until a team run is made with today's `meridian.toml`, collect 70dd with the config it was made with, `git show 271a5b0:Data-Pipeline/meridian.toml` (run_demo.py does this). `tests/test_golden.py` checks all 24 outputs against [golden/c5118b019d642a9b.json](golden/c5118b019d642a9b.json), and all 24 match ([TESTING.md](../TESTING.md) has the two known exceptions). Don't pass `--run-id new` for the team run: that makes a run of your own.
 
 - Inputs: `snapshots/_cache/jira.dvc` and `gitlab.dvc` pin the raw pulls. The repo clones aren't tracked, because collect rebuilds them byte for byte from the pinned SHAs.
 - Outputs: [dvc.yaml](dvc.yaml) declares each part as a stage with what it reads and writes. `dvc commit` records every output's hash in `dvc.lock`, which git tracks, so each commit pins the data its code produced and `dvc diff` shows what changed. Commit `dvc.lock` from Linux or Mac only.
@@ -142,7 +141,7 @@ Collect's last line must say `run_id=70dd1dabfed544b8`. The same code SHAs, raw 
 
 ## Data quality, alerts and errors
 
-`meridian.validate` loads the block against [schema.sql](schema.sql), writes per-column statistics to `stats.json`, then runs the checks in `settings.toml [validate]`. Errors fail the task (too few rows, bad formats, out-of-range numbers, low coverage). Warnings only alert (missing values, odd dates, outliers, drift). On `70dd1dabfed544b8`: 1,788,242 rows in 25 tables, 0 errors, and one warning for 289 Spark tickets dated in the years 0010–0012, which is how Apache Jira has them. The weekly GX audit ran 308 expectations and none failed ([Appendix B](report/appendix-quality.md)).
+`meridian.validate` loads the block against [schema.sql](schema.sql), writes per-column statistics to `stats.json`, then runs the checks in `settings.toml [validate]`. Errors fail the task (too few rows, bad formats, out-of-range numbers, low coverage). Warnings only alert (missing values, odd dates, outliers, drift). On `c5118b019d642a9b`: 1,788,375 rows in 25 tables, 0 errors and 0 warnings. 289 Spark tickets dated in the years 0010–0012, which is how Apache Jira has them, are allowed in `settings.toml [validate.dates]`. The weekly GX audit ran 308 expectations and none failed ([Appendix B](report/appendix-quality.md)).
 
 A failed task (after its retries), a data error or a warning sends one Slack or email message, per `settings.toml [alerts]`; a broken channel never breaks the run. Parts log through Python's logging. A part that can't go on exits non-zero with the reason, and Airflow retries it, then alerts. Parts are idempotent, so retries are safe.
 

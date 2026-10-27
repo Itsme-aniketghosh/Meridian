@@ -26,9 +26,9 @@ Expect `Ran 339 tests ... OK (skipped=19)` (Windows, Python 3.11, Oct 27): 11 sk
 First rebuild the team run ([shared-snapshot/README.md](Data-Pipeline/shared-snapshot/README.md)). This takes about 6 minutes and resolves Django and the 20 packages again, so close other apps.
 
 ```
-set MERIDIAN_RUN_ID=70dd1dabfed544b8                      # cmd
-$env:MERIDIAN_RUN_ID = "70dd1dabfed544b8"                 # PowerShell
-export MERIDIAN_RUN_ID=70dd1dabfed544b8                   # Mac, Linux
+set MERIDIAN_RUN_ID=c5118b019d642a9b                      # cmd
+$env:MERIDIAN_RUN_ID = "c5118b019d642a9b"                 # PowerShell
+export MERIDIAN_RUN_ID=c5118b019d642a9b                   # Mac, Linux
 
 python -m unittest discover -s tests -t .
 ```
@@ -37,10 +37,10 @@ Expect `Ran 339 tests ... OK (skipped=7)` on Mac and Linux, 8 on Windows. The ex
 
 ## Freeze v1
 
-v1 is frozen on run `70dd1dabfed544b8`. `tests/test_golden.py` has two halves:
+The team run is `c5118b019d642a9b` (v1 was `70dd1dabfed544b8`, kept as `golden/70dd1dabfed544b8.json`). `tests/test_golden.py` has two halves:
 
 1. The fixture, everywhere. The sha256 of all 25 `.jsonl` files and of every SQLite table's rows must equal `Data-Pipeline/golden/fixture.json`. Rows, not the `.sqlite` file, whose header holds the SQLite version.
-2. The team run, only with `MERIDIAN_RUN_ID` set and `out/70dd1dabfed544b8/` present. The md5 and size of all 24 `.jsonl` outputs must equal `Data-Pipeline/golden/70dd1dabfed544b8.json` (`run.jsonl` holds a per-machine `image_digest`, so it's left out). Never in CI: the team data is private.
+2. The team run, only with `MERIDIAN_RUN_ID` set and `out/c5118b019d642a9b/` present. The md5 and size of all 24 `.jsonl` outputs must equal `Data-Pipeline/golden/c5118b019d642a9b.json` (`run.jsonl` holds a per-machine `image_digest`, so it's left out). Never in CI: the team data is private.
 
 The golden values come from the pipeline's Docker image, and on Oct 26 all 24 matched. Two known differences: another git than the image's 2.39 can see a few renames differently in `commit_file` (9 of 849,643 rows with git 2.50), and Windows outputs made before the resolver fix (63851a7) differ in `resolution`, `call_edge` and `blast_radius` until resolve and graph rerun.
 
@@ -68,8 +68,8 @@ Each part has its own file (`test_collect`, `test_history`, `test_scan`, and so 
 ## Seeing the data
 
 ```
-python -m tests.demo --run-id 70dd1dabfed544b8 --config meridian.toml        # each part's tables, in the terminal
-python -m tests.dashboard --run-id 70dd1dabfed544b8 --config meridian.toml   # -> out/70dd1dabfed544b8/dashboard.html
+python -m tests.demo --run-id c5118b019d642a9b --config meridian.toml        # each part's tables, in the terminal
+python -m tests.dashboard --run-id c5118b019d642a9b --config meridian.toml   # -> out/c5118b019d642a9b/dashboard.html
 ```
 
 The demo runs any part whose tables are missing, so don't start it during another pipeline run.

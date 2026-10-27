@@ -7,7 +7,7 @@ The short version: the code side is exact and the ticket side has real signal on
 ## How the queries were run
 
 ```
-python report/figures_scenarios.py --db <run 70dd…>/meridian.sqlite    # from Data-Pipeline/, read-only
+python report/figures_scenarios.py --db <run c5118…>/meridian.sqlite    # from Data-Pipeline/, read-only
 ```
 
 It needs matplotlib, plus tree-sitter for the push replay (`--replay` reruns the cached `figures/push_replay.json`). Every number in §1–§9 is in `figures/scenarios.json`.
@@ -25,7 +25,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### Staff engineer
 
-| Feature | Status | Evidence on 70dd | Gap |
+| Feature | Status | Evidence on c511 | Gap |
 |---|---|---|---|
 | S1 · Call sites remaining | ✅ | `staff_headline`: 1,526 present ([§1](#1-finding-the-work)) | |
 | S2 · Open tickets on the API | 🟡 | `staff_headline`: 0 | No real ticket maps to a call site (G7, [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md)) |
@@ -34,7 +34,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | S5 · Duplicates | 🟡 | `derive_duplicates`: 0 | As S2. 05-test's "beats title similarity" not run |
 | S6 · Untracked work | ✅ | `staff_untracked`: 1,526 sites, 43 `untracked` chains, one per team | Right but total: no code dataset has a tracker |
 | S7 · Vague tickets flagged | 🟡 | `staff_vague`: 0, as it reads only tickets mapped to call sites. The data exists: 13,676 Jira tickets `desc_empty`, 6,045 open ones without "done when" | As S2. "Done when" is a `LIKE` heuristic, not yet compared with description length (05-test) |
-| S9 · Link coverage, tickets unmapped | ✅ | `staff_link_coverage`: 36,138 of 74,015 (Jira 61%, GitLab 0 of 14,524) ([§4](#4-tickets-and-their-link-to-code)) | Mapping falls with ticket age and for Kubernetes/Docker ([BIAS.md](../BIAS.md)) |
+| S9 · Link coverage, tickets unmapped | ✅ | `staff_link_coverage`: 36,198 of 74,015 (Jira 61%, GitLab 0 of 14,524) ([§4](#4-tickets-and-their-link-to-code)) | Mapping falls with ticket age and for Kubernetes/Docker ([BIAS.md](../BIAS.md)) |
 | S10 · Teams not connected | ✅ | `stall_never_notified`: 43 of 43 teams | All teams, by the data. Show "unknown" for under-mapped components |
 | S11 · Legacy radar: deprecated symbols with callers | 🟡 | `radar_deprecated_with_callers`: 52 `deprecation` rows (19 in Django), 0 with callers | `call_edge` only covers callers above tracked symbols (G3) |
 | S12 · Legacy radar: old high fan-in files | ❌ | none | No whole-repo call graph (G3) |
@@ -43,7 +43,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### API owner and consumer
 
-| Feature | Status | Evidence on 70dd | Gap |
+| Feature | Status | Evidence on c511 | Gap |
 |---|---|---|---|
 | O1 · N of M done | 🟡 | `owner_done`: 0 of 1,526. The next real commits edit 267 of 267 Django lines and 1,160 of 1,236 package lines ([§2](#2-burndown-at-the-next-commit)) | One run, so no `removed` version yet (top gap 3) |
 | O2 · ETA | 🟡 | `owner_eta`: NULL (0 removals in 28 days, under 3) | As O1 |
@@ -56,7 +56,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### Developer push check ([pushcheck.py](../meridian/pushcheck.py))
 
-| Feature | Status | Evidence on 70dd | Gap |
+| Feature | Status | Evidence on c511 | Gap |
 |---|---|---|---|
 | P1 · Drift | ✅ | `p1_drift` with the resolver at push time; replay of 21 real commits: 4 of 4 hits true, and 2 of 2 on 9 held-out Django commits ([§7](#7-push-check-replay)) | The held-out set is small (9 commits) |
 | P2 · Legacy use | 🟡 | `p2_legacy_use`: 0 tracked sites resolve to a deprecated qualname. `ugettext` isn't deprecation-marked at the pinned SHA; the 19 Django deprecations are other functions | Scan sees tracked names only, so it misses new calls to other deprecated functions (G3) |
@@ -73,7 +73,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### Ticket tools, rules and order of work
 
-| Feature | Status | Evidence on 70dd | Gap |
+| Feature | Status | Evidence on c511 | Gap |
 |---|---|---|---|
 | T1 · Manager: facts for a rewrite | 🟡 | `manager_facts`: 0 for `SPARK-48763` | As S2 |
 | T2 · Check: unmapped | ✅ | 37,877 unmapped rows | |
@@ -85,12 +85,12 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | R1 · Risky: `bug_fixes` ≥ 3 | 🟡 | `owner_teams`: 0 | As O5 |
 | R2 · Stall: present, no change in 14 days | ✅ | `owner_teams`: stalled teams, days from blame ([§3](#3-owner-status-by-team)) | |
 | R3 · Order: topological on `blocked_by`, then `bug_fixes`, then ID | 🟡 | `order_of_work`: 1,526 rows, by ID only | No cycle guard; 0 `blocked_by` |
-| R4 · Fragility ships with ticket IDs | ✅ | `p7_risky_edit`; SZZ 44% vs churn 18% vs latest 16% on Defects4J; 1,492 Spark files, 26,559 `bug_inducing` ([§5](#5-fragility)) | Spark only |
+| R4 · Fragility ships with ticket IDs | ✅ | `p7_risky_edit`; SZZ 44% vs churn 18% vs latest 16% on Defects4J; 1,492 Spark files, 26,302 `bug_inducing` ([§5](#5-fragility)) | Spark only |
 | R5 · Thresholds and "done" statuses in config | ✅ | `meridian.toml [rules]` (G8, done) | |
 
 ### Stall reasons
 
-| Feature | Status | Evidence on 70dd | Gap |
+| Feature | Status | Evidence on c511 | Gap |
 |---|---|---|---|
 | #1 Upstream block | 🟡 | `stall_upstream`: 0 ([§8](#8-stall-reasons)) | As O4 |
 | #2 Never notified | ✅ | `stall_never_notified`: 43 teams | As S10 |
@@ -104,7 +104,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 
 ### Replay, outcomes and the update graph
 
-| Feature | Status | Evidence on 70dd | Gap |
+| Feature | Status | Evidence on c511 | Gap |
 |---|---|---|---|
 | A2 · Replay with `known_at` ≤ stall time | 🟡 | `replay_as_of`: 1,526 present, 0 removed. At t = 2017 it returns `[null, null]`, so the leak guard holds ([§2](#2-burndown-at-the-next-commit)) | One run: nothing to replay yet |
 | A3 · Explore: same-signature twin gaining callers | ❌ | none | No function signatures (G4) |
@@ -112,9 +112,9 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 | U2 · Burndown before vs after, with control | 🟡 | `outcome_before_after`, `outcome_effect`: runs, 43 control teams, 0 removals | Needs U1's table and more than one run |
 | U3 · Auto-apply gate, week-8 review | ❌ | `auto_apply_gate`, `outcome_week8` on the fixture only | G1 |
 | G1 · Staleness line ("data 2 days old · 14 new commits") | ✅ | `meridian/status.py`; `test_publish` | |
-| G2 · "Update graph" click → `meridian_update` | ✅ | `status.py --update`; `test_dag`, `test_publish`; ran end to end in Airflow on 70dd ([Appendix A](appendix-airflow.md)) | |
+| G2 · "Update graph" click → `meridian_update` | ✅ | `status.py --update`; `test_dag`, `test_publish`; ran end to end in Airflow on c511 ([Appendix A](appendix-airflow.md)) | |
 | G3 · Incremental collect: mirrors, cursors, branches followed | 🟡 | `meridian/collect.py`; `test_collect` | No second real run yet |
-| G4 · Weekly rebuild equals the updates (0 diffs) | 🟡 | `meridian/compare.py`; `test_publish`. On 70dd in Airflow the rebuild equals the update, 0 differences ([Appendix A](appendix-airflow.md)) | Not yet compared across two real runs, where the update is incremental |
+| G4 · Weekly rebuild equals the updates (0 diffs) | 🟡 | `meridian/compare.py`; `test_publish`. On c511 in Airflow the rebuild equals the update, 0 differences ([Appendix A](appendix-airflow.md)) | Not yet compared across two real runs, where the update is incremental |
 | G5 · Change report: what changed, which commit | ✅ | `meridian/report.py`; `test_report`; first run, all added | Removed edges aren't attributed to a commit, and moved lines are credited to an older one ([Appendix D](appendix-testing.md#still-open)) |
 | G6 · Publish only if validate passes | ✅ | `meridian/publish.py`; `test_publish`; 1,788,242 rows, 0 errors | |
 | G7 · `run_id`, `snapshot_at`, coverage on every screen | ✅ | `coverage` (14 metrics): `call_sites_resolved` 1,525 of 1,526, `files_owned` 22,060 of 43,870 | |
@@ -187,7 +187,7 @@ Where a migration commit finished the job, the match is exact: oscar 247/247, wa
 
 *How tickets reach code (commit key, stack trace or a path in the text), with about 61% of Spark tickets and no GitLab tickets reaching a file.*
 
-Commit keys do most of the work (33,351). Stack traces map 4,435 tickets and paths in text 777, but only 2,524 and 263 of those aren't already reached by a commit key. 23,353 Spark tickets stay unmapped, and GitLab is 0 of 14,524.
+Commit keys do most of the work (33,351). Stack traces map 4,529 tickets and paths in text 777, but only 2,584 and 263 of those aren't already reached by a commit key. 23,293 Spark tickets stay unmapped, and GitLab is 0 of 14,524.
 
 Are the commit keys right? A person checked 50 random commit-to-ticket links ([labels/commit_ticket_hand_check_50.csv](../labels/commit_ticket_hand_check_50.csv), seed 1): 49 are right, 0.98 against the 0.95 bar in [05-test](../../docs/05-test.md). Follow-up and hotfix commits on a ticket's own code count as right. The one wrong link, SPARK-3723, is a typo by the commit's author: the ticket asks for DecisionTree measurements, and the commit renames PySpark type names. Links trust the key in the message, so a typo gets through. A date rule would catch this one (the commit came 2.5 years after the ticket closed), but it would also drop real late follow-ups, so we don't use one.
 
