@@ -12,7 +12,11 @@ Your answers go to out/hand_check_collisions.csv (git-ignored) until --merge cop
 labels/spark_collision_pairs_50.csv (human_verdict, checked_by, and your note after the model's).
 Type q at any prompt to stop; the next run resumes where you left off.
 """
-import argparse, csv, re, subprocess, sys
+import argparse
+import csv
+import re
+import subprocess
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -29,7 +33,6 @@ CONTEXT = 2   # unchanged lines shown around each change
 
 
 # ---------- the sheet ----------
-
 def key(r):
     return (r["key_a"], r["key_b"], r["path"], r["function"])
 
@@ -59,7 +62,6 @@ def save_sheet(done):
 
 
 # ---------- reading the code from git ----------
-
 def git(repo, *args):
     r = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, errors="replace")
     return r.stdout if r.returncode == 0 else None
@@ -141,8 +143,8 @@ def java_declaration(code, name):
     if not m:
         return False
     before = s[:m.start()].strip()
-    return bool(before) and "=" not in before and "." not in before.split()[-1] \
-        and re.fullmatch(r"(?:@\w+(?:\([^)]*\))?\s+)*[\w<>\[\],.?\s]+", before) is not None
+    return (bool(before) and "=" not in before and "." not in before.split()[-1]
+            and re.fullmatch(r"(?:@\w+(?:\([^)]*\))?\s+)*[\w<>\[\],.?\s]+", before) is not None)
 
 
 def function_spans(lines, name, python=False, java=False):
@@ -227,7 +229,6 @@ def show_commit(repo, label, url, path, name):
 
 
 # ---------- the check ----------
-
 def ask(prompt):
     a = input(prompt).strip()
     return None if a.lower() == "q" else a
