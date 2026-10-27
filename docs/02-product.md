@@ -20,7 +20,7 @@ Per cross-team ticket: what connects the teams, order, owners, diff or flag, ris
 done condition. Workarounds are labelled hypotheses.
 
 - Internally the "super engineer". Never on screen
-- **Legacy radar:** unfiled legacy code (deprecated symbols with callers, old
+- Legacy radar: unfiled legacy code (deprecated symbols with callers, old
   high-fan-in files). Accept/reject and "what unblocked this?" train the auditor (04 §9)
 
 ## API owner
@@ -54,9 +54,9 @@ Meridian · 3 notes · nothing blocks this merge
 
 ## Ticket tools
 
-- **Manager:** flags vague tickets, suggests rewrites from map facts, asks for the rest
-- **Maker:** drafts tickets for untracked work, one per team per wave, with links
-- **Intake:** Slack, support, GitHub issues → grouped by fingerprint → draft tickets
+- Manager: flags vague tickets, suggests rewrites from map facts, asks for the rest
+- Maker: drafts tickets for untracked work, one per team per wave, with links
+- Intake: Slack, support, GitHub issues → grouped by fingerprint → draft tickets
 
 > **Before:** CHK-311: Fix auth stuff in checkout *(no description)*
 >

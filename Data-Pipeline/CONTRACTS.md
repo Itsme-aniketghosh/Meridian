@@ -9,20 +9,20 @@ Final, signed off by data engineering.
 | [settings.toml](settings.toml) | Everything that never changes a row: where, when and how fast it runs (Airflow, schedule, retries, timeouts, workers), where alerts go, the data checks, the bias slicing. Read through `common.load_settings`. Not in the `run_id`, so it can change any time |
 | This page | The rules behind both, and what each part takes and delivers |
 
-Changes to `schema.sql`, `meridian.toml` or this page need the contract owners' OK. If you're blocked, ship the version that works and log the change you need. Don't change the contract yourself.
+Changes to `schema.sql`, `meridian.toml` or this page need the contract owners' OK. If you're blocked, ship what works, log the change you need, and leave the contract alone.
 
 ## Rules for every table
 
-1. **Every row carries `run_id`.** Nothing is shared across runs except through it.
-2. **One clock.** `snapshot_at` is "now". No stage after Collect reads the wall clock.
-3. **Times** are UTC text: `2026-10-01T01:23:03Z`.
-4. **Paths** are relative to the repo root, use `/`, and keep git's case. `repo` is `owner/name`.
-5. **IDs are content hashes:** the first 16 hex characters of sha256 over the fields joined by `\x1f`. Never row numbers or random IDs.
-6. **Booleans** are `0`/`1`. **Lists** are JSON arrays, sorted.
-7. **Enums are closed.** Only the values in the `CHECK` constraints. A value you need that isn't there is a contract change.
-8. **Order:** insert rows in primary-key order. Tables are `WITHOUT ROWID`, so the same rows give the same bytes.
-9. **Nothing is silently dropped.** A failure is a row: `parse_failure`, `detection = 'dropped'`, `owner_team = 'unowned'`, `target_kind = 'unmapped'`. The coverage report counts them.
-10. **No personal data beyond what ownership needs.** Emails are used only to merge identities. Raw data stays out of git. What may be committed: [CSV-POLICY.md](CSV-POLICY.md).
+1. Every row carries `run_id`. Nothing is shared across runs except through it.
+2. One clock. `snapshot_at` is "now". No stage after Collect reads the wall clock.
+3. Times are UTC text: `2026-10-01T01:23:03Z`.
+4. Paths are relative to the repo root, use `/`, and keep git's case. `repo` is `owner/name`.
+5. IDs are content hashes: the first 16 hex characters of sha256 over the fields joined by `\x1f`. Never row numbers or random IDs.
+6. Booleans are `0`/`1`. Lists are JSON arrays, sorted.
+7. Enums are closed: only the values in the `CHECK` constraints. A value you need that isn't there is a contract change.
+8. Order: insert rows in primary-key order. Tables are `WITHOUT ROWID`, so the same rows give the same bytes.
+9. Nothing is silently dropped. A failure is a row: `parse_failure`, `detection = 'dropped'`, `owner_team = 'unowned'`, `target_kind = 'unmapped'`. The coverage report counts them.
+10. No personal data beyond what ownership needs. Emails are used only to merge identities. Raw data stays out of git. What may be committed: [CSV-POLICY.md](CSV-POLICY.md).
 
 ## Snapshot
 
@@ -55,7 +55,7 @@ Each part writes each of its tables as `out/<run_id>/<table>.jsonl`: one JSON ob
 
 ## Every part runs as one command
 
-The pipeline runs on a schedule in Airflow (in Docker today; GCP isn't set up yet). Every part starts the same way, so each one is a DAG task:
+The pipeline runs in Airflow (in Docker today; GCP isn't set up yet). Every part starts the same way, so each is a DAG task:
 
 ```
 python -m meridian.<part> --run-id <run_id> --config meridian.toml
@@ -75,15 +75,15 @@ python -m meridian.<part> --run-id <run_id> --config meridian.toml
 | `meridian.report` | `run`, `git_commit`, `call_site`, `call_edge`, `blast_radius` | no table: `changes.json` |
 | `meridian.publish` | the validated `meridian.sqlite`, `anomalies.json` | no table: `published/<run_id>.sqlite`, `latest.json` |
 
-join, validate, report and publish also take `--prev-run <run_id>`: the run to match against or compare with. It's an explicit argument, not a hidden input.
+join, validate, report and publish also take `--prev-run <run_id>`: the run to match against or compare with.
 
 Rules, so a part can become an Airflow task without changes:
-- **Same run, same output.** Running a part twice for one `run_id` replaces its own tables with the same rows. Airflow retries depend on this.
-- **No clock, no hidden inputs.** Time comes from `run.snapshot_at`, never from Airflow's run date. Paths come from `meridian.toml` or the `MERIDIAN_DATA` variable (and `settings.toml` from `MERIDIAN_SETTINGS`), never hard-coded.
-- **git only through `common.git`, jsonl only through `common.write_jsonl`.** `common.git` ignores the user's global and system git config, so every machine gives the same output. `write_jsonl` writes `\n` on every OS, sorted, atomically.
-- **Exit code 0 means done, anything else means failed.** Log to stdout. Never prompt for input.
-- **Write only your own tables.**
-- **One container image** holds every part, with dependencies from one lockfile, Python 3.11.
+- Same run, same output. Running a part twice for one `run_id` replaces its own tables with the same rows. Airflow retries depend on this.
+- No clock, no hidden inputs. Time comes from `run.snapshot_at`, never from Airflow's run date. Paths come from `meridian.toml` or the `MERIDIAN_DATA` variable (and `settings.toml` from `MERIDIAN_SETTINGS`), never hard-coded.
+- git only through `common.git`, jsonl only through `common.write_jsonl`. `common.git` ignores the user's global and system git config, so every machine gives the same output. `write_jsonl` writes `\n` on every OS, sorted, atomically.
+- Exit code 0 means done, anything else means failed. Log to stdout. Never prompt for input.
+- Write only your own tables.
+- One container image holds every part, with dependencies from one lockfile, Python 3.11.
 
 ## Who writes and who reads each table
 
@@ -118,7 +118,7 @@ Rules:
 - Status, resolution and `resolved_at` are as of `snapshot_at`. Other fields are as of the pull. `run.notes` says so.
 - A commit key must exist in `ticket`, otherwise there's no row.
 - Bulk-closed = labelled `bulk-closed`, or 20+ resolutions by one person in one hour. Flag the ticket, don't delete it.
-- SZZ counts fix commits from 2015 on only.
+- SZZ counts fix commits from 2015 on only, and skips reverts (`Revert "` subjects).
 - Keep deleted GitLab "blocked by" links, with `removed_at`.
 
 ---
@@ -132,11 +132,11 @@ Team rules (final):
 | Dataset | A team is | Owner of a file is |
 |---|---|---|
 | Spark | A person's most common Jira component across their keyed commits in the last 180 days. A ticket with *n* components gives each 1/*n*. Tie → their most recent commit's component. None → `unassigned` | The team with the largest share of the file's commits (180 days, no merges, no bots). Below 0.30 → `unowned`. Tie → most recent commit |
-| Django | The path: `django/contrib/<app>/` → `contrib.<app>`, `django/<pkg>/` → `<pkg>`, `tests/` → `tests`. **Synthetic**, and the screen says so | The path rule. `basis = 'path'`. The window ends at the pinned commit's `authored_at`, not `snapshot_at` |
+| Django | The path: `django/contrib/<app>/` → `contrib.<app>`, `django/<pkg>/` → `<pkg>`, `tests/` → `tests`. Synthetic, and the screen says so | The path rule. `basis = 'path'`. The window ends at the pinned commit's `authored_at`, not `snapshot_at` |
 | Packages | The repo. Each repo is one team, so cross-repo means cross-team | The repo. `basis = 'repo'`. The window ends at the pinned commit's `authored_at`, not `snapshot_at` |
 | GitLab | The issue's `group::` label | No code rows (Ruby). Teams label tickets for the gold set |
 
-Why: Spark has no team field, but 98% of tickets carry a component, the closest thing to real teams. Summing share by team, rather than taking the top person, makes the weak person signal (20% vs 18%) matter less. Django and the packages have no teams at all, so a fixed path or repo rule is the honest, deterministic choice, and it still gives the graph different owners to test against.
+Why: Spark has no team field, but 98% of tickets carry a component, the closest thing to real teams. Summing share by team, rather than taking the top person, makes the weak person signal (20% vs 18%) matter less. Django and the packages have no teams at all, so a fixed path or repo rule is the plain, deterministic choice, and it still gives the graph different owners to test against.
 
 | Due | Tables | Check before handover |
 |---|---|---|
@@ -145,7 +145,7 @@ Why: Spark has no team field, but 98% of tickets carry a component, the closest 
 | D5 | `team_map` (Django, packages), `file_owner` for all three | Beats last toucher on Spark (week 1: 20% vs 18%). Report the person-level number too |
 | D6 | GitLab gold set: `labels/gitlab_cross_team_blocks.csv` and `labels/gitlab_stall_reasons.csv`, columns in [CSV-POLICY.md](CSV-POLICY.md) | ≥ 38 distinct issues · the random 50 model-drafted, person-reviewed: model waits hold 4 of 7 (bar not met) · `check_csv.py` passes |
 
-Identity merging started from week 1's `merge_people()` (name + email local part, generic names skipped), plus `.mailmap` and the bot patterns. The owner-vs-last-toucher test is in the `week1/pair2/` README.
+Identity merging started from week 1's `merge_people()` (name + email local part, generic names skipped), plus `.mailmap` and the bot patterns. A shared local part never joins two surnames (`local_part_same_surname`). The owner-vs-last-toucher test is in the `week1/pair2/` README.
 
 Rules:
 - Use the author, never the committer: Spark's merge script makes the merger the committer.
@@ -156,8 +156,8 @@ Rules:
 
 ## Scan and resolve
 
-- **scan:** `candidate` is keyed by (repo, path, line, col). `role` and `junk` take only the listed values. Python outside `.py` uses `file_kind = 'embedded'`.
-- **resolve:** `resolution` has one row per candidate, with the same key. The 542 alias calls the scanner can't see come in as new rows with `via = 'import_alias'` or `'assign_alias'`. `call_edge` holds resolved calls only, never imports.
+- scan: `candidate` is keyed by (repo, path, line, col). `role` and `junk` take only the listed values. Python outside `.py` uses `file_kind = 'embedded'`.
+- resolve: `resolution` has one row per candidate, with the same key. The 542 alias calls the scanner can't see come in as new rows with `via = 'import_alias'` or `'assign_alias'`. `call_edge` holds resolved calls only, never imports.
 
 ## Changes from [03-data](../docs/03-data.md)
 
@@ -171,4 +171,4 @@ Rules:
 | — | v1.1: `ticket.description`, `candidate.in_except` / `call_site.in_except`, `module_import`, `deprecation`, `resolution.receiver_from`; `blocked_by.depth` is `>= 1` | Planned features had nothing to read ([KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md)). Depth is `[graph] blocked_by_max_depth`, a setting |
 | — | v1.2: `call_site.effective_sha` (the commit `effective_date` is from), `call_edge.introduced_sha` (blame of the caller's line), both 40 hex | Per-commit attribution and the per-run change report, `meridian.report` → `changes.json` ([UPDATE-PLAN.md](notes/UPDATE-PLAN.md) #5, #17) |
 
-03-data's schema sketch predates these changes. Where they differ, `schema.sql` wins.
+Where 03-data's older sketch differs, `schema.sql` wins.

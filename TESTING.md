@@ -19,7 +19,7 @@ cd "Data-Pipeline"
 python -m unittest discover -s tests -t .
 ```
 
-Expect `Ran 339 tests ... OK (skipped=19)` (Windows, Python 3.11, Oct 27): 11 skipped need the team run, 5 need Airflow (`test_dag.Dag`), 2 need Great Expectations (`test_gx.Audit`), and 1 runs off Windows only (`test_resolve.ReexportLoop`, a re-export loop overflows Windows' C stack), so Mac and Linux skip 18. CI runs this on every pull request and push to main, on Linux and Windows, after flake8 at 120 characters (`Data-Pipeline/setup.cfg`), and runs the Airflow and GX tests in their own jobs, and `test_pushcheck` with only the packages `push-check.yml` installs ([ci.yml](.github/workflows/ci.yml)).
+Expect `Ran 339 tests ... OK (skipped=19)` (Windows, Python 3.11, Oct 27): 11 skipped need the team run, 5 need Airflow (`test_dag.Dag`), 2 need Great Expectations (`test_gx.Audit`), and 1 runs off Windows only (`test_resolve.ReexportLoop`, a re-export loop overflows Windows' C stack), so Mac and Linux skip 18. CI runs this on Linux and Windows for every pull request and push to main, after flake8 at 120 characters (`Data-Pipeline/setup.cfg`). The Airflow and GX tests run in their own jobs, and `test_pushcheck` runs with only the packages `push-check.yml` installs ([ci.yml](.github/workflows/ci.yml)).
 
 ## Every test, the team run included
 
@@ -35,14 +35,14 @@ python -m unittest discover -s tests -t .
 
 Expect `Ran 339 tests ... OK (skipped=7)` on Mac and Linux, 8 on Windows. The extra 11 check the Django answer keys (542 of 542 alias calls, 265 of 265 edit lines), the packages' precision and recall, the golden files, and every real call edge.
 
-## Freeze v1
+## The golden files
 
 The team run is `c5118b019d642a9b` (v1 was `70dd1dabfed544b8`, kept as `golden/70dd1dabfed544b8.json`). `tests/test_golden.py` has two halves:
 
 1. The fixture, everywhere. The sha256 of all 25 `.jsonl` files and of every SQLite table's rows must equal `Data-Pipeline/golden/fixture.json`. Rows, not the `.sqlite` file, whose header holds the SQLite version.
 2. The team run, only with `MERIDIAN_RUN_ID` set and `out/c5118b019d642a9b/` present. The md5 and size of all 24 `.jsonl` outputs must equal `Data-Pipeline/golden/c5118b019d642a9b.json` (`run.jsonl` holds a per-machine `image_digest`, so it's left out). Never in CI: the team data is private.
 
-The golden values come from the pipeline's Docker image, and on Oct 26 all 24 matched. Two known differences: another git than the image's 2.39 can see a few renames differently in `commit_file` (9 of 849,643 rows with git 2.50), and Windows outputs made before the resolver fix (63851a7) differ in `resolution`, `call_edge` and `blast_radius` until resolve and graph rerun.
+The golden values come from the pipeline's Docker image, and on Oct 27 all 24 matched. One known difference: a git other than the image's 2.39 can see a few renames differently in `commit_file` (9 of 849,643 rows with git 2.50).
 
 To change the fixture's bytes on purpose, run `python -m tests.test_golden --update` from `Data-Pipeline/` and say why in the commit. The team-run file is never regenerated: a contract change means a new `run_id` and a new golden file.
 

@@ -9,7 +9,6 @@
 - Output sorted by (repo, path, line, column). IDs are content hashes
 - Randomness seeded: hash(run_id, task_id)
 - Rules decide facts, models score, Jev routes, LLMs write text and code (cached)
-- Weekly full rebuild must equal incremental, else halt
 
 ## Pipeline
 
@@ -34,43 +33,43 @@
 
 ## 2. Extract
 
-- **Candidates:** tree-sitter, pinned. Match rules per symbol from config. Parse failure → excluded, counted
-- **Resolver:** pinned. Resolves against the snapshot (the repo, its dependencies' checkouts,
+- Candidates: tree-sitter, pinned. Match rules per symbol from config. Parse failure → excluded, counted
+- Resolver: pinned. Resolves against the snapshot (the repo, its dependencies' checkouts,
   the standard library), nothing installed. Binds to symbol →
   `ast_resolved`. Binds elsewhere → dropped. Can't bind → `ast_unresolved`. Pattern
   hits → `string_url`, `config`
-- **Ownership:** 180 days, no merges, bots, or ignore-revs. `.mailmap` + alias table.
+- Ownership: 180 days, no merges, bots, or ignore-revs. `.mailmap` + alias table.
   Owner = top author's team by commit share. Tie → most recent. Share < 0.30 → `unowned`
-- **Ticket links:** key regex `[A-Z][A-Z0-9]+-\d+`, must exist in snapshot. Ticket →
+- Ticket links: key regex `[A-Z][A-Z0-9]+-\d+`, must exist in snapshot. Ticket →
   code by linked-commit files, exact path, stack frame, exact symbol. All hits kept.
   None → `unmapped`. No fuzzy matching
-- **SZZ:** fix = Bug + Fixed. Blame changed lines at the parent, skip whitespace and
+- SZZ: fix = Bug + Fixed, not a revert. Blame changed lines at the parent, skip whitespace and
   comments. `bug_fixes` = fix commits on the file in 365 days
 
 ## 3. Join
 
 - ID = hash(repo, symbol, path, scope, normalized line, occurrence)
 - Match last run's rows: git line map with renames → same (repo, symbol, scope,
-  normalized line) → else `removed` / new
+  normalized line) → same (path, scope, symbol) → else `removed` / new
 - `effective_date` = first first-parent commit where true
 
 ## 4. Graph
 
-- **blocked_by A → B:** different owners, A's receiver assigned from a call to F, B
+- blocked_by A → B: different owners, A's receiver assigned from a call to F, B
   inside F within 3 resolved calls. Unresolved → `unknown`. Imports alone don't count
-- **Blast radius:** resolved invocations reaching the symbol, depth ≤ 3
-- **Chains:** `depends_on` (block between mapped sites), `duplicates` (shared call
+- Blast radius: resolved invocations reaching the symbol, depth ≤ 3
+- Chains: `depends_on` (block between mapped sites), `duplicates` (shared call
   site), `collides` (shared function or file), untracked (no ticket). Cycles flagged
 
 ## 5. Rules
 
-- **Risky:** `bug_fixes` ≥ 3
-- **Stall:** present call sites, no change in 14 days
-- **ETA:** remaining ÷ removals/day over 28 days. < 3 removals → none
-- **Order:** topological sort on `blocked_by`, then `bug_fixes` desc, then ID
-- **Fragility:** the `bug_fixes` count unless a model beats it
+- Risky: `bug_fixes` ≥ 3
+- Stall: present call sites, no change in 14 days
+- ETA: remaining ÷ removals/day over 28 days. < 3 removals → none
+- Order: topological sort on `blocked_by`, then `bug_fixes` desc, then ID
+- Fragility: the `bug_fixes` count unless a model beats it
 
-**Stall reasons** (auditor policy v0), ranked by #, then evidence. No probabilities.
+Stall reasons (auditor policy v0), ranked by #, then evidence. No probabilities.
 
 | # | Reason | Fires when |
 |---|---|---|
@@ -83,22 +82,22 @@
 | 7 | Test gap | No test imports the module |
 | 8 | Competing load | No commits to call-site files, team at ≥ 75% of usual |
 
-**Ticket checks:** unmapped · no done condition · bug without repro · spans teams ·
+Ticket checks: unmapped · no done condition · bug without repro · spans teams ·
 duplicate · wrong owner · stale (30 days, code changed). Sub-tasks: duplicate and
 wrong owner only.
 
-- **Maker:** one draft per (team, wave)
-- **Intake:** fingerprint = exception type + top 3 in-repo frames, or normalized error.
+- Maker: one draft per (team, wave)
+- Intake: fingerprint = exception type + top 3 in-repo frames, or normalized error.
   Exact match clusters
 
 ## 6. LLM
 
 - Agents write prose from a fact set, and code the codemod can't. Decide no facts
 - Pinned models and prompts, JSON schema, cache key hash(model, prompt, facts)
-- **Diffs:** codemod from the owner's prior migrations first. LLM only if ≥ 2 same-shape
+- Diffs: codemod from the owner's prior migrations first. LLM only if ≥ 2 same-shape
   examples and not in `except`. Must apply, parse, touch only that site, resolve
 
-**Jev, the router.** A general reasoning model. It reads the input problem and picks the
+Jev, the router, is a general reasoning model. It reads the problem and picks the
 agent and model. On a failed check it picks the next model up, or stops.
 
 | Agent | Models | Retry on |
@@ -121,30 +120,30 @@ Read-only. `run_id`, `snapshot_at`, and coverage on every screen.
 
 ## 9. Auditor learning
 
-- **Policy:** versioned code choosing where to look. Jobs: **stall** (rank reasons, v0
-  above) and **explore** (nominate unfiled legacy code, 200 expansions per run)
-- **Explore signals:** deprecation marker with callers · same-signature twin gaining
+- Policy: versioned code choosing where to look. Jobs: stall (rank reasons, v0
+  above) and explore (nominate unfiled legacy code, 200 expansions per run)
+- Explore signals: deprecation marker with callers · same-signature twin gaining
   callers · no commits in 2 years and fan-in ≥ 10 · high `bug_fixes` and fan-in
-- **ε-greedy:** champion with 1 − ε, else random challenger. Seed hash(run_id,
+- ε-greedy: champion with 1 − ε, else random challenger. Seed hash(run_id,
   task_id). ε = 0.2, then 0.1 after 30 matches
-- **Matches:**
+- Matches:
   - stall: all policies in shadow; ranking the true reason higher wins
   - explore: team-draft interleaving; more accepts wins; no reply in 14 days = no match
   - replay: past stalls, rows with `known_at` ≤ stall time only, half K
     ([Dream-RSI](https://arxiv.org/html/2609.14858v1))
-- **Verdicts** by rule: block removed ≤ 7 days before resumption · ticket created ≤ 14
+- Verdicts by rule: block removed ≤ 7 days before resumption · ticket created ≤ 14
   days before · new author resumed · ticket reopened. Else a human picks. None → no match
-- **Elo:** start 1500, K 32 then 16 after 30 matches. Recomputed from the log each run.
+- Elo: start 1500, K 32 then 16 after 30 matches. Recomputed from the log each run.
   Per repo after 30 matches
-- **Promotion:** ≥ 30 live matches, +50 Elo, beats v0
+- Promotion: ≥ 30 live matches, +50 Elo, beats v0
 - LLMs may propose policy code. A human reviews it. Never in the decision path
 
 ## 10. Push check
 
-- **Trigger:** every push and PR, GitHub Actions
-- **Base:** last nightly map as one SQLite file. Jira from the base snapshot
-- **Scope:** changed files + importers. Over 200 files → skip
-- **Run:** Extract, Join, Graph on scope. Output = base rows vs push rows
+- Trigger: every push and PR, GitHub Actions
+- Base: last nightly map as one SQLite file. Jira from the base snapshot
+- Scope: changed files + importers. Over 200 files → skip
+- Run: Extract, Join, Graph on scope. Output = base rows vs push rows
 
 | # | Check | Fires when |
 |---|---|---|

@@ -28,5 +28,5 @@ No tool covers #5 or #7.
 
 ## Direction
 
-- **Now:** find the work, owners, risk, chains, stall reasons. Suggest. Track use
-- **Later:** make the changes ourselves, once suggestions get applied unchanged
+- Now: find the work, owners, risk, chains, stall reasons. Suggest. Track use
+- Later: make the changes ourselves, once suggestions get applied unchanged

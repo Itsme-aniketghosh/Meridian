@@ -51,7 +51,7 @@ Data-Pipeline/
 ├── dags/                  Airflow: meridian_dag.py (the two DAGs), pipeline_spec.py (their tasks and tables, as data)
 ├── meridian/              the parts, one module each: python -m meridian.<part> --run-id <id> --config meridian.toml
 ├── tests/                 unittest: one file per part, plus the DAG, validation, bias; demo.py, dashboard.py
-├── golden/                v1 frozen: the expected hashes tests/test_golden.py checks (TESTING.md)
+├── golden/                the hashes tests/test_golden.py checks: the team run's, plus v1's record (TESTING.md)
 ├── labels/                hand-checked answer keys and gold sets (CSV-POLICY.md)
 ├── report/                REPORT.md, appendices A–D, the scripts that draw the figures
 ├── notes/                 UPDATE-PLAN.md, HANDOVER.md, PASS-BARS-2026-10-26.md
@@ -66,7 +66,7 @@ Data-Pipeline/
 
 The data lives at the repo root (or `$MERIDIAN_DATA`), git-ignored: `snapshots/` (inputs) and `out/<run_id>/` (outputs), of which DVC versions only the raw ticket pulls and the `[pipeline]` run's `out/`, then `published/` (the live block) and `rebuild/`. The course guideline's `data/` is our `snapshots/` and `out/`, and its `scripts/` is `meridian/`.
 
-Nothing is hard-coded. [meridian.toml](meridian.toml) holds what the parts compute, so changing it means a new `run_id`. [settings.toml](settings.toml) holds everything that never changes a row: Airflow, alerts, data checks, bias, DVC. Secrets live only in `.env` (from [.env.example](.env.example)), which git ignores.
+Nothing is hard-coded: [meridian.toml](meridian.toml) holds what the parts compute (a change means a new `run_id`), and [settings.toml](settings.toml) everything else. Secrets live only in `.env` (from [.env.example](.env.example)), which git ignores.
 
 ## Set up
 
@@ -111,13 +111,13 @@ Sundays at 04:00 UTC it recomputes the last published run from scratch under `re
 python -m meridian.status --config meridian.toml          # data 2 days old · 14 new commits · run <id>   (--json for all of it)
 ```
 
-It exits 0 when something is new, 99 when not. New commits in collect's mirrors, a new repo, a changed `meridian.toml` or no publish yet all count. So does a publish older than `[status] stale_after_hours` (20), but only when some repo follows a branch: with every ref pinned, as in v1, collect would make the same run again. The dashboard shows the same line with an Update graph button: `python -m tests.dashboard --run-id <id> --config meridian.toml --serve 8765`, then http://127.0.0.1:8765/.
+It exits 0 when something is new, 99 when not. New commits in collect's mirrors, a new repo, a changed `meridian.toml` or no publish yet all count. So does a publish older than `[status] stale_after_hours` (20), but only when some repo follows a branch. With every ref pinned, as in the team run, collect would make the same run again. The dashboard shows the same line with an Update graph button: `python -m tests.dashboard --run-id <id> --config meridian.toml --serve 8765`, then http://127.0.0.1:8765/.
 
-The update ran in Docker on a Mac in 1,268 s. Running `scan` and `resolve` beside `history` saved 21%, measured from the Airflow Gantt. The bottleneck is `history`'s SZZ step ([Appendix A](report/appendix-airflow.md)).
+The update ran in Docker on a Mac in 943 s. Running `scan` and `resolve` beside `history` saved 20%, measured from the Airflow Gantt. The bottleneck is `history`'s SZZ step ([Appendix A](report/appendix-airflow.md)).
 
 ## Run it without Airflow
 
-Each task is one command. From `Data-Pipeline/`, in the order above. Only collect checks the config against the run_id, but every part computes from it:
+Each task is one command, run from `Data-Pipeline/` in the order above. Only collect checks the config against the run_id, but every part computes from it:
 
 ```
 python -m meridian.collect --run-id c5118b019d642a9b --config meridian.toml
@@ -133,7 +133,7 @@ Or let DVC run whatever changed: `dvc repro`. `python -m tests.demo --run-id c51
 
 ## Reproducibility and DVC
 
-Collect's last line must say `run_id=c5118b019d642a9b`. The same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and the same bytes from every part. Until a team run is made with today's `meridian.toml`, collect 70dd with the config it was made with, `git show 271a5b0:Data-Pipeline/meridian.toml` (run_demo.py does this). `tests/test_golden.py` checks all 24 outputs against [golden/c5118b019d642a9b.json](golden/c5118b019d642a9b.json), and all 24 match ([TESTING.md](../TESTING.md) has the two known exceptions). Don't pass `--run-id new` for the team run: that makes a run of your own.
+Collect's last line must say `run_id=c5118b019d642a9b`. The same code SHAs, raw pulls and `meridian.toml` give the same `run_id` on every machine, and the same bytes from every part. v1, `70dd1dabfed544b8`, had the same snapshot under the `meridian.toml` before Oct 27, which lacked the owner surname rule, `donotreply` and join's third match step and still pinned SQLite. [Its golden file](golden/70dd1dabfed544b8.json) stays as the record. `tests/test_golden.py` checks all 24 outputs against [golden/c5118b019d642a9b.json](golden/c5118b019d642a9b.json), and all 24 match ([TESTING.md](../TESTING.md) has the one known exception). Don't pass `--run-id new` for the team run: that makes a run of your own.
 
 - Inputs: `snapshots/_cache/jira.dvc` and `gitlab.dvc` pin the raw pulls. The repo clones aren't tracked, because collect rebuilds them byte for byte from the pinned SHAs.
 - Outputs: [dvc.yaml](dvc.yaml) declares each part as a stage with what it reads and writes. `dvc commit` records every output's hash in `dvc.lock`, which git tracks, so each commit pins the data its code produced and `dvc diff` shows what changed. Commit `dvc.lock` from Linux or Mac only.
@@ -141,9 +141,9 @@ Collect's last line must say `run_id=c5118b019d642a9b`. The same code SHAs, raw 
 
 ## Data quality, alerts and errors
 
-`meridian.validate` loads the block against [schema.sql](schema.sql), writes per-column statistics to `stats.json`, then runs the checks in `settings.toml [validate]`. Errors fail the task (too few rows, bad formats, out-of-range numbers, low coverage). Warnings only alert (missing values, odd dates, outliers, drift). On `c5118b019d642a9b`: 1,788,375 rows in 25 tables, 0 errors and 0 warnings. 289 Spark tickets dated in the years 0010–0012, which is how Apache Jira has them, are allowed in `settings.toml [validate.dates]`. The weekly GX audit ran 308 expectations and none failed ([Appendix B](report/appendix-quality.md)).
+`meridian.validate` loads the block against [schema.sql](schema.sql), writes per-column statistics to `stats.json`, then runs the checks in `settings.toml [validate]`. Errors fail the task (too few rows, bad formats, out-of-range numbers, low coverage). Warnings only alert (missing values, odd dates, outliers, drift). On `c5118b019d642a9b`: 1,788,375 rows in 25 tables, 0 errors and 0 warnings. Apache Jira dates 289 Spark tickets in the years 0010–0012, and `settings.toml [validate.dates]` allows exactly those. The weekly GX audit ran 308 expectations and none failed ([Appendix B](report/appendix-quality.md)).
 
-A failed task (after its retries), a data error or a warning sends one Slack or email message, per `settings.toml [alerts]`; a broken channel never breaks the run. Parts log through Python's logging. A part that can't go on exits non-zero with the reason, and Airflow retries it, then alerts. Parts are idempotent, so retries are safe.
+A failed task (after its retries), a data error or a warning sends one Slack or email message, per `settings.toml [alerts]`. A broken channel never breaks the run. Parts log through Python's logging. A part that can't go on exits non-zero with the reason; Airflow retries, then alerts. Parts are idempotent, so retries are safe.
 
 ## Bias
 
