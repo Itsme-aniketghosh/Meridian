@@ -24,6 +24,8 @@ Identities, as [identity] in meridian.toml says:
   merge_people(), plus .mailmap.
 - A local part seen under more than local_part_max_names names (chris@, contact@) never joins: across 18 repos it
   chained 112 strangers into one person.
+- With local_part_same_surname, a shared local part joins only emails whose surnames agree: joel@ for Joel Pitt and
+  Joel Whitaker stays two people. The hand check of 30 merged groups found 4 such false merges, all first names.
 - Generic names and bots never join on name or local part. Only .mailmap, which a human wrote, can join them.
 - person_id = h(smallest email in the group). It stays while that email stays the smallest: an added email that sorts
   first, or two groups merging, gives a new person_id.
@@ -52,6 +54,17 @@ def norm_name(name):
 
 def local_part(email):
     return re.sub(r"^\d+\+", "", email.split("@")[0])  # github noreply: 12345+login
+
+
+def name_words(name):
+    return [norm_name(w) for w in re.split(r"[\s._-]+", name.strip()) if w]
+
+
+def surnames_clash(a, b):
+    """Two full names that can't be one person: neither one's last word is in the other ('Joel Pitt', 'Joel Whitaker').
+    Swapped order ('Xiang Li', 'Li Xiang') doesn't clash, and a one-word name (a handle) clashes with nothing."""
+    wa, wb = name_words(a), name_words(b)
+    return len(wa) > 1 and len(wb) > 1 and wa[-1] not in wb and wb[-1] not in wa
 
 
 def read_people(co, sha):
@@ -99,7 +112,7 @@ def merge(records, ident):
         by_local[local_part(e)].add(norm_name(ns.most_common(1)[0][0]))
     shared = {l for l, ns in by_local.items() if len(ns) > ident["local_part_max_names"]}
 
-    generic, bots, via_local = set(), set(), Counter()
+    generic, bots, on_local = set(), set(), defaultdict(list)
     for e, ns in names.items():
         node = "E:" + e
         find(node)
@@ -107,15 +120,33 @@ def merge(records, ident):
         if any(p.search(e) or p.search(name) for p in bot for name in ns):
             bots.add(e)
             continue
-        if local_part(e) in generic_names or n in generic_names:
+        if norm_name(local_part(e)) in generic_names or n in generic_names:
             generic.add(e)
             continue
         if n:
             union(node, "N:" + n)
         if len(local_part(e)) >= ident["local_part_min_length"] and local_part(e) not in shared:
-            union(node, "L:" + local_part(e))
-            via_local[local_part(e)] += 1
-    joined = {find("L:" + l) for l, k in via_local.items() if k > 1}
+            on_local[local_part(e)].append(e)
+
+    # A shared local part joins its emails, unless their names say they're different people (joel@ for Joel Pitt and
+    # Joel Whitaker). Full names go into clusters where no two clash; if that makes more than one, a one-word name (a
+    # handle) is ambiguous and joins none of them
+    via_local = Counter()
+    for lp, es in on_local.items():
+        top = {e: names[e].most_common(1)[0][0] for e in es}
+        full = [e for e in sorted(es) if len(name_words(top[e])) > 1] if ident["local_part_same_surname"] else []
+        clusters = []
+        for e in full:
+            home = next((c for c in clusters if not any(surnames_clash(top[e], top[x]) for x in c)), None)
+            home.append(e) if home is not None else clusters.append([e])
+        if len(clusters) <= 1:
+            clusters = [sorted(es)]                      # no clash: the whole local part joins, as before
+        for i, c in enumerate(clusters):
+            key = lp if len(clusters) == 1 else f"{lp}\x1f{i}"
+            for e in c:
+                union("E:" + e, "L:" + key)
+                via_local[key] += 1
+    joined = {find("L:" + k) for k, c in via_local.items() if c > 1}
 
     groups = defaultdict(list)
     for e in names:
