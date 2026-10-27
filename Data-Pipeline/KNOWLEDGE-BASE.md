@@ -152,7 +152,7 @@ SELECT DISTINCT repo, path, replace(CASE WHEN path LIKE '%/__init__.py' THEN sub
                                          ELSE substr(path, 1, length(path) - 3) END, '/', '.') AS module FROM site_now;
 -- module m is imported by a row that names it, or by `from parent import leaf`
 CREATE TEMP VIEW imports_of AS
-SELECT f.path AS imported, f.module, i.path AS importer, i.is_test
+SELECT f.repo, f.path AS imported, f.module, i.path AS importer, i.is_test
 FROM file_module f JOIN module_import i ON i.repo = f.repo AND (i.module = f.module OR i.module || '.' || i.name = f.module);
 ```
 
@@ -408,8 +408,8 @@ SELECT owner_team FROM site_now WHERE status = 'present' GROUP BY owner_team HAV
 ```sql
 -- name: stall_test_gap
 -- expect: [["billing", "billing.invoice"], ["checkout", "cart.pricing"], ["payments", "pay.charge"], ["platform", "shared.client"]]
-SELECT DISTINCT s.owner_team, f.module FROM site_now s JOIN file_module f ON f.path = s.path
-WHERE s.status = 'present' AND s.path NOT IN (SELECT imported FROM imports_of WHERE is_test = 1)
+SELECT DISTINCT s.owner_team, f.module FROM site_now s JOIN file_module f ON f.repo = s.repo AND f.path = s.path
+WHERE s.status = 'present' AND (s.repo, s.path) NOT IN (SELECT repo, imported FROM imports_of WHERE is_test = 1)
 ORDER BY s.owner_team;
 ```
 
@@ -441,7 +441,8 @@ SELECT team, recent, usual FROM w WHERE on_sites = 0 AND usual > 0 AND recent >=
 SELECT a.call_site_id, b.call_site_id, 1
 FROM site_now a JOIN resolution r ON r.repo = a.repo AND r.path = a.path AND r.line = a.line AND r.col = a.col
 JOIN site_now b ON r.receiver_from = b.repo || ':' || b.path || ':' || b.scope
-WHERE a.status = 'present' AND b.status = 'present' AND a.owner_team != b.owner_team;
+WHERE a.status = 'present' AND b.status = 'present' AND a.owner_team != b.owner_team
+  AND 'unowned' NOT IN (a.owner_team, b.owner_team);
 ```
 
 ```sql
@@ -480,7 +481,7 @@ Collides: two open tickets mapped to the same function that don't already share 
 -- expect: [["CHK-298", "CHK-311", "cart/pricing.py:price"], ["CHK-298", "PAY-12", "cart/pricing.py:price"]]
 SELECT DISTINCT a.key, b.key, sa.path || ':' || sa.scope
 FROM ticket_map a JOIN site_now sa ON sa.call_site_id = a.target
-JOIN ticket_map b ON b.key > a.key JOIN site_now sb ON sb.call_site_id = b.target AND sb.path = sa.path AND sb.scope = sa.scope
+JOIN ticket_map b ON b.key > a.key JOIN site_now sb ON sb.call_site_id = b.target AND sb.repo = sa.repo AND sb.path = sa.path AND sb.scope = sa.scope
 WHERE a.target_kind = 'call_site' AND b.target_kind = 'call_site'
   AND a.key IN (SELECT key FROM ticket_open) AND b.key IN (SELECT key FROM ticket_open)
   AND NOT EXISTS (SELECT 1 FROM ticket_map x JOIN ticket_map y ON x.target = y.target WHERE x.key = a.key AND y.key = b.key)
@@ -500,7 +501,8 @@ JOIN ticket_map ma ON ma.target = b.call_site_id JOIN ticket_map mb ON mb.target
 WITH RECURSIVE lvl(id, n) AS (
   SELECT call_site_id, 0 FROM site_now WHERE status = 'present'
   UNION ALL
-  SELECT b.call_site_id, l.n + 1 FROM blocked_by b JOIN lvl l ON l.id = b.blocker_id)
+  SELECT b.call_site_id, l.n + 1 FROM blocked_by b JOIN lvl l ON l.id = b.blocker_id
+  WHERE l.n < (SELECT count(*) FROM blocked_by))   -- a blocked_by cycle stops: no chain is longer than the edges
 SELECT s.call_site_id FROM site_now s JOIN (SELECT id, max(n) AS n FROM lvl GROUP BY id) v ON v.id = s.call_site_id
 ORDER BY v.n, s.bug_fixes DESC, s.call_site_id;
 ```

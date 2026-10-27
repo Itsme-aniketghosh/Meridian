@@ -48,7 +48,7 @@ CONFIG = textwrap.dedent("""\
     [join]
     call_site_id = ["repo", "symbol", "path", "scope", "normalized_line", "occurrence"]
     normalize_line = "strip_whitespace"
-    match_order = ["git_line_map_with_renames", "same_repo_symbol_scope_normalized_line"]
+    match_order = ["git_line_map_with_renames", "same_repo_symbol_scope_normalized_line", "same_path_scope_symbol"]
     fuzzy_ticket_matching = false
     """)
 
@@ -378,6 +378,27 @@ class Units(unittest.TestCase):
         line, status, sid = got[0]
         self.assertEqual((line, status), (1, "present"))
         self.assertNotEqual(sid, "S1")                      # its own ID: S1 stays b.py's, present, no new version
+
+    def test_an_edited_import_line_keeps_its_id(self):  # `import ugettext` -> `import gettext, ugettext`: no step 1, 2
+        imp = lambda col, text: dict(self.site(1), col=col, scope="<module>", role="import", normalized_line=text)
+        p = imp(37, "fromdjango.utils.translationimportugettext")
+        hist = [self.version(p, "S1", "present", "2026-01-01T00:00:00Z")]
+        now = J.with_occurrence([imp(46, "fromdjango.utils.translationimportgettext,ugettext")])
+        self.assertEqual(self.sites_run(hist, now, {"a.py": ("a.py", [(1, 1, 1, 1)])}), [(1, "present", "S1")])
+
+    def test_python_frame_matches_on_the_longest_shared_tail(self):
+        idx = J.suffix_index(["python/pyspark/sql/dataframe.py", "python/pyspark/pandas/dataframe.py", "a/x/mod.py",
+                              "b/x/mod.py"])
+        self.assertEqual(J.frames('File "/opt/site-packages/pyspark/sql/dataframe.py", line 5', idx),
+                         ([("python/pyspark/sql/dataframe.py", 5)], 0))   # pandas/ shares only the file name
+        self.assertEqual(J.frames('File "/srv/lib/x/mod.py", line 2', idx), ([], 1))  # two at the longest: no match
+
+    def test_a_frame_on_a_line_with_two_sites_maps_to_both(self):
+        cfg = {"datasets": {"shop": {"repos": [{"repo": REPO}], "tracker": "jira", "key_regex": r"SHOP-\d+"}}}
+        ticket = {"key": "SHOP-9", "tracker": "jira", "summary": "Crash", "description": 'File "/srv/a.py", line 3'}
+        sites = [dict(repo=REPO, path="a.py", line=3, symbol="ugettext", call_site_id=sid) for sid in ("X1", "X2")]
+        rows, _ = J.build_ticket_map("R2", cfg, [ticket], [], [], {REPO: {"a.py"}}, sites)
+        self.assertEqual({r["target"] for r in rows if r["target_kind"] == "call_site"}, {"X1", "X2"})
 
     def test_a_repo_new_to_the_config_has_only_new_sites(self):  # the last run didn't have REPO
         now = J.with_occurrence([self.site(3)])

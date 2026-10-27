@@ -17,8 +17,9 @@ call_site: a line someone must edit (04-architecture, Definitions). One row per 
   every version so far (the previous runs' rows keep their run_id), so "now" is each site's newest version.
 - Matching to the last run, in [join] match_order: (1) git's line map from the last run's SHA to this one, renames
   followed: an unchanged line lands at its new path and line; (2) else the same (repo, symbol, scope, normalized
-  line), in occurrence order, anywhere in the repo (a moved line, a split file). Unmatched last-run sites are written
-  as removed, unless their file is a parse_failure this run: those stay present, carried to their new line. Unmatched
+  line), in occurrence order, anywhere in the repo (a moved line, a split file); (3) else the same (path after the
+  line map, scope, symbol), in line order: one site whose line was edited. Unmatched last-run sites are written as
+  removed, unless their file is a parse_failure this run: those stay present, carried to their new line. Unmatched
   new ones get a new ID; a removed site's ID can come back, but only to one site.
 - effective_date: the first first-parent commit where the version became true. Present: blame of the line at this
   run's SHA (--first-parent -w). Removed: the first-parent commit after the last one that still had the line
@@ -29,14 +30,16 @@ ticket_map: every ticket gets rows, all hits kept, no fuzzy matching ([join] fuz
 - commit_key: every file a commit carrying the key touched, if it still exists at the pinned SHA. Target 'repo:path'.
 - path: a token in the summary or description that is exactly a file path at the pinned SHA.
 - stack_trace: Java/Scala frames 'at pkg.Class.m(File.scala:12)' -> the one file ending in pkg/File.scala; Python
-  frames 'File ".../pkg/mod.py", line 12' -> the one longest repo path the frame ends with. Several candidates is
-  not a match (counted). A frame on a call site's line also maps to that call site.
+  frames 'File ".../pkg/mod.py", line 12' -> the one repo path sharing the most trailing parts with the frame (2 or
+  more, or the whole repo path). Several candidates is not a match (counted). A frame on a call site's line also maps
+  to every call site on it.
 - symbol: a tracked symbol's dotted name (module.name) in the text -> every present call site of it in the dataset.
 - No hit -> one 'unmapped' row. Tickets of a dataset with no code in the snapshot (GitLab is Ruby) are all unmapped.
 
 coverage: what we missed, as counts (CONTRACTS.md rule 9). One row per metric, the note says what it means.
 """
 import json
+import os
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -51,7 +54,7 @@ KEYS = {
     "coverage": ("run_id", "metric"),
 }
 ID_FIELDS = ["repo", "symbol", "path", "scope", "normalized_line", "occurrence"]
-MATCH_ORDER = ["git_line_map_with_renames", "same_repo_symbol_scope_normalized_line"]
+MATCH_ORDER = ["git_line_map_with_renames", "same_repo_symbol_scope_normalized_line", "same_path_scope_symbol"]
 # fields that make a new version when they change; run_id, known_at and effective_date/_sha describe the version itself
 VERSIONED = ("repo", "path", "line", "col", "scope", "symbol", "role", "detection", "junk", "in_except",
              "owner_team", "bug_fixes", "status")
@@ -222,6 +225,17 @@ def match(prev, now, diff, unparsed=frozenset()):
             taken.add(i)
         else:
             gone.append(p)
+    pool = defaultdict(list)  # 3. same path (after the line map), scope, symbol, in line order: an edited line
+    for i, s in enumerate(now):
+        if i not in taken:
+            pool[(s["path"], s["scope"], s["symbol"])].append(i)
+    left, gone = gone, []
+    for p in left:
+        q = pool.get(((diff[p["path"]][0] if p["path"] in diff else p["path"]), p["scope"], p["symbol"]))
+        if q:
+            ids[q.pop(0)] = p["call_site_id"]
+        else:
+            gone.append(p)
     return ids, gone, stuck
 
 
@@ -340,11 +354,13 @@ def frames(text, by_name):
         elif found:
             unsure += 1
     for frame, ln in PY_FRAME.findall(text):
-        frame = frame.replace("\\", "/")
-        found = [p for p in by_name.get(frame.rsplit("/", 1)[-1], []) if frame == p or frame.endswith("/" + p)]
+        tail = frame.replace("\\", "/").split("/")[::-1]
+        # trailing parts shared: .../site-packages/pyspark/sql/x.py and python/pyspark/sql/x.py share 3
+        shared = {p: len(os.path.commonprefix([p.split("/")[::-1], tail])) for p in by_name.get(tail[0], [])}
+        found = {p: k for p, k in shared.items() if k >= 2 or k == p.count("/") + 1}
         if found:
-            best = max(len(p) for p in found)
-            longest = [p for p in found if len(p) == best]
+            best = max(found.values())
+            longest = [p for p, k in found.items() if k == best]
             if len(longest) == 1:
                 hits.append((longest[0], int(ln)))
             else:
@@ -376,7 +392,9 @@ def build_ticket_map(run_id, cfg, tickets, commit_ticket, commit_file, head_path
             else:
                 n["commit_paths_gone"] += 1
     index = {repo: suffix_index(paths) for repo, paths in head_paths.items()}
-    site_at = {(s["repo"], s["path"], s["line"]): s["call_site_id"] for s in sites_now}
+    site_at = defaultdict(list)
+    for s in sites_now:
+        site_at[(s["repo"], s["path"], s["line"])].append(s["call_site_id"])
     symbols = {ds: [(f"{s['module']}.{s['name']}", s["name"]) for s in d.get("symbols", [])]
                for ds, d in datasets.items()}
     for t in tickets:
@@ -392,8 +410,8 @@ def build_ticket_map(run_id, cfg, tickets, commit_ticket, commit_file, head_path
             n["frames"] += len(hits) + unsure
             for path, ln in hits:
                 rows.add((t["key"], "path", f"{repo}:{path}", "stack_trace"))
-                if (repo, path, ln) in site_at:
-                    rows.add((t["key"], "call_site", site_at[(repo, path, ln)], "stack_trace"))
+                for sid in site_at.get((repo, path, ln), []):
+                    rows.add((t["key"], "call_site", sid, "stack_trace"))
         for dotted, name in symbols.get(ds, []):
             if re.search(rf"(?<![\w.]){re.escape(dotted)}(?!\w)", text):
                 for s in sites_now:
