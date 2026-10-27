@@ -59,6 +59,10 @@ On `c5118b019d642a9b`, `anomalies.json` has the same: 0 errors and 1 warning. Th
 
 The alert is shown arriving, not just written. `tests/test_validate.py` (`Alert.test_an_alert_really_reaches_slack_and_email`) and `run_demo.py` step 8 start a local Slack-style webhook server and a local SMTP server (`tests/alert_sinks.py`) and send to them with no mocks. In the demo, validate on the fixture with four injected anomalies delivers "meridian R2: 2 errors, 2 warnings in the data" to both. The team's Slack uses the same code with `MERIDIAN_SLACK_WEBHOOK` in `.env`: validate on a fixture block with two planted errors exited 4 and its alert, "meridian R2: 2 errors, 0 warnings in the data", arrived in the team's workspace ([join it](https://join.slack.com/t/meridian-flg4799/shared_invite/zt-4ekm8ksh1-WYMNCqG_ECL5jr17~Gzaxg) to see the channel). No team mailbox is set, so email is shown against the local SMTP server only.
 
+![](figures/slack_alert.png)
+
+*Validate's alerts in the team's `#meridian-alerts` channel, from fixture blocks with planted errors; the last one also carries the invalid-date warning.*
+
 ## 4. The weekly GX audit
 
 `meridian/gx.py` turns validate's generic checks into one Great Expectations suite per table: minimum rows, missing-value allowances (`ExpectColumnValuesToNotBeNull` with `mostly`), regex formats (times, IDs, SHAs, repos, paths), numeric ranges and date bounds. Coverage floors, outliers and drift stay in validate. The audit runs in the weekly rebuild next to `bias`, in its own environment (`requirements-gx.txt`).
