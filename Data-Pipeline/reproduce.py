@@ -158,11 +158,12 @@ def main():
         return f"all {len(want)} output files match golden/{TEAM_RUN}.json"
 
     def team_tests():
-        rc, last = run([state["py"], "-m", "unittest", "tests.test_golden", "tests.test_scan", "tests.test_resolve"],
+        # test_golden is the step above, which allows commit_file's git-version difference on a native run
+        rc, last = run([state["py"], "-m", "unittest", "tests.test_scan", "tests.test_resolve"],
                        cwd=state["dp"], env={"MERIDIAN_RUN_ID": TEAM_RUN})
         if rc:
             raise SystemExit(f"team-run tests: {last}")
-        return "Django answer keys (265/265 lines, 542/542 aliases), packages' precision and recall, golden"
+        return "Django answer keys (265/265 lines, 542/542 aliases), packages' precision and recall, call edges"
 
     ok = True
     for name, fn in [("Get the code", clone), ("Python environment", environment)]:
