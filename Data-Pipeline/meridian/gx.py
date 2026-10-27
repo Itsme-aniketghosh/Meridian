@@ -138,8 +138,7 @@ def audit(block, exp, project):
                 where = f"{t}.{cfg.kwargs['column'].removesuffix('__datetime')}" if "column" in cfg.kwargs else t
                 if crashed(r):
                     broken.append({"check": meta.get("check"), "where": where})
-                elif not r.success and not (meta.get("check") == "dates" and (res.get("unexpected_count") or 0)
-                                            <= exp.get("dates", {}).get("allow", {}).get(where, 0)):  # as validate
+                elif not r.success:
                     failed.append({"severity": meta.get("severity"), "check": meta.get("check"), "where": where,
                                    "unexpected": res.get("unexpected_count"), "of": res.get("element_count"),
                                    "examples": [str(v)[:60] for v in (res.get("partial_unexpected_list") or [])[:3]]})

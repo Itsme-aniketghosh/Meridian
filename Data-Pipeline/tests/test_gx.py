@@ -145,6 +145,9 @@ class Audit(unittest.TestCase):
         self.assertTrue((self.tmp / "published" / "gx" / "R" / "index.html").exists())
 
     def test_bad_rows_are_found_and_alerted_not_gated(self):
+        # a leftover allowance (the old settings had one for the 289 Jira dates) no longer hides an invalid date
+        allow = 'allow = {"git_commit.authored_at" = 1}\nearliest = '
+        (self.tmp / "settings.toml").write_text(SETTINGS.replace("earliest = ", allow))
         bad = GOOD + [("c", "b", 5000, "0010-04-03T23:04:00Z"), ("d", "c", 3, "2026-01-01 00:00:00")]
         code, got, send = self.run_gx(bad, publish_root=self.tmp / "main")
         found = {(f["check"], f["where"]) for f in got["failed"]}

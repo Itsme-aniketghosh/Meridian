@@ -4,7 +4,7 @@ Everything here comes from team run `c5118b019d642a9b` in the Airflow runs of Oc
 
 ## 1. Tests
 
-From `Data-Pipeline/`, `python -m unittest discover -s tests -t .` runs 339 tests: OK, 0 failures, 0 errors. Without the team data a Windows machine skips 19, and Mac and Linux skip 18 ([TESTING.md](../../TESTING.md)).
+From `Data-Pipeline/`, `python -m unittest discover -s tests -t .` runs 340 tests: OK, 0 failures, 0 errors. Without the team data a Windows machine skips 19, and Mac and Linux skip 18 ([TESTING.md](../../TESTING.md)).
 
 ![](figures/tests_per_file.png)
 
@@ -19,7 +19,7 @@ There's one test file per pipeline part, plus files for the DAG (Airflow's task 
 | `test_golden.TeamRun`, `test_resolve.DjangoAnswerKey` ×2, `test_resolve.PackagesScore`, `test_resolve.TeamRunEdges` ×4, `test_scan.DjangoAnswerKey` ×3 | 11 | Need the private team data | With `MERIDIAN_RUN_ID=c5118b019d642a9b` | ✅ below |
 | `test_resolve.ReexportLoop` | 1 | A re-export loop overflows Windows' C stack | Mac and Linux, CI's Linux job | ✅ |
 
-With the team data the suite is 339 tests, OK, 7 skipped (Airflow and GX). The team-run tests:
+With the team data the suite is 340 tests, OK, 7 skipped (Airflow and GX). The team-run tests:
 
 | Test | Result |
 |---|---|
@@ -55,7 +55,13 @@ Coverage floors are in `[validate.coverage]`. 1,525 of 1,526 call sites resolved
 
 *v1's `anomalies.json`: 0 errors and 1 warning, for 289 tickets with impossible creation dates.*
 
-On `c5118b019d642a9b`, `anomalies.json` has 0 errors and 0 warnings. The chart is v1's, from before `settings.toml [validate.dates]` allowed the 289 dates. They're on `ticket.created_at`, from 0010-04-03 to 0012-10-19 (43 in year 0010, 63 in 0011, 183 in 0012): Spark tickets imported in 2013 from Spark's old tracker. Apache Jira itself shows those dates, so we keep them and don't make up corrected ones. They map to code 2.3–5.5% of the time, the lowest year slices in §5. There were no outlier, drift or row-count warnings.
+On `c5118b019d642a9b`, `anomalies.json` has the same: 0 errors and 1 warning. The 289 dates are on `ticket.created_at`, from 0010-04-03 to 0012-10-19 (43 in year 0010, 63 in 0011, 183 in 0012): Spark tickets imported in 2013 from Spark's old tracker. A date before `[validate.dates] earliest` (2000) or after the snapshot is invalid, so every run warns with the count, the range and example keys, and the alert carries it. Apache Jira itself shows those dates, so the run goes on and we don't make up corrected ones, but no part uses them as dates: §5's year slices leave them out. There were no outlier, drift or row-count warnings.
+
+The alert is shown arriving, not just written. `tests/test_validate.py` (`Alert.test_an_alert_really_reaches_slack_and_email`) and `run_demo.py` step 8 start a local Slack-style webhook server and a local SMTP server (`tests/alert_sinks.py`) and send to them with no mocks. In the demo, validate on the fixture with four injected anomalies delivers "meridian R2: 2 errors, 2 warnings in the data" to both. The team's Slack uses the same code with `MERIDIAN_SLACK_WEBHOOK` in `.env`: validate on a fixture block with two planted errors exited 4 and its alert, "meridian R2: 2 errors, 0 warnings in the data", arrived in the team's workspace ([join it](https://join.slack.com/t/meridian-flg4799/shared_invite/zt-4ekm8ksh1-WYMNCqG_ECL5jr17~Gzaxg) to see the channel). No team mailbox is set, so email is shown against the local SMTP server only.
+
+![](figures/slack_alert.png)
+
+*Validate's alerts in the team's `#meridian-alerts` channel, from fixture blocks with planted errors; the last one also carries the invalid-date warning.*
 
 ## 4. The weekly GX audit
 
@@ -63,15 +69,15 @@ On `c5118b019d642a9b`, `anomalies.json` has 0 errors and 0 warnings. The chart i
 
 It never gates. A failed expectation alerts as a warning and the task succeeds. An expectation GX couldn't evaluate alerts as an error and exits 1, so a broken audit can't pass for clean data.
 
-On `c5118b019d642a9b` it ran 308 expectations over the 25 tables, 0 failed, and published its Data Docs to `published/gx/c5118b019d642a9b/index.html`.
+On `c5118b019d642a9b` it ran 308 expectations over the 25 tables. One failed, the date bounds on `ticket.created_at` for the 289 invalid dates, which now alerts as a warning. It published its Data Docs to `published/gx/c5118b019d642a9b/index.html`.
 
 ![](figures/gx_data_docs.jpg)
 
-*GX marks `ticket` with a cross for the 289 old dates. The audit allows exactly those (`settings.toml [validate.dates] allow`), so one more would alert.*
+*GX marks `ticket` with a cross for the 289 invalid dates.*
 
 ## 5. Bias (data slicing)
 
-`meridian.bias` slices the pipeline's three deciding rules with Fairlearn's `MetricFrame`. Each slice gets a Wilson 95% interval, which still behaves on small samples. A slice is judged when N ≥ 30, and flagged when its whole interval is more than 0.10 below overall, so a gap noise alone could explain isn't flagged. 136 slices were judged and 32 flagged. [BIAS.md](../BIAS.md) lists them all, with the full mitigation table. In the charts, whiskers are the intervals, the solid line is overall, the dashed line is the flag line and red bars are flagged.
+`meridian.bias` slices the pipeline's three deciding rules with Fairlearn's `MetricFrame`. Each slice gets a Wilson 95% interval, which still behaves on small samples. A slice is judged when N ≥ 30, and flagged when its whole interval is more than 0.10 below overall, so a gap noise alone could explain isn't flagged. 133 slices were judged and 29 flagged. [BIAS.md](../BIAS.md) lists them all, with the full mitigation table. In the charts, whiskers are the intervals, the solid line is overall, the dashed line is the flag line and red bars are flagged.
 
 ![](figures/bias_owner_rule.png)
 
@@ -91,7 +97,7 @@ Ticket to code mapping is 0.608 per ticket (N = 59,491), or 0.613 over N = 71,84
 
 The resolver keeps 0.981 overall (N = 1,556), and 0 of 12 judged repos are flagged (lowest: jazzband/django-silk, 0.933 on N = 30).
 
-Our flag rule isn't corrected for multiple comparisons, so with 136 slices a few flags could be chance. Under Bonferroni (a stricter cutoff for many tests, here z = 3.56), 26 of the 32 hold. `core/`, `common/`, Deploy and Spark Shell (all time and since 2020) don't, so treat those as likely, not established. BIAS.md has Fairlearn's difference and ratio for each slicing.
+Our flag rule isn't corrected for multiple comparisons, so with 133 slices a few flags could be chance. Under Bonferroni (a stricter cutoff for many tests, here z = 3.56), 23 of the 29 hold. `core/`, `common/`, Deploy and Spark Shell (all time and since 2020) don't, so treat those as likely, not established. BIAS.md has Fairlearn's difference and ratio for each slicing.
 
 ### Mitigation and trade-offs
 

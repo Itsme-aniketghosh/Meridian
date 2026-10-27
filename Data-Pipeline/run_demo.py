@@ -277,12 +277,14 @@ def golden():
         "file and table). The team-run half (skipped here) checks the real outputs against dvc.lock's hashes.")
 
 
-def write_settings(path, missing="", extra=""):
-    """test_validate's settings for the fixture; alerts on, but no Slack/email channel: logged only."""
+def write_settings(path, missing="", extra="", smtp_port=None):
+    """test_validate's settings for the fixture; alerts on. With smtp_port they go to the local sinks
+    (tests/alert_sinks.py: a Slack-style webhook and an SMTP server); without, there's no channel and they're logged."""
     from tests.test_validate import BASE
     base = textwrap.dedent(BASE.format(floor=0.5, missing=1.0)).replace("default = 1.0\n", "default = 1.0\n" + missing)
-    path.write_text(base + extra +
-                    '[alerts]\non = ["failure", "error", "warn"]\nslack_webhook_env = "MERIDIAN_DEMO_NO_CHANNEL"\n')
+    channels = (f'slack_webhook_env = "MERIDIAN_DEMO_HOOK"\nemail_to = ["team@example.com"]\nsmtp_host = "127.0.0.1"\n'
+                f'smtp_port = {smtp_port}\n' if smtp_port else 'slack_webhook_env = "MERIDIAN_DEMO_NO_CHANNEL"\n')
+    path.write_text(base + extra + '[alerts]\non = ["failure", "error", "warn"]\n' + channels)
 
 
 def validate():
@@ -307,8 +309,6 @@ def anomalies():
     bad = TMP / "bad"
     shutil.copytree(TMP / "out", bad / "out")
     shutil.copy(TMP / "meridian.toml", bad)
-    write_settings(bad / "settings.toml", '"commit_file.deleted" = 0.0\n',
-                   '[validate.outliers]\ncolumns = ["commit_file.added"]\n')
     print("  injected into a copy of the block:")
     for name, col, value in (("ticket", "created_at", "06/01/2026 9am"), ("file_owner", "share", 1.7),
                              ("commit_file", "deleted", None), ("commit_file", "added", 250000)):
@@ -320,18 +320,31 @@ def anomalies():
             rows += [dict(rows[0], path=f"docs/page{i}.md", added=i % 5 + 1, deleted=0) for i in range(10)]
             print("    commit_file: + 10 ordinary rows (1-5 lines added), so the IQR check has 25 values")
         p.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
-    env = {"MERIDIAN_DATA": str(bad), "MERIDIAN_SETTINGS": str(bad / "settings.toml")}
-    rc, out = run([PY, "-m", "meridian.validate", "--run-id", "R2", "--config", str(bad / "meridian.toml")], env)
+    from tests.alert_sinks import sinks
+    with sinks() as got:   # real delivery: an HTTP POST to a Slack-style webhook and an SMTP session, both local
+        write_settings(bad / "settings.toml", '"commit_file.deleted" = 0.0\n',
+                       '[validate.outliers]\ncolumns = ["commit_file.added"]\n', got.smtp_port)
+        env = {"MERIDIAN_DATA": str(bad), "MERIDIAN_SETTINGS": str(bad / "settings.toml"),
+               "MERIDIAN_DEMO_HOOK": got.webhook}
+        rc, out = run([PY, "-m", "meridian.validate", "--run-id", "R2", "--config", str(bad / "meridian.toml")], env)
     found = json.loads((bad / "out/R2/anomalies.json").read_text())
     print(f"\n  exit code {rc}; anomalies.json:")
     table([f[:3] + [f[3][:50]] for f in found], ["severity", "check", "where", "detail"])
     if not rc or "ALERT" not in out or {f[1] for f in found} != {"formats", "ranges", "missing", "outliers"}:
         raise SystemExit("validate did not catch all four anomalies")
+    if not got.slack or not got.mail:
+        raise SystemExit("the alert didn't reach the local Slack webhook and SMTP server")
+    print("\n  delivered to the local Slack-style webhook (first lines of its JSON text):")
+    for line in got.slack[0]["text"].splitlines()[:3]:
+        print(f"    {line}")
+    subject = next(h for h in got.mail[0].splitlines() if h.startswith("Subject:"))
+    print(f"  delivered by SMTP: {len(got.mail)} message(s), {subject}")
     saw("validate caught all four: the bad time format and the out-of-range share are errors (non-zero exit; in "
         "Airflow the task retries, then fails, publish never runs and the last good block stays live), the missing "
-        "value and the outlier (IQR fences) are warnings (the run goes on). Either raises the ALERT. No Slack/email is "
-        "set here, so it is logged; settings.toml [alerts] + .env send the same text to Slack and/or email.")
-    return f"exit {rc}, {len(found)} anomalies, alert raised"
+        "value and the outlier (IQR fences) are warnings (the run goes on). The ALERT went out for real: an HTTP POST "
+        "to a Slack-style webhook and an SMTP message, both to local stand-ins. A real channel is a webhook URL in "
+        ".env and an SMTP host in settings.toml [alerts]; the code path is the same.")
+    return f"exit {rc}, {len(found)} anomalies, alert delivered to Slack and email (local)"
 
 
 def bias():

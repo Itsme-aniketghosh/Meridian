@@ -14,7 +14,7 @@ We ran the daily DAG (Airflow's graph of tasks), `meridian_update`, in Docker De
 | history | 854 s | Commits, tickets and SZZ (tracing each bug fix back to the commit that caused it), through the folder mount |
 | resolve | 236 s | Jedi, in parallel with history |
 | owners, join, graph | 10 s, 29 s, 2 s | |
-| validate | 39 s | 1,788,375 rows in 25 tables, 0 errors, 0 warnings (the 289 known Jira dates in year 0010 are allowed in `settings.toml`) |
+| validate | 39 s | 1,788,375 rows in 25 tables, 0 errors, 1 warning (289 Spark tickets with invalid dates in the years 0010–0012, Apache Jira's own) |
 | report, publish | 1 s, 1 s | `published/c5118b019d642a9b.sqlite`, `latest.json` |
 
 Back to back the tasks take 1,183 s, so running scan and resolve beside history saved 240 s (20%). History is the longest branch, so it caps the saving.
