@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import meridian.graph as G
 import meridian.validate as V
 from meridian import alert
+from tests.alert_sinks import sinks
 from tests.test_dashboard import fixture_block
 from tests.test_graph import CONFIG
 
@@ -296,6 +297,18 @@ class Alert(unittest.TestCase):
             self.assertEqual(alert.send("subject", ["a", "b"], "error", s), ["slack"])
             self.assertEqual(alert.send("subject", ["a"], "warn", s), [])        # warn isn't in on: logged only
         self.assertEqual(json.loads(post.call_args[0][0].data), {"text": "subject\na\n... and 1 more"})
+
+    def test_an_alert_really_reaches_slack_and_email(self):   # no mocks: a real HTTP POST and a real SMTP session
+        with sinks() as got:
+            s = self.settings(f'[alerts]\non = ["error"]\nslack_webhook_env = "HOOK"\nemail_to = ["team@example.com"]\n'
+                              f'smtp_host = "127.0.0.1"\nsmtp_port = {got.smtp_port}\ntimeout_s = 5\n')
+            with redirect_stdout(io.StringIO()), mock.patch.dict("os.environ", {"HOOK": got.webhook}, clear=True):
+                self.assertEqual(alert.send("validate R2: 1 data error", ["formats ticket.created_at"], "error", s),
+                                 ["slack", "email"])
+        self.assertEqual(got.slack, [{"text": "validate R2: 1 data error\nformats ticket.created_at"}])
+        self.assertEqual(len(got.mail), 1)
+        self.assertIn("Subject: [meridian] validate R2: 1 data error", got.mail[0])
+        self.assertIn("To: team@example.com", got.mail[0])
 
 
 if __name__ == "__main__":
