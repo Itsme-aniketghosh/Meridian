@@ -4,7 +4,7 @@ Everything here comes from team run `c5118b019d642a9b` in the Airflow runs of Oc
 
 ## 1. Tests
 
-From `Data-Pipeline/`, `python -m unittest discover -s tests -t .` runs 340 tests: OK, 0 failures, 0 errors. Without the team data a Windows machine skips 19, and Mac and Linux skip 18 ([TESTING.md](../../TESTING.md)).
+From `Data-Pipeline/`, `python -m unittest discover -s tests -t .` runs 342 tests: OK, 0 failures, 0 errors. Without the team data a Windows machine skips 19, and Mac and Linux skip 18 ([TESTING.md](../../TESTING.md)).
 
 ![](figures/tests_per_file.png)
 
@@ -19,7 +19,7 @@ There's one test file per pipeline part, plus files for the DAG (Airflow's task 
 | `test_golden.TeamRun`, `test_resolve.DjangoAnswerKey` ×2, `test_resolve.PackagesScore`, `test_resolve.TeamRunEdges` ×4, `test_scan.DjangoAnswerKey` ×3 | 11 | Need the private team data | With `MERIDIAN_RUN_ID=c5118b019d642a9b` | ✅ below |
 | `test_resolve.ReexportLoop` | 1 | A re-export loop overflows Windows' C stack | Mac and Linux, CI's Linux job | ✅ |
 
-With the team data the suite is 340 tests, OK, 7 skipped (Airflow and GX). The team-run tests:
+With the team data the suite is 342 tests, OK, 7 skipped (Airflow and GX). The team-run tests:
 
 | Test | Result |
 |---|---|
@@ -83,7 +83,7 @@ On `c5118b019d642a9b` it ran 308 expectations over the 25 tables. One failed, th
 
 *How often the owner rule names the next author's team (top) and what share of authors and files get a team (bottom), with `core/` and `Project Infra` (at 0.00, so no bar) flagged.*
 
-Owner rule (Spark): does a file's owner team predict its next author's team? Counting authors with no team as misses gives 0.373 (N = 988). But `unassigned` scores 0.000 by construction, because the same team lookup builds both the prediction and the label. So we score accuracy on next authors who have a team, 0.496 (N = 744, CI 0.460–0.532), and report the unassigned rate (24.7%) as coverage. Flagged: module `core/` 0.228 (N = 57), and team `Project Infra` 0.000 on exactly N = 30, which is borderline. The slice by the next author's prior commits flags nothing. Owned share is 0.543 (N = 1,819), with `examples/` 0.028, `mllib/` 0.149 and `common/` 0.281 flagged.
+Owner rule (Spark): does a file's owner team predict its next author's team? Counting authors with no team as misses gives 0.373 (N = 988). But `unassigned` scores 0.000 by construction, because the same team lookup builds both the prediction and the label. So we score accuracy on next authors who have a team, 0.496 (N = 744, CI 0.460–0.532), and report the unassigned rate (24.7%) as coverage. Flagged: module `core/` 0.228 (N = 57), and team `Project Infra` 0.000 on exactly N = 30, which is borderline and one person: an author whose tickets are tagged Project Infra but who edits SQL code, so the rule names SQL ([BIAS.md](../BIAS.md) §1). The slice by the next author's prior commits flags nothing. Owned share is 0.543 (N = 1,819), with `examples/` 0.028, `mllib/` 0.149 and `common/` 0.281 flagged.
 
 ![](figures/bias_ticket_mapping.png)
 
@@ -105,7 +105,7 @@ Our flag rule isn't corrected for multiple comparisons, so with 133 slices a few
 
 *Each candidate fix for the owner rule scored four ways, where the 730-day lookback (red) wins in-sample but not held out. The `min_share` rows are the abstain curve.*
 
-The adopted mitigation is the owner rule's decision threshold: below `min_share` 0.30 it abstains and the file shows as "unowned, needs review". Raising it gives the curve of files owned against accuracy on next authors with a team: 0.30 owns 988 files at 0.496, 0.40 974 at 0.500, 0.50 956 at 0.501, 0.60 817 at 0.534 (N = 612, CI 0.495–0.573). Never abstaining (the last toucher's team) owns 1,634 at 0.395, and on the 511 files where only the guess names a team it's right 127 times (0.249). A wrong owner silently sends work to the wrong team, while "needs review" is seen and routed by a person, so we abstain. We kept 0.30 because accuracy is flat up to 0.50. 0.60 also wins at the earlier cut (0.560 against 0.505), but it sends 171 more files to review, so we recommend it rather than adopt it (it would change `meridian.toml`, so a new run_id).
+The mitigation we kept, after measuring it, is the owner rule's existing decision threshold: below `min_share` 0.30 it abstains and the file shows as "unowned, needs review". Raising it gives the curve of files owned against accuracy on next authors with a team: 0.30 owns 988 files at 0.496, 0.40 974 at 0.500, 0.50 956 at 0.501, 0.60 817 at 0.534 (N = 612, CI 0.495–0.573). Never abstaining (the last toucher's team) owns 1,634 at 0.395, and on the 511 files where only the guess names a team it's right 127 times (0.249). A wrong owner silently sends work to the wrong team, while "needs review" is seen and routed by a person, so we abstain. We kept 0.30 because accuracy is flat up to 0.50. 0.60 also wins at the earlier cut (0.560 against 0.505), but it sends 171 more files to review, so we recommend it rather than adopt it (it would change `meridian.toml`, so a new run_id).
 
 A lower share threshold changes nothing. Falling back to the last toucher owns 65% more files but is wrong more often. Taking a person's team from the last 730 days instead of 180 looks best: 0.496 → 0.545 on next authors with a team, and unassigned 24.7% → 16.0%. So `bias.py` picks at a cut one window earlier (2025-10-06) and confirms on the current cut (2026-04-04) with a seeded paired bootstrap over the same files. It only picks among variants that own at least as many files as the configured rule, so a stricter threshold can't win by abstaining. At the earlier cut the configured 180-day rule wins (0.505 against 0.502 on 1,279 files), so the held-out delta is 0.0 (interval 0.0–0.0). The gain is in-sample only, and we didn't adopt the longer lookback.
 
