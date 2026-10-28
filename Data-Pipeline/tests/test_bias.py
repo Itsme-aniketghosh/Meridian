@@ -43,7 +43,7 @@ SETTINGS = textwrap.dedent("""\
     [bias]
     min_n = 1
     max_gap = 0.10
-    min_shares = [0.30]
+    min_shares = [0.30, 0.60]
     team_lookback_days = [180, 730]
     [validate.dates]
     earliest = "2000-01-01T00:00:00Z"
@@ -120,6 +120,22 @@ class Bias(unittest.TestCase):
         self.assertEqual((m["teams from 730 days"]["accuracy"], m["teams from 730 days"]["accuracy_assigned"]),
                          (1.0, 1.0))
 
+    def test_a_stricter_threshold_is_scored(self):   # 0.60 is above meridian.toml's 0.30: sql/a.scala is all SQL's
+        m = self.report["owner_rule"]["mitigations"]["min_share 0.6"]
+        self.assertEqual((m["files_owned"], m["scored"], m["accuracy_assigned"]), (1, 1, 1.0))
+
+    def test_no_team_authors_as_a_group(self):
+        # core/b.scala: Ann is next, no team at 180 days (her keyed commit is 2025-01), 2 commits before the cut, the
+        # rule leaves the file unowned. 730 days gives her Core, but an unowned file has nothing to score
+        g = self.report["owner_rule"]["no_team_authors"]
+        self.assertEqual((g["files"], g["of"], g["share"], g["people"], g["of_people"]), (1, 2, 0.5, 1, 2))
+        self.assertEqual((g["files_by_prior_commits"], g["people_by_prior_commits"]), ({"2-10": 1}, {"2-10": 1}))
+        self.assertEqual(g["modules"], [{"module": "core", "files": 1, "share_of_module": 1.0}])
+        self.assertEqual((g["owned_share"], g["owned_share_with_a_team"]), (0.0, 1.0))
+        self.assertEqual((g["team_from"], g["given_a_team_there"], g["scored_against_that_team"],
+                          g["accuracy_against_that_team"]), ("teams from 730 days", 1, 0, None))
+        self.assertEqual(self.saved["owner_rule"]["no_team_authors"], g)
+
     def test_held_out_cut_is_one_window_earlier(self):   # nothing spans 2025-10-06 here: the configured variant stays
         h = self.report["owner_rule"]["held_out"]
         self.assertEqual((h["cut"], h["files"], h["picked_at_earlier_cut"]),
@@ -153,6 +169,13 @@ class Bias(unittest.TestCase):
         lo, hi = h["delta_ci"]
         self.assertTrue(0 <= lo <= 0.5 <= hi <= 1)
         self.assertEqual(h, B.held_out(early, now, "unassigned", {"base": (0.3, 180), "long": (0.3, 730)}))   # seeded
+        # a stricter threshold abstains on the 3 wrong files: right on all it names, but it owns fewer, so not picked
+        early["owner|strict"], early["next|strict"] = ["X", "unowned", "unowned", "unowned"], early["next|base"]
+        now["owner|strict"], now["next|strict"] = now["owner|base"], now["next|base"]
+        h = B.held_out(early, now, "unassigned", {"base": (0.3, 180), "strict": (0.6, 180)})
+        self.assertEqual(h["accuracy_at_earlier_cut"]["strict"], 1.0)
+        self.assertEqual(h["owned_at_earlier_cut"], {"base": 4, "strict": 1})
+        self.assertEqual((h["picked_at_earlier_cut"], h["delta"]), ("base", 0.0))
 
     def test_ticket_mapping_and_resolver_slices(self):
         t = self.report["ticket_mapping"]

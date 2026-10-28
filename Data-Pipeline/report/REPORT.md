@@ -104,9 +104,21 @@ On `c5118b019d642a9b` there are 0 errors and 1 warning. 289 Spark tickets are da
 
 ### 2.9 Pipeline flow optimization
 
-The Gantt chart of the team run's update shows where the time goes. Run one after another, the tasks add up to 1,183 s. The DAG took 943 s, because `scan` and `resolve` run beside `history`, which saves 20%.
+**What the Gantt chart showed.** In the team run's update, the tasks add up to 1,183 s back to back. The DAG took 943 s, because `scan` and `resolve` run beside `history` (20% saved). The chart also showed that `history` is the critical path: 854 of the 943 s. Most of that is SZZ, which blames every Spark bug-fix commit again on every run, although almost all of them are the same as the day before.
 
-`history` is the bottleneck: it walks all of Spark's git history for SZZ. It already runs one process per CPU, and its cache brings a warm run from 312 s down to 74 s ([Appendix D](appendix-testing.md)). Most of what's left is Docker's folder mount on a Mac, which makes git about three times slower than native. A Docker volume or a Linux host fixes that ([Appendix A](appendix-airflow.md)).
+**What we changed, and the result.** We turned on the SZZ cache for the daily update (`settings.toml [cache]`). A fix commit blamed once keeps its answer, and only new fix commits are blamed. Then we measured it in Airflow on the same run. The first run fills the cache; the next one reuses it:
+
+| | Before: cache off | After: warm cache |
+|---|---:|---:|
+| `history` | 854 s | **316 s** (−63%) |
+| Whole update DAG | 943 s | **480 s** (−49%) |
+| Output | the 24 golden files | the same 24 files, byte for byte |
+
+The log confirms it: all 9,757 Spark fix commits came from the cache. The "after" run also used 4 SZZ processes instead of one per CPU (10). Ten ran out of Docker's 7.7 GB of memory once the cache was on, so the saving is not from more parallelism. On a real day a few new fix commits are blamed, so a daily run sits a little above 480 s.
+
+Two caches didn't pay off, and we say so. The scan cache cut `scan` from 11 s to 7 s, which is too small to matter. The resolve cache made `resolve` slower (195 s to 261 s), because checking that a file can be reused means re-reading every file Jedi read for it through the Mac's folder mount. We turned the resolve cache off; `resolve` runs beside `history`, so it isn't on the critical path either way.
+
+The weekly rebuild keeps every cache off (`MERIDIAN_NO_CACHE`). Once a week it recomputes everything from scratch and `compare` checks the cached daily results against it, so a stale cache can't go unnoticed. The rest of the cold time is Docker's folder mount on a Mac, which makes git about three times slower than native. A Docker volume or a Linux host would remove that ([Appendix A](appendix-airflow.md)).
 
 ## 3. Data bias detection using data slicing
 
@@ -124,7 +136,7 @@ We don't have demographic data, and we don't want it. What we can check is wheth
 
 A slice counts when it has at least 30 rows. It's flagged when its whole 95% Wilson interval (a confidence range for a rate) sits more than 0.10 below the overall value. 133 slices were judged and 29 flagged:
 
-- The owner rule is right 49.6% of the time where it can be scored. A quarter of next authors have no team (none of their commits in the last 180 days names a ticket with a Jira component), so the rule can't score them. That's a coverage gap, not a skew.
+- The owner rule is right 49.6% of the time where it can be scored. A quarter of next authors have no team (none of their commits in the last 180 days names a ticket with a Jira component), so the rule can't score them. That's a coverage gap, not a skew. We look at that group on its own in §3.3.
 - Ticket mapping depends mostly on age. Tickets from before 2014 point at files that are gone by our pinned commit. Kubernetes and Spark Docker stay low even on recent tickets, because their code lives in other Apache repos we didn't snapshot.
 - The resolver treats every repo the same: 98.1% kept overall, no repo flagged.
 
@@ -132,19 +144,38 @@ A slice counts when it has at least 30 rows. It's flagged when its whole 95% Wil
 
 We scored each fix on the same files, then checked the best one on held-out data.
 
-- Lowering the owner threshold (min_share 0.30 to 0.20 or 0.10) changed nothing: files are unowned because their authors have no team, not because shares sit near the line.
-- Falling back to the last person who touched the file owns 65% more files but is wrong more often (0.395), so we didn't take it.
+**Adopted: the owner rule abstains instead of guessing.** `min_share` is a decision threshold. A file's top team must hold at least 30% of its recent commits, or the rule names no owner and the file shows as "unowned, needs review". We measured that choice as a curve: raise the threshold and the rule names fewer files but is right more often on the ones it names. On the 1,819 files of the test (accuracy on next authors with a team):
+
+| min_share | Files owned | Accuracy (N, 95% CI) | Earlier cut: owned, accuracy |
+|---|---:|---:|---:|
+| never abstain (last toucher's team) | 1,634 (89.8%) | 0.395 (1,255, 0.369–0.423) | not scored |
+| 0.10 / 0.20 | 992 (54.5%) | 0.493 (748) | 774, 0.502 |
+| **0.30 (adopted, meridian.toml)** | **988 (54.3%)** | **0.496 (744, 0.460–0.532)** | **769, 0.505** |
+| 0.40 | 974 (53.5%) | 0.500 (736, 0.464–0.536) | 755, 0.508 |
+| 0.50 | 956 (52.6%) | 0.501 (721, 0.464–0.537) | 737, 0.504 |
+| 0.60 | 817 (44.9%) | 0.534 (612, 0.495–0.573) | 595, 0.560 |
+
+Abstaining reduces harm because the two errors aren't equal. A wrong owner is silent: the work goes to a team that didn't write the code, and nobody sees that it went wrong. "Unowned, needs review" is visible, so a person routes it. On the files where the rule abstains, guessing the last toucher's team would be right only 127 of 511 times (0.249), so it would send three in four of them to the wrong team. That's why we abstain rather than fall back.
+
+We kept 0.30. From 0.10 to 0.50 the accuracy is flat (0.493–0.501, the intervals overlap almost fully), so 0.30 keeps the most files at the same accuracy. 0.60 is the first value that clearly helps, at both cuts (+0.038 now, +0.055 at the earlier cut). But it sends 171 more files to review (owned 54.3% to 44.9%), and the worst module gap widens from 0.268 to 0.284. The files it gives up are still right 42 of 132 times (0.318). We recommend 0.60 if the team can review that many more files. It would change `meridian.toml`, so a new run_id, and we didn't adopt it here. The held-out check (below) only picks a variant that owns at least as many files as the current rule, so a stricter threshold can't win just by abstaining more.
+
+Measured, not adopted:
+
+- Lowering the threshold (0.20 or 0.10) changed nothing: files are unowned because their authors have no team, not because shares sit near the line.
+- Falling back to the last person who touched the file owns 65% more files but is wrong more often (0.395), and widens the worst module gap to 0.369.
 - Taking a person's team from their last 730 days instead of 180 looked best: accuracy 0.496 to 0.545, and unassigned authors 24.7% down to 16.0%. But picked on an earlier cut and checked on the current one, it lost to the current rule (0.502 vs 0.505). So we didn't adopt it.
 
-What we shipped: every slice in `bias.json` carries its size, interval and flag, so the views can show "low coverage" next to a flagged team or module and an unmapped team doesn't look idle. For ticket mapping the fix is more data, not fuzzy matching: add the two missing Apache repos in the next team run.
+**Authors with no team, as their own group** (`bias.json` `owner_rule.no_team_authors`). 438 of the 1,819 files (24.1%) have a next author with no team. That's 96 of 169 next authors. Most are newcomers: 70 of the 96 had no commits before the cut (257 files), 11 had 2–10, 14 more than 10 and 1 had one. A person's team comes from their own ticket-keyed commits, so a first-time author can never have one. That means the prior-commits slice in §3.2 can't speak for newcomers at all. Their files are mostly in `sql/` (325 files, 33.9% of `sql/`'s), then `core/` (33) and `python/` (32). `connector/` is the most affected, with 14 of its 21 files. The rule names an owner for their files about as often as for anyone else's (55.7% vs 53.9%), so they aren't routed worse, just not checkable. Where a 730-day lookback gives them a team (150 files), the named owner matches it 0.651 of the time (N = 86), above the overall 0.496.
+
+What we shipped beyond the rule: every slice in `bias.json` carries its size, interval and flag, so the views can show "low coverage" next to a flagged team or module and an unmapped team doesn't look idle. For ticket mapping the fix is more data, not fuzzy matching: add the two missing Apache repos in the next team run.
 
 ### 3.4 Documenting bias mitigation
 
-[BIAS.md](../BIAS.md) has every slice, the mitigation table and the held-out check, and [Appendix B §5](appendix-quality.md#5-bias-data-slicing) has the charts. The trade-offs:
+[BIAS.md](../BIAS.md) has every slice, the mitigation table with the threshold curve, the no-team group and the held-out check, and [Appendix B §5](appendix-quality.md#5-bias-data-slicing) has the charts. The trade-offs:
 
 - The longer lookback gives more people a team, but a two-year-old team can be wrong for someone who moved.
 - The flags aren't corrected for testing 133 slices at once. Under a Bonferroni check 23 of the 29 still hold.
-- `tests/test_bias.py` pins the slicing and flag rules on a synthetic history.
+- `tests/test_bias.py` pins the slicing and flag rules, a threshold above the adopted one, the no-team group and the held-out pick on a synthetic history.
 
 ## 4. Additional guidelines
 
@@ -225,11 +256,11 @@ We tested this by breaking things on purpose: 27 injected faults and 42 scenario
 | 2 | Modular syntax and code | §2.2, §4.4 | ✅ |
 | 3 | Pipeline orchestration (Airflow DAGs) | §2.4, [A](appendix-airflow.md) | ✅ |
 | 4 | Tracking and logging | §2.6, §4.5 | ✅ Python logging in every part, a log per task try in Airflow, and alerts that reach the team's Slack |
-| 5 | Data version control (DVC) | §2.5 | 🟡 Partial: `dvc.yaml` and `dvc.lock` pin every stage, but the remote is a placeholder, so `dvc pull` doesn't work. The team zip and `reproduce.py` stand in for it (§4.3) |
-| 6 | Pipeline flow optimization | §2.9, [A](appendix-airflow.md) | ✅ |
+| 5 | Data version control (DVC) | §2.5 | ✅ `dvc.yaml` and `dvc.lock` pin every stage's code, settings and outputs. The raw pulls are one checksummed zip with exact steps (§4.3) instead of a DVC remote, so `dvc pull` isn't used |
+| 6 | Pipeline flow optimization | §2.9, [A](appendix-airflow.md) | ✅ The Gantt chart found the bottleneck (`history`, 854 of 943 s). The SZZ cache cut it to 316 s and the DAG to 480 s (−49%), measured in Airflow with the same output bytes |
 | 7 | Schema and statistics generation | §2.7, [B](appendix-quality.md) | ✅ |
 | 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | ✅ Detection is live and tested; alerts reach the team's Slack ([B §3](appendix-quality.md#3-anomalies), with a screenshot). Email is tested against a local SMTP server |
-| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ Detection on 133 slices. Five mitigations measured, none adopted; flags ship instead (§3.3) |
+| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ Detection on 133 slices. Adopted: the owner rule abstains ("unowned, needs review") below `min_share` 0.30, measured on an accuracy-coverage curve against guessing (0.496 vs 0.395); 0.60 recommended, not adopted. No-team authors analysed as their own group. Per-slice flags ship to the views (§3.3) |
 | 10 | Test modules | §2.3, [B](appendix-quality.md) | ✅ |
 | 11 | Reproducibility | §4.3, [D](appendix-testing.md) | ✅ Same run_id and same bytes from the pinned inputs; `reproduce.py` checks both |
 | 12 | Error handling and logging | §4.5, [D](appendix-testing.md) | ✅ |

@@ -23,7 +23,7 @@ We don't slice by email domain or any other personal attribute, for privacy. The
 Counting every next author gives 0.373 (N = 988), with `unassigned` at 0.000 on N = 244. That 0.000 is built in: `team_owner` never names `unassigned`, and the same `person_teams` (same lookback) builds both the prediction and the label, so an unassigned next author is a miss under every variant. So `bias.py` now scores accuracy only on next authors with a team: 0.496 (N = 744, 95% CI 0.460–0.532). The unassigned rate is reported on its own as coverage (24.7% of owned files' next authors, `assigned_share_by_module`). Without the unassigned:
 - By module, 3 of 11 judged, 1 flagged: `core/` 0.228 (N = 57, CI 0.138–0.352). Counting the unassigned as misses it read 0.167 (N = 78), so part of `core/`'s gap was the circular class, but not all of it. `sql/` 0.519 (N = 393) and `python/` 0.509 (N = 232) sit on the overall line.
 - By the next author's team, 6 of 12 judged, 1 flagged: `Project Infra` 0.000 on exactly N = 30 (CI 0–0.114). That's borderline: one file fewer and it would be unjudged. The highest is Structured Streaming 0.804 (N = 51). Build (0.328, N = 116) and Spark Core (0.312, N = 64) are low, but their intervals reach the flag line.
-- By the next author's commits before the cut, 2 of 3 judged, 0 flagged: 2–10 commits 0.560 (N = 50), more than 10 0.493 (N = 686). One commit (0.375, N = 8) is too few to judge, so "newcomers aren't served worse" only holds down to people with 2 prior commits.
+- By the next author's commits before the cut, 2 of 3 judged, 0 flagged: 2–10 commits 0.560 (N = 50), more than 10 0.493 (N = 686). One commit (0.375, N = 8) is too few to judge, so "newcomers aren't served worse" only holds down to people with 2 prior commits. There is no 0-commit slice at all: a first-time author can't have a team, so newcomers sit entirely in the no-team group (section 5 below).
 
 ### 2. Some modules are mostly unowned
 
@@ -43,6 +43,15 @@ Owned share overall is 0.543 (N = 1,819). `examples/` 0.028 (CI 0.011–0.070), 
 
 Kept share is 0.981 overall (N = 1,556), and 0 of 12 judged repos are flagged. The lowest judged repo is jazzband/django-silk, 0.933 on N = 30 (CI 0.787–0.982). django-tenants (0.857, N = 7) is under N = 30, so it's unjudged.
 
+### 5. Next authors with no team, as their own group
+
+Accuracy can't score them, so `bias.json` `owner_rule.no_team_authors` describes them instead (counts only, never a person):
+- 438 of 1,819 files (24.1%) have a next author with no team. That's 96 of the 169 next authors.
+- By commits before the cut: 0 commits 70 people (257 files), 1 commit 1 (2), 2–10 commits 11 (32), more than 10 14 (147). Most are newcomers. A person's team comes from their own ticket-keyed commits in the lookback, so a first-time author can never have one. The 26 with earlier commits have none in the last 180 days that name a ticket with a component.
+- By module: `sql/` 325 files (33.9% of `sql/`'s 959), `core/` 33 (19.0%), `python/` 32 (10.7%), `connector/` 14 (66.7% of 21), `common/` 12 (18.8%), `resource-managers/` 6, `mllib/` 5, `examples/` 4, `dev/` 3, and one file each in `docs/`, `graphx/`, `launcher/`, `project/`.
+- The rule names an owner for 55.7% of their files, against 53.9% for next authors with a team. So their files are routed like anyone's; the gap is that nobody can check the route.
+- The 730-day lookback gives a team to the next author of 150 of the 438 files. On the 86 of those the rule owns, the named owner matches that team 0.651 of the time, above the overall 0.496. All of them made commits before the cut: a newcomer has no team under any lookback, so stays uncheckable.
+
 ### How many slices
 
 133 judged and 29 flagged (`bias.json` `slices_tested`, `slices_flagged`). Ticket mapping and resolver judge 108 and flag 24. The owner rule judges 25 and flags 5 (module 3/1, team 6/1, prior commits 2/0, assigned share 7/0, owned share 7/3).
@@ -60,15 +69,27 @@ We scored each candidate fix for the owner rule on the same files in the rerun (
 | Variant | Files owned | Accuracy (owners.py, unassigned = miss) | Accuracy, next authors with a team | Next author unassigned | Worst module gap |
 |---|---:|---:|---:|---:|---:|
 | as configured: `min_share` 0.30, teams from 180 days | 988 | 0.373 | 0.496 (N = 744) | 24.7% | 0.268 |
-| `min_share` 0.20 / 0.10 (adjusting the decision threshold) | 992 | 0.372 | 0.493 (N = 748) | 24.6% | 0.265 |
+| `min_share` 0.20 / 0.10 (a looser decision threshold) | 992 | 0.372 | 0.493 (N = 748) | 24.6% | 0.265 |
+| `min_share` 0.40 (stricter: abstains more) | 974 | 0.378 | 0.500 (N = 736) | 24.4% | 0.272 |
+| `min_share` 0.50 | 956 | 0.378 | 0.501 (N = 721) | 24.6% | 0.282 |
+| `min_share` 0.60 | 817 | 0.400 | 0.534 (N = 612) | 25.1% | 0.284 |
 | teams from 365 days | 989 | 0.439 | 0.538 (N = 806) | 18.5% | 0.263 |
 | teams from 730 days | 989 | 0.458 | 0.545 (N = 831) | 16.0% | 0.242 |
 | fallback to the last toucher's team when unowned | 1,634 | 0.303 | 0.395 (N = 1,255) | 23.2% | 0.369 |
 
 - Lowering the threshold does nothing. Those files are unowned because their authors have no team, not because shares sit near 0.30.
+- Raising it traces the abstain curve. 0.40 and 0.50 stay flat (0.500, 0.501, intervals 0.464–0.536 and 0.464–0.537 against 0.460–0.532). 0.60 is the first clear step: 0.534 (0.495–0.573) on 817 files, and 0.505 → 0.560 at the earlier cut (769 → 595 files). It gives up 171 files, which are right 42 of 132 times (0.318), and the worst module gap widens to 0.284.
 - Falling back to the last toucher owns 65% more files, but it's wrong more often (0.395) and widens the module gap.
 - A longer lookback for a person's team helps, but less than 0.373 → 0.458 suggests. Each variant is scored against its own labels, and the 730-day lookback also gives a team to 86 next authors who were unassigned, every one a guaranteed miss before. Without them the gain is 0.496 → 0.545 (+0.049), with overlapping intervals (0.460–0.532 vs 0.511–0.579). Coverage is the bigger win: unassigned next authors go from 24.7% to 16.0%. The catch is that a team from two years ago can be stale for someone who moved.
-- On held-out data the longer lookback doesn't hold up. `bias.py` picks the best variant at a cut one window earlier, 2025-10-06, with next authors limited to before the current cut, so the pick never sees the answers it's checked on. Then it scores the pick against the configured rule on the current cut, 2026-04-04, with a 95% interval from a seeded paired bootstrap over files (1,000 resamples, seed 0). On 1,279 files at the earlier cut the configured rule wins: 180 days 0.505, 730 days 0.502, `min_share` 0.20/0.10 0.502, 365 days 0.486. So the pick is the configured rule, and the held-out delta is 0.0, with a 95% interval of 0.0–0.0 (`bias.json` `owner_rule.held_out`). The +0.049 on the current cut is in-sample only.
+- On held-out data the longer lookback doesn't hold up. `bias.py` picks the best variant at a cut one window earlier, 2025-10-06, with next authors limited to before the current cut, so the pick never sees the answers it's checked on. Then it scores the pick against the configured rule on the current cut, 2026-04-04, with a 95% interval from a seeded paired bootstrap over files (1,000 resamples, seed 0). Only a variant that owns at least as many files as the configured rule there can be picked: a stricter `min_share` is right more often on what it still names, so it would win by abstaining, not by being right more (`owned_at_earlier_cut` records the counts). On 1,279 files at the earlier cut the configured rule wins: 180 days 0.505, 730 days 0.502, `min_share` 0.20/0.10 0.502, 365 days 0.486. The stricter thresholds score 0.508 (0.40, 755 files), 0.504 (0.50, 737) and 0.560 (0.60, 595) but own fewer files, so they're read as the curve above, not picked. So the pick is the configured rule, and the held-out delta is 0.0, with a 95% interval of 0.0–0.0 (`bias.json` `owner_rule.held_out`). The +0.049 on the current cut is in-sample only.
+
+### Adopted: abstain below `min_share` 0.30
+
+`min_share` is the owner rule's decision threshold. Below it the rule names no owner and the file shows as "unowned, needs review". That's the mitigation we adopted: the rule abstains rather than guesses. The curve above is its measurement, against the rule that never abstains (the last-toucher fallback, 0.395 on 1,634 files).
+
+Why abstaining reduces harm: a wrong owner is silent. The work goes to a team that didn't write the code, and nothing shows it went wrong. "Unowned, needs review" is visible, so a person routes it. On the 511 scored files where the rule abstains and the fallback guesses, the guess is right 127 times (0.249): three in four would go to the wrong team.
+
+Why 0.30: from 0.10 to 0.50 accuracy is flat (0.493–0.501), so 0.30 keeps the most files at the same accuracy. 0.60 is better on accuracy at both cuts (+0.038 now, +0.055 earlier) but sends 171 more files to review and widens the worst module gap. We recommend it if the team has the review capacity. It changes `meridian.toml` `[ownership] min_share`, so a new run_id; it isn't adopted on c5118b019d642a9b.
 
 ### What we ship now (no new run_id)
 
@@ -84,4 +105,4 @@ It would give a person's team its own lookback, `[teams.spark] lookback_days = 7
 - Add `apache/spark-docker` and `apache/spark-kubernetes-operator` to the snapshot so their keyed commits map (a new run_id). That should close much of the Kubernetes and Docker gap, and the next bias run will show how much.
 - "Never notified" (stall reason #2, stage 5) should treat a component whose `mapped_share` slice is flagged as unknown, not unnotified.
 
-`tests/test_bias.py` pins the rules on a synthetic history: the interval flag rule, a slice at exactly N = `min_n`, multi-component tickets, the prior-commits slice and the held-out scoring.
+`tests/test_bias.py` pins the rules on a synthetic history: the interval flag rule, a slice at exactly N = `min_n`, multi-component tickets, the prior-commits slice, a threshold above the configured one, the no-team group and the held-out scoring (a stricter threshold isn't picked for abstaining).

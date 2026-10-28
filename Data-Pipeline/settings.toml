@@ -98,23 +98,24 @@ delta_overlap_minutes = 1440          # a ticket delta asks for changes since th
                                       # the time in its own zone. Tickets pulled twice come back the same
 
 [history]
-szz_workers = 0                       # SZZ processes. 0 = one per CPU
+szz_workers = 4                       # SZZ processes (0 = one per CPU). 4: ten ran Docker's 7.7 GB out of memory
 
 # ───────────── caches (notes/UPDATE-PLAN.md, Phase 3) ─────────────
-# Each switch lets a part reuse its last results for inputs that didn't change. All off: Phase 3 is signed off "only
-# if runs get slow". On or off, a part writes the same bytes (tests/test_cache.py). A cache lives under the data root in
-# snapshots/_cache/{scan,resolve,szz}/<repo>.json, is never hashed into a run, and keeps only what its last run used.
+# Each switch lets a part reuse its last results for inputs that didn't change. On since Oct 27: the Gantt showed
+# history (SZZ) as the critical path of the daily update (report Appendix A). On or off, a part writes the same
+# bytes (tests/test_cache.py). A cache lives under the data root in snapshots/_cache/{scan,resolve,szz}/<repo>.json,
+# is never hashed into a run, and keeps only what its last run used.
 # Delete a folder to start that cache over. The Sunday rebuild runs with all three off (MERIDIAN_NO_CACHE).
 
 [cache]
-scan = false                          # per file: its git blob SHA, path and kind, scan.py, tree-sitter's versions, the
+scan = true                           # per file: its git blob SHA, path and kind, scan.py, tree-sitter's versions, the
                                       # repo's symbols and [scanner]. A file whose key is unchanged keeps its rows
 resolve = false                       # per file: resolve.py and scan.py, the versions, the repo's symbols and [resolver]
                                       # rules, the dependencies' SHAs (Django, for the packages), every file name in the
                                       # checkout, the file's candidates, and the blob of every repo file Jedi read for it
                                       # (what it imports, however deep). A push that adds or deletes a file redoes the
                                       # repo. call_edge is always rebuilt
-szz = false                           # per fix commit: its SHA, szz.py, [szz] test_paths and comment_prefixes, git's
+szz = true                            # per fix commit: its SHA, szz.py, [szz] test_paths and comment_prefixes, git's
                                       # version. Only new fix commits are blamed; key and file_bug_fixes are redone
 
 # ───────────── data checks (meridian.validate) ─────────────
@@ -255,7 +256,8 @@ pattern = "sorted_json_list"
 [bias]
 min_n = 30                            # a slice needs this many rows to be judged (05-test: no claim below N = 30)
 max_gap = 0.10                        # flagged when its metric is more than this below the overall value
-min_shares = [0.30, 0.20, 0.10]       # owner-rule thresholds scored as mitigations; the first is meridian.toml's
+min_shares = [0.30, 0.20, 0.10, 0.40, 0.50, 0.60]   # owner-rule thresholds scored as mitigations; the first is
+                                      # meridian.toml's. Above it the rule abstains more: the accuracy-coverage curve
 team_lookback_days = [180, 365, 730]  # how far back a person's commits give them a team, scored as a mitigation
 recent_since = "2020"                 # ticket mapping is sliced again on tickets filed since this year: old tickets'
                                       # files are often gone, so this separates a component's age from its gap

@@ -50,6 +50,7 @@ Data-Pipeline/logs/*
 !**/labels/*.csv
 # the Gantt's task timings: no personal data
 !Data-Pipeline/report/airflow_run.csv
+!Data-Pipeline/report/airflow_run_warm.csv
 
 # OS / editor junk
 .DS_Store
