@@ -471,8 +471,8 @@ stages:
       size: 9667
     - path: meridian/validate.py
       hash: md5
-      md5: b278e60f81f5748c35e02b5c2af789dc
-      size: 13898
+      md5: 389bf0a949c01886901f0ef6809ad63e
+      size: 14355
     - path: meridian/writer.py
       hash: md5
       md5: ab89cf667f130a7d166166d5888b61bf
@@ -560,8 +560,6 @@ stages:
           dates:
             columns: .*_at|at
             earliest: '2000-01-01T00:00:00Z'
-            allow:
-              ticket.created_at: 289
           drift:
             max_row_change: 0.2
             min_rows: 100
@@ -641,8 +639,8 @@ stages:
     outs:
     - path: ../out/c5118b019d642a9b/anomalies.json
       hash: md5
-      md5: 58e0494c51d30eb3494f7c9198986bb9
-      size: 3
+      md5: d01bde671fa3fac598c1460824f57999
+      size: 255
     - path: ../out/c5118b019d642a9b/stats.json
       hash: md5
       md5: 9097d46b87049e82608d83703693a8c9
@@ -697,8 +695,8 @@ stages:
       size: 13175
     - path: meridian/bias.py
       hash: md5
-      md5: 8ceb342933257f7377f05e7a97cc8b51
-      size: 22143
+      md5: ab5e1ef51103471e50f7d57d726ccdd4
+      size: 22588
     - path: meridian/common.py
       hash: md5
       md5: 374f9ce4fbb3f5ad359d6a1be31eb789
@@ -727,5 +725,5 @@ stages:
     outs:
     - path: ../out/c5118b019d642a9b/bias.json
       hash: md5
-      md5: 82b2e90452989d750a4460381431e897
-      size: 37535
+      md5: 410e9b03ec76bbfbd22b524fb8189118
+      size: 36773
