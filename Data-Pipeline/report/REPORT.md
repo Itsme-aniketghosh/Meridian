@@ -65,7 +65,7 @@ And 10,647 of 59,491 Spark tickets (18%) name more than one component. In Spark 
 python -m unittest discover -s tests -t .        # from Data-Pipeline/
 ```
 
-CI runs this on Linux and Windows on every push, plus an Airflow job and a GX job ([Appendix B §1](appendix-quality.md#1-tests), [TESTING.md](../../TESTING.md)).
+CI runs this on Linux and Windows on every pull request and push to main, plus an Airflow job, a GX job and a push-check job ([Appendix B §1](appendix-quality.md#1-tests), [TESTING.md](../../TESTING.md)).
 
 ### 2.4 Pipeline orchestration (Airflow DAGs)
 
@@ -89,7 +89,7 @@ Every part logs counts as it goes through Python's `logging`, and Airflow keeps 
 
 `schema.sql` defines every table: columns, types, keys and allowed values, and the writer refuses any row that breaks it. `validate` computes statistics per column (rows, missing, distinct values, min, max, mean, common values) into `stats.json`, and the next run compares against them, so quality is checked over time and not just once.
 
-Every Sunday a Great Expectations suite re-checks the block on its own and publishes Data Docs. On `c5118b019d642a9b` it ran 308 expectations and none failed. It never blocks a run; `validate` is the gate ([Appendix B §2 and §4](appendix-quality.md#2-schema-and-statistics)).
+Every Sunday a Great Expectations suite re-checks the block on its own and publishes Data Docs. On `c5118b019d642a9b` it ran 308 expectations, and one failed: the date check, on the 289 invalid dates (§2.8), alerted as a warning. It never blocks a run; `validate` is the gate ([Appendix B §2 and §4](appendix-quality.md#2-schema-and-statistics)).
 
 ### 2.8 Anomaly detection and alerts
 
@@ -208,7 +208,7 @@ The README's steps set up and run the pipeline on another machine. The pipeline 
 
 - The 24 output files of `c5118b019d642a9b` match their frozen hashes (`tests/test_golden.py`), and collect rebuilds the same run_id from the pinned SHAs, ticket pulls and `meridian.toml`. Byte for byte holds in the pipeline's Docker image. Run natively with another git version, `commit_file` can differ by a few rows, because git's rename detection changes between versions (on v1, git 2.50 on a Mac against the image's 2.39 gave 9 of 849,643 rows), and every other file matches. This team-run check needs the zip, so it can't run in CI or on a bare clone. CI runs the fixture's golden instead, and `reproduce.py` Option 2 runs the team one (below).
 - The weekly rebuild matched the update byte for byte.
-- CI checks a small fixture's hashes on Linux and Windows on every push.
+- CI checks a small fixture's hashes on Linux and Windows on every pull request and push to main.
 
 A TA needs one file, [reproduce.py](../reproduce.py), plus Python 3.11+ and git. There are two options.
 
@@ -233,7 +233,7 @@ python3 Meridian/Data-Pipeline/reproduce.py
 
 That's all the TA does by hand. The script finds the zip, checks its sha256 and unzips it into `snapshots/`. Then it clones the 22 code repos from GitHub at their pinned SHAs, runs every task in the order the DAG does, and prints a PASS/FAIL summary. It checks that collect gave `run_id=c5118b019d642a9b` and that the 24 outputs match `golden/c5118b019d642a9b.json`. Run natively, `commit_file` can differ by git version, and the script says so if it does. The Airflow run in Docker is in the [README](../README.md).
 
-Underneath, `python run_demo.py short` runs in about 10 seconds with no private data and no Docker, one guideline item at a time on the fixture. `python run_demo.py long` runs everything, Airflow included. Both check free RAM and disk before heavy steps and skip with a reason rather than crash.
+Underneath, `python run_demo.py short` runs in under a minute with no private data and no Docker, one guideline item at a time on the fixture. `python run_demo.py long` runs everything, Airflow included. Both check free RAM and disk before heavy steps and skip with a reason rather than crash.
 
 ### 4.4 Code style
 
@@ -243,7 +243,7 @@ One module per part, each with a docstring saying what it reads and writes. flak
 
 - A part that can't go on stops with the reason and a non-zero exit code: a missing input, a snapshot not at its pinned commit, a bad row, a corrupt file.
 - Airflow times the task out, retries it twice five minutes apart, then sends an alert. Retries, delay and the failure callback are set at [meridian_dag.py:113-115](../dags/meridian_dag.py), each task's timeout and retries at lines 124-135, and the alert itself is `meridian/alert.py`.
-- Parts are idempotent, so a retry is safe. `publish` refuses a partial run and refuses to roll the live block back to an older run.
+- Parts are idempotent, so a retry is safe. `publish` refuses a partial run (unless given `--allow-partial`) and refuses to roll the live block back to an older run.
 - A trigger's run id is checked before it reaches any shell command (`pipeline_spec.checked_run`: 16 hex characters or empty, else the task fails).
 
 We tested this by breaking things on purpose: 27 injected faults and 42 scenario tests. [Appendix D](appendix-testing.md) lists what broke and what we fixed.

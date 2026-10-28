@@ -55,7 +55,7 @@ python -m meridian.scan --run-id <run_id> --config meridian.toml                
 python -m meridian.resolve --run-id <run_id> --config meridian.toml
 python -m tests.score_packages --run-id <run_id> --config meridian.toml          # package precision and recall
 python -m tests.hand_check_aliases --run-id <run_id> --config meridian.toml --initials XX   # interactive
-MERIDIAN_RUN_ID=<run_id> python -m unittest tests.test_resolve -v                # 45 tests, Django + package checks
+MERIDIAN_RUN_ID=<run_id> python -m unittest tests.test_resolve -v                # 46 tests, Django + package checks
 ```
 
 `requirements.txt` is the image's lockfile. Size the job for the 1.2 GB peak seen on 973531f7fd4cfd5e.

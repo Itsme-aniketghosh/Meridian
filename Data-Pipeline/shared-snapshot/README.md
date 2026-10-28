@@ -14,7 +14,7 @@ Everyone has to work on the same run, or our tables won't join. Collect can clon
 | zip | `meridian-raw-973531f7fd4cfd5e.zip`, 145 MB, [Google Drive](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link) |
 | sha256 | `d422ba26c976beeca953e8831e0f8f0eaad339a0359cdbd6fe4b9ea6c8f2d523` |
 
-The zip holds real names ([CSV-POLICY.md](../CSV-POLICY.md)), so it's not in git. Ask the team for the link, and don't share it outside the team.
+The zip holds real names ([CSV-POLICY.md](../CSV-POLICY.md)), so it's not in git. Don't share the link outside the team.
 
 ## Get the run, step by step
 

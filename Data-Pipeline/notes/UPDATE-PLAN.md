@@ -1,6 +1,6 @@
 # Keeping the graph up to date · plan
 
-Draft from a team discussion. Built so far: the Phase 3 caches, all switched off (Phases, below). Numbers (#1–#18) are the items to confirm.
+Draft from a team discussion. Most of it is built now (DAGs, below); of the Phase 3 caches, scan and SZZ are on for the daily update. Numbers (#1–#18) are the items to confirm.
 
 ## Now vs where we want to be
 
@@ -28,7 +28,7 @@ Draft from a team discussion. Built so far: the Phase 3 caches, all switched off
 7. **One run at a time.** Each run matches against the previous one. *(The DAG already has `max_active_runs = 1`.)*
 8. **Inside a run, changed repos in parallel**, plus repos that depend on them (a Django change re-resolves the packages). Then one short merge: join → graph → validate → publish.
 9. **Never split one repo into pieces.** The resolver needs the whole repo.
-10. **Publish only if validate passes**, else the last good block stays live. *(`settings.toml` has the switch; the publish step isn't built.)*
+10. **Publish only if validate passes**, else the last good block stays live. *(Built: `meridian.publish`.)*
 11. **Per-push blast radius lives in the push check** on PRs, before merge.
 12. **Show staleness before the click:** "data 2 days old · 14 new pushes · Update". A click during a run doesn't start a second one.
 13. **Build in phases** (see Phases, below).
@@ -43,7 +43,7 @@ Draft from a team discussion. Built so far: the Phase 3 caches, all switched off
 
 ## DAGs
 
-**Built (Phase 1 orchestration):** `meridian_update` and `meridian_rebuild` in `dags/meridian_dag.py`, from `dags/pipeline_spec.py`; `meridian.status`, `meridian.publish`, `meridian.compare`; the dashboard's staleness line and Update graph button; collect's mirrors and cursors (#14–#18, `meridian.collect`), `meridian.report` and the push check (`meridian.pushcheck`). Not yet: parallel repos (#8). Each DAG recomputes every part for now.
+**Built (Phase 1 orchestration):** `meridian_update` and `meridian_rebuild` in `dags/meridian_dag.py`, from `dags/pipeline_spec.py`; `meridian.status`, `meridian.publish`, `meridian.compare`; the dashboard's staleness line and Update graph button; collect's mirrors and cursors (#14–#18, `meridian.collect`), `meridian.report` and the push check (`meridian.pushcheck`). Not yet: parallel repos (#8). Each DAG runs every part for now; the daily update reuses the scan and SZZ caches.
 
 | DAG | Runs | Does |
 |---|---|---|
@@ -67,8 +67,8 @@ Times now (Oct 23–24), **on a Windows machine**: history 430 s, resolve 295 s,
 | **Built (Oct 24).** validate builds `meridian.sqlite` once (the dashboard reuses it) and runs one stats query per table, not per column | Estimated 165 s → ~30 s; measured on a copy of 70dd's block (Windows, 0.3–0.5 GB free): statistics 14–41 s per column, 15–43 s per table, the same `stats.json`, so **no gain**. The time is counting distinct values of long text columns (`ticket.description` alone 19 s), not reading tables. The dashboard saves its own ~1 min writer rebuild | 1 |
 | Bias and full statistics weekly (in the rebuild), not on every update. The quick checks (rows, formats, ranges, coverage floors) still run on every update: they decide publish | −35 s per update | 1 |
 | **Built (Oct 24), off by default:** `docker-compose.volumes.yaml`. Keep `snapshots/` and `out/` on a Docker volume, not the Windows/Mac folder. Mount the volumes at those same paths in the repo: `dvc.yaml` reads `../out` and `../snapshots` | git and file reads several times faster in Docker (not timed yet) | 1 |
-| Scan cached per file, by git blob SHA. Resolve cached per file too, but also redone for every file that imports a changed module (caveat 2). **Built, off by default**: `[cache] scan` and `[cache] resolve` in `settings.toml`. Resolve records every repo file Jedi reads for a file (imports and re-exports however deep, stub lookups) and redoes the file when any of them changes; a push that adds or deletes a file redoes its repo; `call_edge` is rebuilt every run, not cached | scan + resolve from ~7 min to seconds on a typical push (resolve: less, its `call_edge` questions are still all asked) | 3 |
-| SZZ on new fix commits only; keep earlier `bug_inducing` rows (blame of past commits never changes). Recount `file_bug_fixes`: its 365-day window moves. **Built, off by default**: `[cache] szz`. The fix's ticket `key` is recomputed too | history from ~7 min to seconds | 3 |
+| Scan cached per file, by git blob SHA. Resolve cached per file too, but also redone for every file that imports a changed module (caveat 2). **Built**: `[cache] scan` and `[cache] resolve` in `settings.toml`. Scan is on for the daily update since Oct 27; resolve is off, because it was slower through the Mac's folder mount (195 → 261 s). Resolve records every repo file Jedi reads for a file (imports and re-exports however deep, stub lookups) and redoes the file when any of them changes; a push that adds or deletes a file redoes its repo; `call_edge` is rebuilt every run, not cached | scan + resolve from ~7 min to seconds on a typical push (resolve: less, its `call_edge` questions are still all asked) | 3 |
+| SZZ on new fix commits only; keep earlier `bug_inducing` rows (blame of past commits never changes). Recount `file_bug_fixes`: its 365-day window moves. **Built, on for the daily update since Oct 27**: `[cache] szz`, which took history from 854 s to 316 s in Airflow. The fix's ticket `key` is recomputed too | history from ~7 min to seconds | 3 |
 
 **Caveats.** Each one is a way an update could go quietly wrong. The Sunday rebuild would catch it, but only days later:
 
@@ -78,7 +78,7 @@ Times now (Oct 23–24), **on a Windows machine**: history 430 s, resolve 295 s,
 
 ## Phases
 
-**Phase 0 · before `mlops-pipeline` merges.** The fixes below: four done; the `manifest.json` dependency, the one-machine rule for `dvc.lock` and the Windows gap still open.
+**Phase 0 · before `mlops-pipeline` merges.** The fixes below: all done.
 
 **Phase 1 · runs on request, daily, and a weekly rebuild.** Each run still recomputes every part, but only for repos that changed.
 - Contract changes #14–#18 (one new team run_id).
@@ -93,10 +93,10 @@ Times now (Oct 23–24), **on a Windows machine**: history 430 s, resolve 295 s,
 - Optional: a merged push starts `meridian_update` itself (still one run at a time, batched).
 - Done when: a PR gets its comment in under 5 minutes (05-test), and a burst of pushes makes one run, not many.
 
-**Phase 3 · update only what changed, inside each part.** Once runs get slow. Built, every switch off (`settings.toml` `[cache]`); `tests/test_cache.py` checks on fixtures that each cache writes the same bytes as no cache, and that after one change (for resolve, in an imported module) it equals a run from scratch.
+**Phase 3 · update only what changed, inside each part.** Once runs get slow. Built (`settings.toml` `[cache]`): scan and SZZ on for the daily update, resolve off, all three off in the Sunday rebuild; `tests/test_cache.py` checks on fixtures that each cache writes the same bytes as no cache, and that after one change (for resolve, in an imported module) it equals a run from scratch.
 - Scan and resolve cached per file, by git blob SHA.
 - SZZ on new fix commits only.
-- To switch on: set the three to true for updates, keep them off for the Sunday rebuild, and compare.
+- Switched on Oct 27: scan and SZZ for updates, every cache off for the Sunday rebuild (`MERIDIAN_NO_CACHE`), and compare checks.
 - Done when: the Sunday rebuild still equals the updates (0 differences), and a typical update takes seconds.
 
 ## Fixes on `mlops-pipeline` before it merges
@@ -104,10 +104,10 @@ Times now (Oct 23–24), **on a Windows machine**: history 430 s, resolve 295 s,
 - [x] Add `.gitattributes` (LF line endings) and regenerate `dvc.lock` on Mac/Linux: Windows line endings change the hashes. Done: 13 code and config hashes were Windows-only; `dvc status` is clean on Mac. On Windows, refresh the checkout once so files come out LF (below)
 - [x] Add `dvc-gs` to `requirements.txt` (for the `gcs` remote). Done: `dvc-gs==3.1.0`, `gcsfs==2026.10.1`; `dvc version` lists gs
 - [x] Add `.DS_Store` and `Thumbs.db` to `.dvcignore`. Done: the raw-pull hashes now match on Mac and Windows
-- [ ] Find the Windows-vs-Mac difference in `resolution` and `call_edge` (2,293 vs 2,288 edges). Needs both machines' files. The regenerated `dvc.lock` records the Mac values: `resolution`, `call_edge`, `blast_radius`, `stats.json` differ from Windows, and `run.jsonl` by design (`image_digest`)
-  - Checked on Windows after the LF refresh: no code or config file shows changed any more. Mac's `call_edge.jsonl` is 662,303 bytes ≈ **2,288** edges, as RESOLVER.md; Windows has 2,293. `resolution.jsonl` has the same 3,739 rows on both but 48 bytes differ, so a few values, not rows. The gap is Windows only. Next: send the Mac's `resolution.jsonl` and `call_edge.jsonl` and diff them against Windows
-- [ ] **`run.jsonl` makes stages look changed on every other machine.** Its `image_digest` differs by machine on purpose, and history, scan, validate and bias depend on it in `dvc.yaml`, so `dvc repro` would rerun history and scan for nothing. Fix: depend on `../snapshots/${pipeline.run_id}/manifest.json` instead (the same run, no machine fingerprint), then regenerate `dvc.lock` once on Mac/Linux
-- [ ] **One machine kind writes `dvc.lock`.** Until the Windows gap is fixed, a `dvc commit` on Windows overwrites the Mac values and back. Rule: `dvc.lock` is committed from Linux or Mac only (the Docker image, or a Mac)
+- [x] Find the Windows-vs-Mac difference in `resolution` and `call_edge` (2,293 vs 2,288 edges). Needs both machines' files. The regenerated `dvc.lock` records the Mac values: `resolution`, `call_edge`, `blast_radius`, `stats.json` differ from Windows, and `run.jsonl` by design (`image_digest`)
+  - Checked on Windows after the LF refresh: no code or config file shows changed any more. Mac's `call_edge.jsonl` is 662,303 bytes ≈ **2,288** edges, as RESOLVER.md; Windows has 2,293. `resolution.jsonl` has the same 3,739 rows on both but 48 bytes differ, so a few values, not rows. The gap is Windows only. Next: send the Mac's `resolution.jsonl` and `call_edge.jsonl` and diff them against Windows. Done: Jedi's folder order, now fixed ([RESOLVER.md](../RESOLVER.md))
+- [x] **`run.jsonl` makes stages look changed on every other machine.** Its `image_digest` differs by machine on purpose, and history, scan, validate and bias depend on it in `dvc.yaml`, so `dvc repro` would rerun history and scan for nothing. Fix: depend on `../snapshots/${pipeline.run_id}/manifest.json` instead (the same run, no machine fingerprint), then regenerate `dvc.lock` once on Mac/Linux. Done: `dvc.yaml` depends on `manifest.json`
+- [x] **One machine kind writes `dvc.lock`.** Until the Windows gap is fixed, a `dvc commit` on Windows overwrites the Mac values and back. Rule: `dvc.lock` is committed from Linux or Mac only (the Docker image, or a Mac). Done: the rule is in the README
 - [x] The Windows refresh command below used `&&`, which Windows PowerShell 5.1 doesn't have. Fixed: one command per line
 
 On Windows, after pulling this, commit or stash your work first, then once (cmd or PowerShell):

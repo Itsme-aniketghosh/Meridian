@@ -140,10 +140,10 @@ Read-only. `run_id`, `snapshot_at`, and coverage on every screen.
 
 ## 10. Push check
 
-- Trigger: every push and PR, GitHub Actions
+- Trigger: every PR, GitHub Actions. A fork's PR can't comment, so its check goes to the job summary
 - Base: last nightly map as one SQLite file. Jira from the base snapshot
 - Scope: changed files + importers. Over 200 files → skip
-- Run: Extract, Join, Graph on scope. Output = base rows vs push rows
+- Run: Extract, Resolve, Join, Graph on scope. Output = base rows vs push rows
 
 | # | Check | Fires when |
 |---|---|---|
@@ -184,6 +184,6 @@ Read-only. `run_id`, `snapshot_at`, and coverage on every screen.
 | Force-push | Halt repo |
 | Parse failure | Excluded, counted |
 | No ticket links | Risk and chains off, said on screen |
-| Incremental ≠ rebuild | Halt, keep last good run |
+| Incremental ≠ rebuild | Alert, publish the rebuild |
 | No base map | Push check silent |
 | Push ≠ nightly | Nightly wins, logged |
