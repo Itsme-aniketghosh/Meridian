@@ -59,7 +59,7 @@ And 10,647 of 59,491 Spark tickets (18%) name more than one component. In Spark 
 
 ### 2.3 Test modules
 
-340 unit tests (`unittest`), one test file per part, all passing. On a plain Windows machine 19 are skipped: 18 need Airflow, GX or the team's private data, and 1 runs on Mac and Linux only. Those run in their own CI jobs or with the team data. The fixtures carry the edge cases: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
+342 unit tests (`unittest`), one test file per part, all passing. On a plain Windows machine 19 are skipped: 18 need Airflow, GX or the team's private data, and 1 runs on Mac and Linux only. Those run in their own CI jobs or with the team data. The fixtures carry the edge cases: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
 
 ```
 python -m unittest discover -s tests -t .        # from Data-Pipeline/
@@ -144,13 +144,13 @@ A slice counts when it has at least 30 rows. It's flagged when its whole 95% Wil
 
 We scored each fix on the same files, then checked the best one on held-out data.
 
-**Adopted: the owner rule abstains instead of guessing.** `min_share` is a decision threshold. A file's top team must hold at least 30% of its recent commits, or the rule names no owner and the file shows as "unowned, needs review". We measured that choice as a curve: raise the threshold and the rule names fewer files but is right more often on the ones it names. On the 1,819 files of the test (accuracy on next authors with a team):
+**Kept, after measuring: the owner rule abstains instead of guessing.** This is the rule we already had, not a new change; what's new is that we measured it against the alternatives and chose to keep it. `min_share` is a decision threshold. A file's top team must hold at least 30% of its recent commits, or the rule names no owner and the file shows as "unowned, needs review". We measured that choice as a curve: raise the threshold and the rule names fewer files but is right more often on the ones it names. On the 1,819 files of the test (accuracy on next authors with a team):
 
 | min_share | Files owned | Accuracy (N, 95% CI) | Earlier cut: owned, accuracy |
 |---|---:|---:|---:|
 | never abstain (last toucher's team) | 1,634 (89.8%) | 0.395 (1,255, 0.369–0.423) | not scored |
 | 0.10 / 0.20 | 992 (54.5%) | 0.493 (748) | 774, 0.502 |
-| **0.30 (adopted, meridian.toml)** | **988 (54.3%)** | **0.496 (744, 0.460–0.532)** | **769, 0.505** |
+| **0.30 (kept, meridian.toml)** | **988 (54.3%)** | **0.496 (744, 0.460–0.532)** | **769, 0.505** |
 | 0.40 | 974 (53.5%) | 0.500 (736, 0.464–0.536) | 755, 0.508 |
 | 0.50 | 956 (52.6%) | 0.501 (721, 0.464–0.537) | 737, 0.504 |
 | 0.60 | 817 (44.9%) | 0.534 (612, 0.495–0.573) | 595, 0.560 |
@@ -163,7 +163,7 @@ Measured, not adopted:
 
 - Lowering the threshold (0.20 or 0.10) changed nothing: files are unowned because their authors have no team, not because shares sit near the line.
 - Falling back to the last person who touched the file owns 65% more files but is wrong more often (0.395), and widens the worst module gap to 0.369.
-- Taking a person's team from their last 730 days instead of 180 looked best: accuracy 0.496 to 0.545, and unassigned authors 24.7% down to 16.0%. But picked on an earlier cut and checked on the current one, it lost to the current rule (0.502 vs 0.505). So we didn't adopt it.
+- Taking a person's team from their last 730 days instead of 180 looked best on the current data: accuracy 0.496 to 0.545, and unassigned authors 24.7% down to 16.0%. The held-out check picks a variant at an earlier cut (2025-10-06), before seeing the current data. There the 730-day lookback scored 0.502 and the current rule 0.505, so the pick was the current rule itself, and the held-out delta is 0.0 by construction. So the 730-day gain isn't confirmed on data it wasn't chosen on, and we didn't adopt it.
 
 **Authors with no team, as their own group** (`bias.json` `owner_rule.no_team_authors`). 438 of the 1,819 files (24.1%) have a next author with no team. That's 96 of 169 next authors. Most are newcomers: 70 of the 96 had no commits before the cut (257 files), 11 had 2–10, 14 more than 10 and 1 had one. A person's team comes from their own ticket-keyed commits, so a first-time author can never have one. That means the prior-commits slice in §3.2 can't speak for newcomers at all. Their files are mostly in `sql/` (325 files, 33.9% of `sql/`'s), then `core/` (33) and `python/` (32). `connector/` is the most affected, with 14 of its 21 files. The rule names an owner for their files about as often as for anyone else's (55.7% vs 53.9%), so they aren't routed worse, just not checkable. Where a 730-day lookback gives them a team (150 files), the named owner matches it 0.651 of the time (N = 86), above the overall 0.496.
 
@@ -175,7 +175,7 @@ What we shipped beyond the rule: every slice in `bias.json` carries its size, in
 
 - The longer lookback gives more people a team, but a two-year-old team can be wrong for someone who moved.
 - The flags aren't corrected for testing 133 slices at once. Under a Bonferroni check 23 of the 29 still hold.
-- `tests/test_bias.py` pins the slicing and flag rules, a threshold above the adopted one, the no-team group and the held-out pick on a synthetic history.
+- `tests/test_bias.py` pins the slicing and flag rules, a threshold above the kept one, the no-team group and the held-out pick on a synthetic history.
 
 ## 4. Additional guidelines
 
@@ -206,7 +206,7 @@ The data (the guidelines' `data/`) sits at the repo root: `snapshots/` for input
 
 The README's steps set up and run the pipeline on another machine. The pipeline never reads the clock after `collect`: ids are content hashes, output is sorted, and every setting that changes a row is hashed into the run id. So the same snapshot gives the same bytes:
 
-- The 24 output files of `c5118b019d642a9b` match their frozen hashes (`tests/test_golden.py`), and collect rebuilds the same run_id from the pinned SHAs, ticket pulls and `meridian.toml`.
+- The 24 output files of `c5118b019d642a9b` match their frozen hashes (`tests/test_golden.py`), and collect rebuilds the same run_id from the pinned SHAs, ticket pulls and `meridian.toml`. Byte for byte holds in the pipeline's Docker image. Run natively with another git version, `commit_file` can differ by a few rows, because git's rename detection changes between versions (on v1, git 2.50 on a Mac against the image's 2.39 gave 9 of 849,643 rows), and every other file matches. This team-run check needs the zip, so it can't run in CI or on a bare clone. CI runs the fixture's golden instead, and `reproduce.py` Option 2 runs the team one (§4.3).
 - The weekly rebuild matched the update byte for byte.
 - CI checks a small fixture's hashes on Linux and Windows on every push.
 
@@ -242,9 +242,9 @@ One module per part, each with a docstring saying what it reads and writes. flak
 ### 4.5 Error handling and logging
 
 - A part that can't go on stops with the reason and a non-zero exit code: a missing input, a snapshot not at its pinned commit, a bad row, a corrupt file.
-- Airflow times the task out, retries it twice five minutes apart, then sends an alert.
+- Airflow times the task out, retries it twice five minutes apart, then sends an alert. Retries, delay and the failure callback are set at [meridian_dag.py:113-115](../dags/meridian_dag.py), each task's timeout and retries at lines 124-135, and the alert itself is `meridian/alert.py`.
 - Parts are idempotent, so a retry is safe. `publish` refuses a partial run and refuses to roll the live block back to an older run.
-- A trigger's run id is checked before it reaches any shell command.
+- A trigger's run id is checked before it reaches any shell command (`pipeline_spec.checked_run`: 16 hex characters or empty, else the task fails).
 
 We tested this by breaking things on purpose: 27 injected faults and 42 scenario tests. [Appendix D](appendix-testing.md) lists what broke and what we fixed.
 
@@ -260,7 +260,7 @@ We tested this by breaking things on purpose: 27 injected faults and 42 scenario
 | 6 | Pipeline flow optimization | §2.9, [A](appendix-airflow.md) | ✅ The Gantt chart found the bottleneck (`history`, 854 of 943 s). The SZZ cache cut it to 316 s and the DAG to 480 s (−49%), measured in Airflow with the same output bytes |
 | 7 | Schema and statistics generation | §2.7, [B](appendix-quality.md) | ✅ |
 | 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | ✅ Detection is live and tested; alerts reach the team's Slack ([B §3](appendix-quality.md#3-anomalies), with a screenshot). Email is tested against a local SMTP server |
-| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ Detection on 133 slices. Adopted: the owner rule abstains ("unowned, needs review") below `min_share` 0.30, measured on an accuracy-coverage curve against guessing (0.496 vs 0.395); 0.60 recommended, not adopted. No-team authors analysed as their own group. Per-slice flags ship to the views (§3.3) |
+| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ Detection on 133 slices. Kept after measuring: the owner rule abstains ("unowned, needs review") below `min_share` 0.30, checked on an accuracy-coverage curve against guessing (0.496 vs 0.395); 0.60 and the two missing Apache repos recommended, not applied (they change `meridian.toml`). No-team authors analysed as their own group. Per-slice flags ship to the views (§3.3) |
 | 10 | Test modules | §2.3, [B](appendix-quality.md) | ✅ |
 | 11 | Reproducibility | §4.3, [D](appendix-testing.md) | ✅ Same run_id and same bytes from the pinned inputs; `reproduce.py` checks both |
 | 12 | Error handling and logging | §4.5, [D](appendix-testing.md) | ✅ |
