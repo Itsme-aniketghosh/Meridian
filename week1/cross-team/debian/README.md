@@ -1,6 +1,6 @@
 # Cross-team · Debian py2removal
 
-Step 1 of the [cross-team check](../README.md) for the Claude report's #1 pick. Queried 2026-10-02 against the public UDD mirror and the Debian BTS (both read-only). Every number below is printed by a script in this folder.
+Step 1 of the [cross-team check](../README.md) for the first candidate source. Queried 2026-10-02 against the public UDD mirror and the Debian BTS (both read-only). Every number below is printed by a script in this folder.
 
 ## Verdict
 

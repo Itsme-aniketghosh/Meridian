@@ -218,5 +218,4 @@ sh code_run_all.sh      # copies GitLab's code history (1.2 GB) into data/code, 
 Ask the team for them.
 
 **In git:**
-- `labels_table.md`: ticket counts
 - `sample_1000.txt`, `sample_blocked_40.txt`, `cross_toread.txt`: the issue lists, so anyone gets the same samples
