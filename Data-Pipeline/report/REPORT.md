@@ -37,7 +37,7 @@ Each step is its own module, run as `python -m meridian.<part> --run-id <id> --c
 |---|---|
 | `history` | Commits and changed files from git, tickets as they were at the snapshot, commit-to-ticket links from ticket keys, and SZZ (tracing each bug fix back to the commit that caused it) |
 | `scan` | tree-sitter finds every place a tracked name shows up, with its role (import, call, alias) and the function it's in |
-| `resolve` | Jedi checks what each name really refers to, so a look-alike `_()` or `url()` gets dropped |
+| `resolve` | Jedi checks what each name really refers to, so a look-alike `_()` or `url()` gets dropped, and finds which functions call each real use, up to 3 levels (`call_edge`, what `graph`'s blast radius is computed from) |
 | `owners` | Merges a person's emails into one identity (bots and shared addresses aren't people), gives people teams from Jira components, and gives each file an owner team |
 | `join` | The features: call sites with owner, bug-fix count, status and a stable id, tickets mapped to code, and coverage |
 | `graph` | Which call site waits on which, how far each call reaches (blast radius), and ticket chains |
@@ -128,7 +128,7 @@ We don't have demographic data, and we don't want it. What we can check is wheth
 
 - the owner rule (does a file's owner team predict who edits it next?)
 - the ticket mapping (does a ticket reach the code it's about?)
-- the resolver (does it keep the real calls in every repo?)
+- the resolver (does it drop look-alikes at the same rate in every repo, and keep every real call?)
 
 ### 3.2 Data slicing for bias analysis
 
@@ -138,7 +138,7 @@ A slice counts when it has at least 30 rows. It's flagged when its whole 95% Wil
 
 - The owner rule is right 49.6% of the time where it can be scored. A quarter of next authors have no team (none of their commits in the last 180 days names a ticket with a Jira component), so the rule can't score them. That's a coverage gap, not a skew. We look at that group on its own in §3.3.
 - Ticket mapping depends mostly on age. Tickets from before 2014 point at files that are gone by our pinned commit. Kubernetes and Spark Docker stay low even on recent tickets, because their code lives in other Apache repos we didn't snapshot.
-- The resolver treats every repo the same: 98.1% kept overall, no repo flagged.
+- The resolver drops look-alikes at a similar rate in every repo: it keeps 98.1% of candidates (N = 1,556), and none of the 12 judged repos is flagged (lowest: django-silk, 0.933). The 1.9% it drops are look-alikes, names that land on a parameter, a local or another function. Against the answer keys it keeps every real use: in Django all 265 edit lines and all 542 aliased `_()` calls (and all 294 of its candidates resolve to the right symbol), and in the packages 1,236 of 1,236 ([RESOLVER.md](../RESOLVER.md)).
 
 ### 3.3 Mitigation of bias
 
@@ -162,7 +162,7 @@ We kept 0.30. From 0.10 to 0.50 the accuracy is flat (0.493–0.501, the interva
 Measured, not adopted:
 
 - Lowering the threshold (0.20 or 0.10) changed nothing: files are unowned because their authors have no team, not because shares sit near the line.
-- Falling back to the last person who touched the file owns 65% more files but is wrong more often (0.395), and widens the worst module gap to 0.369.
+- Falling back to the last person who touched the file owns 65% more files but is right less often (0.395 against 0.496), and widens the worst module gap to 0.369.
 - Taking a person's team from their last 730 days instead of 180 looked best on the current data: accuracy 0.496 to 0.545, and unassigned authors 24.7% down to 16.0%. The held-out check picks a variant at an earlier cut (2025-10-06), before seeing the current data. There the 730-day lookback scored 0.502 and the current rule 0.505, so the pick was the current rule itself, and the held-out delta is 0.0 by construction. So the 730-day gain isn't confirmed on data it wasn't chosen on, and we didn't adopt it.
 
 **Authors with no team, as their own group** (`bias.json` `owner_rule.no_team_authors`). 438 of the 1,819 files (24.1%) have a next author with no team. That's 96 of 169 next authors. Most are newcomers: 70 of the 96 had no commits before the cut (257 files), 11 had 2–10, 14 more than 10 and 1 had one. A person's team comes from their own ticket-keyed commits, so a first-time author can never have one. That means the prior-commits slice in §3.2 can't speak for newcomers at all. Their files are mostly in `sql/` (325 files, 33.9% of `sql/`'s), then `core/` (33) and `python/` (32). `connector/` is the most affected, with 14 of its 21 files. The rule names an owner for their files about as often as for anyone else's (55.7% vs 53.9%), so they aren't routed worse, just not checkable. Where a 730-day lookback gives them a team (150 files), the named owner matches it 0.651 of the time (N = 86), above the overall 0.496.
