@@ -1,6 +1,6 @@
 # Cross-team · blocks and stalls
 
-The gap was that no week-1 dataset could test feature #5 (hidden cross-team blocks) or #7 (why work stalled). Two deep-research reports ([Claude](research/claude-deep-research.md), [ChatGPT](research/chatgpt-deep-research-report.md)) suggested sources. We checked four of them.
+The gap was that no week-1 dataset could test feature #5 (hidden cross-team blocks) or #7 (why work stalled). We looked for sources that could, and checked four of them.
 
 ## TL;DR
 
