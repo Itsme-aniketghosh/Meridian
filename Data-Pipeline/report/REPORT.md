@@ -1,10 +1,10 @@
 # Meridian data pipeline
 
-Team run `c5118b019d642a9b`: Django, 20 Django packages, Spark with its Apache Jira tickets, and GitLab issues, 1,788,375 rows in 25 tables. The sections follow the assignment's guidelines in order. Appendices A to D hold the evidence.
+Team run `c5118b019d642a9b`: Django, 20 Django packages, Spark with its Apache Jira tickets, and GitLab issues, 1,788,375 rows in 25 tables. Sections follow the assignment's order, and Appendices A to D have the evidence.
 
 ## 1. Overview
 
-Meridian does the cross-codebase review an engineer would do. It joins a company's code, git history and tickets to show every call to an API, who owns it, how risky it is, which teams block each other, and which tickets have drifted from the code. It starts with the hardest case, retiring an internal API across many teams, and is step one toward self-maintaining APIs: software that updates its own callers when an API changes. When a platform team removes something like `AuthClient.verify_token`, someone has to find every call to it, work out which team owns each one, and spot the calls that are risky or that block another team. Today people do that by hand, with Jira tickets that drift away from the code. Meridian works it out from the code, git history and tickets ([docs/02-product.md](../../docs/02-product.md)).
+When a platform team removes something like `AuthClient.verify_token`, someone has to find every call to it, work out which team owns each one, and spot the calls that are risky or that block another team. Today people do that by hand, with Jira tickets that drift away from the code. Meridian does that cross-codebase review from the code, git history and tickets: every call to an API, who owns it, how risky it is, which teams block each other, and which tickets have drifted ([docs/02-product.md](../../docs/02-product.md)). We start with the hardest case, retiring an internal API across many teams. It's step one toward self-maintaining APIs, software that updates its own callers when an API changes.
 
 This pipeline builds the data behind it: one SQLite file (the "block") that every view and check reads. It's two Airflow DAGs, a daily update and a weekly rebuild from scratch that checks the update:
 
@@ -46,7 +46,7 @@ Against answer keys: on Django's `ugettext*` the block finds all 265 lines in a 
 
 #### Cross-team blocks use the same machinery
 
-A block between teams is the same problem as one between people. An owner team is an aggregate of the people who change a file: `owners` gives each person a team (in Spark, the Jira component of their keyed commits) and sums commit shares per team. So who touches what, who calls whose code and which ticket maps to which code work the same for either unit. The real data is also multi-team in practice. On v1's block (`70dd1dabfed544b8`, the same git snapshot and tickets as the team run):
+A block between teams is the same problem as one between people. An owner team is an aggregate of the people who change a file: `owners` gives each person a team (in Spark, the Jira component of their keyed commits) and sums commit shares per team. So who touches what, who calls whose code and which ticket maps to which code work the same for either unit. The real data is multi-team too. On v1's block (`70dd1dabfed544b8`, the same git snapshot and tickets as the team run):
 
 | | Spark | Django |
 |---|---|---|
@@ -55,7 +55,7 @@ A block between teams is the same problem as one between people. An owner team i
 | Owned files with authors from 2+ teams in the 180-day window | 1,268 of 5,708 (22%) | path-prefix teams only |
 | Distinct authors per call-site file, all history | no call sites | median 13; 94% of 116 files have 2+ |
 
-And 10,647 of 59,491 Spark tickets (18%) name more than one component. In Spark a committer's name usually stands for someone else's work, and a fifth of owned files mix teams. Django's committer gap is small, so that point holds for Spark only. The limit stays: no public dataset has both a tracker and tracked code, so on real data 0 tickets map to a call site and the block and chain tables are empty. The hand-built repo `acme/shop` runs the cross-team story end to end, and all 43 product queries pass on it.
+And 10,647 of 59,491 Spark tickets (18%) name more than one component. In Spark a committer's name usually stands for someone else's work, and a fifth of owned files mix teams. Django's committer gap is small, so that point holds for Spark only. The weak spot is still there: no public dataset has both a tracker and tracked code, so on real data 0 tickets map to a call site and the block and chain tables are empty. The hand-built repo `acme/shop` runs the cross-team story end to end, and all 43 product queries pass on it.
 
 ### 2.3 Test modules
 
@@ -104,9 +104,9 @@ On `c5118b019d642a9b` there are 0 errors and 1 warning. 289 Spark tickets are da
 
 ### 2.9 Pipeline flow optimization
 
-**What the Gantt chart showed.** In the team run's update, the tasks add up to 1,183 s back to back. The DAG took 943 s, because `scan` and `resolve` run beside `history` (20% saved). The chart also showed that `history` is the critical path: 854 of the 943 s. Most of that is SZZ, which blames every Spark bug-fix commit again on every run, although almost all of them are the same as the day before.
+In the team run's update the tasks add up to 1,183 s back to back. The DAG took 943 s, because `scan` and `resolve` run beside `history` (20% saved). The Gantt chart showed that `history` is the critical path: 854 of the 943 s. Most of that is SZZ, which blames every Spark bug-fix commit again on every run, though almost all of them are the same as the day before.
 
-**What we changed, and the result.** We turned on the SZZ cache for the daily update (`settings.toml [cache]`). A fix commit blamed once keeps its answer, and only new fix commits are blamed. Then we measured it in Airflow on the same run. The first run fills the cache; the next one reuses it:
+So we turned on the SZZ cache for the daily update (`settings.toml [cache]`). A fix commit blamed once keeps its answer, and only new fix commits are blamed. We measured it in Airflow on the same run. The first run fills the cache and the next one reuses it:
 
 | | Before: cache off | After: warm cache |
 |---|---:|---:|
@@ -114,9 +114,9 @@ On `c5118b019d642a9b` there are 0 errors and 1 warning. 289 Spark tickets are da
 | Whole update DAG | 943 s | **480 s** (−49%) |
 | Output | the 24 golden files | the same 24 files, byte for byte |
 
-The log confirms it: all 9,757 Spark fix commits came from the cache. The "after" run also used 4 SZZ processes instead of one per CPU (10). Ten ran out of Docker's 7.7 GB of memory once the cache was on, so the saving is not from more parallelism. On a real day a few new fix commits are blamed, so a daily run sits a little above 480 s.
+In the log, all 9,757 Spark fix commits came from the cache. The "after" run also used 4 SZZ processes instead of one per CPU (10). Ten ran out of Docker's 7.7 GB of memory once the cache was on, so the saving is not from more parallelism. On a real day a few new fix commits are blamed, so a daily run sits a little above 480 s.
 
-Two caches didn't pay off, and we say so. The scan cache cut `scan` from 11 s to 7 s, which is too small to matter. The resolve cache made `resolve` slower (195 s to 261 s), because checking that a file can be reused means re-reading every file Jedi read for it through the Mac's folder mount. We turned the resolve cache off; `resolve` runs beside `history`, so it isn't on the critical path either way.
+Two other caches didn't pay off. The scan cache cut `scan` from 11 s to 7 s, which is too small to matter. The resolve cache made `resolve` slower (195 s to 261 s), because checking that a file can be reused means re-reading every file Jedi read for it through the Mac's folder mount. We turned the resolve cache off; `resolve` runs beside `history`, so it isn't on the critical path either way.
 
 The weekly rebuild keeps every cache off (`MERIDIAN_NO_CACHE`). Once a week it recomputes everything from scratch and `compare` checks the cached daily results against it, so a stale cache can't go unnoticed. The rest of the cold time is Docker's folder mount on a Mac, which makes git about three times slower than native. A Docker volume or a Linux host would remove that ([Appendix A](appendix-airflow.md)).
 
@@ -144,7 +144,7 @@ A slice counts when it has at least 30 rows. It's flagged when its whole 95% Wil
 
 We scored each fix on the same files, then checked the best one on held-out data.
 
-**Kept, after measuring: the owner rule abstains instead of guessing.** This is the rule we already had, not a new change; what's new is that we measured it against the alternatives and chose to keep it. `min_share` is a decision threshold. A file's top team must hold at least 30% of its recent commits, or the rule names no owner and the file shows as "unowned, needs review". We measured that choice as a curve: raise the threshold and the rule names fewer files but is right more often on the ones it names. On the 1,819 files of the test (accuracy on next authors with a team):
+What we kept, after measuring it, is that the owner rule abstains instead of guessing. This is the rule we already had, not a new change; what's new is that we measured it against the alternatives and chose to keep it. `min_share` is a decision threshold: a file's top team must hold at least 30% of its recent commits, or the rule names no owner and the file shows as "unowned, needs review". Raise the threshold and the rule names fewer files but is right more often on the ones it names. On the 1,819 files of the test (accuracy on next authors with a team):
 
 | min_share | Files owned | Accuracy (N, 95% CI) | Earlier cut: owned, accuracy |
 |---|---:|---:|---:|
@@ -155,7 +155,7 @@ We scored each fix on the same files, then checked the best one on held-out data
 | 0.50 | 956 (52.6%) | 0.501 (721, 0.464–0.537) | 737, 0.504 |
 | 0.60 | 817 (44.9%) | 0.534 (612, 0.495–0.573) | 595, 0.560 |
 
-Abstaining reduces harm because the two errors aren't equal. A wrong owner is silent: the work goes to a team that didn't write the code, and nobody sees that it went wrong. "Unowned, needs review" is visible, so a person routes it. On the files where the rule abstains, guessing the last toucher's team would be right only 127 of 511 times (0.249), so it would send three in four of them to the wrong team. That's why we abstain rather than fall back.
+Abstaining reduces harm because the two errors aren't equal. A wrong owner is silent: the work goes to a team that didn't write the code, and nobody sees that it went wrong. "Unowned, needs review" is visible, so a person routes it. On the files where the rule abstains, guessing the last toucher's team would be right only 127 of 511 times (0.249), so it would send three in four of them to the wrong team.
 
 We kept 0.30. From 0.10 to 0.50 the accuracy is flat (0.493–0.501, the intervals overlap almost fully), so 0.30 keeps the most files at the same accuracy. 0.60 is the first value that clearly helps, at both cuts (+0.038 now, +0.055 at the earlier cut). But it sends 171 more files to review (owned 54.3% to 44.9%), and the worst module gap widens from 0.268 to 0.284. The files it gives up are still right 42 of 132 times (0.318). We recommend 0.60 if the team can review that many more files. It would change `meridian.toml`, so a new run_id, and we didn't adopt it here. The held-out check (below) only picks a variant that owns at least as many files as the current rule, so a stricter threshold can't win just by abstaining more.
 
@@ -165,7 +165,7 @@ Measured, not adopted:
 - Falling back to the last person who touched the file owns 65% more files but is right less often (0.395 against 0.496), and widens the worst module gap to 0.369.
 - Taking a person's team from their last 730 days instead of 180 looked best on the current data: accuracy 0.496 to 0.545, and unassigned authors 24.7% down to 16.0%. The held-out check picks a variant at an earlier cut (2025-10-06), before seeing the current data. There the 730-day lookback scored 0.502 and the current rule 0.505, so the pick was the current rule itself, and the held-out delta is 0.0 by construction. So the 730-day gain isn't confirmed on data it wasn't chosen on, and we didn't adopt it.
 
-**Authors with no team, as their own group** (`bias.json` `owner_rule.no_team_authors`). 438 of the 1,819 files (24.1%) have a next author with no team. That's 96 of 169 next authors. Most are newcomers: 70 of the 96 had no commits before the cut (257 files), 11 had 2–10, 14 more than 10 and 1 had one. A person's team comes from their own ticket-keyed commits, so a first-time author can never have one. That means the prior-commits slice in §3.2 can't speak for newcomers at all. Their files are mostly in `sql/` (325 files, 33.9% of `sql/`'s), then `core/` (33) and `python/` (32). `connector/` is the most affected, with 14 of its 21 files. The rule names an owner for their files about as often as for anyone else's (55.7% vs 53.9%), so they aren't routed worse, just not checkable. Where a 730-day lookback gives them a team (150 files), the named owner matches it 0.651 of the time (N = 86), above the overall 0.496.
+We also looked at authors with no team as their own group (`bias.json` `owner_rule.no_team_authors`). 438 of the 1,819 files (24.1%) have a next author with no team, 96 of 169 next authors. Most are newcomers: 70 of the 96 had no commits before the cut (257 files), 11 had 2–10, 14 more than 10 and 1 had one. A person's team comes from their own ticket-keyed commits, so a first-time author can never have one. That means the prior-commits slice in §3.2 can't speak for newcomers at all. Their files are mostly in `sql/` (325 files, 33.9% of `sql/`'s), then `core/` (33) and `python/` (32). `connector/` is the most affected, with 14 of its 21 files. The rule names an owner for their files about as often as for anyone else's (55.7% vs 53.9%), so they aren't routed worse, just not checkable. Where a 730-day lookback gives them a team (150 files), the named owner matches it 0.651 of the time (N = 86), above the overall 0.496.
 
 What we shipped beyond the rule: every slice in `bias.json` carries its size, interval and flag, so the views can show "low coverage" next to a flagged team or module and an unmapped team doesn't look idle. For ticket mapping the fix is more data, not fuzzy matching: add the two missing Apache repos in the next team run.
 
@@ -206,20 +206,20 @@ The data (the guidelines' `data/`) sits at the repo root: `snapshots/` for input
 
 The README's steps set up and run the pipeline on another machine. The pipeline never reads the clock after `collect`: ids are content hashes, output is sorted, and every setting that changes a row is hashed into the run id. So the same snapshot gives the same bytes:
 
-- The 24 output files of `c5118b019d642a9b` match their frozen hashes (`tests/test_golden.py`), and collect rebuilds the same run_id from the pinned SHAs, ticket pulls and `meridian.toml`. Byte for byte holds in the pipeline's Docker image. Run natively with another git version, `commit_file` can differ by a few rows, because git's rename detection changes between versions (on v1, git 2.50 on a Mac against the image's 2.39 gave 9 of 849,643 rows), and every other file matches. This team-run check needs the zip, so it can't run in CI or on a bare clone. CI runs the fixture's golden instead, and `reproduce.py` Option 2 runs the team one (§4.3).
+- The 24 output files of `c5118b019d642a9b` match their frozen hashes (`tests/test_golden.py`), and collect rebuilds the same run_id from the pinned SHAs, ticket pulls and `meridian.toml`. Byte for byte holds in the pipeline's Docker image. Run natively with another git version, `commit_file` can differ by a few rows, because git's rename detection changes between versions (on v1, git 2.50 on a Mac against the image's 2.39 gave 9 of 849,643 rows), and every other file matches. This team-run check needs the zip, so it can't run in CI or on a bare clone. CI runs the fixture's golden instead, and `reproduce.py` Option 2 runs the team one (below).
 - The weekly rebuild matched the update byte for byte.
 - CI checks a small fixture's hashes on Linux and Windows on every push.
 
-**One file for a TA: [reproduce.py](../reproduce.py).** It needs only Python 3.11+ and git. Pick one option.
+A TA needs one file, [reproduce.py](../reproduce.py), plus Python 3.11+ and git. There are two options.
 
-**Option 1: quick check (about 2 minutes, no data needed).** Download the script into an empty folder and run it. It clones the repo, makes a virtual environment from `requirements.txt`, runs every unit test and the fixture demo, and prints a PASS/FAIL summary.
+Option 1 is a quick check (about 2 minutes, no data needed). Download the script into an empty folder and run it. It clones the repo, makes a virtual environment from `requirements.txt`, runs every unit test and the fixture demo, and prints a PASS/FAIL summary.
 
 ```
 curl -O https://raw.githubusercontent.com/Itsme-aniketghosh/Meridian/main/Data-Pipeline/reproduce.py
 python3 reproduce.py
 ```
 
-**Option 2: the real team run (about 30 minutes more, 6 GB of disk).** The only input that isn't on GitHub is the raw Jira and GitLab ticket pulls of Oct 1, which a fresh pull today can't give again. They're one zip, `meridian-raw-973531f7fd4cfd5e.zip` (145 MB), on **[Google Drive](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link)**.
+Option 2 is the real team run (about 30 minutes more, 6 GB of disk). The only input that isn't on GitHub is the raw Jira and GitLab ticket pulls of Oct 1, which a fresh pull today can't give again. They're one zip, `meridian-raw-973531f7fd4cfd5e.zip` (145 MB), on [Google Drive](https://drive.google.com/file/d/1jq8gMWAQpmECNXrX2Su3I-xw7bwvu0tL/view?usp=drive_link).
 
 1. Clone the repo.
 2. Download the zip from the Drive link into `Meridian/Data-Pipeline/shared-snapshot/`. Keep its name, and don't unzip it: the script does.
