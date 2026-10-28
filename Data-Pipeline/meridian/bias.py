@@ -20,6 +20,8 @@ so a view can caveat a low-coverage module, team or component. For the owner rul
 way, so the trade-off is on record: lower min_shares, longer lookbacks for a person's team, and falling back to the
 last toucher's team where the rule says 'unowned'. The best one is picked one window earlier and confirmed on the
 current cut (held_out). They are proposals: applying one changes meridian.toml (or owners.py), which means a new run_id.
+min_shares above meridian.toml's trace the abstain curve: fewer files owned, accuracy on what is still named. Next
+authors with no team, whom accuracy can't score, are described as a group of their own (no_team_authors).
 
 Reads out/<run_id>/ tables and settings.toml [bias]. Writes out/<run_id>/bias.json. Never writes a table.
 """
@@ -109,7 +111,7 @@ def owner_rows(cfg, out, root, run_id, variants, earlier=0):
             continue
         window = [x for x in before if back(cut) < x[0]]
         k = prior[after[0][1]]
-        row = {"path": path, "module": module(path),
+        row = {"path": path, "module": module(path), "next_person": after[0][1],
                "prior": "0" if not k else "1" if k == 1 else "2-10" if k <= 10 else ">10"}
         for name, (share, d) in variants.items():
             team_of = lambda p: teams[d].get(p, unassigned)
@@ -185,6 +187,7 @@ def owner_report(df, unassigned, variants, b):
              or {"overall": {"accuracy": 0.0}, "by_group": {}, "flagged": []})
         report["mitigations"][name] = {
             "files_owned": int(kept.sum()), "of": len(df), "accuracy_assigned": r["overall"]["accuracy"],
+            "scored": int(ok.sum()),
             "accuracy": round(float((pred[kept] == truth[kept]).mean()), 4) if kept.any() else 0.0,   # owners.py's
             "next_author_unassigned": round(float((truth[kept] == unassigned).mean()), 4) if kept.any() else 0.0,
             "flagged_modules": len(r["flagged"]),
@@ -193,23 +196,58 @@ def owner_report(df, unassigned, variants, b):
     return report
 
 
+def no_team_report(df, unassigned, variants):
+    """Next authors with no team (the circular class owner_report leaves out of accuracy), as a group of their own:
+    how many files and people, their commits before the cut, the modules they touch, and what the rule does there.
+    They have no label at the configured lookback, so the owner is checked against the team the longest lookback
+    gives them, where it gives one. Counts only, never a person."""
+    base = next(iter(variants))
+    longest = max(variants, key=lambda n: (variants[n][1], n == base))
+    owner, nxt = df[f"owner|{base}"], df[f"next|{base}"]
+    none = nxt == unassigned
+    d, owned = df[none], owner[none] != "unowned"
+    later = df.loc[none, f"next|{longest}"]
+    proxy = owned & (later != unassigned)
+    share = lambda a, n: round(a / n, 4) if n else 0.0
+    by_module = d["module"].value_counts()
+    return {
+        "files": int(none.sum()), "of": len(df), "share": share(none.sum(), len(df)),
+        "people": d["next_person"].nunique(), "of_people": df["next_person"].nunique(),
+        "files_by_prior_commits": {k: int(v) for k, v in sorted(d["prior"].value_counts().items())},
+        "people_by_prior_commits": {k: int(v) for k, v in sorted(d.groupby("prior")["next_person"].nunique().items())},
+        "modules": [{"module": m, "files": int(n), "share_of_module": share(n, (df["module"] == m).sum())}
+                    for m, n in sorted(by_module.items(), key=lambda x: (-x[1], x[0]))],
+        "owned_share": share(owned.sum(), len(d)),
+        "owned_share_with_a_team": share((owner[~none] != "unowned").sum(), (~none).sum()),
+        "team_from": longest, "given_a_team_there": int((later != unassigned).sum()),
+        "accuracy_against_that_team": share((owner[none][proxy] == later[proxy]).sum(), proxy.sum()) if proxy.any()
+        else None,   # nothing owned and given a team: nothing to score
+        "scored_against_that_team": int(proxy.sum())}
+
+
 def held_out(early, now, unassigned, variants, reps=1000, seed=0):
     """Pick the variant with the best accuracy (next authors with a team) at the earlier cut, then score it against the
-    configured one on the current cut: the delta, with a seeded paired bootstrap 95% interval over files."""
+    configured one on the current cut: the delta, with a seeded paired bootstrap 95% interval over files.
+
+    Only a variant that owns at least as many files as the configured one at the earlier cut can be picked: a stricter
+    min_share is always at least as accurate on what it still names, so it would win by abstaining, not by being
+    right more. Those are scored apart, as the abstain curve (owner_report's mitigations, and owned here)."""
     def hits(df, name):   # per file: scored, right
         pred, truth = df[f"owner|{name}"], df[f"next|{name}"]
         ok = (pred != "unowned") & (truth != unassigned)
         return ok.to_numpy(), (ok & (pred == truth)).to_numpy()
     acc = lambda ok, right: right.sum() / ok.sum() if ok.any() else 0.0
     picked = {name: num(acc(*hits(early, name))) for name in variants} if len(early) else {}
+    owned = {name: int((early[f"owner|{name}"] != "unowned").sum()) for name in variants} if len(early) else {}
     base = next(iter(variants))
-    best = max(picked, key=picked.get, default=base)   # a tie keeps what's configured
+    fair = {name: a for name, a in picked.items() if owned[name] >= owned[base]}
+    best = max(fair, key=fair.get, default=base)   # a tie keeps what's configured
     (ok0, r0), (ok1, r1) = hits(now, base), hits(now, best)
     i = np.random.default_rng(seed).integers(0, len(now), (reps, len(now)))
     with np.errstate(all="ignore"):   # a resample with nothing scored is NaN, left out
         delta = r1[i].sum(1) / ok1[i].sum(1) - r0[i].sum(1) / ok0[i].sum(1)
     lo, hi = np.nanpercentile(delta, [2.5, 97.5]) if not np.isnan(delta).all() else (None, None)
-    return {"picked_at_earlier_cut": best, "accuracy_at_earlier_cut": picked,
+    return {"picked_at_earlier_cut": best, "accuracy_at_earlier_cut": picked, "owned_at_earlier_cut": owned,
             "accuracy_now": {base: num(acc(ok0, r0)), best: num(acc(ok1, r1))},
             "delta": num(acc(ok1, r1) - acc(ok0, r0)), "delta_ci": [num(lo), num(hi)], "bootstrap": reps, "seed": seed}
 
@@ -267,6 +305,7 @@ def main(run_id, config=CONFIG, root=None, settings=None):
     df, unassigned, cut = owner_rows(cfg, out, root, run_id, variants)
     if len(df):
         report["owner_rule"] = owner_report(df, unassigned, variants, b) | {"cut": cut}
+        report["owner_rule"]["no_team_authors"] = no_team_report(df, unassigned, variants)
         # shortcut: reads the tables a second time for the earlier cut; load once if bias outgrows its timeout
         early, _, early_cut = owner_rows(cfg, out, root, run_id, variants, earlier=1)
         report["owner_rule"]["held_out"] = held_out(early, df, unassigned, variants) | {"cut": early_cut,

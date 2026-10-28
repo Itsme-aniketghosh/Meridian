@@ -97,7 +97,8 @@ class ScanCache(unittest.TestCase):
             root = Path(tmp)
             _, config = TS.snapshot(root)
             cfg = load_config(config)
-            quiet(S.run, RUN, cfg, root)
+            with switched(root, scan=False):   # the baseline: cache off whatever settings.toml says
+                quiet(S.run, RUN, cfg, root)
             off = tables(root, RUN, S.KEYS)
             with switched(root, scan=True):
                 _, first = quiet(S.run, RUN, cfg, root)
@@ -109,7 +110,8 @@ class ScanCache(unittest.TestCase):
 
             next_snapshot(root, "fix__app", "fix/app",
                           {"app/direct.py": "from lib.translation import ugettext\nugettext('n')\n"})
-            quiet(S.run, RUN2, cfg, root)
+            with switched(root, scan=False):   # from scratch: cache off whatever settings.toml says
+                quiet(S.run, RUN2, cfg, root)
             scratch = tables(root, RUN2, S.KEYS)
             with switched(root, scan=True):
                 _, third = quiet(S.run, RUN2, cfg, root)

@@ -38,6 +38,27 @@ An earlier run on a Windows laptop never finished:
 
 The error handling still worked: timeouts, retries 5 minutes apart, a log per try, and the last good block stayed live.
 
+## Fixing the bottleneck: the SZZ cache
+
+The chart above has one long bar: `history`, 854 of 943 s, mostly SZZ re-blaming every Spark bug-fix commit. So we turned on the SZZ cache (`settings.toml [cache] szz = true`) and ran the update twice more on the same run, `c5118b019d642a9b`. The first run fills the cache (`cache_cold_c511`) and the second reuses it (`cache_warm_c511`):
+
+![](figures/airflow_gantt_warm.png)
+
+*The warm run: `history` is 316 s, and `resolve` (beside it) is now about as long.*
+
+| Task | Before: cache off, 10 SZZ processes | Filling the cache, 4 processes | **Warm cache, 4 processes** |
+|---|---:|---:|---:|
+| scan | 10 s | 11 s | 7 s |
+| resolve | 236 s | 195 s | 261 s (resolve cache on; turned off after this) |
+| history | 854 s | 1,072 s (3rd try) | **316 s** |
+| owners, join, graph, validate | 10, 29, 2, 39 s | 19, 54, 4, 80 s | 19, 53, 4, 74 s |
+| **Whole DAG** | **943 s** | about 1,250 s, counting only the try that passed | **480 s** |
+
+- The warm `history` log says `9757 reused from the cache`: no fix commit was blamed again.
+- The warm run's 24 output files match `golden/c5118b019d642a9b.json` byte for byte, as `tests/test_cache.py` requires of every cache.
+- With the cache on, ten SZZ processes ran Docker's 7.7 GB out of memory twice (exit -9, then a killed worker), so `[history] szz_workers` is now 4. The saving is despite fewer processes. Filling the cache costs a slower first run once.
+- The resolve cache was slower, not faster (195 s to 261 s): reusing a file means checking every file Jedi read for it, through the folder mount. It's off again. `report/airflow_run_warm.csv` has the warm run's tries.
+
 ## The weekly rebuild
 
 `meridian_rebuild` (run `rebuild_c511`) rebuilds `c5118b019d642a9b` from scratch in its own data folder with every cache off, then compares the result with the update's outputs. Every task passed on its first try, in 902 s:

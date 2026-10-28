@@ -697,8 +697,8 @@ stages:
       size: 13175
     - path: meridian/bias.py
       hash: md5
-      md5: 0c7973919e5133eb691d705102fda846
-      size: 19248
+      md5: 8ceb342933257f7377f05e7a97cc8b51
+      size: 22143
     - path: meridian/common.py
       hash: md5
       md5: 374f9ce4fbb3f5ad359d6a1be31eb789
@@ -716,6 +716,9 @@ stages:
           - 0.3
           - 0.2
           - 0.1
+          - 0.4
+          - 0.5
+          - 0.6
           team_lookback_days:
           - 180
           - 365
@@ -724,5 +727,5 @@ stages:
     outs:
     - path: ../out/c5118b019d642a9b/bias.json
       hash: md5
-      md5: fe12f69d6cdfe7b9b2323962014a4034
-      size: 34694
+      md5: 82b2e90452989d750a4460381431e897
+      size: 37535
