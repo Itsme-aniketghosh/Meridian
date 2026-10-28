@@ -69,7 +69,7 @@ The chart above has one long bar: `history`, 854 of 943 s, mostly SZZ re-blaming
 | resolve | 344 s | Cold, no resolver cache |
 | history | 803 s | Cold SZZ, with the 180-minute timeout |
 | owners, join, graph, validate, report | 8, 28, 2, 37, 1 s | |
-| bias ∥ gx | 13 s, 17 s | Side by side, after validate. GX: 308 expectations, 0 failed ([Appendix B §4](appendix-quality.md#4-the-weekly-gx-audit)) |
+| bias ∥ gx | 13 s, 17 s | Side by side, after validate. GX: 308 expectations, 0 failed, while settings.toml still allowed the 289 old dates; with that allowance gone the date check fails ([Appendix B §4](appendix-quality.md#4-the-weekly-gx-audit)) |
 | compare | 2 s | 0 differences between the rebuild and the update |
 | publish | skipped | Nothing to correct, so nothing republished, as designed |
 

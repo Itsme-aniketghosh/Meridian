@@ -14,7 +14,7 @@ python report/figures_scenarios.py --db <run>/meridian.sqlite    # from Data-Pip
 
 It needs matplotlib, plus tree-sitter for the push replay (`--replay` reruns the cached `figures/push_replay.json`). Every v1 number in §1–§9 is in `figures/scenarios.json`.
 
-- On the fixture, `tests.test_kb` and `tests.test_pushcheck` pass 18 of 18: all 43 `-- expect:` queries, two KB regression tests and the 15 push-check tests. With `test_graph`, `test_join` and `test_report` it's 56 of 56.
+- On the fixture, `tests.test_kb` and `tests.test_pushcheck` pass 23 of 23: all 43 `-- expect:` queries (one test), six KB regression tests and the 16 push-check tests. With `test_graph`, `test_join` and `test_report` it's 66 of 66.
 - The checklist counts each query on the whole block, with the parameters `tests/dashboard.py` picks. §1–§9 run each dataset on its own through TEMP views, because the queries mixed datasets at the time. That bug and three more we found here are fixed ([Appendix D](appendix-testing.md)), and numbers from before a fix say so.
 - `asof` is the run's time (2026-10-01), so every Django team looks stalled for years. The `django@pin` scenario moves `known_at` to the pinned commit's date (2017-02-03).
 - The block is one run, so no call site can be `removed` yet. We check burndown against the next real commit instead.

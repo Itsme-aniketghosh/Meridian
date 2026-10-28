@@ -708,9 +708,9 @@ What the KB still can't answer, and what closes each.
 
 | Level | What | When | Command | Today |
 |---|---|---|---|---|
-| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | ✅ 22 test files, 342 tests (19 skipped by design on Windows, 18 elsewhere) |
+| 1. Unit fixtures | One synthetic repo or table per rule: every role, scope, junk label, bulk close, rename, share tie, link direction | Every commit | `python -m unittest discover -s tests -t .` | ✅ 23 test files, 342 tests (19 skipped by design on Windows, 18 elsewhere) |
 | 2. Goldens | A frozen fixture → exact rows: scan's 15 cases, resolve's edge fixtures, the writer's same-bytes check. On the team run, md5 of the 24 output files against `golden/` | Every commit | same | ✅ |
-| 3. KB proof | This page's queries against the fixture KB | Every commit | `python -m unittest tests.test_kb` | ✅ 44 queries |
+| 3. KB proof | This page's queries against the fixture KB | Every commit | `python -m unittest tests.test_kb` | ✅ 43 queries |
 | 4. Cross-machine | Same run on Windows and Mac (and the Airflow image): every `out/<run_id>/*.jsonl` sha256 equal | Every new run_id | `sha256sum out/<run_id>/*.jsonl` on each, compared | ✅ Windows and Docker on a Mac. One difference found, Jedi's folder order, now fixed ([RESOLVER.md](RESOLVER.md)) |
 | 5. Benchmarks | Real data against answer keys | Each new run_id, and weekly once scheduled | per part, below | partly ✅ |
 | 6. End to end | Collect → graph on the new run_id, then the writer; second run → `cmp` identical | D8–D10 | Airflow DAG | ✅ both DAGs on c5118b019d642a9b, published ([report](report/REPORT.md)) |
@@ -729,7 +729,7 @@ What the KB still can't answer, and what closes each.
 | owners | Spark owner vs next author beats last toucher | > 18% | ✅ 20% vs 18% |
 | owners | Top 20 identity groups + every local-part merge with different names hand-checked | ≥ 19 of 20 right | ❌ |
 | gold set | Human spot check of 10 waits | ≥ 9 of 10 | ❌ the check done is a random 50 of 262 rows, model-drafted and person-reviewed, not 10 picked waits. In the 50, the model's `wait` rows hold 4 of 7; its 1 `planned` and 3 `partial` all hold (`unclear` 2 of 20, `no` 9 of 14, `no_evidence` 0 of 5 match). The model agrees with the reviewed verdict on 18 of 50 |
-| join | Call-site ID fixtures (insert, move, rename, duplicate, split, a repo added to or dropped from the config); Django weekly replay | 100%, replay error ≤ 1% | ✅ fixtures (`tests/test_join.py`, 22 tests); replay ❌ |
+| join | Call-site ID fixtures (insert, move, rename, duplicate, split, a repo added to or dropped from the config); Django weekly replay | 100%, replay error ≤ 1% | ✅ fixtures (`tests/test_join.py`, 25 tests); replay ❌ |
 | join | Ticket → code on Spark, fix commits hidden | path, trace precision ≥ 0.90 | ❌ |
 | graph | Fixture per rule; Spark collision pairs hand-checked (50); GitLab gold set | 100%, precision ≥ 0.90 | ✅ fixtures (`tests/test_graph.py`); ✅ Spark 50 of 50 hand-checked, inside rule 32 of 32 real (1.00); GitLab gold set ❌ (50 of 262 reviewed, bar not met) |
 | new KB columns | `in_except`, `module_import`, `deprecation`, `receiver_from` on Django: hand-check 20 rows each | 20 of 20 | ❌ |
@@ -744,4 +744,4 @@ Done: the dynamic-config fixes, the team run (c5118b019d642a9b; v1 was 70dd1dabf
 
 ### CI
 
-[.github/workflows/ci.yml](../.github/workflows/ci.yml) runs `python -m unittest discover -s tests -t .` from `Data-Pipeline/` on `ubuntu-latest` and `windows-latest`, with Python 3.11 and the pinned requirements, plus flake8, the Great Expectations tests and the DAG tests. Two operating systems on purpose: half of the dynamic-config bugs only showed on Windows. The golden tests compare table rows, not the .sqlite file, so the SQLite version doesn't matter.
+[.github/workflows/ci.yml](../.github/workflows/ci.yml) runs `python -m unittest discover -s tests -t .` from `Data-Pipeline/` on `ubuntu-latest` and `windows-latest`, with Python 3.11 and the pinned requirements, plus flake8, the Great Expectations tests, the DAG tests and the push-check tests with only the packages `push-check.yml` installs. Two operating systems on purpose: half of the dynamic-config bugs only showed on Windows. The golden tests compare table rows, not the .sqlite file, so the SQLite version doesn't matter.

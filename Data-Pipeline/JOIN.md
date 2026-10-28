@@ -15,7 +15,7 @@ python -m meridian.join --run-id <run_id> --config meridian.toml --prev-run <run
 
 | Task | Bar | Got | |
 |---|---|---|---|
-| Call-site IDs + matching to the last run | fixtures 100% | insert, move, rename, duplicate, split, removal, new, a file that stops parsing, a removed ID coming back, a repo added to or dropped from the config: 22 of 22 tests in `tests/test_join.py` | ✅ |
+| Call-site IDs + matching to the last run | fixtures 100% | insert, move, rename, duplicate, split, removal, new, a file that stops parsing, a removed ID coming back, a repo added to or dropped from the config: 25 of 25 tests in `tests/test_join.py` | ✅ |
 | Django call sites | the 265 | 265 of 265 lines of `labels/django_edit_sites_265.csv`, plus the 2 in `code.sample`, nothing else | ✅ |
 | One joined block | every row has an owner or `unowned`, and a status | 1,526 call sites, all `present`, all owned (Django by path, packages by repo) | ✅ |
 | Ticket → code, no fuzzy matching | path and trace precision ≥ 0.90 | spot check of 6 tickets with frames and 5 path hits: all right. Hand check still to do | ⏳ |

@@ -2,7 +2,7 @@
 
 | Level | What it checks | How | Result |
 |---|---|---|---|
-| Unit tests | each part on its own fixture, edge cases included | `python -m unittest discover -s tests -t .`, in CI on Linux and Windows | 339 pass; without the team data 19 are skipped by design on Windows, 18 on Mac and Linux ([B §1](appendix-quality.md#1-tests)) |
+| Unit tests | each part on its own fixture, edge cases included | `python -m unittest discover -s tests -t .`, in CI on Linux and Windows | 342 pass; without the team data 19 are skipped by design on Windows, 18 on Mac and Linux ([B §1](appendix-quality.md#1-tests)) |
 | Answer keys | the block against hand-checked labels | `MERIDIAN_RUN_ID=c5118b019d642a9b`, the team data | Django 265/265 lines, 542/542 aliases, packages' precision and recall |
 | Golden | the same inputs give the same bytes | md5 of the 24 output files vs the known-good sums in `golden/` | 24 of 24 |
 | Rebuild | the incremental update equals a run from scratch | `meridian_rebuild` in Airflow, `compare` | 0 differences ([A](appendix-airflow.md)) |

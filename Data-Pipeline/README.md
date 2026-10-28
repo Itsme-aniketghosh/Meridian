@@ -6,9 +6,10 @@ Meridian joins code, git and Jira to find every call site of a dying internal AP
 
 From `Data-Pipeline/`, after `pip install -r requirements.txt`. Each step prints the rubric item, the command and the result, and the demo ends with a pass/skip/fail table.
 
-- `python run_demo.py short` takes about 10 seconds, with no team data and no Docker. It covers both DAGs and the DVC stages, the pipeline end to end on the built-in fixture, schema and statistics, four injected anomalies caught with an alert delivered to local Slack and SMTP servers, bias slices with mitigations, the KNOWLEDGE-BASE views and a P1–P9 push check.
+- `python run_demo.py short` takes under a minute (26 s on a Windows laptop), with no team data and no Docker. It covers both DAGs and the DVC stages, the pipeline end to end on the built-in fixture, schema and statistics, four injected anomalies caught with an alert delivered to local Slack and SMTP servers, bias slices with mitigations, the KNOWLEDGE-BASE views and a P1–P9 push check.
 - `python run_demo.py long` takes 10 minutes or more. It adds every unit test, the GX suite (if its environment exists), the data download, the team-run tests (team data only), every task's command, and Airflow in Docker. `--airflow-run` also triggers `meridian_update` and waits for it.
 - `python run_demo.py download` only gets the data: the raw ticket pulls (already there, `dvc pull`, `--zip <team zip>`, or `--public-pull` for a run of your own), then collect's repo checkouts (about 2.5 GB).
+- [reproduce.py](reproduce.py) is the one file a TA needs: in an empty folder it clones the repo, makes a venv, runs every unit test and `run_demo.py short`. With the team zip in `shared-snapshot/` it also rebuilds the team run and checks the run_id and the 24 golden files ([REPORT §4.3](report/REPORT.md)).
 
 Heavy steps check RAM, disk, network and Docker first, and skip with a reason if something is short (`--force` runs them anyway).
 
@@ -99,11 +100,11 @@ It runs daily at 02:00 UTC and on each "Update graph" click: in the UI, on the d
 
 Collect makes whatever run the inputs give, unless the trigger config `{"run_id": "...", "prev_run": "..."}` names one. Naming a run, or `{"force": true}`, skips the check. Run ids must be 16 hex characters, or the task fails before any command runs.
 
-`publish` refuses a run with a data error, a partial run (a tracker was down), and a rollback to an older snapshot, so the last good block stays live. After publishing it deletes old runs' `snapshots/` and `out/`, except the live run, its previous run and the frozen team run. With `[dvc] push = true` it also runs `dvc commit` and `dvc push`, but only for the run named in `settings.toml [pipeline] run_id`: it skips other runs and rebuilds, since `dvc.yaml` tracks that run only.
+`publish` refuses a run with a data error, a partial run (a tracker was down; `--allow-partial` overrides) and a rollback to an older snapshot, so the last good block stays live. After publishing it deletes old runs' `snapshots/`, `out/` and `published/*.sqlite`, except this run and its previous run, the run live before it and its previous run, and the frozen team run. With `[dvc] push = true` it also runs `dvc commit` and `dvc push`, but only for the run named in `settings.toml [pipeline] run_id`: it skips other runs and rebuilds, since `dvc.yaml` tracks that run only. A DVC failure alerts as a warning; the publish is live by then.
 
 ### meridian_rebuild
 
-Sundays at 04:00 UTC it recomputes the last published run from scratch under `rebuild/`, caches off, and `compare` checks every table against the update's, byte for byte. The rebuild is the truth. If they differ, an alert names the part where the difference started, `rebuild/out/<run_id>/compare.json` keeps the rows, and the rebuild is published as `published/<run_id>.rebuild.sqlite`. Publish waits on `compare` only; `bias` and `gx` never gate. On the team run there were 0 differences ([Appendix A](report/appendix-airflow.md)).
+Sundays at 04:00 UTC it recomputes the last published run from scratch under `rebuild/` (`fresh` clears `rebuild/out/` first), caches off, and `compare` checks every table against the update's, byte for byte. The rebuild is the truth. If they differ, an alert names the part where the difference started, `rebuild/out/<run_id>/compare.json` keeps the rows, and the rebuild is published as `published/<run_id>.rebuild.sqlite`. Publish waits on `compare` only; `bias` and `gx` never gate. On the team run there were 0 differences ([Appendix A](report/appendix-airflow.md)).
 
 ### Freshness and timing
 
@@ -113,7 +114,7 @@ python -m meridian.status --config meridian.toml          # data 2 days old · 1
 
 It exits 0 when something is new, 99 when not. New commits in collect's mirrors, a new repo, a changed `meridian.toml` or no publish yet all count. So does a publish older than `[status] stale_after_hours` (20), but only when some repo follows a branch. With every ref pinned, as in the team run, collect would make the same run again. The dashboard shows the same line with an Update graph button: `python -m tests.dashboard --run-id <id> --config meridian.toml --serve 8765`, then http://127.0.0.1:8765/.
 
-The update ran in Docker on a Mac in 943 s. Running `scan` and `resolve` beside `history` saved 20%, measured from the Airflow Gantt. The bottleneck is `history`'s SZZ step ([Appendix A](report/appendix-airflow.md)).
+The update ran in Docker on a Mac in 943 s with no caches. Running `scan` and `resolve` beside `history` saved 20%, measured from the Airflow Gantt. The bottleneck was `history`'s SZZ step, so the daily update now keeps the SZZ and scan caches on (`settings.toml [cache]`, with `[history] szz_workers` 4): warm, it took 480 s, with the same bytes. The rebuild runs every cache off, in 902 s ([Appendix A](report/appendix-airflow.md)).
 
 ## Run it without Airflow
 
@@ -143,7 +144,7 @@ Collect's last line must say `run_id=c5118b019d642a9b`. The same code SHAs, raw 
 
 `meridian.validate` loads the block against [schema.sql](schema.sql), writes per-column statistics to `stats.json`, then runs the checks in `settings.toml [validate]`. Errors fail the task (too few rows, bad formats, out-of-range numbers, low coverage). Warnings only alert (missing values, odd dates, outliers, drift). On `c5118b019d642a9b`: 1,788,375 rows in 25 tables, 0 errors and 1 warning. Apache Jira dates 289 Spark tickets in the years 0010–0012. A date before `[validate.dates] earliest` or after the snapshot is invalid: every run warns, and no part uses it as a date. The weekly GX audit ran 308 expectations, and only that date check failed ([Appendix B](report/appendix-quality.md)).
 
-A failed task (after its retries), a data error or a warning sends one Slack or email message, per `settings.toml [alerts]`. A broken channel never breaks the run. A test and `run_demo.py` step 8 deliver a real alert to local Slack-style and SMTP servers (`tests/alert_sinks.py`). The team's Slack is connected: `MERIDIAN_SLACK_WEBHOOK` in `.env` (never in git) points at it, and validate's alerts arrive there. To see them, [join the workspace](https://join.slack.com/t/meridian-flg4799/shared_invite/zt-4ekm8ksh1-WYMNCqG_ECL5jr17~Gzaxg). Email works the same way with an SMTP host in `[alerts]`. Parts log through Python's logging. A part that can't go on exits non-zero with the reason; Airflow retries, then alerts. Parts are idempotent, so retries are safe.
+A failed task (after its retries), a data error or a warning sends one Slack or email message, per `settings.toml [alerts]`. A part that sent its own alert exits 4, and Airflow's failure callback doesn't send a second. A broken channel never breaks the run. A test and `run_demo.py` step 8 deliver a real alert to local Slack-style and SMTP servers (`tests/alert_sinks.py`). The team's Slack is connected: `MERIDIAN_SLACK_WEBHOOK` in `.env` (never in git) points at it, and validate's alerts arrive there. To see them, [join the workspace](https://join.slack.com/t/meridian-flg4799/shared_invite/zt-4ekm8ksh1-WYMNCqG_ECL5jr17~Gzaxg). Email works the same way with an SMTP host in `[alerts]`, but no team mailbox is set, so it's shown against the local SMTP server only. Parts log through Python's logging. A part that can't go on exits non-zero with the reason; Airflow retries, then alerts. Parts are idempotent, so retries are safe.
 
 ## Bias
 
@@ -155,4 +156,4 @@ A failed task (after its retries), a data error or a warning sends one Slack or 
 python -m unittest discover -s tests -t .      # from Data-Pipeline/
 ```
 
-342 tests, 19 skipped by design on a plain Windows machine (11 need the team data, 5 Airflow, 2 GX, 1 runs off Windows only). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).
+342 tests, 19 skipped by design on a plain Windows machine (11 need the team data, 5 Airflow, 2 GX, 1 runs off Windows only). CI runs them and flake8 (lines up to 120) on Linux and Windows on every pull request and push to main. More in [TESTING.md](../TESTING.md).
