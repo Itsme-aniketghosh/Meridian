@@ -6,7 +6,7 @@ Meridian joins code, git and Jira to find every call site of a dying internal AP
 
 From `Data-Pipeline/`, after `pip install -r requirements.txt`. Each step prints the rubric item, the command and the result, and the demo ends with a pass/skip/fail table.
 
-- `python run_demo.py short` takes about 10 seconds, with no team data and no Docker. It covers both DAGs and the DVC stages, the pipeline end to end on the built-in fixture, schema and statistics, four injected anomalies caught with an alert, bias slices with mitigations, the KNOWLEDGE-BASE views and a P1–P9 push check.
+- `python run_demo.py short` takes about 10 seconds, with no team data and no Docker. It covers both DAGs and the DVC stages, the pipeline end to end on the built-in fixture, schema and statistics, four injected anomalies caught with an alert delivered to local Slack and SMTP servers, bias slices with mitigations, the KNOWLEDGE-BASE views and a P1–P9 push check.
 - `python run_demo.py long` takes 10 minutes or more. It adds every unit test, the GX suite (if its environment exists), the data download, the team-run tests (team data only), every task's command, and Airflow in Docker. `--airflow-run` also triggers `meridian_update` and waits for it.
 - `python run_demo.py download` only gets the data: the raw ticket pulls (already there, `dvc pull`, `--zip <team zip>`, or `--public-pull` for a run of your own), then collect's repo checkouts (about 2.5 GB).
 
@@ -141,9 +141,9 @@ Collect's last line must say `run_id=c5118b019d642a9b`. The same code SHAs, raw 
 
 ## Data quality, alerts and errors
 
-`meridian.validate` loads the block against [schema.sql](schema.sql), writes per-column statistics to `stats.json`, then runs the checks in `settings.toml [validate]`. Errors fail the task (too few rows, bad formats, out-of-range numbers, low coverage). Warnings only alert (missing values, odd dates, outliers, drift). On `c5118b019d642a9b`: 1,788,375 rows in 25 tables, 0 errors and 0 warnings. Apache Jira dates 289 Spark tickets in the years 0010–0012, and `settings.toml [validate.dates]` allows exactly those. The weekly GX audit ran 308 expectations and none failed ([Appendix B](report/appendix-quality.md)).
+`meridian.validate` loads the block against [schema.sql](schema.sql), writes per-column statistics to `stats.json`, then runs the checks in `settings.toml [validate]`. Errors fail the task (too few rows, bad formats, out-of-range numbers, low coverage). Warnings only alert (missing values, odd dates, outliers, drift). On `c5118b019d642a9b`: 1,788,375 rows in 25 tables, 0 errors and 1 warning. Apache Jira dates 289 Spark tickets in the years 0010–0012. A date before `[validate.dates] earliest` or after the snapshot is invalid: every run warns, and no part uses it as a date. The weekly GX audit ran 308 expectations, and only that date check failed ([Appendix B](report/appendix-quality.md)).
 
-A failed task (after its retries), a data error or a warning sends one Slack or email message, per `settings.toml [alerts]`. A broken channel never breaks the run. Parts log through Python's logging. A part that can't go on exits non-zero with the reason; Airflow retries, then alerts. Parts are idempotent, so retries are safe.
+A failed task (after its retries), a data error or a warning sends one Slack or email message, per `settings.toml [alerts]`. A broken channel never breaks the run. A test and `run_demo.py` step 8 deliver a real alert to local Slack-style and SMTP servers (`tests/alert_sinks.py`). The team's Slack is connected: `MERIDIAN_SLACK_WEBHOOK` in `.env` (never in git) points at it, and validate's alerts arrive there. To see them, [join the workspace](https://join.slack.com/t/meridian-flg4799/shared_invite/zt-4ekm8ksh1-WYMNCqG_ECL5jr17~Gzaxg). Email works the same way with an SMTP host in `[alerts]`. Parts log through Python's logging. A part that can't go on exits non-zero with the reason; Airflow retries, then alerts. Parts are idempotent, so retries are safe.
 
 ## Bias
 
@@ -155,4 +155,4 @@ A failed task (after its retries), a data error or a warning sends one Slack or 
 python -m unittest discover -s tests -t .      # from Data-Pipeline/
 ```
 
-339 tests, 19 skipped by design on a plain Windows machine (11 need the team data, 5 Airflow, 2 GX, 1 runs off Windows only). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).
+340 tests, 19 skipped by design on a plain Windows machine (11 need the team data, 5 Airflow, 2 GX, 1 runs off Windows only). CI runs them and flake8 (lines up to 120) on Linux and Windows on every push. More in [TESTING.md](../TESTING.md).

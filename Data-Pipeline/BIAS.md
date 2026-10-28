@@ -2,7 +2,7 @@
 
 `python -m meridian.bias --run-id c5118b019d642a9b --config meridian.toml` writes `out/<run_id>/bias.json`, slicing with Fairlearn's `MetricFrame`. The thresholds are in [settings.toml](settings.toml) `[bias]`. A slice is judged when it has N ≥ 30 rows. It's flagged when its whole Wilson 95% interval (an interval for a share that holds up on small samples) sits more than 0.10 below the overall value (`ci_high < overall − 0.10`). A slice under N = 30 is unjudged: neither flagged nor cleared. Each slicing also records how many slices it judged (`tested`) and Fairlearn's `difference()` (max − min) and `ratio()` (min / max) over the judged slices.
 
-Every number below comes from `bias.py` as it is now, rerun on 2026-10-27 on the outputs of the Airflow runs in the report's Appendix A. Against v1 (70dd1dabfed544b8), the owner rule and resolver slices are unchanged. Only the ticket-mapping shares moved, by at most 0.017, and the same 32 slices are flagged.
+Every number below comes from `bias.py` as it is now, rerun on 2026-10-27 on the outputs of the Airflow runs in the report's Appendix A. Against v1 (70dd1dabfed544b8), the owner rule and resolver slices are unchanged. Only the ticket-mapping shares moved, by at most 0.017, and the same slices are flagged, less the years 0010–0012, which are no longer slices (below).
 
 ## What we slice, and why
 
@@ -33,7 +33,7 @@ Owned share overall is 0.543 (N = 1,819). `examples/` 0.028 (CI 0.011–0.070), 
 
 10,647 tickets (18%) have several components. 70dd's `bias.json` sliced on the first component only. `bias.py` now counts a ticket in each of its components, so the component overall is over (ticket, component) pairs: 0.613 (N = 71,845). Per ticket it stays 0.608 (N = 59,491).
 - All time, 11 of 36 judged components are flagged: EC2 0.087, Spark Docker 0.209, Mesos 0.287, `(none)` 0.334, Input/Output 0.348, Java API 0.369, Kubernetes 0.390, Spark Submit 0.402, GraphX 0.414, Spark Shell 0.422, Deploy 0.451. On v1 (70dd), Kubernetes was 0.375 by first component and 0.389 counted in every component.
-- By year, 5 of 18 are flagged. Tickets filed before 2014 map under 25% of the time, because their files are gone by the pinned SHA. From 2014 on it's 0.52–0.72.
+- By year, 2 of 15 are flagged, 2012 and 2013. Tickets filed before 2014 map under 25% of the time, because their files are gone by the pinned SHA. From 2014 on it's 0.52–0.72.
 - Since 2020 (overall 0.677, N = 35,285), EC2 and Mesos don't clear. They're unjudged (N = 8 and N = 17, or 8 and 14 by first component). Holding age fixed still leaves 8 of 32 judged components flagged: Spark Docker 0.209 (N = 86), Input/Output 0.315 (92), Spark Submit 0.341 (123), Java API 0.333 (81), Spark Shell 0.359 (64), Examples 0.354 (79), Kubernetes 0.372 (1,762), Deploy 0.426 (61). Under the old point-estimate rule on the first component, 12 were flagged since 2020, including Connect 0.563 (N = 3,163). Connect now reads 0.566 (N = 3,194, CI 0.549–0.583), 0.11 below overall, but its interval reaches the 0.576 line, so it isn't flagged. Kubernetes and Spark Docker work is partly committed in Apache repos the snapshot doesn't hold (`spark-docker`, `spark-kubernetes-operator`). We have no such explanation yet for Input/Output, Java API, Spark Submit and Examples.
 - `(none)`: 1,382 tickets with no component, 0.334 (CI 0.310–0.360). All were filed in 2017 or earlier (276 in the 0010–0012 import) and none since 2020, so this is the age effect again. They have no team, so no team view would show them anyway.
 - Issue types without code (Wish 0.117, Brainstorming 0.118, Question 0.163) are low by nature: 3 of 13 judged types.
@@ -54,13 +54,13 @@ Accuracy can't score them, so `bias.json` `owner_rule.no_team_authors` describes
 
 ### How many slices
 
-136 judged and 32 flagged (`bias.json` `slices_tested`, `slices_flagged`). Ticket mapping and resolver judge 111 and flag 27. The owner rule judges 25 and flags 5 (module 3/1, team 6/1, prior commits 2/0, assigned share 7/0, owned share 7/3).
+133 judged and 29 flagged (`bias.json` `slices_tested`, `slices_flagged`). Ticket mapping and resolver judge 108 and flag 24. The owner rule judges 25 and flags 5 (module 3/1, team 6/1, prior commits 2/0, assigned share 7/0, owned share 7/3).
 
-The interval rule is per slice and isn't corrected for multiple comparisons. So we also ran a Bonferroni check, which tightens each test so the whole set of 136 keeps a 5% error rate: each slice's interval at 1 − 0.05/136, z = 3.56. It keeps 26 of the 32 flags. The large gaps hold (unassigned, Project Infra, `examples/`, `mllib/`, EC2, Mesos, Kubernetes, Spark Docker, Spark Submit, Input/Output, Java API, old years, no-code types). `core/`, `common/`, Deploy and Spark Shell (all time and since 2020) don't, so treat those as likely, not established.
+The interval rule is per slice and isn't corrected for multiple comparisons. So we also ran a Bonferroni check, which tightens each test so the whole set of 133 keeps a 5% error rate: each slice's interval at 1 − 0.05/133, z = 3.56. It keeps 23 of the 29 flags. The large gaps hold (unassigned, Project Infra, `examples/`, `mllib/`, EC2, Mesos, Kubernetes, Spark Docker, Spark Submit, Input/Output, Java API, old years, no-code types). `core/`, `common/`, Deploy and Spark Shell (all time and since 2020) don't, so treat those as likely, not established.
 
-Fairlearn's spread over judged slices (`difference` / `ratio`): component 0.686 / 0.112, component since 2020 0.608 / 0.256, type 0.645 / 0.153, year 0.693 / 0.033, resolver by repo 0.067 / 0.933. Owner rule: accuracy by module 0.291 / 0.439, by team 0.804 / 0.000, by prior commits 0.067 / 0.880; assigned share by module 0.311 / 0.680; owned share by module 0.855 / 0.032.
+Fairlearn's spread over judged slices (`difference` / `ratio`): component 0.686 / 0.112, component since 2020 0.608 / 0.256, type 0.645 / 0.153, resolver by repo 0.067 / 0.933. Owner rule: accuracy by module 0.291 / 0.439, by team 0.804 / 0.000, by prior commits 0.067 / 0.880; assigned share by module 0.311 / 0.680; owned share by module 0.855 / 0.032.
 
-We also found a data anomaly, not bias: 289 Spark tickets are dated in the years 0010–0012. Apache Jira itself has those dates, from the 2013 import from Spark's old tracker. `meridian.validate` warns on dates before 2000 or after the snapshot, and `settings.toml [validate.dates]` allows exactly these 289.
+We also found a data anomaly, not bias: 289 Spark tickets are dated in the years 0010–0012. Apache Jira itself has those dates, from the 2013 import from Spark's old tracker. `meridian.validate` treats a date before 2000 or after the snapshot as invalid and warns on every run, and `bias.py` puts those tickets in no year slice.
 
 ## Mitigation
 

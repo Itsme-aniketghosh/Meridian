@@ -59,7 +59,7 @@ And 10,647 of 59,491 Spark tickets (18%) name more than one component. In Spark 
 
 ### 2.3 Test modules
 
-339 unit tests (`unittest`), one test file per part, all passing. On a plain Windows machine 19 are skipped: 18 need Airflow, GX or the team's private data, and 1 runs on Mac and Linux only. Those run in their own CI jobs or with the team data. The fixtures carry the edge cases: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
+340 unit tests (`unittest`), one test file per part, all passing. On a plain Windows machine 19 are skipped: 18 need Airflow, GX or the team's private data, and 1 runs on Mac and Linux only. Those run in their own CI jobs or with the team data. The fixtures carry the edge cases: renamed and split files, files that don't parse, missing values, schema violations, corrupt JSON, broken alert channels, a repo added to or dropped from the config.
 
 ```
 python -m unittest discover -s tests -t .        # from Data-Pipeline/
@@ -98,9 +98,9 @@ Every Sunday a Great Expectations suite re-checks the block on its own and publi
 - Errors fail the task and stop the publish: too few rows, bad formats (UTC times, ids, SHAs, paths, ticket keys), numbers out of range, coverage below its floor, schema violations.
 - Warnings send an alert and the run goes on: too many missing values, impossible dates, outliers past the IQR fences, a row count that drifted from the last run, a column that collapsed to a single value.
 
-On `c5118b019d642a9b` there are 0 errors and 0 warnings. 289 Spark tickets really are dated 0010 to 0012 in Apache Jira, so we keep them, and `settings.toml` allows exactly that many: a 290th would warn.
+On `c5118b019d642a9b` there are 0 errors and 1 warning. 289 Spark tickets are dated 0010 to 0012, as Apache Jira has them from its 2013 import. A date before 2000 or after the snapshot is invalid, so every run warns with the count, the range and example keys, and no part uses those dates as dates. The run goes on, because they're the source's own data.
 
-`alert.py` sends one message to Slack or email per failed task, data error or data warning. No real channel is set up yet, so alerts go to the log for now; the sending code is tested with mocks ([Appendix B §3](appendix-quality.md#3-anomalies)).
+`alert.py` sends one message to Slack or email per failed task, data error or data warning. A test and the demo's step 8 send a real alert, an HTTP POST and an SMTP session, to local Slack-style and SMTP servers and check what arrived ([Appendix B §3](appendix-quality.md#3-anomalies)). The team's Slack is connected through a webhook URL in `.env` (`MERIDIAN_SLACK_WEBHOOK`, never in git), and validate's alerts arrive there: [join the workspace](https://join.slack.com/t/meridian-flg4799/shared_invite/zt-4ekm8ksh1-WYMNCqG_ECL5jr17~Gzaxg) to see them.
 
 ### 2.9 Pipeline flow optimization
 
@@ -134,7 +134,7 @@ We don't have demographic data, and we don't want it. What we can check is wheth
 
 `meridian/bias.py` slices each rule with Fairlearn's `MetricFrame`: by module, team, Jira component, ticket type, year filed and repo. The one people-level slice is how many commits the next author had made before. We don't slice by email domain or any other personal detail.
 
-A slice counts when it has at least 30 rows. It's flagged when its whole 95% Wilson interval (a confidence range for a rate) sits more than 0.10 below the overall value. 136 slices were judged and 32 flagged:
+A slice counts when it has at least 30 rows. It's flagged when its whole 95% Wilson interval (a confidence range for a rate) sits more than 0.10 below the overall value. 133 slices were judged and 29 flagged:
 
 - The owner rule is right 49.6% of the time where it can be scored. A quarter of next authors have no team (none of their commits in the last 180 days names a ticket with a Jira component), so the rule can't score them. That's a coverage gap, not a skew. We look at that group on its own in §3.3.
 - Ticket mapping depends mostly on age. Tickets from before 2014 point at files that are gone by our pinned commit. Kubernetes and Spark Docker stay low even on recent tickets, because their code lives in other Apache repos we didn't snapshot.
@@ -174,7 +174,7 @@ What we shipped beyond the rule: every slice in `bias.json` carries its size, in
 [BIAS.md](../BIAS.md) has every slice, the mitigation table with the threshold curve, the no-team group and the held-out check, and [Appendix B §5](appendix-quality.md#5-bias-data-slicing) has the charts. The trade-offs:
 
 - The longer lookback gives more people a team, but a two-year-old team can be wrong for someone who moved.
-- The flags aren't corrected for testing 136 slices at once. Under a Bonferroni check 26 of the 32 still hold.
+- The flags aren't corrected for testing 133 slices at once. Under a Bonferroni check 23 of the 29 still hold.
 - `tests/test_bias.py` pins the slicing and flag rules, a threshold above the adopted one, the no-team group and the held-out pick on a synthetic history.
 
 ## 4. Additional guidelines
@@ -255,19 +255,19 @@ We tested this by breaking things on purpose: 27 injected faults and 42 scenario
 | 1 | Proper documentation | §4.1, §4.2, [README](../README.md) | ✅ |
 | 2 | Modular syntax and code | §2.2, §4.4 | ✅ |
 | 3 | Pipeline orchestration (Airflow DAGs) | §2.4, [A](appendix-airflow.md) | ✅ |
-| 4 | Tracking and logging | §2.6, §4.5 | ✅ Python logging in every part, a log per task try in Airflow |
-| 5 | Data version control (DVC) | §2.5 | 🟡 Partial: `dvc.yaml` and `dvc.lock` pin every stage, but the remote is a placeholder, so `dvc pull` doesn't work. The team zip and `reproduce.py` stand in for it (§4.3) |
+| 4 | Tracking and logging | §2.6, §4.5 | ✅ Python logging in every part, a log per task try in Airflow, and alerts that reach the team's Slack |
+| 5 | Data version control (DVC) | §2.5 | ✅ `dvc.yaml` and `dvc.lock` pin every stage's code, settings and outputs. The raw pulls are one checksummed zip with exact steps (§4.3) instead of a DVC remote, so `dvc pull` isn't used |
 | 6 | Pipeline flow optimization | §2.9, [A](appendix-airflow.md) | ✅ The Gantt chart found the bottleneck (`history`, 854 of 943 s). The SZZ cache cut it to 316 s and the DAG to 480 s (−49%), measured in Airflow with the same output bytes |
 | 7 | Schema and statistics generation | §2.7, [B](appendix-quality.md) | ✅ |
-| 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | 🟡 Partial: detection is live and tested. Alerts go to the log; the Slack and email senders are tested with mocks, but no real channel is set up |
-| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ Detection on 136 slices. Adopted: the owner rule abstains ("unowned, needs review") below `min_share` 0.30, measured on an accuracy-coverage curve against guessing (0.496 vs 0.395); 0.60 recommended, not adopted. No-team authors analysed as their own group. Per-slice flags ship to the views (§3.3) |
+| 8 | Anomaly detection and alert generation | §2.8, [B](appendix-quality.md) | ✅ Detection is live and tested; alerts reach the team's Slack ([B §3](appendix-quality.md#3-anomalies), with a screenshot). Email is tested against a local SMTP server |
+| 9 | Bias detection and mitigation | §3, [BIAS.md](../BIAS.md) | ✅ Detection on 133 slices. Adopted: the owner rule abstains ("unowned, needs review") below `min_share` 0.30, measured on an accuracy-coverage curve against guessing (0.496 vs 0.395); 0.60 recommended, not adopted. No-team authors analysed as their own group. Per-slice flags ship to the views (§3.3) |
 | 10 | Test modules | §2.3, [B](appendix-quality.md) | ✅ |
 | 11 | Reproducibility | §4.3, [D](appendix-testing.md) | ✅ Same run_id and same bytes from the pinned inputs; `reproduce.py` checks both |
 | 12 | Error handling and logging | §4.5, [D](appendix-testing.md) | ✅ |
 
 What still falls short:
 
-- No real alert channel yet, and the DVC remote is a placeholder.
+- Email alerts are tested against a local SMTP server only; no team mailbox is configured. The DVC remote is a placeholder.
 - The cross-team features only show their full value on the fixture, because no public dataset has both tickets and tracked code (§2.2). With one run there's no burndown yet either.
 - Two weaker signals missed bars we wrote down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a "bug with no reproduction" check, and timing in the GitLab cross-team rule (precision 0.25 against 0.50 by model labels; 2 of 10 on the 50 model-drafted, person-reviewed rows).
 

@@ -45,6 +45,8 @@ SETTINGS = textwrap.dedent("""\
     max_gap = 0.10
     min_shares = [0.30, 0.60]
     team_lookback_days = [180, 730]
+    [validate.dates]
+    earliest = "2000-01-01T00:00:00Z"
     """)
 
 # (sha, author, authored_at, ticket key or None, [paths]). The cut is 2026-04-04: owners from (2025-10-06, cut]
@@ -57,7 +59,7 @@ COMMITS = [
     ("a5", "ann@x.test", "2026-05-11T00:00:00Z", None, ["core/b.scala"]),        # after the cut: next author, Ann
 ]
 TICKETS = {"ENG-1": (["SQL"], "Bug", "2026-01-01T00:00:00Z"), "ENG-9": (["Core"], "Bug", "2015-01-01T00:00:00Z"),
-           "ENG-2": (["Core"], "Wish", "0012-10-19T00:09:00Z"),
+           "ENG-2": (["Core"], "Wish", "0012-10-19T00:09:00Z"), "ENG-4": (["Core"], "Wish", "2027-01-01T00:00:00Z"),
            "ENG-3": (["SQL", "Core"], "Bug", "2026-02-01T00:00:00Z")}
 
 
@@ -180,7 +182,9 @@ class Bias(unittest.TestCase):
         self.assertEqual(t["mapped_share_by_component"]["by_group"]["Core"]["mapped_share"], 0.0)
         # ENG-3 is SQL and Core: counts in both
         self.assertEqual(t["mapped_share_by_component"]["by_group"]["SQL"]["n"], 2)
-        self.assertEqual(t["mapped_share_by_year"]["by_group"]["0012"]["n"], 1.0)
+        # ENG-2's year 0012 (as Jira has 289 Spark tickets) and ENG-4's after snapshot_at are invalid: no year slice
+        self.assertEqual(list(t["mapped_share_by_year"]["by_group"]), ["2015", "2026"])
+        self.assertEqual(t["mapped_share_by_type"]["by_group"]["Wish"]["n"], 2)   # still counted by type
         self.assertEqual(self.report["resolver"]["kept_share_by_repo"]["overall"]["kept_share"], 0.5)
 
     def test_no_jira_tickets_is_no_ticket_slices_not_a_crash(self):   # a dataset without a tracker
@@ -188,7 +192,7 @@ class Bias(unittest.TestCase):
         out.mkdir()
         write_jsonl(out / "ticket.jsonl", [])
         write_jsonl(out / "ticket_map.jsonl", [])
-        self.assertEqual(B.mapping_report(out, {"min_n": 30, "max_gap": 0.1}), {})
+        self.assertEqual(B.mapping_report(out, {"min_n": 30, "max_gap": 0.1}, "2000-01-01T00:00:00Z"), {})
 
     def test_nothing_to_slice_is_none_not_a_crash(self):   # MetricFrame raises ValueError on no rows
         b = {"min_n": 1, "max_gap": 0.1}
