@@ -41,7 +41,7 @@ Owned share overall is 0.543 (N = 1,819). `examples/` 0.028 (CI 0.011–0.070), 
 
 ### 4. The resolver treats every repo alike
 
-Kept share is 0.981 overall (N = 1,556), and 0 of 12 judged repos are flagged. The lowest judged repo is jazzband/django-silk, 0.933 on N = 30 (CI 0.787–0.982). django-tenants (0.857, N = 7) is under N = 30, so it's unjudged.
+Kept share is 0.981 of candidates overall (N = 1,556), and 0 of 12 judged repos are flagged. What's dropped are look-alikes (a name that lands on a parameter, a local or another function), so this slice asks whether repos lose look-alikes at a similar rate. That real calls are kept comes from the answer keys: Django 294 of 294, packages 1,236 of 1,236 ([RESOLVER.md](RESOLVER.md)). The lowest judged repo is jazzband/django-silk, 0.933 on N = 30 (CI 0.787–0.982). django-tenants (0.857, N = 7) is under N = 30, so it's unjudged.
 
 ### 5. Next authors with no team, as their own group
 
@@ -79,7 +79,7 @@ We scored each candidate fix for the owner rule on the same files in the rerun (
 
 - Lowering the threshold does nothing. Those files are unowned because their authors have no team, not because shares sit near 0.30.
 - Raising it traces the abstain curve. 0.40 and 0.50 stay flat (0.500, 0.501, intervals 0.464–0.536 and 0.464–0.537 against 0.460–0.532). 0.60 is the first clear step: 0.534 (0.495–0.573) on 817 files, and 0.505 → 0.560 at the earlier cut (769 → 595 files). It gives up 171 files, which are right 42 of 132 times (0.318), and the worst module gap widens to 0.284.
-- Falling back to the last toucher owns 65% more files, but it's wrong more often (0.395) and widens the module gap.
+- Falling back to the last toucher owns 65% more files, but it's right less often (0.395 against 0.496) and widens the module gap.
 - A longer lookback for a person's team helps, but less than 0.373 → 0.458 suggests. Each variant is scored against its own labels, and the 730-day lookback also gives a team to 86 next authors who were unassigned, every one a guaranteed miss before. Without them the gain is 0.496 → 0.545 (+0.049), with overlapping intervals (0.460–0.532 vs 0.511–0.579). Coverage is the bigger win: unassigned next authors go from 24.7% to 16.0%. The catch is that a team from two years ago can be stale for someone who moved.
 - On held-out data the longer lookback doesn't hold up. `bias.py` picks the best variant at a cut one window earlier, 2025-10-06, with next authors limited to before the current cut, so the pick never sees the answers it's checked on. Then it scores the pick against the configured rule on the current cut, 2026-04-04, with a 95% interval from a seeded paired bootstrap over files (1,000 resamples, seed 0). Only a variant that owns at least as many files as the configured rule there can be picked: a stricter `min_share` is right more often on what it still names, so it would win by abstaining, not by being right more (`owned_at_earlier_cut` records the counts). On 1,279 files at the earlier cut the configured rule wins: 180 days 0.505, 730 days 0.502, `min_share` 0.20/0.10 0.502, 365 days 0.486. The stricter thresholds score 0.508 (0.40, 755 files), 0.504 (0.50, 737) and 0.560 (0.60, 595) but own fewer files, so they're read as the curve above, not picked. So the pick is the configured rule, and the held-out delta is 0.0, with a 95% interval of 0.0–0.0 (`bias.json` `owner_rule.held_out`). The +0.049 on the current cut is in-sample only.
 
