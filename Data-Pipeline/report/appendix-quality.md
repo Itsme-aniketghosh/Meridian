@@ -95,7 +95,7 @@ Ticket to code mapping is 0.608 per ticket (N = 59,491), or 0.613 over N = 71,84
 
 *Share of candidate call sites the resolver keeps per repo, where every judged repo's interval reaches the 0.981 average.*
 
-The resolver keeps 0.981 of candidates overall (N = 1,556), and 0 of 12 judged repos are flagged (lowest: jazzband/django-silk, 0.933 on N = 30). The share dropped is the look-alike rate, which should be similar across repos; that real calls are kept is shown by the answer keys, Django 294 of 294 and packages 1,236 of 1,236 ([RESOLVER.md](../RESOLVER.md)).
+The resolver keeps 0.981 of candidates overall (N = 1,556), and 0 of 12 judged repos are flagged (lowest: jazzband/django-silk, 0.933 on N = 30). The share dropped is the look-alike rate, which should be similar across repos; that real calls are kept is shown by the answer keys: in Django 265 of 265 edit lines and 542 of 542 aliased calls (all 294 candidates resolve right), in the packages 1,236 of 1,236 ([RESOLVER.md](../RESOLVER.md)).
 
 Our flag rule isn't corrected for multiple comparisons, so with 133 slices a few flags could be chance. Under Bonferroni (a stricter cutoff for many tests, here z = 3.56), 23 of the 29 hold. `core/`, `common/`, Deploy and Spark Shell (all time and since 2020) don't, so treat those as likely, not established. BIAS.md has Fairlearn's difference and ratio for each slicing.
 

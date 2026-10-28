@@ -41,7 +41,7 @@ Owned share overall is 0.543 (N = 1,819). `examples/` 0.028 (CI 0.011–0.070), 
 
 ### 4. The resolver treats every repo alike
 
-Kept share is 0.981 of candidates overall (N = 1,556), and 0 of 12 judged repos are flagged. What's dropped are look-alikes (a name that lands on a parameter, a local or another function), so this slice asks whether repos lose look-alikes at a similar rate. That real calls are kept comes from the answer keys: Django 294 of 294, packages 1,236 of 1,236 ([RESOLVER.md](RESOLVER.md)). The lowest judged repo is jazzband/django-silk, 0.933 on N = 30 (CI 0.787–0.982). django-tenants (0.857, N = 7) is under N = 30, so it's unjudged.
+Kept share is 0.981 of candidates overall (N = 1,556), and 0 of 12 judged repos are flagged. What's dropped are look-alikes (a name that lands on a parameter, a local or another function), so this slice asks whether repos lose look-alikes at a similar rate. That real calls are kept comes from the answer keys: in Django 265 of 265 edit lines and 542 of 542 aliased calls (all 294 candidates resolve right), in the packages 1,236 of 1,236 ([RESOLVER.md](RESOLVER.md)). The lowest judged repo is jazzband/django-silk, 0.933 on N = 30 (CI 0.787–0.982). django-tenants (0.857, N = 7) is under N = 30, so it's unjudged.
 
 ### 5. Next authors with no team, as their own group
 

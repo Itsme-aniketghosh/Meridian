@@ -138,7 +138,7 @@ A slice counts when it has at least 30 rows. It's flagged when its whole 95% Wil
 
 - The owner rule is right 49.6% of the time where it can be scored. A quarter of next authors have no team (none of their commits in the last 180 days names a ticket with a Jira component), so the rule can't score them. That's a coverage gap, not a skew. We look at that group on its own in §3.3.
 - Ticket mapping depends mostly on age. Tickets from before 2014 point at files that are gone by our pinned commit. Kubernetes and Spark Docker stay low even on recent tickets, because their code lives in other Apache repos we didn't snapshot.
-- The resolver drops look-alikes at a similar rate in every repo: it keeps 98.1% of candidates (N = 1,556), and none of the 12 judged repos is flagged (lowest: django-silk, 0.933). The 1.9% it drops are look-alikes, names that land on a parameter, a local or another function. Against the answer keys it keeps every real call: Django 294 of 294 and the packages 1,236 of 1,236 ([RESOLVER.md](../RESOLVER.md)).
+- The resolver drops look-alikes at a similar rate in every repo: it keeps 98.1% of candidates (N = 1,556), and none of the 12 judged repos is flagged (lowest: django-silk, 0.933). The 1.9% it drops are look-alikes, names that land on a parameter, a local or another function. Against the answer keys it keeps every real use: in Django all 265 edit lines and all 542 aliased `_()` calls (and all 294 of its candidates resolve to the right symbol), and in the packages 1,236 of 1,236 ([RESOLVER.md](../RESOLVER.md)).
 
 ### 3.3 Mitigation of bias
 
