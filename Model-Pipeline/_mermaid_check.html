@@ -1,0 +1,115 @@
+<html><body>
+<h4>PLAN.md</h4><pre class="mermaid">
+flowchart TD
+  pipe["Phase 1 data pipeline, done"] --> blk[("meridian.sqlite")]
+
+  subgraph INFRA["GCP with Terraform"]
+    acct["project and billing · Aniket, once"]
+    tfbase["Terraform base, IAM, CI login, budget · Utkarsh"]
+    tfgcs["buckets · Utkarsh"]
+    tfml["MLflow server · AI 2"]
+    tfar["Docker repo · AI 1"]
+    acct --> tfbase
+    tfbase --> tfgcs
+    tfbase --> tfml
+    tfbase --> tfar
+  end
+
+  blk --> A["A: rebuild c5118, dvc push · Utkarsh"]
+  tfgcs --> A
+  A --> B["B: features.parquet · Utkarsh"]
+  B --> bars["pass bars committed · everyone"]
+  bars --> C["C: baselines, models, tuning · AI 1"]
+  tfml --> C
+  C --> D["D: validate, metrics.json · AI 2"]
+  D --> E["E: SHAP, sensitivity · AI 4"]
+  D --> F["F: bias, final pick · AI 3"]
+  F --> G["G: registry, champion, rollback · AI 4"]
+  C --> dock["Docker image · AI 1"]
+  tfar --> dock
+  F --> gates["gate.py, alerts · AI 3"]
+  dock --> H["H: CI workflow · AI 3"]
+  gates --> H
+  G --> H
+  tfbase --> H
+  H --> integ["integration, simulated faults, final runs · Aniket"]
+  E --> integ
+  integ --> J["J: report · Aniket"]
+  B --> I["I: duplicate model, stretch · AI 4"]
+</pre>
+<h4>PLAN.md</h4><pre class="mermaid">
+flowchart LR
+  aniket["Aniket, lead<br/>integration, faults, final runs, report"]
+  utkarsh["Utkarsh, data engineer<br/>GCP base, team run, features"]
+  ai1["AI 1<br/>models, tuning, Docker image"]
+  ai2["AI 2<br/>MLflow server, evaluation"]
+  ai3["AI 3<br/>bias, final pick, gates, CI workflow"]
+  ai4["AI 4<br/>sensitivity, registry"]
+
+  aniket -->|"project, billing, Owner"| utkarsh
+  utkarsh -->|"IAM, artifact bucket"| ai2
+  utkarsh -->|"IAM"| ai1
+  utkarsh -->|"CI login"| ai3
+  utkarsh -->|"features.parquet"| ai1
+  utkarsh -->|"features.parquet"| ai2
+  ai2 -->|"MLflow URL, tracking.py"| ai1
+  ai1 -->|"best candidate, seed noise"| ai2
+  ai1 -->|"best candidate, seed noise"| ai3
+  ai1 -->|"Optuna trials, image"| ai4
+  ai2 -->|"metrics.json"| ai3
+  ai3 -->|"final pick, bias_report.json"| ai4
+  ai1 -->|"Docker image"| ai3
+  ai4 -->|"registry.py"| ai3
+  ai3 -->|"green workflow"| aniket
+  ai4 -->|"charts"| aniket
+  ai2 -->|"2024 numbers"| aniket
+</pre>
+<h4>packets/ai1-models/README.md</h4><pre class="mermaid">
+flowchart LR
+  ut["Utkarsh: features.parquet"] --> me["AI 1"]
+  ai2["AI 2: MLflow, tracking.py"] --> me
+  me --> cand["candidate, seed noise: AI 2, 3, 4"]
+  me --> img["Docker image: AI 3's CI"]
+</pre>
+<h4>packets/ai2-tracking/README.md</h4><pre class="mermaid">
+flowchart LR
+  ut["Utkarsh: project, bucket, features"] --> me["AI 2"]
+  ai1["AI 1: candidate"] --> me
+  me --> url["MLflow URL, tracking.py: everyone"]
+  me --> metrics["metrics.json: AI 3, AI 4, CI"]
+  me --> final["2024 numbers: Aniket"]
+</pre>
+<h4>packets/ai3-bias/README.md</h4><pre class="mermaid">
+flowchart LR
+  ai1["AI 1: candidate, seed noise, image"] --> me["AI 3"]
+  ai2["AI 2: metrics.json"] --> me
+  ai4["AI 4: registry.py"] --> me
+  ut["Utkarsh: CI login"] --> me
+  me --> pick["final pick: AI 2, AI 4"]
+  me --> wf["green workflow: Aniket"]
+</pre>
+<h4>packets/ai4-registry/README.md</h4><pre class="mermaid">
+flowchart LR
+  ai1["AI 1: candidate, trials, seed noise, image"] --> me["AI 4"]
+  ai2["AI 2: metrics.json"] --> me
+  ai3["AI 3: final pick"] --> me
+  me --> charts["SHAP, sensitivity charts: Aniket"]
+  me --> reg["registry.py: AI 3's CI"]
+</pre>
+<h4>packets/aniket-lead/README.md</h4><pre class="mermaid">
+flowchart LR
+  me["Aniket"] -->|"project, billing, Owner"| ut["Utkarsh"]
+  ai3["AI 3: green workflow"] --> me
+  ai2["AI 2: 2024 numbers"] --> me
+  ai4["AI 4: charts, rollback drill"] --> me
+  sections["every owner's section"] --> me
+  me --> rep["REPORT.md"]
+</pre>
+<h4>packets/utkarsh-data/README.md</h4><pre class="mermaid">
+flowchart LR
+  aniket["Aniket: project, billing, Owner"] --> me["Utkarsh"]
+  zip["team zip or dvc pull"] --> me
+  me --> access["IAM, buckets, CI login: everyone"]
+  me --> feat["features.parquet: AI 1, 2, 3, 4"]
+</pre>
+<script type="module">import m from "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs"; m.initialize({startOnLoad:false}); const n=document.querySelectorAll("pre.mermaid").length; try{await m.run(); document.title="OK "+n+" "+document.querySelectorAll("pre.mermaid svg").length}catch(e){document.title="ERR "+e.message}</script></body></html>
