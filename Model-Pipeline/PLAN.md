@@ -184,7 +184,7 @@ Six people. Utkarsh, the data engineer, at the start; four AI engineers in the m
 Who hands what to whom:
 
 ```mermaid
-flowchart LR
+flowchart TD
   aniket["Aniket, lead<br/>integration, faults, final runs, report"]
   utkarsh["Utkarsh, data engineer<br/>GCP base, team run, features"]
   ai1["AI 1<br/>models, tuning, Docker image"]
