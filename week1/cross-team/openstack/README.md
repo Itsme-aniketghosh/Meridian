@@ -1,6 +1,6 @@
 # Cross-team · OpenStack Oslo incubator removal
 
-Step 1 of the [cross-team check](../README.md) for the ChatGPT report's #1 pick. Queried 2026-10-03 from OpenStack's public Gerrit (review.opendev.org) and PyPI, both read-only. Every number below is printed by [openstack_step1.py](openstack_step1.py).
+Step 1 of the [cross-team check](../README.md) for the second candidate source. Queried 2026-10-03 from OpenStack's public Gerrit (review.opendev.org) and PyPI, both read-only. Every number below is printed by [openstack_step1.py](openstack_step1.py).
 
 ## Verdict
 
@@ -57,7 +57,7 @@ In Meridian terms: repo = repo, project team = team, Gerrit change ≈ ticket + 
 | oslo.log | 2015-01-15 | 2016-10-26 |
 | oslo.utils | 2014-07-29 | 2016-11-11 |
 
-The ChatGPT report's case rested on the ordering "library released → added to global requirements → consumers migrate". That ordering is real, but it played out in 2014–15. By the time of this goal it was history.
+The case for it rested on the ordering "library released → added to global requirements → consumers migrate". That ordering is real, but it played out in 2014–15. By the time of this goal it was history.
 
 ## Who did the work
 
