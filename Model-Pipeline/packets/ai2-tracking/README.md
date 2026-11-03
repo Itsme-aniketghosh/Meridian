@@ -1,84 +1,103 @@
-# AI engineer 2: MLflow and evaluation
+# AI engineer 2: tracking, evaluation, registry, auditor
 
-> Run the team's MLflow server, set how everyone logs, and make the numbers everyone trusts. You also run the one look at 2024, on Nov 12.
+> Set how everyone logs, make the numbers everyone trusts, own where models live (the registry, the GCP push, rollback), and build the auditor that learns where to look. You also run the one look at 2024, on Nov 12.
 
 | | |
 |---|---|
-| Steps | D, plus the MLflow server |
-| Code | `model/tracking.py`, `model/evaluate.py`, `tests/test_evaluate.py` |
-| Terraform | `mlflow.tf`. Utkarsh applies it |
-| Waits on | Utkarsh's project and bucket (Nov 4), the v1 table, AI 1's candidate (Nov 6) |
-| Hands to | everyone: MLflow URL, `tracking.py`, the bootstrap helper. AI 3, AI 4, CI: `metrics.json`. Aniket: the 2024 numbers |
+| Steps | tracking, D (evaluation), G (registry and rollback), P (auditor learning), the 2024 run |
+| Code | `model/tracking.py`, `model/evaluate.py`, `model/registry.py`, `Data-Pipeline/meridian/auditor.py`, their tests |
+| Waits on | the v1 table (Nov 5), AI 1's candidate (Nov 6), AI 3's final pick (Nov 9), Aniket's Artifact Registry repo (by Nov 9), Utkarsh's `policy` and `match` tables (Nov 7) |
+| Hands to | everyone: `tracking.py`, the bootstrap helper. AI 3: `metrics.json`, `registry.py`. AI 1: the champion. Aniket: the auditor, the 2024 numbers |
 
 ```mermaid
 flowchart LR
-  ut["Utkarsh: project, bucket, features"] --> me["AI 2"]
-  ai1["AI 1: candidate"] --> me
-  me --> url["MLflow URL, tracking.py: everyone"]
-  me --> metrics["metrics.json: AI 3, AI 4, CI"]
-  me --> final["2024 numbers: Aniket"]
+  ut["Utkarsh: features, policy and match tables"] --> me["AI 2"]
+  ai1["AI 1: candidate, seed noise"] --> me
+  ai3["AI 3: final pick"] --> me
+  me --> trk["tracking.py: everyone"]
+  me --> metrics["metrics.json, registry.py: AI 3"]
+  me --> champ["champion: AI 1"]
+  me --> aud["auditor, 2024 numbers: Aniket"]
 ```
 
 | Date | Due |
 |---|---|
-| Wed Nov 4 | Pass bars drafted with AI 1 and AI 3. `mlflow.tf` PR open |
-| Thu Nov 5 | Server up, team connected, `tracking.py` merged |
-| Sat Nov 7 | `evaluate.py` and `metrics.json` on `val`, charts |
-| Tue Nov 10 | Code freeze |
-| Thu Nov 12 | The 2024 run, once. Your report section |
+| Thu Nov 5 | `tracking.py` merged. Pass bars drafted with the team |
+| Fri Nov 6 | `evaluate.py` and `metrics.json` on `val`, charts |
+| Mon Nov 9 | `registry.py` with the GCP push and rollback. Auditor stall job |
+| Tue Nov 10 | Auditor explore job, simulation tests. Code freeze |
+| Thu Nov 12 | The 2024 run, once. Champion pushed. Your report section |
 
 ## Read first
 
-- [PLAN.md §4](../../PLAN.md#4-what-we-do-now): the pass bars
-- [05-test](../../../docs/05-test.md): bars fixed before the run, every metric with its N, split by time
-- [packets/README.md](../README.md): Contracts 3 and 4
+- [PLAN.md §4](../../PLAN.md#4-what-we-build): pass bars
+- [04-architecture §9](../../../docs/04-architecture.md): auditor learning, the whole design
+- [05-test](../../../docs/05-test.md): bars fixed before the run, every metric with its N; the Auditor row
+- [packets/README.md](../README.md): Contracts 2–4
 
-## What to build
+## Tracking
 
-The server (`mlflow.tf`): e2-micro in `us-east1`, MLflow pinned, run records on the VM's disk, artifacts in `gs://meridian-mlflow-artifacts`, port 5000 open only to Google's IAP range (`35.235.240.0/20`). MLflow has no login, so it's never open to the internet. People connect with `gcloud compute start-iap-tunnel <vm> 5000 --local-host-port=localhost:5000 --zone us-east1-b`. Write the how-to in this folder. Until it's up, everyone logs to a local `mlruns/` and you import those runs later.
+- [ ] `tracking.py`: `start_run(name, owner)` sets the Contract 3 tags and experiment, on the local store `sqlite:///mlflow.db`
+- [ ] A short how-to in [packets/README.md](../README.md)
+- [ ] `log_llm_call(...)` for AI 4: agent, model, prompt version, tokens, cost, cache hit, gate pass, into `meridian-agents`
 
-`tracking.py`: `start_run(name, owner)` sets the Contract 3 tags and the experiment. Add a short how-to to [packets/README.md](../README.md).
+## D. Evaluation
 
-`evaluate.py`: `python -m model.evaluate --run <id> --split val|test` writes `reports/metrics.json` and the charts. For the model and each baseline: PR-AUC, ROC-AUC, precision, recall and F1 at the threshold, recall at 20% of changed lines, N and positive rate. A paired bootstrap for the PR-AUC difference against lines × files. Charts: PR-AUC bars with intervals, a confusion matrix, PR curves against lines × files.
+`python -m model.evaluate --run <id> --split val|test` writes `reports/metrics.json` and charts. For the model and each baseline: PR-AUC, ROC-AUC, precision, recall and F1 at the threshold, recall at 20% of changed lines, N and positive rate. A paired bootstrap for the PR-AUC difference against lines × files. Charts: PR-AUC bars with intervals, a confusion matrix, PR curves against lines × files. `--split test` refuses unless `model.toml [split] test_allowed = true`.
 
-The 2024 run: after the pass bars are merged, AI 3's final pick is made, and Aniket says go on Nov 11. Once. Write down who ran it and when.
+## G. Registry, GCP push, rollback
+
+`python -m model.registry --run <id>`, called by CI after the gate:
+
+- [ ] Registers the model as a new version of `defect-risk` in the local MLflow registry
+- [ ] Moves `champion` only if it wins by the rule (decision 6) and `bias_report.json` passes. Otherwise it stays registered with the reason as a tag
+- [ ] On promotion: uploads the model and `champion.json` to the Artifact Registry repo `meridian-models` as version `<git sha>` (`gcloud artifacts generic upload`), then writes `registry/champion.json`
+- [ ] Keeps `previous` on the old champion. `--rollback` moves `champion` back and uploads a `champion.json` pointing at the previous version
+- [ ] `--push` is skipped without credentials, and says so. Local work never needs GCP
+
+## P. Auditor learning
+
+`python -m meridian.auditor --run-id <id> --config meridian.toml`, settings in `meridian.toml [auditor]`. From [04-architecture §9](../../../docs/04-architecture.md):
+
+- [ ] Policy v0 as code: the stall-reason table (#1–8), ranked by number, then evidence. No probabilities
+- [ ] Explore job v0: nominate deprecation-marked symbols with callers (`radar_deprecated_with_callers`). The fan-in and twin signals wait for gaps G3 and G4
+- [ ] ε-greedy: the champion with 1 − ε, else a random challenger. Seed hash(run_id, task_id). ε = 0.2, then 0.1 after 30 matches
+- [ ] Elo: start 1500, K 32, then 16 after 30 matches. Recomputed from the `match` log every run
+- [ ] Verdict rules: block removed ≤ 7 days before resumption, ticket created ≤ 14 days before, new author resumed, ticket reopened. Else a person picks. None: no match
+- [ ] Replay matches: past stalls, rows with `known_at` ≤ stall time only, half K
+- [ ] Promotion guard: ≥ 30 live matches, +50 Elo, beats v0. LLM-written policies are never promoted without a person
+- [ ] Runs on the fixture and on replay. With no users there are no live matches, and the output says so
 
 ## Decisions
 
-Write the test and the rule that picks before you run it, in `decisions.md` in this folder. Tag each run `decision=ai2-<n>`.
+Write the test and the rule that picks before you run it, in `decisions.md`. Tag each run `decision=ai2-<n>`.
 
 | # | Decision | Options | Test that decides | Why it matters |
 |---|---|---|---|---|
-| 1 | Main metric | PR-AUC, ROC-AUC | Both, on the three baselines and a random score, on `val`. Show how far ROC-AUC sits above chance compared to PR-AUC | With a minority of positives, ROC-AUC looks good even for weak scores. The pass bar must use the metric that shows the difference |
-| 2 | Effort-aware metric | recall at 20% of changed lines, ranking by risk, ranking by risk per line | Hand-make a 10-commit example with known answers and check the code against it. Then compare both rankings for the candidate | A reviewer's time goes by lines read. A model that flags only big commits has good recall but costs the most review time |
-| 3 | Threshold | best F1 on `val`, a fixed precision, a fixed alert rate | For each, alerts per push on `val` (one push = one commit here) and precision | [05-test](../../../docs/05-test.md) asks for at most a median of 1 alert per push and precision ≥ 0.80. A threshold tuned for F1 might flag a third of all commits, and people mute the check |
-| 4 | Bootstrap resamples | 500, 1,000, 2,000 | Three seeds at each size. Pick the smallest size where the interval ends move by less than 0.005 between seeds | Too few and the pass bar rests on noise. Too many and CI is slow |
-| 5 | Paired or unpaired bootstrap | | Both on the candidate against lines × files. Compare widths | Both scores are on the same commits. Paired is the right test and much tighter, so the pass bar can actually be met |
-| 6 | Run store | SQLite on the VM, Postgres on the same VM, Cloud SQL | Load test: 6 processes each log 100 Optuna-style trials at once. Count "database is locked" errors and lost runs | Six people tuning at the same time is exactly when SQLite locks. Cloud SQL costs about $10 a month more. Postgres on the VM is free if SQLite fails |
-| 7 | VM size | e2-micro (free), e2-small (about $12 a month) | The same load test: memory (`free -m`), UI response time, any crash | 1 GB of RAM is tight. Pay only if the test shows it's needed |
-| 8 | Backups | none, a nightly copy of the run store to GCS | Restore drill: stop the server, restore from the bucket onto a fresh disk, check the runs are all there | Losing the VM on Nov 11 means losing every run the report cites |
+| 1 | Main metric | PR-AUC, ROC-AUC | Both on the baselines and a random score on `val`. How far each sits above chance | With few positives, ROC-AUC looks good even for weak scores. The pass bar must use the metric that shows the difference |
+| 2 | Effort-aware metric | recall at 20% of lines, ranking by risk, by risk per line | A hand-made 10-commit example with known answers checks the code. Then both rankings on the candidate | A reviewer's time goes by lines read. A model that flags only big commits has good recall and costs the most review time |
+| 3 | Threshold | best F1 on `val`, a fixed precision, a fixed alert rate | Alerts per push on `val` (one push = one commit here) and precision for each | 05-test asks for at most a median of 1 alert per push and precision ≥ 0.80. An F1 threshold might flag a third of commits, and people mute the check |
+| 4 | Bootstrap resamples | 500, 1,000, 2,000 | Three seeds at each size. The smallest where the interval ends move less than 0.005 | Too few and the pass bar rests on noise. Too many and CI is slow |
+| 5 | Paired or unpaired | | Both on the candidate against lines × files. Compare widths | Both scores are on the same commits. Paired is the right test and much tighter, so the bar can be met |
+| 6 | Promotion rule | any gain, a gain above 2 standard deviations of seed noise | Feed the registry AI 1's 5 same-config seeds in a row. With "any gain" count how often `champion` flips; the noise rule should flip 0 times | A champion that flips on noise makes rollback meaningless and the history unreadable |
+| 7 | What to compare on | the champion's stored metrics, re-scoring it on today's `val` | Rebuild the table with one of Utkarsh's decisions changed, then compare both ways | If the table changes, stored metrics describe different rows |
+| 8 | MLflow store | file store (`mlruns/`), SQLite | Register a model and move an alias on each | The model registry needs a database store. The file store can't hold aliases reliably |
+| 9 | Auditor ε schedule | 04's 0.2 then 0.1, a fixed 0.1 | Simulation: 3 policies with known skill, 200 matches, 20 seeds. Matches until the best is champion, and how often a worse one is | Too little exploration and a better policy never gets tried. Too much and the team sees worse rankings for longer |
+| 10 | Elo K | 04's 32 then 16, 24 flat | Same simulation: rank error after 30, 60, 100 matches | K sets how fast Elo moves. Too high and one lucky match promotes a policy |
+| 11 | Replay weight | half K (04), full K, no replay | Simulation with replay matches that are noisier than live ones | Replay is cheap but its verdicts are weaker. It should speed learning without steering it |
 
 ## Tests
 
-`tests/test_evaluate.py`:
-
-- [ ] On a hand-made table with known answers, PR-AUC, F1 and recall at 20% match a hand calculation
-- [ ] Same seed, same bootstrap interval. Different seed, interval within 0.005
-- [ ] Every number in `metrics.json` has an N
-- [ ] A perfect score gives PR-AUC 1.0. A random score gives about the positive rate
-- [ ] `--split test` refuses to run unless `model.toml` says the 2024 run is allowed. This stops an early look by accident
-
-Server, before you tell the team it's ready:
-
-- [ ] Port 5000 isn't reachable from the internet (try from a phone hotspot)
-- [ ] Two teammates log at the same time through the tunnel
-- [ ] A CI workflow logs a run through the tunnel with the `ci-trainer` account
-- [ ] Decision 8's restore drill done once
+- [ ] `test_evaluate.py`: PR-AUC, F1 and recall at 20% match a hand calculation. Same seed, same interval. Every number in `metrics.json` has an N. A perfect score gives 1.0, a random one about the positive rate. `--split test` refuses unless allowed
+- [ ] `test_registry.py`, against a temp local store: a better model takes `champion` and `previous` points at the old one; a worse one is registered, not promoted; one better only within seed noise isn't promoted; a failed bias report blocks promotion; `--rollback` restores; the first model ever is promoted if it passes; `--push` without credentials skips and says so
+- [ ] `test_auditor.py`, the 05-test Auditor bars: the Elo simulation with known skill ranks right; recomputing from the log twice gives the same ratings; seeded ε within ±2% over 1,000 draws; a replay never reads a row with `known_at` after the stall; the promotion guard blocks at 29 matches and at +49 Elo
+- [ ] Once on the real repo: push, roll back, and check the versions in Artifact Registry
 
 ## Done when
 
-- [ ] The whole team logs through `tracking.py` to the server
-- [ ] `metrics.json` on `val` exists and `gate.py` reads it
-- [ ] Decisions 1–8 written down with their numbers
-- [ ] The 2024 numbers are in, once
-- [ ] Your report section: tracking setup, metrics and why, results, comparison charts
+- [ ] The team logs through `tracking.py`, and AI 4 logs agent calls through it
+- [ ] `metrics.json` on `val`, then on `test` once on Nov 12
+- [ ] `registry.py` in CI on main, with a real push and a rollback tried
+- [ ] The auditor passes its simulation tests and runs on the fixture
+- [ ] Decisions 1–11 written down with their numbers
+- [ ] Your report section: tracking, metrics, results, registry and rollback, auditor

@@ -1,84 +1,100 @@
-# AI engineer 1: models, tuning, Docker image
+# AI engineer 1: models, tuning, sensitivity, Docker, P9
 
-> Train the baselines and the models, tune them, pick the best candidate on 2023, measure how much results move between seeds, and package training in a Docker image. You never look at 2024.
+> Train the baselines and the models, tune them, pick the best candidate on 2023, measure seed noise, explain what the model learned, package everything in one Docker command, and put the champion into the push check. You never look at 2024.
 
 | | |
 |---|---|
-| Steps | C, plus the model Docker image |
-| Code | `model/train.py`, `Dockerfile`, `requirements.txt`, `tests/test_train.py` |
-| Terraform | `registry.tf` (Docker repo). Utkarsh applies it |
-| Waits on | Utkarsh's v1 table (Nov 4), AI 2's MLflow (Nov 5; log locally until then) |
-| Hands to | AI 2, 3: the candidate. AI 3, 4: `seed_noise.json`. AI 4: Optuna trials. AI 3's CI: the image |
+| Steps | C (models), E (sensitivity), the Docker image and `run_all`, Q (P9 hook) |
+| Code | `model/train.py`, `model/sensitivity.py`, `model/run_all.py`, `Dockerfile`, `requirements.txt`, the P9 part of `Data-Pipeline/meridian/pushcheck.py`, their tests |
+| Waits on | Utkarsh's v1 table (Nov 5), AI 2's `tracking.py` (Nov 5), AI 2's champion (Nov 9) for Q |
+| Hands to | AI 2, 3: the candidate, `seed_noise.json`. AI 3's CI: the image. Aniket: charts, the P9 hook |
 
 ```mermaid
 flowchart LR
   ut["Utkarsh: features.parquet"] --> me["AI 1"]
-  ai2["AI 2: MLflow, tracking.py"] --> me
-  me --> cand["candidate, seed noise: AI 2, 3, 4"]
-  me --> img["Docker image: AI 3's CI"]
+  ai2["AI 2: tracking.py, champion"] --> me
+  me --> cand["candidate, seed noise: AI 2, 3"]
+  me --> img["image, run_all: AI 3's CI"]
+  me --> p9["SHAP charts, P9 hook: Aniket"]
 ```
 
 | Date | Due |
 |---|---|
-| Wed Nov 4 | Pass bars drafted with AI 2 and AI 3 |
-| Fri Nov 6 | Baselines and a first untuned candidate on `val` |
-| Sun Nov 8 | Tuned candidate, `seed_noise.json`, decisions 1–9, image pushed |
-| Tue Nov 10 | Code freeze |
+| Thu Nov 5 | Pass bars drafted with the team |
+| Fri Nov 6 | Baselines and a first untuned candidate on `val`, from the v1 table |
+| Sun Nov 8 | Tuned candidate on the c5118 table, `seed_noise.json`, decisions 1–9, the image |
+| Mon Nov 9 | SHAP and sensitivity, decisions 10–13 |
+| Tue Nov 10 | P9 hook. Code freeze |
 | Thu Nov 12 | Your report section |
 
 ## Read first
 
-- [PLAN.md §4](../../PLAN.md#4-what-we-do-now): the label problem and the split
+- [PLAN.md §4.1](../../PLAN.md#41-the-model-the-course-guideline): the label problem and the split
 - [04-architecture §10](../../../docs/04-architecture.md), P9, and [appendix C §7](../../../Data-Pipeline/report/appendix-real-data.md): today's rule flags lines × files above 2,000, catching 32% of bug-inducing Spark commits and 9% of the rest
+- [meridian/pushcheck.py](../../../Data-Pipeline/meridian/pushcheck.py): where `p9_defect_risk` fires
 - [packets/README.md](../README.md): Contracts 1–4
 
-## What to build
+## C. Models and tuning
 
-Baselines are scores, so no training:
+Baselines are scores, no training: lines × files `(la + ld) * nf`, churn `la + ld`, bug fixes `prior_bug_fixes`.
 
-| Baseline | Score |
-|---|---|
-| lines × files (today's P9) | `(la + ld) * nf` |
-| churn | `la + ld` |
-| bug fixes (today's fragility) | `prior_bug_fixes` |
+Models: logistic regression (`log1p` on counts, scaled), random forest, LightGBM. Features: the numeric columns plus `ticket_type` one-hot. The slice columns stay out unless AI 3 agrees.
 
-Models: logistic regression (`log1p` on counts, scaled), random forest, LightGBM. Features: the numeric columns plus `ticket_type` one-hot. The slice columns (`module`, `component`, `exp_bucket`, `size_bucket`) stay out unless AI 3 agrees, since the bias check changes if they go in.
+Tuning: Optuna, TPE sampler, seed from `model.toml`, folds by time inside train, objective mean PR-AUC over folds. Search space in `model.toml [search.*]`. Every trial a nested MLflow run.
 
-Tuning: Optuna, TPE sampler, seed from `model.toml`, folds by time inside train (decision 5), objective mean PR-AUC over folds. Search space in `model.toml [search.*]`. Every trial is a nested MLflow run, because AI 4 needs them all.
+The candidate is logged with `mlflow.<flavor>.log_model`, with its scores on every `val` row as an artifact. AI 3 makes the final pick after the bias check.
 
-The candidate is logged with `mlflow.<flavor>.log_model`, plus its scores on every `val` row as an artifact. It's a candidate: AI 3 makes the final pick after the bias check.
+## E. Sensitivity
 
-Docker: `python:3.11-slim`, pinned `requirements.txt`, `python -m model.train` by default. `registry.tf`: Artifact Registry repo `meridian`, `us-east1`, cleanup keeping the last 3. Tag is the git SHA.
+- [ ] SHAP on the candidate on `val`: a beeswarm of all features, dependence plots for the top 5, and SHAP per slice for what AI 3 flags
+- [ ] Hyperparameters: Optuna's parameter importance and slice plots, and a one-at-a-time sweep of the top 2 parameters
+
+## Docker and `run_all`
+
+- [ ] `Model-Pipeline/Dockerfile`: `python:3.11-slim`, pinned `requirements.txt`
+- [ ] `python -m model.run_all` runs data load → train → evaluate → bias → gate → registry, in order, stopping at the first failure. It's the guideline's "entire process in Docker" (§8.1), and the command Aniket runs at integration
+
+## Q. P9 hook
+
+- [ ] `p9_defect_risk` scores with the champion when `registry/champion.json` names one and the model file's md5 matches. Otherwise lines × files, as today
+- [ ] The note still says which rule fired and why, templates only, $0 a push. No LLM on the push check
+- [ ] A model that fails to load falls back to lines × files and says so in the note. A push check must never break on our model
 
 ## Decisions
 
-Write the test and the rule that picks before you run it, in `decisions.md` in this folder. Tag each run `decision=ai1-<n>`.
+Write the test and the rule that picks before you run it, in `decisions.md`. Tag each run `decision=ai1-<n>`.
 
 | # | Decision | Options | Test that decides | Why it matters |
 |---|---|---|---|---|
-| 1 | Model family | logistic regression, random forest, LightGBM | `val` PR-AUC for each with a paired bootstrap interval (AI 2's helper). The best wins; inside the interval of a simpler one, the simpler one wins | A simpler model that ties is easier to explain, faster in CI, and harder to overfit |
-| 2 | Does it beat lines × files for a real reason? | | Ablation: train the winner (a) on all features, (b) without the size features (`la`, `ld`, `nf`, `nd`, `ns`, `entropy`), (c) on size features only. Compare all three with lines × files | SZZ blames changed lines, so big commits get blamed by construction. If (c) matches (a), the model is lines × files with extra steps, and the report has to say so |
-| 3 | Class imbalance | none, `class_weight="balanced"`, LightGBM `scale_pos_weight` | `val` PR-AUC and Brier score for each | PR-AUC barely moves with weighting, but probabilities do. Pick what keeps PR-AUC and gives honest probabilities |
-| 4 | Calibration | raw scores, isotonic, Platt, fitted on the last train year | Reliability curve and Brier score on `val` | The push check would show developers a risk. A "0.8" that's right 30% of the time destroys trust in it |
-| 5 | Training window | 2015–2022 (expanding), last 4 years (2019–2022) | `val` PR-AUC for each, and the fold-to-fold spread | Spark's code and team changed over ten years. Old commits may teach patterns that no longer hold. More data isn't automatically better |
-| 6 | How many trials | 50, 100, 200 | The best-so-far curve per model. Stop when the last 30 trials improve PR-AUC by less than 0.002 | Trials cost time you don't have after Nov 8. Stop when the curve is flat, and show that curve |
-| 7 | Seed noise | | Train the chosen config with 5 seeds: mean and standard deviation of `val` PR-AUC, into `reports/seed_noise.json` | Any gap smaller than seed noise isn't real. AI 3's gate and AI 4's promotion rule are built on this number |
-| 8 | Ticket features | keep `fix`, `ticket_type`, `has_ticket`; drop them | `val` PR-AUC with and without | Ticket type is as of the Jira pull, not the commit's time, so it can leak a little. If dropping it costs nothing, drop it |
-| 9 | Determinism | | Train twice in the Docker image and once on a laptop. Same predictions? Set LightGBM `deterministic=true` and a fixed `num_threads` | LightGBM can differ across thread counts. CI and your laptop have to agree, or the gate checks a different model |
+| 1 | Model family | logistic regression, random forest, LightGBM | `val` PR-AUC for each with a paired bootstrap interval (AI 2's helper). The best wins; inside a simpler one's interval, the simpler wins | A simpler model that ties is easier to explain, faster in CI, harder to overfit |
+| 2 | Does it beat lines × files for a real reason? | | Ablation: the winner on (a) all features, (b) without size features (`la`, `ld`, `nf`, `nd`, `ns`, `entropy`), (c) size features only. All three against lines × files | SZZ blames changed lines, so big commits are blamed by construction. If (c) matches (a), the model is lines × files with extra steps, and the report says so |
+| 3 | Class imbalance | none, `class_weight="balanced"`, LightGBM `scale_pos_weight` | `val` PR-AUC and Brier score for each | PR-AUC barely moves with weighting, but probabilities do. Keep PR-AUC, get honest probabilities |
+| 4 | Calibration | raw, isotonic, Platt, fitted on the last train year | Reliability curve and Brier score on `val` | The push check shows developers a risk. A "0.8" that's right 30% of the time kills trust |
+| 5 | Training window | 2015–2022, the last 4 years (2019–2022) | `val` PR-AUC for each, and the fold-to-fold spread | Spark's code and team changed over ten years. Old commits may teach patterns that no longer hold |
+| 6 | How many trials | 50, 100, 200 | The best-so-far curve. Stop when the last 30 trials improve PR-AUC by less than 0.002 | Trials cost time you don't have after Nov 8. Stop when the curve is flat, and show the curve |
+| 7 | Seed noise | | The chosen config with 5 seeds: mean and standard deviation of `val` PR-AUC, into `seed_noise.json` | Any gap smaller than seed noise isn't real. AI 3's gate and AI 2's promotion rule are built on this number |
+| 8 | Ticket features | keep `fix`, `ticket_type`, `has_ticket`; drop them | `val` PR-AUC with and without | Ticket type is as of the Jira pull, not the commit's time, so it can leak a little. If dropping costs nothing, drop |
+| 9 | Determinism | | Train twice in the image and once on a laptop. Same predictions? LightGBM `deterministic=true`, fixed `num_threads` | LightGBM can differ across thread counts. CI and laptops must agree, or the gate checks a different model |
+| 10 | SHAP sample size | all of `val`, 5,000, 2,000 rows | Spearman correlation of the top 10 between each sample and all of `val`. The smallest with ≥ 0.9 | SHAP on everything is slow. A sample is fine only if it tells the same story |
+| 11 | Correlated features | SHAP alone, plus grouped permutation importance | Permutation with `la`/`ld` and `nf`/`nd`/`ns` permuted as groups. Do the rankings agree? | SHAP splits credit between correlated features, so each can look minor while the group matters |
+| 12 | Sweep range | ±25%, ±50%, the full search range | PR-AUC across the sweep for the top 2 parameters | A flat curve inside ±50% means CI can retrain safely. A peak means the result hangs on tuning |
+| 13 | P9 threshold with the model | keep 05-test's alert budget, tune for F1 | Replay the 21 migration commits and `val`: alerts per push, precision | 05-test asks for at most a median of 1 alert per push and precision ≥ 0.80. A model threshold tuned for F1 could flag a third of all pushes |
 
-## Tests (`tests/test_train.py`)
+## Tests
 
-- [ ] Two trainings with the same seed give the same predictions
-- [ ] No `test` row reaches any fit, transformer or calibrator
-- [ ] No time fold trains on a year it scores
+- [ ] `test_train.py`: same seed, same predictions. No `test` row reaches any fit, transformer or calibrator. No time fold trains on a year it scores
 - [ ] Baseline scores on a hand-made 5-row table match a hand calculation
 - [ ] A missing feature column fails with a clear message, not a silent NaN model
-- [ ] On a table with shuffled labels, `val` PR-AUC lands near the positive rate. This is the sanity check that the pipeline can't learn from noise
+- [ ] On shuffled labels, `val` PR-AUC lands near the positive rate: the pipeline can't learn from noise
+- [ ] `test_sensitivity.py`: SHAP values on a tiny tree model sum to the prediction minus the base value
+- [ ] `run_all` stops at the first failing step and says which
+- [ ] `test_pushcheck.py` additions: P9 with a champion, without one, and with a corrupt model file (falls back, says so). The 16 existing push-check tests still pass
 
 ## Done when
 
-- [ ] Three baselines, three tuned models and the candidate have `val` PR-AUC with N in MLflow
-- [ ] `seed_noise.json` exists, and the search space is in `model.toml`
-- [ ] Decisions 1–9 written down with their numbers
-- [ ] The image builds and is pushed. Same metrics inside it as outside
-- [ ] Your report section: models, search space, tuning, each decision and its test
+- [ ] Baselines, three tuned models and the candidate have `val` PR-AUC with N; `seed_noise.json` exists
+- [ ] SHAP and sensitivity charts in `reports/`, with the size question answered
+- [ ] `run_all` works in the image
+- [ ] P9 uses the champion, with the fallback tested
+- [ ] Decisions 1–13 written down with their numbers
+- [ ] Your report section: models, tuning, sensitivity, Docker, P9, each decision and its test

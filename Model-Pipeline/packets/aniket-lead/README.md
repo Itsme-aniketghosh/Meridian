@@ -1,104 +1,116 @@
 # Aniket: lead, integration and final runs
 
-> Get the project open on day 1, then stay out of the way until code freeze. From Nov 10 you put the pieces together, break them on purpose, run the final runs, make the go or no-go call, and write the report.
+> Make the one GCP repo the model is pushed to, then stay out of the way until code freeze. From Nov 10 you put the model and the product together, break them on purpose, run the final runs, make the go or no-go call, and write the report with Utkarsh.
 
 | | |
 |---|---|
-| Owns | the GCP project and billing (once), reviews and merges, integration, simulated faults, final runs, the go or no-go call, the report |
-| Code | `tests/faults/`, the fault scripts |
-| Terraform | none. Utkarsh applies everything |
+| Owns | the Artifact Registry repo and CI key (once), reviews and merges, integration, simulated faults, final runs, go or no-go, the report |
+| Code | `Model-Pipeline/tests/faults/`, the fault scripts. `Model-Pipeline/golden/` |
 | Waits on | everyone's pieces by code freeze, Tue Nov 10 |
 | Hands to | the course: `Model-Pipeline/report/REPORT.md` on Nov 15 |
 
 ```mermaid
 flowchart LR
-  me["Aniket"] -->|"project, billing, Owner"| ut["Utkarsh"]
-  ai3["AI 3: green workflow"] --> me
-  ai2["AI 2: 2024 numbers"] --> me
-  ai4["AI 4: charts, rollback drill"] --> me
+  ai3["AI 3: green CI"] --> me["Aniket"]
+  ai2["AI 2: auditor, 2024 numbers"] --> me
+  ut["Utkarsh: views"] --> me
+  ai1["AI 1: P9 hook, charts"] --> me
   sections["every owner's section"] --> me
   me --> rep["REPORT.md"]
 ```
 
 | Date | Due |
 |---|---|
-| Tue Nov 3 | Project made, billing linked, Utkarsh Owner and Billing Account Costs Manager |
-| Thu Nov 5 | Pass bars merged |
-| Nov 5–9 | Reviews and merges. A short check-in each day against PLAN.md §10 |
+| Wed Nov 4, optional | Artifact Registry repo and CI key |
+| Fri Nov 6 | Pass bars merged |
+| Nov 5–10 | Reviews and merges. A short check-in each day against PLAN.md §10 |
+| Mon Nov 9 | Cut-order check-in. Registry repo done at the latest |
 | Tue Nov 10 | Code freeze at the end of the day |
 | Wed Nov 11 | Integration and simulated faults. Go or no-go for 2024 |
 | Thu Nov 12 | Final runs. Every section in |
-| Fri Nov 13 – Sun Nov 15 | Report |
+| Nov 13–15 | Report, with Utkarsh |
 
-## 1. Day 1 (Nov 3)
+## 1. The one GCP piece
 
-- [ ] Project `meridian-mlops` on the $300 trial billing account. Write down the trial's end date; move the project to the $50 education account before then
-- [ ] Utkarsh as Owner on the project, and Billing Account Costs Manager on the billing account (for the budget). Nothing more on billing for anyone
+On the $300 trial project, by hand, no Terraform:
 
-## 2. Until freeze (Nov 4–10)
+- [ ] `gcloud artifacts repositories create meridian-models --repository-format=generic --location=us-east1`
+- [ ] A service account that can only write to that repo (Artifact Registry Writer on it, nothing else). Its key as the repo secret AI 3's workflow reads, main only
+- [ ] Note the trial's end date. Phase 3 moves this into Terraform and replaces the key with Workload Identity
 
-- [ ] Merge the pass bars by Nov 5. They go in before anyone trains, and changing one after needs a commit saying why
-- [ ] Review PRs for the contracts in [packets/README.md](../README.md): tags on runs, no names in the table, nothing hard-coded outside `model.toml`
-- [ ] Each day, check the critical path in [PLAN.md §6](../../PLAN.md#6-dependency-graph). If something on it slips, cut from the end (the duplicate model first), don't push the freeze
+## 2. Until freeze (Nov 5–10)
+
+- [ ] Merge the pass bars by Nov 6. They go in before anyone trains
+- [ ] Review PRs for the contracts in [packets/README.md](../README.md): tags on runs, no names in the table or the facts, nothing hard-coded outside the two config files
+- [ ] Each day, check both critical paths in [PLAN.md §6](../../PLAN.md#6-dependency-graph). On Nov 9, apply the cut order in [§9](../../PLAN.md#9-open-risks) if needed. Cut from the end, don't move the freeze
 
 ## 3. Integration (Nov 10–11)
 
-From a clean clone, nothing cached:
+From a clean clone, nothing cached except the committed LLM cache:
 
-- [ ] `dvc pull`, then `python -m model.data`, train, evaluate, bias, gate, registry, in order, on your machine
-- [ ] The same in AI 1's Docker image
-- [ ] The same through `model.yml` on a branch, then on main
-- [ ] All three give the same `metrics.json` (byte for byte, or the same numbers to 4 decimals if JSON ordering differs). If not, it's a reproducibility bug and goes back to its owner the same day
+- [ ] `python -m model.run_all` on your machine, then in AI 1's Docker image
+- [ ] The same through `model.yml` on a branch, then on main, ending in a real push
+- [ ] All three give the same `metrics.json` (the same numbers to 4 decimals). If not, it's a reproducibility bug and goes back to its owner the same day
+- [ ] The product on the fixture, the real block and run 2: views, agents, gate, auditor, P9. Every page loads, 0 LLM calls with the warm cache
+- [ ] Walk [PLAN.md §12](../../PLAN.md#12-guideline-coverage) row by row: each item has its evidence file
 
 ## 4. Simulated faults (Nov 11)
 
-Phase 1 broke things on purpose (27 faults, 42 scenarios) and the report was stronger for it. Do the same here. Each fault has an expected result written down before you run it.
+Phase 1 broke things on purpose (27 faults, 42 scenarios), and the report was stronger for it. Each fault has its expected result written down before you run it.
 
 | # | Fault | Expected | Why |
 |---|---|---|---|
-| 1 | Shuffled labels | Trains; PR-AUC near the positive rate; gate fails; Slack alert | Proves the gate catches a model that learned nothing |
-| 2 | A size-only model | Gate fails, or passes only if it really beats lines × files | Proves the bar isn't beaten by a renamed baseline |
+| 1 | Shuffled labels | PR-AUC near the positive rate; gate fails; Slack alert | Proves the gate catches a model that learned nothing |
+| 2 | A size-only model | Gate fails, or passes only if it really beats lines × files | The bar can't be beaten by a renamed baseline |
 | 3 | A feature column missing | `train.py` fails with a clear message | A silent NaN model is worse than a crash |
-| 4 | A column's type changed (int to string) | `data.py` or `train.py` refuses it | Schema drift is the most common real break |
-| 5 | Feature table from the wrong `run_id` | Refused, or the run is tagged with that `run_id` so it can't be mistaken | The report's numbers must trace to one block |
-| 6 | The same config twice | Same predictions, same metrics | Reproducibility, as phase 1's golden hashes did |
-| 7 | A model worse than the champion | Registered, not promoted | Rollback starts with not promoting |
-| 8 | A model better only within seed noise | Not promoted | The champion mustn't flip on noise |
-| 9 | Bias fails, PR-AUC better | Gate fails, not promoted | Bias is part of the pick, not a footnote |
-| 10 | Rollback | `champion` back to `previous`, in MLflow and Vertex | The guideline asks for it, and it's never been run under pressure |
-| 11 | MLflow server down | Training fails clearly or logs locally, as AI 2 designed; no half-registered model | A dead tracking server must not leave a half state |
-| 12 | GCS permission denied | `dvc pull` fails with a clear message; nothing trains on stale data | Stale data looks like real data |
-| 13 | Slack webhook broken | Gate still decides; the error is logged | An alert channel must never break the run it reports on |
-| 14 | A PR from a fork | No GCP token, no secrets, stops before registry | Security of the CI login |
-| 15 | `--split test` before the go | Refused | The one look at 2024 stays one |
+| 4 | A column's type changed | `data.py` or `train.py` refuses it | Schema drift is the most common real break |
+| 5 | Feature table from the wrong `run_id` | Refused, or tagged so it can't be mistaken | Every number traces to one block |
+| 6 | The same config twice | Same predictions, same metrics | Reproducibility, like phase 1's golden hashes |
+| 7 | A model worse than the champion | Registered, not promoted, not pushed | Rollback starts with not promoting |
+| 8 | Better only within seed noise | Not promoted | The champion mustn't flip on noise |
+| 9 | Bias fails, PR-AUC better | Gate fails | Bias is part of the pick |
+| 10 | Rollback | `champion` back to `previous`, locally and in Artifact Registry | The guideline asks for it |
+| 11 | No GCP credentials | Everything runs; the push is skipped and says so | Local work never needs GCP |
+| 12 | Slack webhook broken | Gate still decides; the error is logged | An alert channel must never break the run it reports on |
+| 13 | A PR from a fork | No secrets; stops before the push | Security of the one key |
+| 14 | `--split test` before the go | Refused | The one look at 2024 stays one |
+| 15 | LLM off (no key, empty cache) | Every view renders with templates | A product rule |
+| 16 | An LLM text with a made-up number | The gate replaces it with the template; the fallback rate counts it | The gate's whole job |
+| 17 | Jev down | Rules pick; the run completes | 04-architecture's fallback |
+| 18 | A cache entry deleted | That one task calls the LLM again; everything else is a hit | The cache key is right and nothing else depends on it |
+| 19 | A fact containing an email | Refused before any prompt is built | No people in facts |
+| 20 | Auditor replay with a future row | The row is ignored | No `known_at` leak |
+| 21 | A broken champion file in the push check | P9 falls back to lines × files and says so | A push check must never break on our model |
 
-- [ ] Each fault in `tests/faults/` as a script, its result in a table for the report
-- [ ] Anything that doesn't behave as expected goes to its owner the same day, with the script to reproduce it
+- [ ] Each fault in `Model-Pipeline/tests/faults/` as a script, its result in a table for the report
+- [ ] Anything that doesn't behave goes to its owner the same day, with the script to reproduce it
 
 ## 5. Go or no-go (Nov 11)
 
-- [ ] All faults behave, the workflow is green on main, the pass bars are unchanged since Nov 5
-- [ ] Then tell AI 2 to run 2024. If not, fix first. The 2024 run waits; it doesn't happen early
+- [ ] All faults behave, CI is green on main, the pass bars are unchanged since Nov 6
+- [ ] Then flip `model.toml [split] test_allowed` to `true` and tell AI 2 to run 2024. If not, fix first
 
 ## 6. Final runs (Nov 12)
 
 - [ ] AI 2 runs 2024 once, with you watching. Note the time and the git SHA
 - [ ] The model ships if it meets the pass bars on 2024. If not, lines × files stays, and that's the result we report
-- [ ] AI 4 registers the champion. Check it in MLflow and Vertex
-- [ ] Every chart regenerated from the final runs, not earlier ones
-- [ ] Record the md5 of `features.parquet`, `metrics.json` and `bias_report.json` in `Model-Pipeline/golden/`, like phase 1's golden file
-- [ ] Billing page checked. No endpoint, no VM left running besides MLflow
+- [ ] The champion pushed to Artifact Registry. Check the version there
+- [ ] The final product run on the real block, run 2 and the fixture
+- [ ] Every chart regenerated from the final runs
+- [ ] md5 of `features.parquet`, `metrics.json`, `bias_report.json`, `llm_bias.json` and `champion.json` in `Model-Pipeline/golden/`, like phase 1's golden file
+- [ ] Billing page checked: only the registry repo exists
 
-## 7. The report (Nov 13–15)
+## 7. The report (Nov 13–15, with Utkarsh)
 
-- [ ] `Model-Pipeline/report/REPORT.md`, in the guideline's order, in the style of the phase 1 report
-- [ ] Each owner's section edited for one voice. Every number has its N and a source (MLflow run, decision tag, file)
+- [ ] `Model-Pipeline/report/REPORT.md`, in the order of [PLAN.md §12](../../PLAN.md#12-guideline-coverage), in the style of the phase 1 report
+- [ ] Each owner's section edited for one voice. Every number has its N and a source (a run, a decision tag, a file)
 - [ ] The decision tables from each `decisions.md`: what was tested, what was picked, why
 - [ ] The fault table from section 4
-- [ ] What was cut, and why
+- [ ] What was cut, and why. What phase 3 deploys
 
 ## Done when
 
-- [ ] Everything in the fault table behaved, or the report says what didn't
-- [ ] A push to main trains, evaluates, checks bias, gates and registers with no hands on it
+- [ ] Every row of PLAN.md §12 has its evidence
+- [ ] A push to main trains, evaluates, checks bias, gates and pushes with no hands on it
+- [ ] The product runs end to end on the fixture and the real block
 - [ ] The report is merged by Nov 15
