@@ -3,8 +3,21 @@
 Reads the feature table of Contract 1 (Model-Pipeline/packets/README.md). Every fit goes through `fit_rows`,
 which only ever returns `train` rows, and `rows` refuses `test` outright: nobody looks at 2024 until Nov 12.
 """
+import argparse
+import json
+import sys
+import tomllib
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 from sklearn.metrics import average_precision_score
+
+HERE = Path(__file__).resolve().parents[1]   # Model-Pipeline/
+
+# Contract 2 defaults, used only when model.toml isn't there yet.
+DEFAULT_CONFIG = {"split": {"train": [2015, 2022], "val": 2023, "test": 2024, "test_allowed": False},
+                  "seed": {"value": 1}}
 
 # Contract 1: every column the table must have.
 ID_COLUMNS = ["sha", "authored_at", "year", "split", "label"]
@@ -183,3 +196,120 @@ def chance_ceiling(y, q=0.99, reps=300, seed=0):
     rng = np.random.default_rng(seed)
     y = np.asarray(y, dtype=int)
     return float(np.quantile([pr_auc(y, rng.random(len(y))) for _ in range(reps)], q))
+
+
+def paired_bootstrap(y, a, b, reps=1000, seed=0):
+    """PR-AUC of a minus PR-AUC of b on the same rows, with a 95% interval from resampling rows.
+    Stands in for AI 2's helper until it's merged; same method."""
+    y, a, b = (np.asarray(v) for v in (y, a, b))
+    rng = np.random.default_rng(seed)
+    diffs = []
+    while len(diffs) < reps:
+        i = rng.integers(0, len(y), len(y))
+        if y[i].min() == y[i].max():
+            continue
+        diffs.append(pr_auc(y[i], a[i]) - pr_auc(y[i], b[i]))
+    lo, hi = np.quantile(diffs, [0.025, 0.975])
+    return pr_auc(y, a) - pr_auc(y, b), float(lo), float(hi)
+
+
+# ---------- the command ----------
+def load_config(path):
+    path = Path(path)
+    if not path.exists():
+        print(f"note: {path} not found, using Contract 2 defaults (seed 1, train 2015-2022, val 2023)")
+        return DEFAULT_CONFIG
+    with open(path, "rb") as f:
+        cfg = tomllib.load(f)
+    if cfg.get("split", {}).get("test_allowed"):
+        print("note: test_allowed is true, but train.py never reads test rows anyway")
+    return cfg
+
+
+def load_features(path):
+    path = Path(path)
+    if not path.exists():
+        raise FeatureError(f"{path} not found: Utkarsh's table goes in Model-Pipeline/data/")
+    return pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
+
+
+def untuned(df, seed, out_dir, reps=1000, kinds=MODEL_KINDS):
+    """Baselines and the three models at their defaults, on val. Writes the summary and every val score."""
+    val = rows(df, "val")
+    y = val["label"].astype(int).to_numpy()
+    scores = dict(baseline_scores(val))
+    for kind in kinds:
+        _, s, scored = fit_and_score(df, kind, seed)
+        assert scored.index.equals(val.index)
+        scores[kind] = s
+    ref = scores["lines_x_files"]
+    summary = {"split": "val", "n": int(len(y)), "positives": int(y.sum()), "positive_rate": float(y.mean()),
+               "seed": seed, "bootstrap_reps": reps, "results": {}}
+    for name, s in scores.items():
+        row = {"pr_auc": pr_auc(y, s)}
+        if name != "lines_x_files":
+            d, lo, hi = paired_bootstrap(y, s, ref, reps=reps, seed=seed)
+            row.update(vs_lines_x_files=d, interval=[lo, hi])
+        summary["results"][name] = row
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "untuned_val.json").write_text(json.dumps(summary, indent=2) + "\n")
+    table = pd.DataFrame({"sha": val["sha"].to_numpy(), "label": y, **scores})
+    table.to_csv(out_dir / "untuned_val_scores.csv", index=False)
+    return summary
+
+
+def log_to_mlflow(summary, out_dir):
+    """Through AI 2's tracking.py (Contract 3). Until it's merged, say so and carry on."""
+    try:
+        from model import tracking
+    except ImportError:
+        print("not logged to MLflow: model/tracking.py (AI 2) isn't merged yet")
+        return
+    import mlflow
+    with tracking.start_run("untuned", owner="ai1"):
+        mlflow.set_tag("decision", "ai1-1")
+        mlflow.log_param("seed", summary["seed"])
+        for name, r in summary["results"].items():
+            mlflow.log_metric(f"val_pr_auc_{name}", r["pr_auc"])
+        mlflow.log_metric("val_n", summary["n"])
+        mlflow.log_artifacts(str(out_dir))
+
+
+def print_summary(s):
+    print(f"val: N = {s['n']:,}, positives = {s['positives']:,} ({s['positive_rate']:.1%})")
+    print(f"{'':16}{'PR-AUC':>8}   vs lines x files (95% paired bootstrap, {s['bootstrap_reps']} reps)")
+    for name, r in s["results"].items():
+        extra = ""
+        if "interval" in r:
+            lo, hi = r["interval"]
+            extra = f"   {r['vs_lines_x_files']:+.3f} [{lo:+.3f}, {hi:+.3f}]"
+        print(f"{name:16}{r['pr_auc']:8.3f}{extra}")
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description="AI 1: baselines and models on val. Run from Model-Pipeline/.")
+    p.add_argument("--config", default=str(HERE / "model.toml"))
+    p.add_argument("--features", default=str(HERE / "data" / "features.parquet"))
+    p.add_argument("--out", default=str(HERE / "reports"))
+    p.add_argument("--untuned", action="store_true", help="baselines and the three models at their defaults")
+    p.add_argument("--reps", type=int, default=1000, help="bootstrap resamples")
+    p.add_argument("--models", nargs="+", choices=MODEL_KINDS, default=list(MODEL_KINDS))
+    a = p.parse_args(argv)
+    if not a.untuned:
+        p.error("nothing to do: pass --untuned (tuning comes next)")
+    cfg = load_config(a.config)
+    try:
+        df = load_features(a.features)
+        sp = cfg["split"]
+        check_table(df, {"train": sp["train"], "val": sp["val"], "test": sp["test"]})
+    except FeatureError as e:
+        sys.exit(f"feature table: {e}")
+    summary = untuned(df, int(cfg["seed"]["value"]), a.out, a.reps, a.models)
+    print_summary(summary)
+    log_to_mlflow(summary, a.out)
+    print(f"wrote {Path(a.out) / 'untuned_val.json'} and untuned_val_scores.csv")
+
+
+if __name__ == "__main__":
+    main()
