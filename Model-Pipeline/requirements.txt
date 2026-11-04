@@ -1,0 +1,19 @@
+# Model pipeline (AI 1). Pinned so laptops, the Docker image and CI train the same model.
+# numpy, pandas, scikit-learn match Data-Pipeline/requirements.txt.
+
+# data
+numpy==2.4.6
+pandas==3.1.0
+pyarrow==26.0.1
+
+# models and tuning
+scikit-learn==1.9.1
+lightgbm==4.7.0
+optuna==5.0.0
+
+# explanations and charts
+shap==0.51.0
+matplotlib==3.11.2
+
+# experiment tracking and the registry
+mlflow==3.18.0
