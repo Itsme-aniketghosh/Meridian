@@ -1,0 +1,51 @@
+# AI 1 decisions
+
+Each rule below was written before its run, as [packets/README.md](../README.md) requires. Each run is tagged
+`decision=ai1-<n>` in MLflow. The Result and Picked columns are filled in after the run, with N.
+
+Common terms:
+- **PR-AUC** is on `val` (2023), with its N and positive rate.
+- **Paired bootstrap interval** means AI 2's helper: 1,000 resamples of the same `val` rows, 95% interval of the
+  difference. "Tied" means that interval contains 0.
+- **Simpler** means logistic regression < random forest < LightGBM; fewer features < more; raw < calibrated.
+- When a rule can't be run in time, the simpler option is picked and the reason is written here.
+
+| # | Decision | Options | Test | Rule that picks (written before the run) | Result (N) | Picked |
+|---|---|---|---|---|---|---|
+| 1 | Model family | LR, RF, LightGBM | `val` PR-AUC of each, tuned the same way; paired bootstrap of each against the best | Highest PR-AUC wins. If a simpler model is tied with it, the simplest tied model wins | | |
+| 2 | Real reason to beat lines × files? | — (a finding, not a choice) | The winner on (a) all features, (b) no size features (`la`, `ld`, `nf`, `nd`, `ns`, `entropy`), (c) size features only; each against lines × files, paired bootstrap | "Beats for a real reason" only if (b) beats lines × files (interval above 0). If (c) is tied with (a), the report says the model is mostly size | | |
+| 3 | Class imbalance | none, `class_weight="balanced"`, `scale_pos_weight` | `val` PR-AUC and Brier score of each | Among options tied with the best PR-AUC, the lowest Brier wins; if Brier differs by < 0.001, `none` | | |
+| 4 | Calibration | raw, isotonic, Platt (fitted on 2022 only) | Reliability curve and Brier on `val` | Lowest Brier wins; if within 0.001 of raw, raw. Calibration never changes the ranking, so PR-AUC must not move | | |
+| 5 | Training window | 2015–2022, 2019–2022 | `val` PR-AUC of each, paired bootstrap; fold-to-fold spread | The shorter window wins only if its interval is above 0. Tied: 2015–2022 (the plan's default, more data) | | |
+| 6 | Number of trials | 50, 100, 200 | Optuna best-so-far curve | Start at 50. Add 50 at a time, up to 200, while the last 30 trials improved the best by ≥ 0.002. Stop at the first batch that doesn't | | |
+| 7 | Seed noise | — | Chosen config, seeds 1–5 | Mean and standard deviation of `val` PR-AUC into `reports/seed_noise.json`. No choice; AI 2 and AI 3 use the SD | | |
+| 8 | Ticket features | keep `fix`, `ticket_type`, `has_ticket`; drop | `val` PR-AUC with and without, paired bootstrap | Drop unless keeping them is better with an interval above 0 (they can leak: ticket type is as of the pull) | | |
+| 9 | Determinism | — | Train twice in the image, once on a laptop; compare every `val` prediction | Pass if the max absolute difference is ≤ 1e-9. Otherwise set `deterministic=true`, fixed `num_threads`, and rerun until it passes | | |
+| 10 | SHAP sample size | all of `val`, 5,000, 2,000 | Spearman correlation of the top-10 feature ranking against all of `val` | The smallest sample with Spearman ≥ 0.9 | | |
+| 11 | Correlated features | SHAP alone, plus grouped permutation | Permutation with `la`/`ld` and `nf`/`nd`/`ns` permuted as groups | If a group ranks in the top 3 by permutation but not by SHAP, the report uses the grouped ranking for that group and shows both | | |
+| 12 | Sweep range | ±25%, ±50%, full range | One-at-a-time sweep of the top 2 parameters | "Safe to retrain" if PR-AUC varies by ≤ 2 × seed-noise SD across ±50%. Otherwise the report names the peak | | |
+| 13 | Jev against rules | Jev picks, rules pick | Same fixture tasks both ways: pass rate and cost | Jev stays only if its pass rate is within 2 percentage points of rules' and its cost is lower (05-test). Otherwise rules, and the report says so | | |
+| 14 | Jev's model | the small model, the mid model (`meridian.toml [llm]`) | Pick accuracy on the held-out half of the Jev task set (decision 19), and cost per task | The small model unless the mid model gets ≥ 3 more of the 30 held-out tasks right | | |
+| 15 | P9 threshold | 05-test's alert budget, F1-tuned | Replay of the 21 migration commits and `val`: alerts per push, precision | The threshold must meet median ≤ 1 alert per push and precision ≥ 0.80. F1-tuned only if it also meets both; otherwise the budget threshold | | |
+| 16 | Cheaper model | each model in decision 1, at its tuned size | Train time, time to score 10,000 commits, model file size, all on the same laptop; `val` PR-AUC | Already folded into decision 1: a cheaper model that's tied wins. This row records the cost table so the report can answer "could it be cheaper?" with numbers | | |
+| 17 | Feature pruning | all features, the smallest set that holds | Backward elimination on the time folds inside train (never `val`): drop the least important group, refit, repeat | The smallest set whose mean fold PR-AUC is within 1 seed-noise SD of all features. Then one check on `val` | | |
+| 18 | Tree compression | LightGBM `max_bin` 255, 63, 15 (feature quantization); trees capped by early stopping on the last train fold (pruning) | `val` PR-AUC, model file size, scoring time | The smallest, fastest setting within 1 seed-noise SD of the full model | | |
+| 19 | Jev's task set | — | 60 fixture tasks labelled by hand (which agent and model a person would pick): 30 to write the prompt, 30 held out | The prompt is tuned only on the first 30. Decisions 13 and 14 are scored only on the held-out 30, so the prompt can't overfit its own test | | |
+
+## Options considered and not run
+
+| Idea | Why not |
+|---|---|
+| Fine-tuning a language model for Jev | The hosted models can't be fine-tuned on our account, and 60 labelled tasks are far too few to fine-tune anything. Rules already cost $0, so the cheapest option is measured in decision 13 |
+| A quantized open model for Jev, run locally | Adds a model server to CI and the image for a router that makes one short call per task. Considered only if decision 13 shows the hosted small model losing to rules on cost |
+| Deep learning on the commit features | 25 tabular features and about 30,000 labelled commits: gradient-boosted trees are the standard for this, and Kamei et al.'s set is tabular |
+
+## My pass-bar rows (for AI 3's file)
+
+| What | Bar |
+|---|---|
+| Model ships | 2024 PR-AUC beats lines × files, paired bootstrap interval of the difference above 0. Otherwise the rule stays |
+| Model determinism | Same data, config and seed: every prediction within 1e-9, laptop and image |
+| Model sanity | Shuffled labels: `val` PR-AUC below the 99th percentile that random scores reach on the same rows (`chance_ceiling`), and ROC-AUC within 0.5 ± 0.03, median of 3 shuffles |
+| Jev | Same problem twice: same pick. Jev down or over the spend cap: rules pick, the run completes. Beats rules on cost at an equal pass rate |
+| P9 with the model | Replay: median alerts per push ≤ 1, precision ≥ 0.80. A model that fails to load falls back to lines × files and says so |
