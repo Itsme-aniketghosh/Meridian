@@ -102,3 +102,84 @@ def pr_auc(y, score):
     if y.min() == y.max():
         raise ValueError("PR-AUC needs both classes in y")
     return float(average_precision_score(y, np.asarray(score, dtype=float)))
+
+
+# ---------- models (step C) ----------
+MODEL_KINDS = ("logreg", "forest", "lgbm")
+IMBALANCE = ("none", "balanced", "scale_pos_weight")
+
+
+def ticket_categories(train):
+    """ticket_type values seen in train, sorted. Learned from train only, so val can't shape the columns."""
+    return sorted(str(v) for v in train["ticket_type"].unique())
+
+
+def feature_matrix(df, categories, ticket_features=True, drop=()):
+    """The model inputs for df: numeric columns, plus ticket_type one-hot over `categories`.
+    A ticket_type not in `categories` gets all zeros. Slice columns are never included."""
+    numeric = [c for c in NUMERIC if c not in drop and (ticket_features or c not in TICKET)]
+    X = df[numeric].astype(float)
+    if ticket_features and "ticket_type" not in drop:
+        for cat in categories:
+            X[f"ticket_type={cat}"] = (df["ticket_type"].astype(str) == cat).astype(float)
+    return X
+
+
+def build_model(kind, seed, params=None, imbalance="none", pos_rate=None):
+    """An unfitted estimator. params override the defaults below; seed is always applied."""
+    if kind not in MODEL_KINDS:
+        raise ValueError(f"unknown model kind {kind!r}; one of {MODEL_KINDS}")
+    if imbalance not in IMBALANCE:
+        raise ValueError(f"unknown imbalance option {imbalance!r}; one of {IMBALANCE}")
+    if imbalance == "scale_pos_weight" and kind != "lgbm":
+        raise ValueError("scale_pos_weight is a LightGBM option")
+    params = dict(params or {})
+    weight = "balanced" if imbalance == "balanced" else None
+    if kind == "logreg":
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import FunctionTransformer, StandardScaler
+        lr = dict(C=1.0, max_iter=2000)
+        lr.update(params)
+        return make_pipeline(FunctionTransformer(np.log1p), StandardScaler(),
+                             LogisticRegression(class_weight=weight, random_state=seed, **lr))
+    if kind == "forest":
+        from sklearn.ensemble import RandomForestClassifier
+        rf = dict(n_estimators=300, min_samples_leaf=20, max_features="sqrt", n_jobs=-1)
+        rf.update(params)
+        return RandomForestClassifier(class_weight=weight, random_state=seed, **rf)
+    import lightgbm
+    gbm = dict(n_estimators=300, learning_rate=0.05, num_leaves=31, min_child_samples=50,
+               subsample=0.8, subsample_freq=1, colsample_bytree=0.8)
+    gbm.update(params)
+    if imbalance == "scale_pos_weight":
+        if not pos_rate or not 0 < pos_rate < 1:
+            raise ValueError("scale_pos_weight needs the train positive rate")
+        gbm["scale_pos_weight"] = (1 - pos_rate) / pos_rate
+    # Decision 9: deterministic trees, one fixed thread count, so laptops, the image and CI agree.
+    return lightgbm.LGBMClassifier(class_weight=weight, random_state=seed, deterministic=True,
+                                   force_row_wise=True, n_jobs=1, verbose=-1, **gbm)
+
+
+def fit_and_score(df, kind, seed, params=None, imbalance="none", ticket_features=True, drop=(),
+                  score_split="val", model=None):
+    """Fit on train rows only, score `score_split`. Returns (fitted model, scores, scored rows).
+    `model` lets a test pass its own estimator in place of build_model's."""
+    train = fit_rows(df)
+    scored = rows(df, score_split)
+    cats = ticket_categories(train)
+    X_fit = feature_matrix(train, cats, ticket_features, drop)
+    X_score = feature_matrix(scored, cats, ticket_features, drop)
+    y_fit = train["label"].astype(int).to_numpy()
+    if model is None:
+        model = build_model(kind, seed, params, imbalance, pos_rate=float(y_fit.mean()))
+    model.fit(X_fit, y_fit)
+    return model, model.predict_proba(X_score)[:, 1], scored
+
+
+def chance_ceiling(y, q=0.99, reps=300, seed=0):
+    """The q-quantile of PR-AUC that purely random scores reach on these labels. A model trained on shuffled
+    labels should stay below it: at a few thousand rows, chance alone lands up to ~0.02 above the positive rate."""
+    rng = np.random.default_rng(seed)
+    y = np.asarray(y, dtype=int)
+    return float(np.quantile([pr_auc(y, rng.random(len(y))) for _ in range(reps)], q))
