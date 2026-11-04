@@ -130,7 +130,7 @@ Not in phase 2: intake (no collect source, gap G5), ticket comments (G2), a whol
 | J | Report | `Model-Pipeline/report/REPORT.md`, every number with its N |
 | K | Tracking tables | Into `schema.sql`, with writer and validate support |
 | L | Second real run | Real `removed` rows, real burndown |
-| M | LLM stage | Jev, the writer, the diff drafter, the cache. The policy writer if time allows. Every call tracked in MLflow; validated and sliced for bias like the model (the guideline's rule for pretrained models) |
+| M | LLM stage | The writer and cache (AI 4), Jev (AI 1), the diff drafter (Utkarsh). The policy writer if time allows. Every call tracked in MLflow; validated and sliced for bias like the model (the guideline's rule for pretrained models) |
 | N | Gate | The fact check on every LLM output |
 | O | Views and API | The four views and the ticket tools, read-only, served locally |
 | P | Auditor learning | Stall job, explore job, Elo, ε-greedy, replay, promotion guard |
@@ -173,7 +173,7 @@ Proposed. The team agrees and commits them by Nov 6, like `notes/PASS-BARS-2026-
 
 ## 6. Dependency graph
 
-Each box names its owner. Phase 1's tasks are in §1; here the pipeline is one box.
+Each box names its owner. Phase 1's tasks are in §1; here the pipeline is one box. Aniket sits at the end.
 
 ```mermaid
 flowchart TD
@@ -181,14 +181,14 @@ flowchart TD
 
   subgraph MODEL["Model pipeline"]
     A["A: rebuild c5118 · Utkarsh"] --> B["B: features · Utkarsh"]
-    B --> bars["pass bars · everyone"]
+    B --> bars["pass bars · AI 3, everyone signs"]
     bars --> C["C: models, tuning · AI 1"]
     trk["tracking.py, local MLflow · AI 2"] --> C
     C --> D["D: validate · AI 2"]
     D --> E["E: SHAP, sensitivity · AI 1"]
     D --> F["F: bias, final pick · AI 3"]
-    F --> G["G: registry, rollback · AI 2"]
-    C --> dock["Docker image · AI 1"]
+    F --> G["G: registry, GCP push, rollback · AI 2"]
+    C --> dock["Docker image, run_all · AI 1"]
     F --> gates["gate.py, alerts · AI 3"]
     dock --> H["H: model CI · AI 3"]
     gates --> H
@@ -198,14 +198,17 @@ flowchart TD
   subgraph PRODUCT["Rest of the product"]
     K["K: tracking tables · Utkarsh"]
     L["L: second real run · Utkarsh"]
-    N["N: gate · AI 4"] --> M["M: Jev, writer, diffs, cache · AI 4"]
-    K --> M
-    L --> M
+    N["N: fact gate · AI 4"] --> W["writer agent, cache · AI 4"]
+    K --> W
+    W --> jev["Jev router · AI 1"]
+    L --> diff["diff drafter · Utkarsh"]
+    N --> diff
     K --> P["P: auditor learning · AI 2"]
-    M --> O["O: views and API · Utkarsh"]
+    W --> O["O: views and API · AI 4"]
+    diff --> O
     L --> O
     G --> Q["Q: P9 hook · AI 1"]
-    M --> PCI["product CI jobs · AI 3"]
+    jev --> PCI["product CI, LLM bias · AI 3"]
     O --> PCI
   end
 
@@ -219,56 +222,69 @@ flowchart TD
   integ --> J["J: report · Aniket, Utkarsh"]
 ```
 
-Two critical paths, both ending at integration on Nov 11:
+Two critical paths, both ending at Aniket's integration on Nov 11:
 
 - Model: A → B → C → D → F → G → H.
-- Product: N → M → O, with K and L feeding M and O.
+- Product: N → writer → Jev and views, with K and L feeding the diff drafter and the views.
 
-Two things keep people from waiting on Utkarsh. On day 1 Utkarsh ships a first feature table from v1 (`70dd1dabfed544b8`), which is already on Aniket's machine: the SZZ tables barely differ (26,559 against 26,302 rows). And AI 4 builds the gate and agents on the fixture block, which needs nothing from step A. Dates are in §10.
+Two things keep people from waiting on Utkarsh. On day 1 Utkarsh ships a first feature table from v1 (`70dd1dabfed544b8`), which is already on Aniket's machine: the SZZ tables barely differ (26,559 against 26,302 rows). And AI 4 builds the gate and the writer on the fixture block, which needs nothing from step A. Dates are in §10.
 
 ## 7. Roles
 
-Six people. Utkarsh, the data engineer, at the start; four AI engineers in the middle; Aniket, the lead, at the end. Aniket does integration, the simulated-fault tests, the final runs and the report. Each person's packet is in [packets/](packets/README.md).
+Six people. The work is split evenly across Utkarsh and the four AI engineers, about 5 person-days each. Aniket sits at the end of the graph: until code freeze he only reviews and merges, then does integration, the simulated-fault tests, the final runs and the report. Each person's packet is in [packets/](packets/README.md).
+
+The split, in person-days (estimates, for balance, not commitments):
+
+| Who | Work | Days |
+|---|---|---:|
+| Utkarsh, data engineer | A team run 0.5 · B features and label checks 2 · K tracking tables 0.5 · L second real run 1 · diff drafter 1.5 | 5.5 |
+| AI engineer 1 | C models and tuning 2.5 · Docker and `run_all` 0.5 · E sensitivity 1 · Jev router 1 · Q P9 hook 0.5 | 5.5 |
+| AI engineer 2 | tracking and D evaluation 1.5 · G registry, GCP push, rollback 1.5 · P auditor learning 2 | 5 |
+| AI engineer 3 | the pass-bars file 0.5 · F bias and final pick 2 · `gate.py` and alerts 0.75 · all CI 1.25 · LLM bias 0.5 | 5 |
+| AI engineer 4 | N fact gate 1.5 · writer agent and cache 1.5 · O views and API 2 | 5 |
+| Aniket, lead | reviews until Nov 10 · integration and 21 simulated faults Nov 11 · final runs Nov 12 · report Nov 13–15 | end of the graph |
 
 Who hands what to whom:
 
 ```mermaid
 flowchart TD
+  utkarsh["Utkarsh, data engineer<br/>team run, features, tables, run 2, diff drafter"]
+  ai1["AI 1<br/>models, sensitivity, image, Jev, P9 hook"]
+  ai2["AI 2<br/>tracking, evaluation, registry, auditor"]
+  ai3["AI 3<br/>pass bars, bias, final pick, gates, all CI"]
+  ai4["AI 4<br/>fact gate, writer, cache, views"]
   aniket["Aniket, lead<br/>integration, faults, final runs, report"]
-  utkarsh["Utkarsh, data engineer<br/>team run, features, tables, run 2, views"]
-  ai1["AI 1<br/>models, tuning, sensitivity, image, P9 hook"]
-  ai2["AI 2<br/>MLflow, evaluation, registry, auditor"]
-  ai3["AI 3<br/>bias, final pick, gates, all CI"]
-  ai4["AI 4<br/>Jev, agents, cache, gate"]
 
   utkarsh -->|"features in git"| ai1
   utkarsh -->|"features in git"| ai2
-  utkarsh -->|"tracking tables, run 2"| ai4
+  utkarsh -->|"tracking tables, run 2, diffs"| ai4
   utkarsh -->|"policy, match tables"| ai2
   ai2 -->|"tracking.py"| ai1
   ai2 -->|"tracking.py"| ai4
-  ai1 -->|"candidate, seed noise"| ai2
   ai1 -->|"candidate, seed noise, image"| ai3
+  ai1 -->|"candidate"| ai2
   ai2 -->|"metrics.json"| ai3
   ai3 -->|"final pick"| ai2
   ai2 -->|"champion"| ai1
-  ai4 -->|"suggestions, gate"| utkarsh
-  ai4 -->|"agents, gate"| ai3
+  ai4 -->|"fact gate, cache"| utkarsh
+  ai4 -->|"writer agent"| ai1
+  ai1 -->|"Jev"| ai3
+  ai4 -->|"views, agent outputs"| ai3
   ai3 -->|"green CI"| aniket
   ai2 -->|"auditor, 2024 numbers"| aniket
-  utkarsh -->|"views"| aniket
+  ai4 -->|"views"| aniket
 ```
 
-| Who | Owns | Hands off | Due |
-|---|---|---|---|
-| Utkarsh, data engineer | A, B, the data hand-out. K: tracking tables. L: second real run. O: views and API | features, tables, run 2, views | v1 table Nov 5, c5118 table Nov 7, run 2 Nov 8, views Nov 10 |
-| AI engineer 1 | C: models, tuning, seed noise. E: SHAP and sensitivity. The Docker image and `run_all`. Q: P9 hook | candidate, image, charts, P9 | C Nov 8, E Nov 9, Q Nov 10 |
-| AI engineer 2 | `tracking.py` and the local MLflow setup. D: `evaluate.py`, the 2024 run. G: registry, the GCP push, rollback, `champion.json`. P: auditor learning | `metrics.json`, `registry.py`, auditor | tracking Nov 5, D Nov 6, G Nov 9, P Nov 10 |
-| AI engineer 3 | F: bias, mitigation, final pick. `gate.py`, alerts, `model.yml`. Product CI jobs (LLM off, warm cache, gate bars) | final pick, green CI | pick Nov 9, CI Nov 10 |
-| AI engineer 4 | N: the gate. M: Jev, the writer, the diff drafter, the cache, LLM tracking and bias slices. The policy writer if time allows | agents, gate, `suggestion` rows | N Nov 7, M Nov 10 |
-| Aniket, lead | The Artifact Registry repo and CI key, once. Reviews and merges. Integration, simulated faults, final runs, go or no-go, the report | the report | repo by Nov 9, then Nov 11–15 |
+| Who | Hands off | Due |
+|---|---|---|
+| Utkarsh | v1 table, c5118 table, tracking tables, run 2, diff drafter | Nov 5, Nov 7, Nov 7, Nov 8, Nov 10 |
+| AI engineer 1 | first candidate, tuned candidate and image, SHAP, Jev and P9 | Nov 6, Nov 8, Nov 9, Nov 10 |
+| AI engineer 2 | `tracking.py`, `evaluate.py`, auditor stall job, registry and push, auditor done | Nov 5, Nov 6, Nov 8, Nov 9, Nov 10 |
+| AI engineer 3 | pass bars merged, bias on the candidate, final pick and `gate.py`, all CI and LLM bias | Nov 6, Nov 8, Nov 9, Nov 10 |
+| AI engineer 4 | fact gate, writer and cache, views and API | Nov 7, Nov 8, Nov 10 |
+| Aniket | integration, final runs, report | Nov 11, Nov 12, Nov 15 |
 
-- The pass bars are everyone's: AI 1–4 draft them, the team signs off, and Aniket merges them by Nov 6.
+- The pass bars: AI 3 owns the file, AI 1–4 draft their rows, everyone signs off, and AI 3 merges it by Nov 6 after Aniket's review.
 - Each owner writes their own report section by Nov 12. Aniket and Utkarsh edit them into one report.
 
 ## 8. Running locally
@@ -287,7 +303,7 @@ Everything runs on our machines and on GitHub's free runners, except one GCP Art
 | Alerts | Slack through `MERIDIAN_SLACK_WEBHOOK`, as in phase 1 |
 | LLM | The provider's API key in `.env` and a repo secret. Billed by the provider, not covered by any credit. Models and a spend cap pinned in `meridian.toml`. The cache is committed, so CI and reruns make 0 calls and need no key |
 
-The registry repo is the guideline's §2.6, §7.4 and §8.7, which ask for the model on GCP. It's storage, not serving, so it isn't deployment. It costs about $0: Artifact Registry's first 0.5 GB is free, and a LightGBM model is a few MB. Aniket makes the repo and the service account on the $300 trial project on Nov 4, or by Nov 9 at the latest.
+The registry repo is the guideline's §2.6, §7.4 and §8.7, which ask for the model on GCP. It's storage, not serving, so it isn't deployment. It costs about $0: Artifact Registry's first 0.5 GB is free, and a LightGBM model is a few MB. Aniket adds the team to the $300 trial project once (the credits are on that account). AI 2 makes the repo and the service account by Nov 9.
 
 ## 9. Open risks
 
@@ -312,18 +328,22 @@ Never cut: anything in the course guideline, the gate, the LLM-off fallback, det
 
 Work starts Thu Nov 5 (day 1). Wed Nov 4 is an optional head start: anyone who starts then has a day of slack. The deadline is Sun Nov 15, and the report takes Nov 13–15, so all work and every report section are due Thu Nov 12.
 
-| Date | Model pipeline | Product |
-|---|---|---|
-| Wed Nov 4, optional | Packets read. Artifact Registry repo and CI key made (Aniket) | |
-| Thu Nov 5, day 1 | v1 feature table in git (Utkarsh). `tracking.py` merged (AI 2). Pass bars drafted (AI 1–4) | Gate started on the fixture (AI 4) |
-| Fri Nov 6, day 2 | Pass bars merged (Aniket). Baselines and a first candidate on v1 (AI 1). `evaluate.py` on val (AI 2). c5118 rebuild running (Utkarsh) | |
-| Sat Nov 7, day 3 | c5118 table in git, label checks done (Utkarsh) | Gate passes 200 + 200 (AI 4). Tracking tables in `schema.sql` (Utkarsh) |
-| Sun Nov 8, day 4 | Tuned candidate, seed noise, image (AI 1). Bias on the first candidate (AI 3) | Writer agent and cache (AI 4). Second real run (Utkarsh) |
-| Mon Nov 9, day 5 | Final pick (AI 3). SHAP and sensitivity (AI 1). Registry and the GCP push working (AI 2). Check-in on the cut order | Jev (AI 4). Auditor stall job (AI 2) |
-| Tue Nov 10, day 6 | Model CI green on main (AI 3). Code freeze at the end of the day | Diff drafter (AI 4). Views and API (Utkarsh). P9 hook (AI 1). Product CI jobs (AI 3) |
-| Wed Nov 11, day 7 | Integration and simulated faults (Aniket). Owners fix what breaks, same day. Go or no-go for 2024 | Same, for the product |
-| Thu Nov 12, day 8 | The one 2024 run (AI 2), champion pushed, final charts. Every report section in | Final product run on the real block and the fixture |
-| Fri Nov 13 – Sun Nov 15 | Report: Aniket and Utkarsh lead, everyone reviews their section | |
+| Date | Utkarsh | AI 1 | AI 2 | AI 3 | AI 4 |
+|---|---|---|---|---|---|
+| Wed Nov 4, optional | Packets read. Aniket adds the team to the GCP project | | | | |
+| Thu Nov 5, day 1 | v1 feature table in git | pass-bar rows | `tracking.py` merged | pass-bars file drafted | fact gate started |
+| Fri Nov 6, day 2 | label window settled, c5118 rebuild running | baselines, first candidate | `evaluate.py` on val | pass bars merged | fact gate |
+| Sat Nov 7, day 3 | c5118 table, tracking tables | tuning | auditor: policy v0, Elo | bias code on the first candidate | fact gate passes 200 + 200 |
+| Sun Nov 8, day 4 | second real run | tuned candidate, seed noise, image | auditor stall job, simulation | bias on the tuned candidate | writer agent and cache |
+| Mon Nov 9, day 5 | diff drafter: codemod | SHAP and sensitivity, Jev started | registry, GCP push, rollback | final pick, `gate.py`, alerts | views and API |
+| Tue Nov 10, day 6 | diff drafter: LLM path, the 90% test | Jev, P9 hook | auditor explore job, replay | all CI, LLM bias | views and API. Code freeze for everyone at the end of the day |
+
+| Date | Aniket |
+|---|---|
+| Nov 5–10 | Reviews and merges only. The cut-order check-in on Nov 9, run by AI 3 |
+| Wed Nov 11 | Integration and simulated faults. Owners fix what breaks, same day. Go or no-go for 2024 |
+| Thu Nov 12 | The one 2024 run (AI 2 runs it, Aniket watches), champion pushed, final product run, final charts. Every report section in |
+| Fri Nov 13 – Sun Nov 15 | Report, with Utkarsh. Everyone reviews their own section |
 
 Anything not done by Nov 10 follows the cut order in §9 and isn't squeezed in. The report says what was cut.
 
@@ -395,4 +415,4 @@ Every item in the course's Model Development Guidelines, and where phase 2 cover
 | §7.5 | Notifications on failure, training completion, validation or bias fail | H | AI 3 | Slack through `meridian/alert.py` |
 | §7.6 | Rollback if the new model is worse | G | AI 2 | `champion` moves only on a real gain; `--rollback`; the drill on Nov 11 |
 | §8.1 | The whole process in Docker | H | AI 1 | `python -m model.run_all` in the image, data load to registry push |
-| Note on pretrained models | Validation, bias detection and tracking for the LLMs | M, N | AI 4, AI 3 | Gate and diff bars; fallback and match rates sliced by repo and team; every call in MLflow |
+| Note on pretrained models | Validation, bias detection and tracking for the LLMs | M, N | AI 4, AI 1, Utkarsh, AI 3 | Gate and diff bars; fallback and match rates sliced by repo and team; every call in MLflow |

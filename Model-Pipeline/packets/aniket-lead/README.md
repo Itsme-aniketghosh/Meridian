@@ -1,10 +1,10 @@
 # Aniket: lead, integration and final runs
 
-> Make the one GCP repo the model is pushed to, then stay out of the way until code freeze. From Nov 10 you put the model and the product together, break them on purpose, run the final runs, make the go or no-go call, and write the report with Utkarsh.
+> You sit at the end of the graph. Until code freeze you only review and merge. From Nov 10 you put the model and the product together, break them on purpose, run the final runs, make the go or no-go call, and write the report with Utkarsh.
 
 | | |
 |---|---|
-| Owns | the Artifact Registry repo and CI key (once), reviews and merges, integration, simulated faults, final runs, go or no-go, the report |
+| Owns | adding the team to the GCP project (once), reviews and merges, integration, simulated faults, final runs, go or no-go, the report |
 | Code | `Model-Pipeline/tests/faults/`, the fault scripts. `Model-Pipeline/golden/` |
 | Waits on | everyone's pieces by code freeze, Tue Nov 10 |
 | Hands to | the course: `Model-Pipeline/report/REPORT.md` on Nov 15 |
@@ -21,28 +21,25 @@ flowchart LR
 
 | Date | Due |
 |---|---|
-| Wed Nov 4, optional | Artifact Registry repo and CI key |
-| Fri Nov 6 | Pass bars merged |
-| Nov 5–10 | Reviews and merges. A short check-in each day against PLAN.md §10 |
-| Mon Nov 9 | Cut-order check-in. Registry repo done at the latest |
+| Wed Nov 4 | Add the team to the GCP project |
+| Fri Nov 6 | Review the pass bars before AI 3 merges them |
+| Nov 5–10 | Reviews and merges only |
+| Mon Nov 9 | Join AI 3's cut-order check-in |
 | Tue Nov 10 | Code freeze at the end of the day |
 | Wed Nov 11 | Integration and simulated faults. Go or no-go for 2024 |
 | Thu Nov 12 | Final runs. Every section in |
 | Nov 13–15 | Report, with Utkarsh |
 
-## 1. The one GCP piece
+## 1. The one early action (Nov 4)
 
-On the $300 trial project, by hand, no Terraform:
-
-- [ ] `gcloud artifacts repositories create meridian-models --repository-format=generic --location=us-east1`
-- [ ] A service account that can only write to that repo (Artifact Registry Writer on it, nothing else). Its key as the repo secret AI 3's workflow reads, main only
-- [ ] Note the trial's end date. Phase 3 moves this into Terraform and replaces the key with Workload Identity
+- [ ] Add AI 2 to the $300 trial project with Artifact Registry Admin, so AI 2 can make the model repo and its service account. The credits are on your account, so only you can do this
+- [ ] Note the trial's end date. Phase 3 moves the repo into Terraform
 
 ## 2. Until freeze (Nov 5–10)
 
-- [ ] Merge the pass bars by Nov 6. They go in before anyone trains
+- [ ] Review the pass bars. AI 3 merges them by Nov 6, before anyone trains
 - [ ] Review PRs for the contracts in [packets/README.md](../README.md): tags on runs, no names in the table or the facts, nothing hard-coded outside the two config files
-- [ ] Each day, check both critical paths in [PLAN.md §6](../../PLAN.md#6-dependency-graph). On Nov 9, apply the cut order in [§9](../../PLAN.md#9-open-risks) if needed. Cut from the end, don't move the freeze
+- [ ] On Nov 9, at AI 3's check-in, agree the cut order in [§9](../../PLAN.md#9-open-risks) if anything on the critical paths in [§6](../../PLAN.md#6-dependency-graph) has slipped. Cut from the end, don't move the freeze
 
 ## 3. Integration (Nov 10–11)
 

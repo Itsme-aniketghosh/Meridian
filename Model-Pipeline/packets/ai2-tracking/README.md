@@ -4,9 +4,9 @@
 
 | | |
 |---|---|
-| Steps | tracking, D (evaluation), G (registry and rollback), P (auditor learning), the 2024 run |
+| Steps | tracking, D (evaluation), G (registry, the GCP repo, rollback), P (auditor learning), the 2024 run. About 5 days |
 | Code | `model/tracking.py`, `model/evaluate.py`, `model/registry.py`, `Data-Pipeline/meridian/auditor.py`, their tests |
-| Waits on | the v1 table (Nov 5), AI 1's candidate (Nov 6), AI 3's final pick (Nov 9), Aniket's Artifact Registry repo (by Nov 9), Utkarsh's `policy` and `match` tables (Nov 7) |
+| Waits on | the v1 table (Nov 5), AI 1's candidate (Nov 6), AI 3's final pick (Nov 9), Utkarsh's `policy` and `match` tables (Nov 7), Aniket adding you to the GCP project (Nov 4) |
 | Hands to | everyone: `tracking.py`, the bootstrap helper. AI 3: `metrics.json`, `registry.py`. AI 1: the champion. Aniket: the auditor, the 2024 numbers |
 
 ```mermaid
@@ -22,10 +22,12 @@ flowchart LR
 
 | Date | Due |
 |---|---|
-| Thu Nov 5 | `tracking.py` merged. Pass bars drafted with the team |
+| Thu Nov 5 | `tracking.py` merged. Your pass-bar rows to AI 3 |
 | Fri Nov 6 | `evaluate.py` and `metrics.json` on `val`, charts |
-| Mon Nov 9 | `registry.py` with the GCP push and rollback. Auditor stall job |
-| Tue Nov 10 | Auditor explore job, simulation tests. Code freeze |
+| Sat Nov 7 | Auditor: policy v0, Elo |
+| Sun Nov 8 | Auditor stall job, simulation tests |
+| Mon Nov 9 | The Artifact Registry repo, `registry.py` with the GCP push and rollback |
+| Tue Nov 10 | Auditor explore job, replay. Code freeze |
 | Thu Nov 12 | The 2024 run, once. Champion pushed. Your report section |
 
 ## Read first
@@ -46,6 +48,11 @@ flowchart LR
 `python -m model.evaluate --run <id> --split val|test` writes `reports/metrics.json` and charts. For the model and each baseline: PR-AUC, ROC-AUC, precision, recall and F1 at the threshold, recall at 20% of changed lines, N and positive rate. A paired bootstrap for the PR-AUC difference against lines × files. Charts: PR-AUC bars with intervals, a confusion matrix, PR curves against lines × files. `--split test` refuses unless `model.toml [split] test_allowed = true`.
 
 ## G. Registry, GCP push, rollback
+
+The GCP repo, once, on the trial project (no Terraform until phase 3):
+
+- [ ] `gcloud artifacts repositories create meridian-models --repository-format=generic --location=us-east1`
+- [ ] A service account that can only write to that repo (Artifact Registry Writer on it, nothing else). Its key as the repo secret AI 3's workflow reads, main only. Never committed
 
 `python -m model.registry --run <id>`, called by CI after the gate:
 

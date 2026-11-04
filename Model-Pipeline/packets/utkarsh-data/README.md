@@ -1,30 +1,31 @@
 # Utkarsh: data engineer
 
-> Rebuild the team run, hand the AI engineers a feature table whose labels mean the same thing in every year, and finish the data side of the product: the tracking tables, a second real run with real burndown, and the views that show it all.
+> Rebuild the team run, hand the AI engineers a feature table whose labels mean the same thing in every year, and finish the data side of the product: the tracking tables, a second real run with real burndown, and the diff drafter that turns its removals into one-line swaps.
 
 | | |
 |---|---|
-| Steps | A (team run), B (feature table), K (tracking tables), L (second real run), O (views and API) |
-| Code | `model/data.py`, `Data-Pipeline/schema.sql` (tracking tables), `meridian/views.py`, `meridian.next.toml`, their tests |
-| Waits on | the team zip (A). AI 4's `suggestion` rows for the views' LLM text (O), which fall back to templates until then |
-| Hands to | AI 1–3: `features.parquet`. AI 4: tracking tables, run 2. AI 2: `policy`, `match` tables. Aniket: the views |
+| Steps | A (team run), B (feature table), K (tracking tables), L (second real run), the diff drafter. About 5.5 days |
+| Code | `Model-Pipeline/model/data.py`, `Data-Pipeline/schema.sql` (tracking tables), `meridian.next.toml`, `Data-Pipeline/meridian/diffs.py`, their tests |
+| Waits on | the team zip (A). AI 4's fact gate and cache (Nov 7–8) for the diff drafter's LLM path. The codemod path needs nothing |
+| Hands to | AI 1–3: `features.parquet`. AI 4: tracking tables, run 2, `suggestion` rows of kind `diff` for the views. AI 2: `policy`, `match` tables |
 
 ```mermaid
 flowchart LR
   zip["team zip"] --> me["Utkarsh"]
-  ai4["AI 4: suggestions"] --> me
+  ai4["AI 4: fact gate, cache"] --> me
   me --> feat["features.parquet: AI 1, 2, 3"]
   me --> tables["tracking tables, run 2: AI 4, AI 2"]
-  me --> views["views and API: Aniket"]
+  me --> diffs["diff suggestions: AI 4's views"]
 ```
 
 | Date | Due |
 |---|---|
-| Thu Nov 5 | v1 feature table in git, with its md5. Pass bars drafted with the team |
+| Thu Nov 5 | v1 feature table in git, with its md5. Your pass-bar rows to AI 3 |
 | Fri Nov 6 | Decision 1 (label window) settled. c5118 rebuild running |
 | Sat Nov 7 | c5118 table in git, label checks done. Tracking tables in `schema.sql` |
 | Sun Nov 8 | Second real run done |
-| Tue Nov 10 | Views and API. Code freeze |
+| Mon Nov 9 | Diff drafter: the codemod |
+| Tue Nov 10 | Diff drafter: the LLM path and the 90% test. Code freeze |
 | Thu Nov 12 | Your report section |
 | Nov 13–15 | Report, with Aniket |
 
@@ -32,10 +33,10 @@ flowchart LR
 
 - [Data-Pipeline/README.md](../../../Data-Pipeline/README.md): how to run each part
 - [CONTRACTS.md](../../../Data-Pipeline/CONTRACTS.md), [schema.sql](../../../Data-Pipeline/schema.sql), [JOIN.md](../../../Data-Pipeline/JOIN.md): `--prev-run` and `removed` rows
-- [KNOWLEDGE-BASE.md](../../../Data-Pipeline/KNOWLEDGE-BASE.md): the named queries the views run, and the tracking-table DDL
-- [tests/dashboard.py](../../../Data-Pipeline/tests/dashboard.py): the pattern the views build on
-- [week1/pair2/README.md](../../../week1/pair2/README.md): Spark's quirks
-- [packets/README.md](../README.md): Contracts 1 and 6 are yours
+- [KNOWLEDGE-BASE.md](../../../Data-Pipeline/KNOWLEDGE-BASE.md): the tracking-table DDL
+- [04-architecture §6](../../../docs/04-architecture.md): the diff rules
+- [week1/pair1](../../../week1/pair1/README.md), [week1/pair2](../../../week1/pair2/README.md), [week1/pair3](../../../week1/pair3/README.md): Django's edit set, Spark's quirks, the package migrations
+- [packets/README.md](../README.md): Contract 1 is yours; Contract 5 for the diff drafter
 
 ## A. Rebuild the team run
 
@@ -64,20 +65,20 @@ From `Data-Pipeline/`, in the `meridian` conda env (Python 3.11), about 6 GB of 
 
 ## L. Second real run
 
-`meridian.next.toml` is `meridian.toml` with Django at its conversion commit `c651331b34` and each package at its migration commit (the refs are in [week1/pair3](../../../week1/pair3/README.md)). Run it with `--prev-run c5118b019d642a9b`.
+`meridian.next.toml` is `meridian.toml` with Django at its conversion commit `c651331b34` and each package at its migration commit (refs in [week1/pair3](../../../week1/pair3/README.md)). Run it with `--prev-run c5118b019d642a9b`.
 
 - [ ] join marks the Django call sites `removed`. Expect all 267 lines; the 4 `test_legacy_aliases` calls come back as new on purpose ([appendix C §2](../../../Data-Pipeline/report/appendix-real-data.md))
 - [ ] Packages: 1,160 of 1,236 lines removed where the migration commit finished the job
-- [ ] `owner_done` and `owner_eta` give real numbers. AI 4's diff drafter needs these `removed` rows
+- [ ] `owner_done` and `owner_eta` give real numbers
 
-## O. Views and API
+## The diff drafter
 
-`python -m meridian.views` (Contract 6), read-only, built on `tests/dashboard.py`.
+`python -m meridian.diffs --run-id <id> --config meridian.toml` drafts a one-line swap for each present call site, and writes each as a `suggestion` row of kind `diff` (Contract 5).
 
-- [ ] The four views and the ticket tools, from KNOWLEDGE-BASE.md's named queries, laid out as in [02-product](../../../docs/02-product.md)
-- [ ] LLM text from `suggestion` rows where it exists, the template where it doesn't
-- [ ] `run_id`, `snapshot_at` and coverage on every page. A banner when the numbers come from the fixture
-- [ ] Runs on the real block, run 2 and the fixture `acme/shop`
+- [ ] The codemod first: a rename rule per symbol from `meridian.toml` (`ugettext` → `gettext`, `url` → `re_path` or `path`), learned from the owner's earlier migrations where there are any ([04-architecture §6](../../../docs/04-architecture.md))
+- [ ] The LLM path only when the codemod can't, there are 2 or more same-shape examples, and the site isn't inside `except`. It goes through AI 4's cache and fact gate, and AI 2's `log_llm_call`
+- [ ] Every draft must apply, parse, touch only its own line, and resolve to the new symbol (the resolver from phase 1). Otherwise no diff
+- [ ] Tested against run 2: drafted from c5118's lines, compared with the real after-lines at the migration commits
 
 ## Decisions
 
@@ -94,7 +95,8 @@ Write the test and the rule that picks before you run it, in `decisions.md` in t
 | 7 | Binary files | 0 lines and still counted, dropped | How many commits touch one, and whether they're blamed | NULL lines break `la`, `ld` and entropy. A silent NaN breaks AI 1's models with no error |
 | 8 | Feature table in git | full table, a sample | File size. Under 10 MB, commit the full table | CI and every teammate should train on the real distribution. A sample means the CI gate checks a different problem |
 | 9 | Second run's scope | Django only, Django plus packages | Run Django first (one repo, fast). Add the packages if the run takes under an hour | Packages add 1,160 removed lines across 20 teams, which makes burndown and per-team ETA meaningful. Django alone is one team's story |
-| 10 | Views' stack | standard library like `dashboard.py`, a web framework | Build the staff view both ways for 30 minutes each, if it's not obvious | `dashboard.py` already runs every KB query and serves HTML. A framework adds a dependency phase 3 has to deploy |
+| 10 | Codemod or LLM for diffs | codemod only, codemod then LLM | Django, drafted from the parent of `c651331b34`: share of drafts matching the real after-line, whitespace ignored (05-test: ≥ 90%). Then the packages | `ugettext` → `gettext` is a rename a codemod gets right. If the codemod alone clears 90%, the LLM path is cut first (PLAN §9), and that's a result |
+| 11 | `url()` replacement | always `re_path`, `path` when the pattern has no regex | On the packages, which one each migration commit actually used, per line | The real migrations chose per line. A codemod that always picks one fails the 90% bar on the packages |
 
 ## Tests
 
@@ -119,17 +121,19 @@ Tables and run 2, in `Data-Pipeline/tests/`:
 - [ ] An `outcome` row for an unknown `suggestion_id` is refused
 - [ ] Run 2 against c5118: removed count equals the answer keys (Django 267, packages per repo); `known_at` of a removed row is run 2's snapshot
 
-Views, in `Data-Pipeline/tests/test_views.py`:
+Diffs, in `Data-Pipeline/tests/test_diffs.py`:
 
-- [ ] Every number on every page traces to a row (05-test: 100%). Parse the page and look each one up
-- [ ] With the `suggestion` table empty (the LLM off), every page renders with templates
-- [ ] `run_id`, `snapshot_at` and coverage on every page and JSON response
-- [ ] The fixture `acme/shop` renders 02-product's examples: "31 of 52 done", Checkout "STALLED", Fulfillment "blocked"
+- [ ] Django drafts match the real after-lines ≥ 90%, reported with N
+- [ ] A draft that touches another line is refused
+- [ ] A site inside `except` gets no LLM diff
+- [ ] A draft whose new name doesn't resolve is refused
+- [ ] With the LLM off, the codemod still drafts and the run completes
 
 ## Done when
 
-- [ ] The c5118 table is in git, its schema and label numbers written down, decisions 1–10 recorded
+- [ ] The c5118 table is in git, its schema and label numbers written down
 - [ ] Tracking tables in `schema.sql`, tested
 - [ ] Run 2 done with real removals
-- [ ] The views run on the real block, run 2 and the fixture
-- [ ] Your report section: data, labels, the label window, the tables, run 2, the views, each decision and its test
+- [ ] Diff suggestions written on the real block, with the 90% test reported
+- [ ] Decisions 1–11 written down with their numbers
+- [ ] Your report section: data, labels, the label window, the tables, run 2, the diff drafter, each decision and its test

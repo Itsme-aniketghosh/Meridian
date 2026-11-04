@@ -6,14 +6,14 @@ Read [PLAN.md](../PLAN.md) first, then your packet, then the contracts below. Wh
 
 | Folder | Who | Steps | Due |
 |---|---|---|---|
-| [utkarsh-data/](utkarsh-data/README.md) | Utkarsh, data engineer | A, B, K, L, O | v1 table Nov 5, c5118 Nov 7, run 2 Nov 8, views Nov 10 |
-| [ai1-models/](ai1-models/README.md) | AI engineer 1 | C, E, Docker, Q | C Nov 8, E Nov 9, Q Nov 10 |
-| [ai2-tracking/](ai2-tracking/README.md) | AI engineer 2 | tracking, D, G, P, the 2024 run | tracking Nov 5, D Nov 6, G Nov 9, P Nov 10 |
-| [ai3-bias/](ai3-bias/README.md) | AI engineer 3 | F, gates, alerts, all CI | pick Nov 9, CI Nov 10 |
-| [ai4-agents/](ai4-agents/README.md) | AI engineer 4 | N, M | N Nov 7, M Nov 10 |
-| [aniket-lead/](aniket-lead/README.md) | Aniket, lead | registry repo, integration, faults, final runs, report | Nov 11–15 |
+| [utkarsh-data/](utkarsh-data/README.md) | Utkarsh, data engineer | A, B, K, L, diff drafter | v1 table Nov 5, c5118 Nov 7, run 2 Nov 8, diffs Nov 10 |
+| [ai1-models/](ai1-models/README.md) | AI engineer 1 | C, E, Docker, Jev, Q | C Nov 8, E Nov 9, Jev and Q Nov 10 |
+| [ai2-tracking/](ai2-tracking/README.md) | AI engineer 2 | tracking, D, G and the registry repo, P, the 2024 run | tracking Nov 5, D Nov 6, G Nov 9, P Nov 10 |
+| [ai3-bias/](ai3-bias/README.md) | AI engineer 3 | the pass bars, F, gates, alerts, all CI | bars Nov 6, pick Nov 9, CI Nov 10 |
+| [ai4-agents/](ai4-agents/README.md) | AI engineer 4 | N, writer and cache, O | N Nov 7, writer Nov 8, views Nov 10 |
+| [aniket-lead/](aniket-lead/README.md) | Aniket, lead | the end of the graph: integration, faults, final runs, report | Nov 11–15 |
 
-Day 1 is Thu Nov 5. Code freeze is Tue Nov 10 at the end of the day. Every report section is in by Thu Nov 12. Aniket and Utkarsh write the report Nov 13–15.
+The work is split evenly, about 5 person-days each for Utkarsh and AI 1–4 ([PLAN.md §7](../PLAN.md#7-roles)). Aniket reviews until code freeze, then integrates. Day 1 is Thu Nov 5. Code freeze is Tue Nov 10 at the end of the day. Every report section is in by Thu Nov 12. Aniket and Utkarsh write the report Nov 13–15.
 
 Phase 2 runs locally and on GitHub Actions. The only cloud piece is the GCP Artifact Registry repo the model is pushed to. Terraform and everything else on GCP is phase 3.
 
@@ -46,6 +46,7 @@ From the phase 1 docs:
 ```
 Model-Pipeline/
 ├── PLAN.md
+├── PASS-BARS.md                 AI 3; everyone writes their own rows
 ├── packets/<you>/               your packet, decisions.md, notes
 ├── model.toml                   everyone adds their own section
 ├── model/
@@ -65,9 +66,11 @@ Model-Pipeline/
 
 Data-Pipeline/
 ├── schema.sql                   tracking tables: Utkarsh
-├── meridian/views.py            Utkarsh
+├── meridian/views.py            AI 4
 ├── meridian/fact_gate.py        AI 4
-├── meridian/jev.py, agents.py   AI 4
+├── meridian/agents.py          AI 4 (the writer)
+├── meridian/jev.py             AI 1
+├── meridian/diffs.py           Utkarsh (the diff drafter)
 ├── meridian/llm_cache.py        AI 4
 ├── meridian/auditor.py          AI 2
 ├── meridian/pushcheck.py        AI 1 (the P9 hook only)

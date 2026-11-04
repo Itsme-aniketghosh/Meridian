@@ -4,25 +4,28 @@
 
 | | |
 |---|---|
-| Steps | F (bias, final pick), `gate.py`, alerts, `model.yml`, the product CI jobs, the LLM bias check |
-| Code | `model/bias.py`, `model/gate.py`, `.github/workflows/model.yml`, product jobs in `.github/workflows/ci.yml`, their tests |
-| Waits on | AI 1's candidate (Nov 6) and `seed_noise.json` (Nov 8), AI 2's `metrics.json` (Nov 6) and `registry.py` (Nov 9), AI 4's agents and gate (Nov 7–10) |
+| Steps | the pass-bars file, F (bias, final pick), `gate.py`, alerts, `model.yml`, the product CI jobs, the LLM bias check. About 5 days |
+| Code | `Model-Pipeline/PASS-BARS.md`, `model/bias.py`, `model/gate.py`, `.github/workflows/model.yml`, product jobs in `.github/workflows/ci.yml`, their tests |
+| Waits on | AI 1's candidate (Nov 6) and `seed_noise.json` (Nov 8), AI 2's `metrics.json` (Nov 6) and `registry.py` (Nov 9), AI 4's writer and views, AI 1's Jev, Utkarsh's diffs (Nov 8–10) |
 | Hands to | AI 2: the final pick. Aniket: green CI on main (Nov 10) |
 
 ```mermaid
 flowchart LR
   ai1["AI 1: candidate, seed noise, image"] --> me["AI 3"]
   ai2["AI 2: metrics.json, registry.py"] --> me
-  ai4["AI 4: agents, gate"] --> me
+  ai4["AI 4: writer, views"] --> me
+  others["AI 1: Jev · Utkarsh: diffs"] --> me
   me --> pick["final pick: AI 2"]
   me --> ci["green CI, Slack: Aniket"]
 ```
 
 | Date | Due |
 |---|---|
-| Thu Nov 5 | Pass bars drafted with the team, including the bias bars |
-| Sun Nov 8 | Bias on the first candidate |
-| Mon Nov 9 | Final pick, `bias_report.json`, bias charts, `gate.py` working locally |
+| Thu Nov 5 | `PASS-BARS.md` drafted: PLAN §4's table plus everyone's rows |
+| Fri Nov 6 | Pass bars signed off by everyone, reviewed by Aniket, merged |
+| Sat Nov 7 | Bias code on the first candidate |
+| Sun Nov 8 | Bias on the tuned candidate |
+| Mon Nov 9 | Final pick, `bias_report.json`, bias charts, `gate.py` working locally. Run the cut-order check-in (PLAN §9) |
 | Tue Nov 10 | `model.yml` green on main end to end. Product CI jobs. LLM bias check. Code freeze |
 | Thu Nov 12 | Your report section |
 
@@ -33,6 +36,10 @@ flowchart LR
 - [meridian/alert.py](../../../Data-Pipeline/meridian/alert.py) and [tests/alert_sinks.py](../../../Data-Pipeline/tests/alert_sinks.py): alerts, and local Slack and SMTP servers for tests
 - [.github/workflows/ci.yml](../../../.github/workflows/ci.yml): the existing CI, to extend
 - [packets/README.md](../README.md): Contract 4
+
+## The pass bars
+
+`Model-Pipeline/PASS-BARS.md`, like phase 1's `notes/PASS-BARS-2026-10-26.md`. Start from PLAN §4's table. Each owner adds their own rows (a number and how it's measured), everyone signs off, Aniket reviews, you merge by Nov 6. After that, changing a bar needs a commit saying why.
 
 ## F. Bias and the final pick
 
@@ -45,7 +52,7 @@ The final pick is the best `val` model that passes bias. If the best fails and f
 The guideline says pretrained models still need bias detection. The agents' outputs get sliced the same way:
 
 - [ ] Gate fallback rate per repo and per owner team (a team whose text always falls back to the template gets a worse product)
-- [ ] Diff match rate per repo, from AI 4's Django and package checks
+- [ ] Diff match rate per repo, from Utkarsh's Django and package checks
 - [ ] Same flag rule, N ≥ 30. Results in `reports/llm_bias.json` and the charts
 
 ## The gate and alerts
@@ -67,7 +74,7 @@ Product jobs in `ci.yml`, on every PR:
 
 - [ ] LLM off: every view renders (Utkarsh's test with an empty `suggestion` table)
 - [ ] Warm cache: the product run on the fixture makes 0 LLM calls, with no API key in the job
-- [ ] The gate's 200 + 200 test (AI 4)
+- [ ] The fact gate's 200 + 200 test (AI 4), Jev's tests (AI 1), the 90% diff test (Utkarsh)
 - [ ] The auditor's simulation tests (AI 2)
 
 Secrets: `MERIDIAN_SLACK_WEBHOOK`, and the Artifact Registry key for main only. No LLM key in CI: the committed cache covers it.
