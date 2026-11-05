@@ -174,20 +174,27 @@ def build_model(kind, seed, params=None, imbalance="none", pos_rate=None):
                                    force_row_wise=True, n_jobs=1, verbose=-1, **gbm)
 
 
+def fit_predict(fit, score, kind, seed, params=None, imbalance="none", ticket_features=True, drop=(),
+                model=None):
+    """Fit on the `fit` rows, return (model, scores on the `score` rows). Ticket categories come from `fit`."""
+    cats = ticket_categories(fit)
+    X_fit = feature_matrix(fit, cats, ticket_features, drop)
+    X_score = feature_matrix(score, cats, ticket_features, drop)
+    y_fit = fit["label"].astype(int).to_numpy()
+    if model is None:
+        model = build_model(kind, seed, params, imbalance, pos_rate=float(y_fit.mean()))
+    model.fit(X_fit, y_fit)
+    return model, model.predict_proba(X_score)[:, 1]
+
+
 def fit_and_score(df, kind, seed, params=None, imbalance="none", ticket_features=True, drop=(),
                   score_split="val", model=None):
     """Fit on train rows only, score `score_split`. Returns (fitted model, scores, scored rows).
     `model` lets a test pass its own estimator in place of build_model's."""
     train = fit_rows(df)
     scored = rows(df, score_split)
-    cats = ticket_categories(train)
-    X_fit = feature_matrix(train, cats, ticket_features, drop)
-    X_score = feature_matrix(scored, cats, ticket_features, drop)
-    y_fit = train["label"].astype(int).to_numpy()
-    if model is None:
-        model = build_model(kind, seed, params, imbalance, pos_rate=float(y_fit.mean()))
-    model.fit(X_fit, y_fit)
-    return model, model.predict_proba(X_score)[:, 1], scored
+    model, scores = fit_predict(train, scored, kind, seed, params, imbalance, ticket_features, drop, model)
+    return model, scores, scored
 
 
 def chance_ceiling(y, q=0.99, reps=300, seed=0):
@@ -213,6 +220,108 @@ def paired_bootstrap(y, a, b, reps=1000, seed=0):
     return pr_auc(y, a) - pr_auc(y, b), float(lo), float(hi)
 
 
+# ---------- tuning (step C, decisions 6 and 12) ----------
+# Search spaces. model.toml [search.<kind>] overrides these, one table per parameter.
+# A choice of "none" means Python None.
+DEFAULT_SEARCH = {
+    "logreg": {"C": {"type": "float", "low": 1e-3, "high": 100.0, "log": True}},
+    "forest": {
+        "n_estimators": {"type": "int", "low": 100, "high": 600, "step": 100},
+        "min_samples_leaf": {"type": "int", "low": 5, "high": 200, "log": True},
+        "max_features": {"type": "categorical", "choices": ["sqrt", 0.3, 0.5]},
+        "max_depth": {"type": "categorical", "choices": ["none", 8, 16]},
+    },
+    "lgbm": {
+        "learning_rate": {"type": "float", "low": 0.01, "high": 0.2, "log": True},
+        "num_leaves": {"type": "int", "low": 8, "high": 128, "log": True},
+        "min_child_samples": {"type": "int", "low": 10, "high": 300, "log": True},
+        "n_estimators": {"type": "int", "low": 100, "high": 1000, "step": 50},
+        "subsample": {"type": "float", "low": 0.5, "high": 1.0},
+        "colsample_bytree": {"type": "float", "low": 0.5, "high": 1.0},
+        "reg_lambda": {"type": "float", "low": 1e-3, "high": 10.0, "log": True},
+    },
+}
+
+
+def suggest(trial, space):
+    """One value per parameter of `space`, from an Optuna trial."""
+    params = {}
+    for name, s in space.items():
+        kind = s["type"]
+        if kind == "float":
+            params[name] = trial.suggest_float(name, s["low"], s["high"], log=s.get("log", False))
+        elif kind == "int":
+            if s.get("log"):
+                params[name] = trial.suggest_int(name, s["low"], s["high"], log=True)
+            else:
+                params[name] = trial.suggest_int(name, s["low"], s["high"], step=s.get("step", 1))
+        elif kind == "categorical":
+            params[name] = trial.suggest_categorical(name, s["choices"])
+        else:
+            raise ValueError(f"search {name}: unknown type {kind!r}")
+    return {k: (None if v == "none" else v) for k, v in params.items()}
+
+
+def fold_pr_auc(train, kind, seed, params, n_folds=3, imbalance="none"):
+    """Mean PR-AUC over the time folds inside train (step C's objective). Never sees val or test."""
+    if set(train["split"]) != {"train"}:
+        raise PermissionError("tuning folds take train rows only")
+    values = []
+    for fit_idx, score_idx, _ in time_folds(train, n_folds):
+        fit, score = train.loc[fit_idx], train.loc[score_idx]
+        _, s = fit_predict(fit, score, kind, seed, params, imbalance)
+        values.append(pr_auc(score["label"], s))
+    return float(np.mean(values)), values
+
+
+def best_so_far(values):
+    """The running maximum: the curve decision 6 reads."""
+    return [float(v) for v in np.maximum.accumulate(np.asarray(values, dtype=float))]
+
+
+def curve_is_flat(values, window=30, gain=0.002):
+    """Decision 6: the last `window` trials raised the best by less than `gain`."""
+    if len(values) <= window:
+        return False
+    curve = best_so_far(values)
+    return curve[-1] - curve[-1 - window] < gain
+
+
+def tune(df, kind, seed, search=None, start=50, step=50, max_trials=200, window=30, gain=0.002, n_folds=3,
+         on_trial=None):
+    """Optuna TPE on the time folds inside train, in batches (decision 6): `start` trials, then `step` more
+    while the curve isn't flat, up to `max_trials`. Returns a dict with every trial, the curve and the best."""
+    import optuna
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    space = (search or DEFAULT_SEARCH)[kind]
+    train = fit_rows(df)
+
+    def objective(trial):
+        params = suggest(trial, space)
+        value, folds = fold_pr_auc(train, kind, seed, params, n_folds)
+        trial.set_user_attr("folds", folds)
+        if on_trial:
+            on_trial(trial.number, params, value, folds)
+        return value
+
+    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=seed))
+    study.optimize(objective, n_trials=start)
+    while len(study.trials) < max_trials and not curve_is_flat([t.value for t in study.trials], window, gain):
+        study.optimize(objective, n_trials=min(step, max_trials - len(study.trials)))
+    values = [t.value for t in study.trials]
+    stop = "flat" if curve_is_flat(values, window, gain) else "max_trials"
+    best = study.best_trial
+    return {
+        "kind": kind, "seed": seed, "n_trials": len(values), "stopped": stop, "window": window, "gain": gain,
+        "best_value": float(best.value), "best_trial": best.number,
+        "best_params": {k: (None if v == "none" else v) for k, v in best.params.items()},
+        "best_folds": best.user_attrs["folds"],
+        "curve": best_so_far(values),
+        "trials": [{"number": t.number, "value": t.value, "params": t.params, "folds": t.user_attrs["folds"]}
+                   for t in study.trials],
+    }
+
+
 # ---------- the command ----------
 def load_config(path):
     path = Path(path)
@@ -233,18 +342,20 @@ def load_features(path):
     return pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
 
 
-def untuned(df, seed, out_dir, reps=1000, kinds=MODEL_KINDS):
-    """Baselines and the three models at their defaults, on val. Writes the summary and every val score."""
+def evaluate(df, seed, out_dir, models, tag, reps=1000):
+    """Baselines and each model in `models` ({kind: params or None}), fitted on train, on val.
+    Writes <tag>_val.json (PR-AUC with N, paired bootstrap against lines x files) and <tag>_val_scores.csv."""
     val = rows(df, "val")
     y = val["label"].astype(int).to_numpy()
     scores = dict(baseline_scores(val))
-    for kind in kinds:
-        _, s, scored = fit_and_score(df, kind, seed)
+    for kind, params in models.items():
+        _, s, scored = fit_and_score(df, kind, seed, params)
         assert scored.index.equals(val.index)
         scores[kind] = s
     ref = scores["lines_x_files"]
-    summary = {"split": "val", "n": int(len(y)), "positives": int(y.sum()), "positive_rate": float(y.mean()),
-               "seed": seed, "bootstrap_reps": reps, "results": {}}
+    summary = {"split": "val", "tag": tag, "n": int(len(y)), "positives": int(y.sum()),
+               "positive_rate": float(y.mean()), "seed": seed, "bootstrap_reps": reps,
+               "params": {k: v for k, v in models.items()}, "results": {}}
     for name, s in scores.items():
         row = {"pr_auc": pr_auc(y, s)}
         if name != "lines_x_files":
@@ -253,13 +364,27 @@ def untuned(df, seed, out_dir, reps=1000, kinds=MODEL_KINDS):
         summary["results"][name] = row
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "untuned_val.json").write_text(json.dumps(summary, indent=2) + "\n")
-    table = pd.DataFrame({"sha": val["sha"].to_numpy(), "label": y, **scores})
-    table.to_csv(out_dir / "untuned_val_scores.csv", index=False)
+    (out_dir / f"{tag}_val.json").write_text(json.dumps(summary, indent=2) + "\n")
+    pd.DataFrame({"sha": val["sha"].to_numpy(), "label": y, **scores}).to_csv(
+        out_dir / f"{tag}_val_scores.csv", index=False)
     return summary
 
 
-def log_to_mlflow(summary, out_dir):
+def untuned(df, seed, out_dir, reps=1000, kinds=MODEL_KINDS):
+    return evaluate(df, seed, out_dir, {k: None for k in kinds}, "untuned", reps)
+
+
+def search_space(cfg):
+    """DEFAULT_SEARCH with model.toml [search.<kind>.<param>] tables laid over it."""
+    merged = {k: dict(v) for k, v in DEFAULT_SEARCH.items()}
+    for kind, params in cfg.get("search", {}).items():
+        if kind not in merged:
+            raise ValueError(f"model.toml [search.{kind}]: unknown model kind")
+        merged[kind].update(params)
+    return merged
+
+
+def log_to_mlflow(summary, out_dir, decision="ai1-1"):
     """Through AI 2's tracking.py (Contract 3). Until it's merged, say so and carry on."""
     try:
         from model import tracking
@@ -267,8 +392,8 @@ def log_to_mlflow(summary, out_dir):
         print("not logged to MLflow: model/tracking.py (AI 2) isn't merged yet")
         return
     import mlflow
-    with tracking.start_run("untuned", owner="ai1"):
-        mlflow.set_tag("decision", "ai1-1")
+    with tracking.start_run(summary["tag"], owner="ai1"):
+        mlflow.set_tag("decision", decision)
         mlflow.log_param("seed", summary["seed"])
         for name, r in summary["results"].items():
             mlflow.log_metric(f"val_pr_auc_{name}", r["pr_auc"])
@@ -292,12 +417,17 @@ def main(argv=None):
     p.add_argument("--config", default=str(HERE / "model.toml"))
     p.add_argument("--features", default=str(HERE / "data" / "features.parquet"))
     p.add_argument("--out", default=str(HERE / "reports"))
-    p.add_argument("--untuned", action="store_true", help="baselines and the three models at their defaults")
     p.add_argument("--reps", type=int, default=1000, help="bootstrap resamples")
+    p.add_argument("--untuned", action="store_true", help="baselines and the three models at their defaults")
     p.add_argument("--models", nargs="+", choices=MODEL_KINDS, default=list(MODEL_KINDS))
+    p.add_argument("--tune", nargs="+", choices=MODEL_KINDS, help="tune these on the folds inside train, "
+                   "then score the best of each on val")
+    p.add_argument("--start", type=int, default=50, help="first batch of trials (decision 6)")
+    p.add_argument("--step", type=int, default=50, help="trials added while the curve isn't flat")
+    p.add_argument("--max-trials", type=int, default=200)
     a = p.parse_args(argv)
-    if not a.untuned:
-        p.error("nothing to do: pass --untuned (tuning comes next)")
+    if not a.untuned and not a.tune:
+        p.error("nothing to do: pass --untuned or --tune")
     cfg = load_config(a.config)
     try:
         df = load_features(a.features)
@@ -305,10 +435,27 @@ def main(argv=None):
         check_table(df, {"train": sp["train"], "val": sp["val"], "test": sp["test"]})
     except FeatureError as e:
         sys.exit(f"feature table: {e}")
-    summary = untuned(df, int(cfg["seed"]["value"]), a.out, a.reps, a.models)
-    print_summary(summary)
-    log_to_mlflow(summary, a.out)
-    print(f"wrote {Path(a.out) / 'untuned_val.json'} and untuned_val_scores.csv")
+    seed = int(cfg["seed"]["value"])
+    out = Path(a.out)
+    if a.untuned:
+        summary = untuned(df, seed, out, a.reps, a.models)
+        print_summary(summary)
+        log_to_mlflow(summary, out, "ai1-1")
+        print(f"wrote {out / 'untuned_val.json'} and untuned_val_scores.csv")
+    if a.tune:
+        space = search_space(cfg)
+        best = {}
+        for kind in a.tune:
+            result = tune(df, kind, seed, space, a.start, a.step, a.max_trials)
+            out.mkdir(parents=True, exist_ok=True)
+            (out / f"tuning_{kind}.json").write_text(json.dumps(result, indent=2) + "\n")
+            print(f"{kind}: {result['n_trials']} trials, stopped {result['stopped']}, "
+                  f"best fold PR-AUC {result['best_value']:.3f} (trial {result['best_trial']})")
+            best[kind] = result["best_params"]
+        summary = evaluate(df, seed, out, best, "tuned", a.reps)
+        print_summary(summary)
+        log_to_mlflow(summary, out, "ai1-6")
+        print(f"wrote {out / 'tuned_val.json'}, tuned_val_scores.csv and tuning_<kind>.json")
 
 
 if __name__ == "__main__":
