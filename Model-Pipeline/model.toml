@@ -1,0 +1,20 @@
+# Model pipeline config (packets/README.md, Contract 2). [data], [split] and [seed] are fixed keys.
+# Each owner adds their own section below: [search.*] (Rachna), [eval] and [registry] (Rochan), [bias] and [gate] (Chaitali).
+
+[data]
+run_id = "c5118b019d642a9b"        # the block the table was built from
+window_days = 365                  # Utkarsh's decision 1 can change this, by Nov 6
+follow_up_end = "2025-10-01T00:00:00Z"
+# Utkarsh's keys (packets/utkarsh-data/decisions.md)
+start_year = 2015                  # decision 2: the first year with rows
+repo = "apache/spark"
+prior_fix_days = 365               # prior_bug_fixes looks back this far
+
+[split]
+train = [2015, 2022]
+val = 2023
+test = 2024
+test_allowed = false               # Aniket flips it on Nov 12, once
+
+[seed]
+value = 1
