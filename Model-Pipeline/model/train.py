@@ -322,6 +322,42 @@ def tune(df, kind, seed, search=None, start=50, step=50, max_trials=200, window=
     }
 
 
+# ---------- seed noise (decision 7) ----------
+def seed_noise(df, kind, params, out_dir, seeds=(1, 2, 3, 4, 5)):
+    """The chosen config refitted with each seed, scored on val. Writes reports/seed_noise.json
+    (Contract 5: mean and standard deviation of val PR-AUC) and every seed's val scores beside it.
+    Any gap smaller than this noise isn't real: AI 2's promotion rule and AI 3's gate read it."""
+    if len(seeds) < 2 or len(set(seeds)) != len(seeds):
+        raise ValueError("seed noise needs at least two different seeds")
+    val = rows(df, "val")
+    y = val["label"].astype(int).to_numpy()
+    values, scores = [], {}
+    for seed in seeds:
+        _, s, scored = fit_and_score(df, kind, seed, params)
+        assert scored.index.equals(val.index)
+        values.append(pr_auc(y, s))
+        scores[f"seed_{seed}"] = s
+    sd = float(np.std(values, ddof=1))
+    result = {"kind": kind, "params": params, "split": "val", "n": int(len(y)), "positives": int(y.sum()),
+              "seeds": list(seeds), "pr_auc": values, "mean": float(np.mean(values)), "sd": sd, "two_sd": 2 * sd}
+    if sd == 0:
+        result["note"] = f"{kind} doesn't depend on the seed with these params, so its noise is 0"
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "seed_noise.json").write_text(json.dumps(result, indent=2) + "\n")
+    pd.DataFrame({"sha": val["sha"].to_numpy(), "label": y, **scores}).to_csv(
+        out_dir / "seed_noise_val_scores.csv", index=False)
+    return result
+
+
+def read_params(path):
+    """best_params from a tuning_<kind>.json, so seed noise uses exactly the tuned config."""
+    data = json.loads(Path(path).read_text())
+    if "best_params" not in data or "kind" not in data:
+        raise ValueError(f"{path} isn't a tuning_<kind>.json (no kind or best_params)")
+    return data["kind"], data["best_params"]
+
+
 # ---------- the command ----------
 def load_config(path):
     path = Path(path)
@@ -425,9 +461,12 @@ def main(argv=None):
     p.add_argument("--start", type=int, default=50, help="first batch of trials (decision 6)")
     p.add_argument("--step", type=int, default=50, help="trials added while the curve isn't flat")
     p.add_argument("--max-trials", type=int, default=200)
+    p.add_argument("--seed-noise", metavar="TUNING_JSON", help="refit the config in this tuning_<kind>.json "
+                   "with seeds 1-5 and write seed_noise.json (decision 7)")
+    p.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5])
     a = p.parse_args(argv)
-    if not a.untuned and not a.tune:
-        p.error("nothing to do: pass --untuned or --tune")
+    if not a.untuned and not a.tune and not a.seed_noise:
+        p.error("nothing to do: pass --untuned, --tune or --seed-noise")
     cfg = load_config(a.config)
     try:
         df = load_features(a.features)
@@ -456,6 +495,12 @@ def main(argv=None):
         print_summary(summary)
         log_to_mlflow(summary, out, "ai1-6")
         print(f"wrote {out / 'tuned_val.json'}, tuned_val_scores.csv and tuning_<kind>.json")
+    if a.seed_noise:
+        kind, params = read_params(a.seed_noise)
+        r = seed_noise(df, kind, params, out, tuple(a.seeds))
+        print(f"seed noise, {kind}, val N = {r['n']:,}: PR-AUC mean {r['mean']:.4f}, sd {r['sd']:.4f} "
+              f"over seeds {r['seeds']}")
+        print(f"wrote {out / 'seed_noise.json'} and seed_noise_val_scores.csv")
 
 
 if __name__ == "__main__":
