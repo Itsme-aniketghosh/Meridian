@@ -185,7 +185,8 @@ def build():
                               by_depth=json.dumps({"1": 8, "2": 3, "3": 1}))])
     ins("coverage", [dict(run_id="R2", metric="tickets_mapped", numerator=6, denominator=7, note="OPS-1 unmapped")])
     ins("suggestion", [dict(run_id="R1", suggestion_id=i, kind=k, target_kind=tk, target=t, owner_team=team,
-                            source="codemod" if k == "diff" else "template", body="", facts_hash="x", offered_at=R1[1])
+                            source="codemod" if k == "diff" else "template", body="", facts_hash="x", offered_at=R1[1],
+                            agent="diff_drafter" if k == "diff" else "writer", route="rules")
                        for i, k, tk, t, team, *_ in SUGGESTIONS])
     ins("outcome",
         [dict(suggestion_id=i, decided_run_id="R2", outcome=o, decided_at=at, latency_days=lat, rule="fixture",

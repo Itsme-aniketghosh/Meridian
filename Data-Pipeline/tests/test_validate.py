@@ -220,7 +220,7 @@ class Settings(unittest.TestCase):
 
     def test_bug_fixes_range_and_every_table_that_cant_be_empty_has_a_minimum(self):
         self.assertEqual(self.exp["ranges"]["*.bug_fixes"], [0, 10000])
-        empty_ok = {"blocked_by", "parse_failure", "deprecation", "chain"}
+        empty_ok = {"blocked_by", "parse_failure", "deprecation", "chain"} | V.W.TRACKING
         self.assertEqual(set(V.W.tables(V.W.SCHEMA.read_text(encoding="utf-8"))) - set(self.exp["rows"]), empty_ok)
 
 

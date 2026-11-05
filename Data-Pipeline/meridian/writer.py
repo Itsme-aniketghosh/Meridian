@@ -8,8 +8,13 @@ written. Then rows go in sorted by primary key, tables in name order, in one tra
 VACUUMed and moved into place.
 Any bad row stops the load with its file and line: a half-right database is worse than none.
 
-Every row carries the folder's run_id, except in an append-only table (call_site): it holds every version so far,
-each with the run that wrote it, so earlier run_ids are allowed there, never one known after this run's snapshot_at.
+Every row carries the folder's run_id, except in a table that keeps rows across runs (KNOWN_AT: call_site and the
+stage-6 tracking tables). Those hold every row so far, so earlier run_ids are allowed there, never a row known after
+this run's snapshot_at. A tracking table without a run_id column is checked on its *_at column alone.
+
+A column with REFERENCES in schema.sql must name a row of that table in the same block (a NULL names nothing).
+The tracking tables (TRACKING) come from the product, not from a run: a complete block may leave their files out,
+and they load empty.
 """
 import json
 import sqlite3
@@ -19,7 +24,11 @@ from pathlib import Path
 from meridian.common import SCHEMA, handoff, load_config, log, parser
 
 PY_TYPES = {"TEXT": (str,), "INTEGER": (int,), "REAL": (int, float)}
-APPEND_ONLY = {"call_site"}  # versions from earlier runs ride along; known_at says when each was written
+# Tables whose rows from earlier runs ride along, and the column that says when each became known
+KNOWN_AT = {"call_site": "known_at", "suggestion": "offered_at", "outcome": "decided_at", "push_alert": "decided_at",
+            "policy": "created_at", "match": "decided_at"}
+# Stage 6: written by the product and the auditor, not by a pipeline run. Missing from a complete block = empty
+TRACKING = {"suggestion", "outcome", "push_alert", "policy", "match"}
 
 
 class BadRow(Exception):
@@ -36,6 +45,23 @@ def tables(schema_sql):
         spec[t] = [(c[1], c[2].upper(), bool(c[3]), c[4] is not None, c[5])
                    for c in db.execute(f"PRAGMA table_info('{t}')")]
     return spec
+
+
+def references(schema_sql):
+    """[(table, column, parent table, parent column)] from schema.sql's REFERENCES clauses."""
+    db = sqlite3.connect(":memory:")
+    db.executescript(schema_sql)
+    return [(t, fk[3], fk[2], fk[4])
+            for (t,) in db.execute("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+            for fk in db.execute(f"PRAGMA foreign_key_list('{t}')")]
+
+
+def check_references(loaded, refs):
+    for table, col, parent, pcol in refs:
+        keys = {r[pcol] for _, r in loaded.get(parent, [])}
+        for where, r in loaded.get(table, []):
+            if r.get(col) is not None and r[col] not in keys:
+                raise BadRow(f"{where}: {col} {r[col]!r} has no {parent} row with that {pcol}")
 
 
 def read_rows(path, cols, run_id, snapshot_at=None):
@@ -68,12 +94,16 @@ def read_rows(path, cols, run_id, snapshot_at=None):
                         raise BadRow(f"{where}: {k} is null")
                 elif isinstance(v, bool) or not isinstance(v, PY_TYPES.get(typ, (object,))):
                     raise BadRow(f"{where}: {k} should be {typ}, got {type(v).__name__} {str(v)[:40]!r}")
-            if r["run_id"] != run_id:
-                if path.stem not in APPEND_ONLY:
+            known = KNOWN_AT.get(path.stem)
+            if "run_id" in by_name and r["run_id"] != run_id:
+                if not known:
                     raise BadRow(f"{where}: run_id {r['run_id']!r}, but the folder is {run_id!r}")
-                if snapshot_at is None or r["known_at"] > snapshot_at:
+                if snapshot_at is None or r[known] > snapshot_at:
                     raise BadRow(f"{where}: an earlier run's version (run_id {r['run_id']!r}) must be known by this "
-                                 f"run's snapshot_at {snapshot_at!r}, it says {r['known_at']!r}")
+                                 f"run's snapshot_at {snapshot_at!r}, it says {r[known]!r}")
+            elif "run_id" not in by_name and known and r.get(known) is not None and snapshot_at is not None \
+                    and r[known] > snapshot_at:
+                raise BadRow(f"{where}: {known} {r[known]!r} is after this run's snapshot_at {snapshot_at!r}")
             rows.append((tuple(r[k] for k in pk), where, r))
     rows.sort(key=lambda x: x[0])
     for a, b in zip(rows, rows[1:]):
@@ -95,7 +125,7 @@ def write(src, db=None, schema=SCHEMA, complete=False):
     files = sorted(src.glob("*.jsonl"))
     if unknown := [p.name for p in files if p.stem not in spec]:
         raise BadRow(f"no table in schema.sql for {unknown}")
-    if complete and (missing := sorted(set(spec) - {p.stem for p in files})):
+    if complete and (missing := sorted(set(spec) - TRACKING - {p.stem for p in files})):
         raise BadRow(f"no {', '.join(t + '.jsonl' for t in missing)}: a part didn't write its table "
                      "(an empty file is an empty table)")
     try:
@@ -104,6 +134,7 @@ def write(src, db=None, schema=SCHEMA, complete=False):
     except (ValueError, KeyError, TypeError) as e:  # UnicodeDecodeError is a ValueError
         raise BadRow(f"{run.name}:1: can't read snapshot_at ({type(e).__name__}: {e})")
     loaded = {p.stem: read_rows(p, spec[p.stem], run_id, snapshot_at) for p in files}
+    check_references(loaded, references(sql))
 
     tmp = db.with_name(db.name + ".tmp")
     tmp.unlink(missing_ok=True)
