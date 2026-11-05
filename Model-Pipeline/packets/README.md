@@ -7,13 +7,13 @@ Read [PLAN.md](../PLAN.md) first, then your packet, then the contracts below. Wh
 | Folder | Who | Steps | Due |
 |---|---|---|---|
 | [utkarsh-data/](utkarsh-data/README.md) | Utkarsh, data engineer | A, B, K, L, diff drafter | v1 table Nov 5, c5118 Nov 7, run 2 Nov 8, diffs Nov 10 |
-| [ai1-models/](ai1-models/README.md) | AI engineer 1 | C, E, Docker, Jev, Q | C Nov 8, E Nov 9, Jev and Q Nov 10 |
-| [ai2-tracking/](ai2-tracking/README.md) | AI engineer 2 | tracking, D, G and the registry repo, P, the 2024 run | tracking Nov 5, D Nov 6, G Nov 9, P Nov 10 |
-| [ai3-bias/](ai3-bias/README.md) | AI engineer 3 | the pass bars, F, gates, alerts, all CI | bars Nov 6, pick Nov 9, CI Nov 10 |
-| [ai4-agents/](ai4-agents/README.md) | AI engineer 4 | N, writer and cache, O | N Nov 7, writer Nov 8, views Nov 10 |
+| [rachna-models/](rachna-models/README.md) | Rachna, AI engineer | C, E, Docker, Jev, Q | C Nov 8, E Nov 9, Jev and Q Nov 10 |
+| [rochan-tracking/](rochan-tracking/README.md) | Rochan, AI engineer | tracking, D, G and the registry repo, P, the 2024 run | tracking Nov 5, D Nov 6, G Nov 9, P Nov 10 |
+| [chaitali-bias/](chaitali-bias/README.md) | Chaitali, AI engineer | the pass bars, F, gates, alerts, all CI | bars Nov 6, pick Nov 9, CI Nov 10 |
+| [vishwa-agents/](vishwa-agents/README.md) | Vishwa, AI engineer | N, writer and cache, O | N Nov 7, writer Nov 8, views Nov 10 |
 | [aniket-lead/](aniket-lead/README.md) | Aniket, lead | the end of the graph: integration, faults, final runs, report | Nov 11–15 |
 
-The work is split evenly, about 5 person-days each for Utkarsh and AI 1–4 ([PLAN.md §7](../PLAN.md#7-roles)). Aniket reviews until code freeze, then integrates. Day 1 is Thu Nov 5. Code freeze is Tue Nov 10 at the end of the day. Every report section is in by Thu Nov 12. Aniket and Utkarsh write the report Nov 13–15.
+The work is split evenly, about 5 person-days each for Utkarsh, Rachna, Rochan, Chaitali and Vishwa ([PLAN.md §7](../PLAN.md#7-roles)). Aniket reviews until code freeze, then integrates. Day 1 is Thu Nov 5. Code freeze is Tue Nov 10 at the end of the day. Every report section is in by Thu Nov 12. Aniket and Utkarsh write the report Nov 13–15.
 
 Phase 2 runs locally and on GitHub Actions. The only cloud piece is the GCP Artifact Registry repo the model is pushed to. Terraform and everything else on GCP is phase 3.
 
@@ -46,39 +46,39 @@ From the phase 1 docs:
 ```
 Model-Pipeline/
 ├── PLAN.md
-├── PASS-BARS.md                 AI 3; everyone writes their own rows
+├── PASS-BARS.md                 Chaitali; everyone writes their own rows
 ├── packets/<you>/               your packet, decisions.md, notes
 ├── model.toml                   everyone adds their own section
 ├── model/
 │   ├── data.py                  Utkarsh
-│   ├── train.py, run_all.py     AI 1
-│   ├── sensitivity.py           AI 1
-│   ├── tracking.py              AI 2
-│   ├── evaluate.py              AI 2
-│   ├── registry.py              AI 2
-│   ├── bias.py, gate.py         AI 3
+│   ├── train.py, run_all.py     Rachna
+│   ├── sensitivity.py           Rachna
+│   ├── tracking.py              Rochan
+│   ├── evaluate.py              Rochan
+│   ├── registry.py              Rochan
+│   ├── bias.py, gate.py         Chaitali
 ├── data/                        features.parquet, features.schema.json (git): Utkarsh
 ├── registry/champion.json       written only by registry.py
-├── reports/                     metrics.json (AI 2), bias_report.json (AI 3), seed_noise.json (AI 1), charts
+├── reports/                     metrics.json (Rochan), bias_report.json (Chaitali), seed_noise.json (Rachna), charts
 ├── tests/                       one test file per module, by its owner; faults/ by Aniket
-├── Dockerfile, requirements.txt AI 1
+├── Dockerfile, requirements.txt Rachna
 └── report/REPORT.md             Aniket and Utkarsh; each owner writes their section
 
 Data-Pipeline/
 ├── schema.sql                   tracking tables: Utkarsh
-├── meridian/views.py            AI 4
-├── meridian/fact_gate.py        AI 4
-├── meridian/agents.py          AI 4 (the writer)
-├── meridian/jev.py             AI 1
+├── meridian/views.py            Vishwa
+├── meridian/fact_gate.py        Vishwa
+├── meridian/agents.py          Vishwa (the writer)
+├── meridian/jev.py             Rachna
 ├── meridian/diffs.py           Utkarsh (the diff drafter)
-├── meridian/llm_cache.py        AI 4
-├── meridian/auditor.py          AI 2
-├── meridian/pushcheck.py        AI 1 (the P9 hook only)
-├── llm_cache/                   committed cache entries: AI 4
+├── meridian/llm_cache.py        Vishwa
+├── meridian/auditor.py          Rochan
+├── meridian/pushcheck.py        Rachna (the P9 hook only)
+├── llm_cache/                   committed cache entries: Vishwa
 └── meridian.next.toml           the second real run's config: Utkarsh
 
-.github/workflows/model.yml      AI 3
-.github/workflows/ci.yml         AI 3 adds the product jobs
+.github/workflows/model.yml      Chaitali
+.github/workflows/ci.yml         Chaitali adds the product jobs
 ```
 
 ## Contract 1: the feature table
@@ -113,7 +113,7 @@ The feature names follow Kamei et al. 2013, the usual just-in-time defect predic
 
 ## Contract 2: config
 
-`Model-Pipeline/model.toml`. These keys are fixed. Each owner adds their own section: `[search.*]` (AI 1), `[eval]` and `[registry]` (AI 2), `[bias]` and `[gate]` (AI 3).
+`Model-Pipeline/model.toml`. These keys are fixed. Each owner adds their own section: `[search.*]` (Rachna), `[eval]` and `[registry]` (Rochan), `[bias]` and `[gate]` (Chaitali).
 
 ```toml
 [data]
@@ -137,7 +137,7 @@ Product settings (models, prompts, spend cap, auditor ε and K) go in `Data-Pipe
 
 - Local on each machine: `MLFLOW_TRACKING_URI=sqlite:///mlflow.db` at the repo root, which git ignores. `mlflow ui` to look.
 - Experiments: `meridian-defect-risk` for the model, `meridian-agents` for LLM calls, `meridian-auditor` for auditor runs.
-- Start runs with `model.tracking.start_run(name, owner)` (AI 2), never `mlflow.start_run` directly. It sets the tags every run needs: `block_run_id`, `git_sha`, `config_sha256`, `features_md5` (model runs), `owner`.
+- Start runs with `model.tracking.start_run(name, owner)` (Rochan), never `mlflow.start_run` directly. It sets the tags every run needs: `block_run_id`, `git_sha`, `config_sha256`, `features_md5` (model runs), `owner`.
 - Decision tests are runs too, tagged `decision=<packet>-<n>`.
 - Your MLflow isn't shared. What the report needs from it goes in your `decisions.md` with the numbers. The report's final numbers come from Aniket's final runs on Nov 12, which rebuild everything from code, config and seed.
 
@@ -145,12 +145,12 @@ Product settings (models, prompts, spend cap, auditor ε and K) go in `Data-Pipe
 
 | File | Written by | Read by | Holds |
 |---|---|---|---|
-| `reports/metrics.json` | `evaluate.py` (AI 2) | `gate.py`, `registry.py` | PR-AUC, ROC-AUC, F1, recall at 20% of lines, each with N, for the model and every baseline, on `val` or `test` |
-| `reports/bias_report.json` | `bias.py` (AI 3) | `gate.py`, `registry.py` | every slice with N, interval and flag, plus `"pass": true` or `false` |
-| `reports/seed_noise.json` | `train.py` (AI 1) | `gate.py`, `registry.py` | val PR-AUC of the chosen config over 5 seeds: mean, standard deviation |
-| `registry/champion.json` | `registry.py` (AI 2) | `gate.py`, `registry.py`, the P9 hook | the champion's run id, Artifact Registry version, metrics, model md5 |
+| `reports/metrics.json` | `evaluate.py` (Rochan) | `gate.py`, `registry.py` | PR-AUC, ROC-AUC, F1, recall at 20% of lines, each with N, for the model and every baseline, on `val` or `test` |
+| `reports/bias_report.json` | `bias.py` (Chaitali) | `gate.py`, `registry.py` | every slice with N, interval and flag, plus `"pass": true` or `false` |
+| `reports/seed_noise.json` | `train.py` (Rachna) | `gate.py`, `registry.py` | val PR-AUC of the chosen config over 5 seeds: mean, standard deviation |
+| `registry/champion.json` | `registry.py` (Rochan) | `gate.py`, `registry.py`, the P9 hook | the champion's run id, Artifact Registry version, metrics, model md5 |
 
-`gate.py` (AI 3) reads them and exits non-zero on a fail. A model reaches the registry only after the gate passes.
+`gate.py` (Chaitali) reads them and exits non-zero on a fail. A model reaches the registry only after the gate passes.
 
 ## Contract 5: agent facts and suggestions
 
