@@ -1,4 +1,4 @@
-# AI engineer 2: tracking, evaluation, registry, auditor
+# Rochan: tracking, evaluation, registry, auditor
 
 > Set how everyone logs, make the numbers everyone trusts, own where models live (the registry, the GCP push, rollback), and build the auditor that learns where to look. You also run the one look at 2024, on Nov 12.
 
@@ -6,23 +6,23 @@
 |---|---|
 | Steps | tracking, D (evaluation), G (registry, the GCP repo, rollback), P (auditor learning), the 2024 run. About 5 days |
 | Code | `model/tracking.py`, `model/evaluate.py`, `model/registry.py`, `Data-Pipeline/meridian/auditor.py`, their tests |
-| Waits on | the v1 table (Nov 5), AI 1's candidate (Nov 6), AI 3's final pick (Nov 9), Utkarsh's `policy` and `match` tables (Nov 7), Aniket adding you to the GCP project (Nov 4) |
-| Hands to | everyone: `tracking.py`, the bootstrap helper. AI 3: `metrics.json`, `registry.py`. AI 1: the champion. Aniket: the auditor, the 2024 numbers |
+| Waits on | the v1 table (Nov 5), Rachna's candidate (Nov 6), Chaitali's final pick (Nov 9), Utkarsh's `policy` and `match` tables (Nov 7), Aniket adding you to the GCP project (Nov 4) |
+| Hands to | everyone: `tracking.py`, the bootstrap helper. Chaitali: `metrics.json`, `registry.py`. Rachna: the champion. Aniket: the auditor, the 2024 numbers |
 
 ```mermaid
 flowchart LR
-  ut["Utkarsh: features, policy and match tables"] --> me["AI 2"]
-  ai1["AI 1: candidate, seed noise"] --> me
-  ai3["AI 3: final pick"] --> me
+  ut["Utkarsh: features, policy and match tables"] --> me["Rochan"]
+  ai1["Rachna: candidate, seed noise"] --> me
+  ai3["Chaitali: final pick"] --> me
   me --> trk["tracking.py: everyone"]
-  me --> metrics["metrics.json, registry.py: AI 3"]
-  me --> champ["champion: AI 1"]
+  me --> metrics["metrics.json, registry.py: Chaitali"]
+  me --> champ["champion: Rachna"]
   me --> aud["auditor, 2024 numbers: Aniket"]
 ```
 
 | Date | Due |
 |---|---|
-| Thu Nov 5 | `tracking.py` merged. Your pass-bar rows to AI 3 |
+| Thu Nov 5 | `tracking.py` merged. Your pass-bar rows to Chaitali |
 | Fri Nov 6 | `evaluate.py` and `metrics.json` on `val`, charts |
 | Sat Nov 7 | Auditor: policy v0, Elo |
 | Sun Nov 8 | Auditor stall job, simulation tests |
@@ -41,7 +41,7 @@ flowchart LR
 
 - [ ] `tracking.py`: `start_run(name, owner)` sets the Contract 3 tags and experiment, on the local store `sqlite:///mlflow.db`
 - [ ] A short how-to in [packets/README.md](../README.md)
-- [ ] `log_llm_call(...)` for AI 4: agent, model, prompt version, tokens, cost, cache hit, gate pass, into `meridian-agents`
+- [ ] `log_llm_call(...)` for Vishwa: agent, model, prompt version, tokens, cost, cache hit, gate pass, into `meridian-agents`
 
 ## D. Evaluation
 
@@ -52,7 +52,7 @@ flowchart LR
 The GCP repo, once, on the trial project (no Terraform until phase 3):
 
 - [ ] `gcloud artifacts repositories create meridian-models --repository-format=generic --location=us-east1`
-- [ ] A service account that can only write to that repo (Artifact Registry Writer on it, nothing else). Its key as the repo secret AI 3's workflow reads, main only. Never committed
+- [ ] A service account that can only write to that repo (Artifact Registry Writer on it, nothing else). Its key as the repo secret Chaitali's workflow reads, main only. Never committed
 
 `python -m model.registry --run <id>`, called by CI after the gate:
 
@@ -77,7 +77,7 @@ The GCP repo, once, on the trial project (no Terraform until phase 3):
 
 ## Decisions
 
-Write the test and the rule that picks before you run it, in `decisions.md`. Tag each run `decision=ai2-<n>`.
+Write the test and the rule that picks before you run it, in `decisions.md`. Tag each run `decision=rochan-<n>`.
 
 | # | Decision | Options | Test that decides | Why it matters |
 |---|---|---|---|---|
@@ -86,7 +86,7 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 | 3 | Threshold | best F1 on `val`, a fixed precision, a fixed alert rate | Alerts per push on `val` (one push = one commit here) and precision for each | 05-test asks for at most a median of 1 alert per push and precision ≥ 0.80. An F1 threshold might flag a third of commits, and people mute the check |
 | 4 | Bootstrap resamples | 500, 1,000, 2,000 | Three seeds at each size. The smallest where the interval ends move less than 0.005 | Too few and the pass bar rests on noise. Too many and CI is slow |
 | 5 | Paired or unpaired | | Both on the candidate against lines × files. Compare widths | Both scores are on the same commits. Paired is the right test and much tighter, so the bar can be met |
-| 6 | Promotion rule | any gain, a gain above 2 standard deviations of seed noise | Feed the registry AI 1's 5 same-config seeds in a row. With "any gain" count how often `champion` flips; the noise rule should flip 0 times | A champion that flips on noise makes rollback meaningless and the history unreadable |
+| 6 | Promotion rule | any gain, a gain above 2 standard deviations of seed noise | Feed the registry Rachna's 5 same-config seeds in a row. With "any gain" count how often `champion` flips; the noise rule should flip 0 times | A champion that flips on noise makes rollback meaningless and the history unreadable |
 | 7 | What to compare on | the champion's stored metrics, re-scoring it on today's `val` | Rebuild the table with one of Utkarsh's decisions changed, then compare both ways | If the table changes, stored metrics describe different rows |
 | 8 | MLflow store | file store (`mlruns/`), SQLite | Register a model and move an alias on each | The model registry needs a database store. The file store can't hold aliases reliably |
 | 9 | Auditor ε schedule | 04's 0.2 then 0.1, a fixed 0.1 | Simulation: 3 policies with known skill, 200 matches, 20 seeds. Matches until the best is champion, and how often a worse one is | Too little exploration and a better policy never gets tried. Too much and the team sees worse rankings for longer |
@@ -102,7 +102,7 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 
 ## Done when
 
-- [ ] The team logs through `tracking.py`, and AI 4 logs agent calls through it
+- [ ] The team logs through `tracking.py`, and Vishwa logs agent calls through it
 - [ ] `metrics.json` on `val`, then on `test` once on Nov 12
 - [ ] `registry.py` in CI on main, with a real push and a rollback tried
 - [ ] The auditor passes its simulation tests and runs on the fixture

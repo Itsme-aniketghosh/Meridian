@@ -130,7 +130,7 @@ Not in phase 2: intake (no collect source, gap G5), ticket comments (G2), a whol
 | J | Report | `Model-Pipeline/report/REPORT.md`, every number with its N |
 | K | Tracking tables | Into `schema.sql`, with writer and validate support |
 | L | Second real run | Real `removed` rows, real burndown |
-| M | LLM stage | The writer and cache (AI 4), Jev (AI 1), the diff drafter (Utkarsh). The policy writer if time allows. Every call tracked in MLflow; validated and sliced for bias like the model (the guideline's rule for pretrained models) |
+| M | LLM stage | The writer and cache (Vishwa), Jev (Rachna), the diff drafter (Utkarsh). The policy writer if time allows. Every call tracked in MLflow; validated and sliced for bias like the model (the guideline's rule for pretrained models) |
 | N | Gate | The fact check on every LLM output |
 | O | Views and API | The four views and the ticket tools, read-only, served locally |
 | P | Auditor learning | Stall job, explore job, Elo, ε-greedy, replay, promotion guard |
@@ -181,16 +181,16 @@ flowchart TD
 
   subgraph MODEL["Model pipeline"]
     A["A: rebuild c5118 · Utkarsh"] --> B["B: features · Utkarsh"]
-    B --> bars["pass bars · AI 3, everyone signs"]
-    bars --> C["C: models, tuning · AI 1"]
-    trk["tracking.py, local MLflow · AI 2"] --> C
-    C --> D["D: validate · AI 2"]
-    D --> E["E: SHAP, sensitivity · AI 1"]
-    D --> F["F: bias, final pick · AI 3"]
-    F --> G["G: registry, GCP push, rollback · AI 2"]
-    C --> dock["Docker image, run_all · AI 1"]
-    F --> gates["gate.py, alerts · AI 3"]
-    dock --> H["H: model CI · AI 3"]
+    B --> bars["pass bars · Chaitali, everyone signs"]
+    bars --> C["C: models, tuning · Rachna"]
+    trk["tracking.py, local MLflow · Rochan"] --> C
+    C --> D["D: validate · Rochan"]
+    D --> E["E: SHAP, sensitivity · Rachna"]
+    D --> F["F: bias, final pick · Chaitali"]
+    F --> G["G: registry, GCP push, rollback · Rochan"]
+    C --> dock["Docker image, run_all · Rachna"]
+    F --> gates["gate.py, alerts · Chaitali"]
+    dock --> H["H: model CI · Chaitali"]
     gates --> H
     G --> H
   end
@@ -198,17 +198,17 @@ flowchart TD
   subgraph PRODUCT["Rest of the product"]
     K["K: tracking tables · Utkarsh"]
     L["L: second real run · Utkarsh"]
-    N["N: fact gate · AI 4"] --> W["writer agent, cache · AI 4"]
+    N["N: fact gate · Vishwa"] --> W["writer agent, cache · Vishwa"]
     K --> W
-    W --> jev["Jev router · AI 1"]
+    W --> jev["Jev router · Rachna"]
     L --> diff["diff drafter · Utkarsh"]
     N --> diff
-    K --> P["P: auditor learning · AI 2"]
-    W --> O["O: views and API · AI 4"]
+    K --> P["P: auditor learning · Rochan"]
+    W --> O["O: views and API · Vishwa"]
     diff --> O
     L --> O
-    G --> Q["Q: P9 hook · AI 1"]
-    jev --> PCI["product CI, LLM bias · AI 3"]
+    G --> Q["Q: P9 hook · Rachna"]
+    jev --> PCI["product CI, LLM bias · Chaitali"]
     O --> PCI
   end
 
@@ -227,7 +227,7 @@ Two critical paths, both ending at Aniket's integration on Nov 11:
 - Model: A → B → C → D → F → G → H.
 - Product: N → writer → Jev and views, with K and L feeding the diff drafter and the views.
 
-Two things keep people from waiting on Utkarsh. On day 1 Utkarsh ships a first feature table from v1 (`70dd1dabfed544b8`), which is already on Aniket's machine: the SZZ tables barely differ (26,559 against 26,302 rows). And AI 4 builds the gate and the writer on the fixture block, which needs nothing from step A. Dates are in §10.
+Two things keep people from waiting on Utkarsh. On day 1 Utkarsh ships a first feature table from v1 (`70dd1dabfed544b8`), which is already on Aniket's machine: the SZZ tables barely differ (26,559 against 26,302 rows). And Vishwa builds the gate and the writer on the fixture block, which needs nothing from step A. Dates are in §10.
 
 ## 7. Roles
 
@@ -238,10 +238,10 @@ The split, in person-days (estimates, for balance, not commitments):
 | Who | Work | Days |
 |---|---|---:|
 | Utkarsh, data engineer | A team run 0.5 · B features and label checks 2 · K tracking tables 0.5 · L second real run 1 · diff drafter 1.5 | 5.5 |
-| AI engineer 1 | C models and tuning 2.5 · Docker and `run_all` 0.5 · E sensitivity 1 · Jev router 1 · Q P9 hook 0.5 | 5.5 |
-| AI engineer 2 | tracking and D evaluation 1.5 · G registry, GCP push, rollback 1.5 · P auditor learning 2 | 5 |
-| AI engineer 3 | the pass-bars file 0.5 · F bias and final pick 2 · `gate.py` and alerts 0.75 · all CI 1.25 · LLM bias 0.5 | 5 |
-| AI engineer 4 | N fact gate 1.5 · writer agent and cache 1.5 · O views and API 2 | 5 |
+| Rachna, AI engineer | C models and tuning 2.5 · Docker and `run_all` 0.5 · E sensitivity 1 · Jev router 1 · Q P9 hook 0.5 | 5.5 |
+| Rochan, AI engineer | tracking and D evaluation 1.5 · G registry, GCP push, rollback 1.5 · P auditor learning 2 | 5 |
+| Chaitali, AI engineer | the pass-bars file 0.5 · F bias and final pick 2 · `gate.py` and alerts 0.75 · all CI 1.25 · LLM bias 0.5 | 5 |
+| Vishwa, AI engineer | N fact gate 1.5 · writer agent and cache 1.5 · O views and API 2 | 5 |
 | Aniket, lead | reviews until Nov 10 · integration and 21 simulated faults Nov 11 · final runs Nov 12 · report Nov 13–15 | end of the graph |
 
 Who hands what to whom:
@@ -249,10 +249,10 @@ Who hands what to whom:
 ```mermaid
 flowchart TD
   utkarsh["Utkarsh, data engineer<br/>team run, features, tables, run 2, diff drafter"]
-  ai1["AI 1<br/>models, sensitivity, image, Jev, P9 hook"]
-  ai2["AI 2<br/>tracking, evaluation, registry, auditor"]
-  ai3["AI 3<br/>pass bars, bias, final pick, gates, all CI"]
-  ai4["AI 4<br/>fact gate, writer, cache, views"]
+  ai1["Rachna<br/>models, sensitivity, image, Jev, P9 hook"]
+  ai2["Rochan<br/>tracking, evaluation, registry, auditor"]
+  ai3["Chaitali<br/>pass bars, bias, final pick, gates, all CI"]
+  ai4["Vishwa<br/>fact gate, writer, cache, views"]
   aniket["Aniket, lead<br/>integration, faults, final runs, report"]
 
   utkarsh -->|"features in git"| ai1
@@ -278,13 +278,13 @@ flowchart TD
 | Who | Hands off | Due |
 |---|---|---|
 | Utkarsh | v1 table, c5118 table, tracking tables, run 2, diff drafter | Nov 5, Nov 7, Nov 7, Nov 8, Nov 10 |
-| AI engineer 1 | first candidate, tuned candidate and image, SHAP, Jev and P9 | Nov 6, Nov 8, Nov 9, Nov 10 |
-| AI engineer 2 | `tracking.py`, `evaluate.py`, auditor stall job, registry and push, auditor done | Nov 5, Nov 6, Nov 8, Nov 9, Nov 10 |
-| AI engineer 3 | pass bars merged, bias on the candidate, final pick and `gate.py`, all CI and LLM bias | Nov 6, Nov 8, Nov 9, Nov 10 |
-| AI engineer 4 | fact gate, writer and cache, views and API | Nov 7, Nov 8, Nov 10 |
+| Rachna | first candidate, tuned candidate and image, SHAP, Jev and P9 | Nov 6, Nov 8, Nov 9, Nov 10 |
+| Rochan | `tracking.py`, `evaluate.py`, auditor stall job, registry and push, auditor done | Nov 5, Nov 6, Nov 8, Nov 9, Nov 10 |
+| Chaitali | pass bars merged, bias on the candidate, final pick and `gate.py`, all CI and LLM bias | Nov 6, Nov 8, Nov 9, Nov 10 |
+| Vishwa | fact gate, writer and cache, views and API | Nov 7, Nov 8, Nov 10 |
 | Aniket | integration, final runs, report | Nov 11, Nov 12, Nov 15 |
 
-- The pass bars: AI 3 owns the file, AI 1–4 draft their rows, everyone signs off, and AI 3 merges it by Nov 6 after Aniket's review.
+- The pass bars: Chaitali owns the file, the four AI engineers draft their rows, everyone signs off, and Chaitali merges it by Nov 6 after Aniket's review.
 - Each owner writes their own report section by Nov 12. Aniket and Utkarsh edit them into one report.
 
 ## 8. Running locally
@@ -303,7 +303,7 @@ Everything runs on our machines and on GitHub's free runners, except one GCP Art
 | Alerts | Slack through `MERIDIAN_SLACK_WEBHOOK`, as in phase 1 |
 | LLM | The provider's API key in `.env` and a repo secret. Billed by the provider, not covered by any credit. Models and a spend cap pinned in `meridian.toml`. The cache is committed, so CI and reruns make 0 calls and need no key |
 
-The registry repo is the guideline's §2.6, §7.4 and §8.7, which ask for the model on GCP. It's storage, not serving, so it isn't deployment. It costs about $0: Artifact Registry's first 0.5 GB is free, and a LightGBM model is a few MB. Aniket adds the team to the $300 trial project once (the credits are on that account). AI 2 makes the repo and the service account by Nov 9.
+The registry repo is the guideline's §2.6, §7.4 and §8.7, which ask for the model on GCP. It's storage, not serving, so it isn't deployment. It costs about $0: Artifact Registry's first 0.5 GB is free, and a LightGBM model is a few MB. Aniket adds the team to the $300 trial project once (the credits are on that account). Rochan makes the repo and the service account by Nov 9.
 
 ## 9. Open risks
 
@@ -328,7 +328,7 @@ Never cut: anything in the course guideline, the gate, the LLM-off fallback, det
 
 Work starts Thu Nov 5 (day 1). Wed Nov 4 is an optional head start: anyone who starts then has a day of slack. The deadline is Sun Nov 15, and the report takes Nov 13–15, so all work and every report section are due Thu Nov 12.
 
-| Date | Utkarsh | AI 1 | AI 2 | AI 3 | AI 4 |
+| Date | Utkarsh | Rachna | Rochan | Chaitali | Vishwa |
 |---|---|---|---|---|---|
 | Wed Nov 4, optional | Packets read. Aniket adds the team to the GCP project | | | | |
 | Thu Nov 5, day 1 | v1 feature table in git | pass-bar rows | `tracking.py` merged | pass-bars file drafted | fact gate started |
@@ -340,9 +340,9 @@ Work starts Thu Nov 5 (day 1). Wed Nov 4 is an optional head start: anyone who s
 
 | Date | Aniket |
 |---|---|
-| Nov 5–10 | Reviews and merges only. The cut-order check-in on Nov 9, run by AI 3 |
+| Nov 5–10 | Reviews and merges only. The cut-order check-in on Nov 9, run by Chaitali |
 | Wed Nov 11 | Integration and simulated faults. Owners fix what breaks, same day. Go or no-go for 2024 |
-| Thu Nov 12 | The one 2024 run (AI 2 runs it, Aniket watches), champion pushed, final product run, final charts. Every report section in |
+| Thu Nov 12 | The one 2024 run (Rochan runs it, Aniket watches), champion pushed, final product run, final charts. Every report section in |
 | Fri Nov 13 – Sun Nov 15 | Report, with Utkarsh. Everyone reviews their own section |
 
 Anything not done by Nov 10 follows the cut order in §9 and isn't squeezed in. The report says what was cut.
@@ -396,23 +396,23 @@ Every item in the course's Model Development Guidelines, and where phase 2 cover
 | Guideline | Item | Step | Owner | Evidence |
 |---|---|---|---|---|
 | §2.1, §8.2 | Load data from the data pipeline, processed and versioned | B | Utkarsh | `model/data.py` reads `published/latest.json`; every run tagged with `block_run_id` and `features_md5`; `dvc.lock` pins the block |
-| §2.2, §8.3 | Train, try several architectures, select the best by metrics | C | AI 1 | Three baselines, three models, `val` PR-AUC with intervals in MLflow |
-| §2.3, §8.4 | Validate on a hold-out set not used in training | D | AI 2 | `val` 2023 for choices, `test` 2024 once; `metrics.json` |
-| §2.4, §6.1–6.2 | Bias detection by slicing, metrics tracked across slices | F | AI 3 | Fairlearn `MetricFrame` by module, component, author experience, size; `bias_report.json` |
-| §2.5, §8.5 | Bias-check code, disparity reports, visualizations, mitigation suggestions | F | AI 3 | `bias.py`, bias charts in `reports/`, mitigation table |
-| §6.3–6.4 | Mitigate (re-weighting, re-sampling, thresholds), document trade-offs | F | AI 3 | Each fix scored on the same rows; trade-offs in the report section |
-| §8.6 | Final selection after both validation and bias | F | AI 3 | The final pick, with its reasons |
-| §2.6, §8.7 | Push the model to a registry on GCP | G | AI 2 | Artifact Registry `meridian-models`, a version per promoted model |
-| §3 | Hyperparameter tuning, search space and process documented | C | AI 1 | Optuna, `model.toml [search.*]`, the best-so-far curve |
-| §4 | Experiment tracking: hyperparameters, metrics, model versions per run | C, D | AI 1, AI 2 | MLflow with `tracking.py` tags on every run |
-| §4 | Visualizations comparing models, and why the final one was picked | D | AI 2 | PR-AUC bars, confusion matrix, PR curves |
-| §5 | Feature importance (SHAP or LIME) | E | AI 1 | SHAP beeswarm and dependence plots |
-| §5 | Hyperparameter sensitivity | E | AI 1 | Optuna parameter importance, one-at-a-time sweeps |
-| §7.1 | CI triggers training on a code push | H | AI 3 | `model.yml` on pushes and PRs touching `Model-Pipeline/**` |
-| §7.2 | Automated validation against a threshold | H | AI 3 | `gate.py` against `model.toml [gate]` |
-| §7.3 | Automated bias detection; significant bias alerts or blocks | H | AI 3 | `bias.py` in CI; a failed bias report blocks the push |
-| §7.4 | Automatic push to the registry after validation and bias pass | G, H | AI 2, AI 3 | `registry.py` on main, after the gate |
-| §7.5 | Notifications on failure, training completion, validation or bias fail | H | AI 3 | Slack through `meridian/alert.py` |
-| §7.6 | Rollback if the new model is worse | G | AI 2 | `champion` moves only on a real gain; `--rollback`; the drill on Nov 11 |
-| §8.1 | The whole process in Docker | H | AI 1 | `python -m model.run_all` in the image, data load to registry push |
-| Note on pretrained models | Validation, bias detection and tracking for the LLMs | M, N | AI 4, AI 1, Utkarsh, AI 3 | Gate and diff bars; fallback and match rates sliced by repo and team; every call in MLflow |
+| §2.2, §8.3 | Train, try several architectures, select the best by metrics | C | Rachna | Three baselines, three models, `val` PR-AUC with intervals in MLflow |
+| §2.3, §8.4 | Validate on a hold-out set not used in training | D | Rochan | `val` 2023 for choices, `test` 2024 once; `metrics.json` |
+| §2.4, §6.1–6.2 | Bias detection by slicing, metrics tracked across slices | F | Chaitali | Fairlearn `MetricFrame` by module, component, author experience, size; `bias_report.json` |
+| §2.5, §8.5 | Bias-check code, disparity reports, visualizations, mitigation suggestions | F | Chaitali | `bias.py`, bias charts in `reports/`, mitigation table |
+| §6.3–6.4 | Mitigate (re-weighting, re-sampling, thresholds), document trade-offs | F | Chaitali | Each fix scored on the same rows; trade-offs in the report section |
+| §8.6 | Final selection after both validation and bias | F | Chaitali | The final pick, with its reasons |
+| §2.6, §8.7 | Push the model to a registry on GCP | G | Rochan | Artifact Registry `meridian-models`, a version per promoted model |
+| §3 | Hyperparameter tuning, search space and process documented | C | Rachna | Optuna, `model.toml [search.*]`, the best-so-far curve |
+| §4 | Experiment tracking: hyperparameters, metrics, model versions per run | C, D | Rachna, Rochan | MLflow with `tracking.py` tags on every run |
+| §4 | Visualizations comparing models, and why the final one was picked | D | Rochan | PR-AUC bars, confusion matrix, PR curves |
+| §5 | Feature importance (SHAP or LIME) | E | Rachna | SHAP beeswarm and dependence plots |
+| §5 | Hyperparameter sensitivity | E | Rachna | Optuna parameter importance, one-at-a-time sweeps |
+| §7.1 | CI triggers training on a code push | H | Chaitali | `model.yml` on pushes and PRs touching `Model-Pipeline/**` |
+| §7.2 | Automated validation against a threshold | H | Chaitali | `gate.py` against `model.toml [gate]` |
+| §7.3 | Automated bias detection; significant bias alerts or blocks | H | Chaitali | `bias.py` in CI; a failed bias report blocks the push |
+| §7.4 | Automatic push to the registry after validation and bias pass | G, H | Rochan, Chaitali | `registry.py` on main, after the gate |
+| §7.5 | Notifications on failure, training completion, validation or bias fail | H | Chaitali | Slack through `meridian/alert.py` |
+| §7.6 | Rollback if the new model is worse | G | Rochan | `champion` moves only on a real gain; `--rollback`; the drill on Nov 11 |
+| §8.1 | The whole process in Docker | H | Rachna | `python -m model.run_all` in the image, data load to registry push |
+| Note on pretrained models | Validation, bias detection and tracking for the LLMs | M, N | Vishwa, Rachna, Utkarsh, Chaitali | Gate and diff bars; fallback and match rates sliced by repo and team; every call in MLflow |
