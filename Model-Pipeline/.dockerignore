@@ -1,7 +1,0 @@
-reports/
-mlruns/
-mlflow.db
-**/__pycache__/
-**/*.pyc
-packets/
-.DS_Store
