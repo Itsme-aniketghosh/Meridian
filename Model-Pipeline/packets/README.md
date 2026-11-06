@@ -41,6 +41,35 @@ From the phase 1 docs:
 - No names or emails leave the block. The feature table has none, and agent facts never include people.
 - To change a contract below, say so in the team chat first, then change this page in the same PR.
 
+## System decisions (Nov 6)
+
+Settled now so integration on Nov 11 is a check, not a repair. Each one came out of reviewing PRs #28–#32.
+
+| # | Decision | Why |
+|---|---|---|
+| S1 | **One environment, two lockfiles.** `pip install -r requirements.txt` at the repo root installs both. A package used by both pipelines (numpy, pandas, scikit-learn, pyarrow) is pinned only in `Data-Pipeline/requirements.txt`; a model-only one (lightgbm, optuna, shap, mlflow, matplotlib) only in `Model-Pipeline/requirements.txt`, which includes the first. Never pin a package twice. Python 3.11 | Two pins of pyarrow (22.0.0 and 26.0.1) were about to land. A different pyarrow writes different parquet bytes, so `features_md5` breaks on someone's machine |
+| S2 | **Every Model-Pipeline test runs in CI.** `ci.yml`'s `model` job runs `Model-Pipeline/tests` and flake8 (`Data-Pipeline/setup.cfg`) on Linux and Windows. A new test file in `Model-Pipeline/tests/` runs with no workflow change | Until #29 no job ran them: model code merged green without its tests running |
+| S3 | **One copy of each shared helper**, owned by one person. Config: `model.data.load_config` (Utkarsh). Paired bootstrap: Rochan's, in `model/evaluate.py`; Rachna's stand-in in `train.py` is deleted the day it merges. Tracking: `model.tracking` (Rochan). Fact gate: `meridian.fact_gate` (Vishwa). Import them, don't copy them | Two bootstraps or two config readers drift, and then two numbers for the same thing reach the report |
+| S4 | **Imports.** `model` is one package, run from `Model-Pipeline/` as `python -m model.<module>`. Product code in `Data-Pipeline/` that needs `model.tracking` puts `Model-Pipeline` on `sys.path` (Contract 3). Nothing in `Model-Pipeline` imports `meridian` | One direction only, so neither pipeline can break the other's tests |
+| S5 | **Owners and decision tags.** `owner` is one of `aniket`, `chaitali`, `rachna`, `rochan`, `utkarsh`, `vishwa`. A decision tag is `<owner>-<n>`, passed to `tracking.start_run(decision=...)`, never set with `mlflow.set_tag` | `tracking.py` refuses anything else, so a typo can't hide a decision run from the report |
+| S6 | **Scores are written once, read everywhere.** `train.py` writes every model's `val` scores (Contract 4 below); `evaluate.py`, `bias.py` and `gate.py` read them and join the slice columns from `features.parquet` on `sha`. Nobody refits a model to get its scores | A refit with another thread count or library version is a different model. Then evaluation, bias and the gate judge three different things |
+| S7 | **Speed knobs never change a number.** `MERIDIAN_WORKERS` sets how many independent fits run at once (model families, seeds, tuning studies; default: every core). `MERIDIAN_THREADS` sets threads per forest or LightGBM fit (default up to 8; `pmap` gives each worker its share). Predictions are identical at any setting (`tests/test_parallel.py`: max difference 0.0). Trials inside one Optuna study stay one at a time, because a seeded TPE sampler must see them in order. On a GCP or Linux machine raise both | Speed is a priority, but the final numbers must come out the same on a laptop, in CI and in the image |
+| S8 | **The final numbers come from the Docker image.** Laptops are for development. The image (Linux, pinned) gives the numbers in the report, and CI checks the same image | Windows and macOS differ in small ways (git rename detection, Jedi's folder order: phase 1 Appendix D) |
+| S9 | **A PR that needs another PR says so** in its first line ("depends on #29") and is merged after it. Merge order this week: #29 → #32 → #30 → #31 → #28 → Rachna's models PR → the lead's system PR | Stacked work merges cleanly; out of order it fails CI on a missing file |
+| S10 | **A contract change is announced in the team chat and made on this page in the same PR**, as the ground rules say. #28 (Contract 5: `check` takes `teams` and `people`) and #32 (Contract 3: two tags, the store at the repo root) are this week's | Everyone builds against this page |
+
+## Integration tests (before Nov 11)
+
+Integration day only works if every hand-off was tested before it. Each producer commits a small example of its output, and each consumer tests against that example, not against the producer's code:
+
+| By | Who | What |
+|---|---|---|
+| Nov 8 | each producer | An example file in `Model-Pipeline/tests/contracts/`: `val_scores.csv` and `candidate.json` (Rachna), `seed_noise.json` (Rachna), `metrics.json` (Rochan), `bias_report.json` (Chaitali), `champion.json` (Rochan). Each comes from a run on `tests/fake_table.py`, so it has the real shape |
+| Nov 8 | each consumer | A test that reads the example and fails on a missing key or column. `gate.py` reads all four; `registry.py` reads metrics, bias and seed noise; P9 reads the champion |
+| Nov 9 | Rachna | `python -m model.run_all --fake` runs data → train → evaluate → bias → gate on `fake_table` in under 2 minutes, and CI's `model` job runs it on every PR |
+| Nov 9 | Vishwa, Utkarsh, Rachna | The product hand-off: the writer, the diff drafter and Jev call `fact_gate.check(text, facts, teams=..., people=...)` and `tracking.log_llm_call(..., facts_hash=...)` in a test on the fixture, with the LLM off |
+| Nov 10 | Chaitali | `model.yml` runs `run_all` in the image on a branch, end to end |
+
 ## Who writes which file
 
 ```
@@ -150,6 +179,8 @@ Product settings (models, prompts, spend cap, auditor ε and K) go in `Data-Pipe
 |---|---|---|---|
 | `reports/metrics.json` | `evaluate.py` (Rochan) | `gate.py`, `registry.py` | PR-AUC, ROC-AUC, F1, recall at 20% of lines, each with N, for the model and every baseline, on `val` or `test` |
 | `reports/bias_report.json` | `bias.py` (Chaitali) | `gate.py`, `registry.py` | every slice with N, interval and flag, plus `"pass": true` or `false` |
+| `reports/<tag>_val_scores.csv` | `train.py` (Rachna) | `evaluate.py`, `bias.py`, `gate.py` | `sha`, `label`, then one score column per model and baseline (`lines_x_files`, `logreg`, ...), one row per `val` row in the feature table's order. Never refit to get these (S6) |
+| `reports/candidate.json` | `train.py` (Rachna) | `evaluate.py`, `bias.py`, `gate.py` | the candidate: `kind`, `params`, `scores_file`, `column` (which column of the scores file is it), `seed` |
 | `reports/seed_noise.json` | `train.py` (Rachna) | `gate.py`, `registry.py` | val PR-AUC of the chosen config over 5 seeds: mean, standard deviation |
 | `registry/champion.json` | `registry.py` (Rochan) | `gate.py`, `registry.py`, the P9 hook | the champion's run id, Artifact Registry version, metrics, model md5 |
 

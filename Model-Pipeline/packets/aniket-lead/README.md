@@ -45,6 +45,7 @@ flowchart LR
 
 From a clean clone, nothing cached except the committed LLM cache:
 
+- [ ] Before integration: the contract examples and consumer tests in [packets/README.md](../README.md#integration-tests-before-nov-11) are all in and green, and `run_all --fake` runs in CI
 - [ ] `python -m model.run_all` on your machine, then in Rachna's Docker image
 - [ ] The same through `model.yml` on a branch, then on main, ending in a real push
 - [ ] All three give the same `metrics.json` (the same numbers to 4 decimals). If not, it's a reproducibility bug and goes back to its owner the same day
