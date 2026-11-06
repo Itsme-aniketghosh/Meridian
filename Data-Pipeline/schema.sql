@@ -348,6 +348,7 @@ CREATE TABLE suggestion (                    -- everything we offered, once, as 
   route           TEXT NOT NULL CHECK (route IN ('jev','rules')),   -- who picked the model: Jev, or the fixed rules
   policy_id       TEXT REFERENCES policy (policy_id),               -- the auditor policy behind a stall_reason
   PRIMARY KEY (run_id, suggestion_id)
+  UNIQUE (suggestion_id)                     -- offered once: outcome's REFERENCES needs a unique parent
 ) WITHOUT ROWID;
 
 CREATE TABLE outcome (                       -- append-only: a row only when the verdict changes; the newest wins
@@ -383,7 +384,8 @@ CREATE TABLE policy (                        -- auditor policies: versioned code
 ) WITHOUT ROWID;
 
 CREATE TABLE match (                         -- the Elo log: one row per decided match. No verdict, no row
-  match_id        TEXT NOT NULL,             -- h(task_id, policy_a, policy_b)
+  match_id        TEXT NOT NULL,             -- h(task_id, mode, the two policies sorted, decided_at): a replay and
+                                             -- a live match, or the same pair decided again, are different rows
   task_id         TEXT NOT NULL,             -- the stall or explore task both policies ranked
   policy_a        TEXT NOT NULL REFERENCES policy (policy_id),
   policy_b        TEXT NOT NULL REFERENCES policy (policy_id),
