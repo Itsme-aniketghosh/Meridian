@@ -137,9 +137,41 @@ Product settings (models, prompts, spend cap, auditor ε and K) go in `Data-Pipe
 
 - Local on each machine: `MLFLOW_TRACKING_URI=sqlite:///mlflow.db` at the repo root, which git ignores. `mlflow ui` to look.
 - Experiments: `meridian-defect-risk` for the model, `meridian-agents` for LLM calls, `meridian-auditor` for auditor runs.
-- Start runs with `model.tracking.start_run(name, owner)` (Rochan), never `mlflow.start_run` directly. It sets the tags every run needs: `block_run_id`, `git_sha`, `config_sha256`, `features_md5` (model runs), `owner`.
+- Start runs with `model.tracking.start_run(name, owner)` (Rochan), never `mlflow.start_run` directly. It sets the tags every run needs: `block_run_id`, `git_sha`, `git_dirty`, `config_sha256` (model.toml), `meridian_config_sha256` (meridian.toml), `features_md5` (model runs), `owner`.
 - Decision tests are runs too, tagged `decision=<packet>-<n>`.
 - Your MLflow isn't shared. What the report needs from it goes in your `decisions.md` with the numbers. The report's final numbers come from Aniket's final runs on Nov 12, which rebuild everything from code, config and seed.
+
+### How to log a run
+
+Install `Model-Pipeline/requirements.txt` (it pins `mlflow==3.18.0`). Then:
+
+```python
+import mlflow
+from model import tracking
+
+# a model run, in meridian-defect-risk. Pass the paths your command was given, so the hashes match
+with tracking.start_run("lgbm-tuned", owner="rachna", decision="rachna-1", config=a.config, features=a.features):
+    mlflow.log_params(params)
+    mlflow.log_metric("val_pr_auc", 0.41)
+    with tracking.start_run("trial-7", owner="rachna", nested=True, config=a.config, features=a.features):
+        ...  # one Optuna trial
+
+# LLM calls, in meridian-agents. block_run_id is the --run-id the agent reads
+with tracking.start_run("writer", owner="vishwa", experiment="meridian-agents", block_run_id=run_id):
+    tracking.log_llm_call(agent="writer", model=m, prompt_version="v1", tokens_in=812, tokens_out=96,
+                          cost_usd=0.0004, cache_hit=False, gate_pass=True, task="rewrite", repo=repo, team=team)
+```
+
+| | |
+|---|---|
+| Which store | `$MLFLOW_TRACKING_URI` if set, else `mlflow.db` at the repo root from any folder. Artifacts in `mlruns/` next to it. `mlflow ui` at the repo root to look |
+| What it refuses | an unknown experiment, an owner that isn't a lower-case packet name, a decision not shaped `<packet>-<n>`, a model run with no `model.toml` or feature table, a table whose md5 or block doesn't match its `features.schema.json`, an agents or auditor run without `block_run_id`, a tag you try to set that `tracking.py` owns. Each fails before a run is made, with what to fix |
+| LLM calls | One row per call in the run's `llm_calls.json` table, written when the `with` ends, with totals as metrics: `llm_calls`, `llm_api_calls`, `cache_hit_rate`, `gate_pass_rate` (N = `gate_checked`; `gate_pass=None` isn't counted), `tokens_in`, `tokens_out`, `cost_usd`. No prompt or response text is logged, and an email in `task`, `repo` or `team` is refused. `tracking.load_llm_calls()` returns every call as a DataFrame for slicing |
+| Threads | Calls from worker threads find the one open agents run. With two open, pass `run_id=` |
+| Without `with` | `run = tracking.start_run(...)`, then `tracking.end_run()` |
+| In tests | Set `MLFLOW_TRACKING_URI` to a temporary `sqlite:///.../mlflow.db`, or your tests write to the real store |
+| From `Data-Pipeline/` | `sys.path.insert(0, str(<repo root> / "Model-Pipeline"))`, then `from model import tracking`. The Data-Pipeline image doesn't have mlflow yet |
+| To check | `python -m model.tracking --owner <you>` prints the tags a run would get, and logs nothing |
 
 ## Contract 4: what CI reads
 
