@@ -86,6 +86,13 @@ class HandCalculation(unittest.TestCase):
         self.assertAlmostEqual(r["value"], 3.35 / 5)
         self.assertEqual(r["commits_read_whole"], 6)
 
+    def test_smallest_first_with_no_model(self):
+        # by size: commits 7, 4, 2, 6, 9, 3 are 1 + 5 + 10 + 20 + 40 + 50 = 126 lines, bugs in 4, 9 and 3.
+        # Commit 1 (100 lines, a bug) gets the last 74 lines: 0.74 of a bug. (3 + 0.74) / 5
+        w = ev.without_a_model(Y, LINES, 0.2)
+        self.assertAlmostEqual(w["smallest_first"], 3.74 / 5)
+        self.assertEqual((w["random_order"], w["commits_read_whole"], w["n"]), (0.2, 6, 10))
+
     def test_a_tie_is_read_in_part(self):
         # every commit scores the same: one group of 1,000 lines, 200 fit, so 20% of its 5 bugs
         r = ev.recall_at_effort(Y, np.ones(10), LINES, 0.2, "risk")

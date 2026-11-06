@@ -327,12 +327,21 @@ def thresholds_on(y, scores, settings):
             for name, s in scores.items()}
 
 
+def without_a_model(y, lines, effort):
+    """What recall at `effort` of the lines is with no model: reading the smallest commits first, and reading in
+    random order (the expected recall is the effort itself). The first is the number to beat (decision 2)."""
+    smallest = recall_at_effort(y, -np.maximum(np.asarray(lines, dtype=float), 1.0), lines, effort, "risk")
+    return {"smallest_first": smallest["value"], "random_order": effort, "effort": effort,
+            "commits_read_whole": smallest["commits_read_whole"], "n": len(y), "positive_rate": float(np.mean(y))}
+
+
 def metrics(split, rows, scores, candidate, settings, seed, thresholds, sources):
     y = rows["label"].to_numpy()
     lines = (rows["la"] + rows["ld"]).to_numpy()
     return {"split": split, "n": len(y), "positives": int(y.sum()), "positive_rate": float(y.mean()),
             "candidate": candidate, "reference": REFERENCE, **sources,
             "settings": {**settings, "bootstrap_seed": seed},
+            "recall_at_effort_without_a_model": without_a_model(y, lines, settings["effort"]),
             "models": model_metrics(y, scores, lines, candidate["column"], settings, seed, thresholds)}
 
 
@@ -689,6 +698,9 @@ def print_summary(m):
         if d:
             line += f"   {d['pr_auc_difference']:+.3f} [{d['interval'][0]:+.3f}, {d['interval'][1]:+.3f}]"
         print(line)
+    w = m["recall_at_effort_without_a_model"]
+    print(f"recall at {w['effort']:.0%} of the lines with no model: {w['smallest_first']:.3f} reading the smallest "
+          f"commits first, {w['random_order']:.3f} in random order")
 
 
 def decide(a, rows, scores, candidate, settings, seed, out):
