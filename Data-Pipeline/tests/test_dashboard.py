@@ -30,7 +30,8 @@ def fixture_block(root):
         for name in W.tables(SCHEMA.read_text(encoding="utf-8")):
             if name not in G.KEYS:
                 rows = [dict(r) for r in db.execute(f"SELECT * FROM {name}")]
-                write_jsonl(out / f"{name}.jsonl", [r for r in rows if name in W.KNOWN_AT or r.get("run_id", "R2") == "R2"])
+                keep = [r for r in rows if name in W.KNOWN_AT or r.get("run_id", "R2") == "R2"]
+                write_jsonl(out / f"{name}.jsonl", keep)
     return out
 
 

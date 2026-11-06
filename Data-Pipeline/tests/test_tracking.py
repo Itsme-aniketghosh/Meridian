@@ -72,8 +72,8 @@ class Load(unittest.TestCase):
                        "outcome": [outcome()], "match": [match()],
                        "push_alert": [{"push_sha": "d1", "base_run_id": "R1", "check_id": "P1", "target": "a.py:3",
                                        "evidence": "[]", "outcome": None, "decided_at": None}]})
-        self.assertEqual({t: n[t] for t in W.TRACKING}, {"suggestion": 2, "outcome": 1, "push_alert": 1,
-                                                          "policy": 2, "match": 1})
+        want = {"suggestion": 2, "outcome": 1, "push_alert": 1, "policy": 2, "match": 1}
+        self.assertEqual({t: n[t] for t in W.TRACKING}, want)
 
     def test_source_outside_the_allowed_values_is_refused(self):
         self.refused({"suggestion": [suggestion(source="gpt")]}, "suggestion.jsonl:1", "CHECK")
