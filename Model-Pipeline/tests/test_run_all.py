@@ -105,3 +105,15 @@ class Check(unittest.TestCase):
                                         str(Path(d) / "none.toml"), "--out", str(Path(d) / "r")])
             self.assertFalse((Path(d) / "r").exists())
         self.assertIn("feature table ok: 500 rows", out)
+
+    def test_check_reports_negative_age(self):
+        from model.train import main as train_main
+        from tests.fake_table import fake_table
+        with tempfile.TemporaryDirectory() as d:
+            df = fake_table(n=500, seed=1)
+            df["age"] = df["age"].astype(float)
+            df.loc[[0, 1], "age"] = [-1.94, -0.2]
+            df.to_csv(Path(d) / "f.csv", index=False)
+            _, out = quiet(train_main, ["--check", "--features", str(Path(d) / "f.csv"), "--config",
+                                        str(Path(d) / "none.toml")])
+        self.assertIn("age is below 0 on 2 rows (min -1.94)", out)

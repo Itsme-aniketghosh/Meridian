@@ -125,3 +125,34 @@ class BuildModel(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NegativeAge(unittest.TestCase):
+    """Real git history: author dates out of order make 'days since last change' slightly negative."""
+
+    def test_age_below_zero_is_read_as_zero(self):
+        df = fake_table(n=50)
+        df["age"] = df["age"].astype(float)
+        df.loc[0, "age"] = -1.94
+        df.loc[1, "age"] = -0.3
+        X = feature_matrix(df, ["Bug"])
+        self.assertEqual(X.loc[0, "age"], 0.0)
+        self.assertEqual(X.loc[1, "age"], 0.0)
+        self.assertEqual(X.loc[2, "age"], df.loc[2, "age"])
+
+    def test_every_model_fits_with_negative_age(self):
+        df = fake_table(n=3000, seed=2)
+        df["age"] = df["age"].astype(float)
+        train_rows = df.index[df["split"] == "train"][:5]
+        df.loc[train_rows, "age"] = [-1.94, -1.5, -0.5, -0.1, -1.2]
+        for kind in KINDS:
+            with self.subTest(kind=kind):
+                _, s, _ = fit_and_score(df, kind, seed=1)
+                self.assertTrue(np.isfinite(s).all())
+
+    def test_check_table_still_allows_negative_age(self):
+        from model.train import check_table
+        df = fake_table(n=100)
+        df["age"] = df["age"].astype(float)
+        df.loc[0, "age"] = -1.94
+        check_table(df)

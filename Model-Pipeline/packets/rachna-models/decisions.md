@@ -34,6 +34,12 @@ Common terms:
 | 20 | More model families | decision 1's three, plus `HistGradientBoostingClassifier`, `ExtraTreesClassifier`, `MLPClassifier` (all scikit-learn, nothing new to install) | `val` PR-AUC of each, tuned the same way; paired bootstrap against the best | Same as decision 1: highest PR-AUC wins, and the simplest model tied with it wins. If a new family wins, decisions 3-18 are rerun on it | | |
 | 21 | Quantized open model for Jev | the hosted small model, a 7-8B open instruct model at 4-bit (GGUF, llama.cpp or Ollama), run on CPU | Pick accuracy on decision 19's held-out 30 tasks, cost per task, p95 latency on a CPU runner | Local only if it gets within 3 of the 30 tasks of the hosted model and its p95 latency fits CI's budget. Otherwise the hosted model | | |
 
+## Data notes
+
+| Date | What | Handling |
+|---|---|---|
+| Nov 6 | `age` is below 0 on 8 of 41,163 rows of the c5118 table (train 6, val 1, test 1), min −1.94 days. Found by the first real `--untuned` run: `log1p` of the one value below −1 made a NaN, and logistic regression stopped | `feature_matrix` reads `age` below 0 as 0 for every model: "days since the files last changed" can't be negative, and under 2 days below 0 is author dates out of order (rebases, cherry-picks). `check_table` now refuses a negative count or flag, and `--check` reports the negative `age` rows. Told Utkarsh, who owns the table |
+
 ## Options considered and not run
 
 | Idea | Why not |

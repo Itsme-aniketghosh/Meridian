@@ -133,3 +133,17 @@ class FakeTableShape(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NegativeCounts(unittest.TestCase):
+    def test_a_negative_count_is_refused_and_named(self):
+        df = fake_table(n=50)
+        df.loc[3, "nf"] = -2
+        with self.assertRaisesRegex(FeatureError, "nf: 1 negative"):
+            check_table(df)
+
+    def test_a_negative_flag_is_refused(self):
+        df = fake_table(n=50)
+        df.loc[0, "has_ticket"] = -1
+        with self.assertRaisesRegex(FeatureError, "has_ticket"):
+            check_table(df)

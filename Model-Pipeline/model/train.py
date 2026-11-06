@@ -27,6 +27,10 @@ HISTORY = ["ndev", "age", "nuc", "exp", "sexp", "prior_bug_fixes"]
 TICKET = ["fix", "has_ticket"]
 OTHER = ["is_minor"]
 NUMERIC = SIZE + HISTORY + TICKET + OTHER
+# Every numeric input except age is a count, a 0/1 flag or an entropy: never below 0. age can be: when a commit's
+# author date is earlier than the last change to its files (rebases, cherry-picks), "days since" comes out a little
+# negative (8 of 41,163 rows on c5118, min -1.94 days). feature_matrix reads those as 0, "changed just before".
+CAN_BE_NEGATIVE = ("age",)
 CATEGORICAL = ["ticket_type"]
 SLICES = ["module", "component", "exp_bucket", "size_bucket"]   # Chaitali's bias slices: never model inputs
 CONTRACT_COLUMNS = ID_COLUMNS + NUMERIC + CATEGORICAL + SLICES
@@ -76,6 +80,12 @@ def check_table(df, split_years=None):
         n = int(df[col].isna().sum())
         if n:
             raise FeatureError(f"{col}: {n} missing values (Contract 1 has none)")
+    for col in NUMERIC:
+        if col in CAN_BE_NEGATIVE:
+            continue
+        n = int((df[col] < 0).sum())
+        if n:
+            raise FeatureError(f"{col}: {n} negative values, min {df[col].min()} (a count or flag can't be below 0)")
     labelled = df[df["split"].isin(LABELLED)]
     bad_label = sorted(set(labelled["label"].dropna().astype(int)) - {0, 1})
     if labelled["label"].isna().any() or bad_label:
@@ -153,9 +163,12 @@ def ticket_categories(train):
 
 def feature_matrix(df, categories, ticket_features=True, drop=()):
     """The model inputs for df: numeric columns, plus ticket_type one-hot over `categories`.
-    A ticket_type not in `categories` gets all zeros. Slice columns are never included."""
+    A ticket_type not in `categories` gets all zeros. Slice columns are never included. age below 0 is read as 0."""
     numeric = [c for c in NUMERIC if c not in drop and (ticket_features or c not in TICKET)]
     X = df[numeric].astype(float)
+    for col in CAN_BE_NEGATIVE:
+        if col in X:
+            X[col] = X[col].clip(lower=0)   # see CAN_BE_NEGATIVE
     if ticket_features and "ticket_type" not in drop:
         for cat in categories:
             X[f"ticket_type={cat}"] = (df["ticket_type"].astype(str) == cat).astype(float)
@@ -507,6 +520,11 @@ def main(argv=None):
         counts = df["split"].value_counts()
         parts = ", ".join(f"{s} {int(counts.get(s, 0)):,}" for s in ("train", "val", "test", "none"))
         print(f"feature table ok: {len(df):,} rows: {parts}")
+        for col in CAN_BE_NEGATIVE:
+            neg = df[col] < 0
+            if neg.any():
+                print(f"note: {col} is below 0 on {int(neg.sum())} rows (min {df[col].min():.2f}); "
+                      f"the models read those as 0")
     seed = int(cfg["seed"]["value"])
     out = Path(a.out)
     if a.untuned:
