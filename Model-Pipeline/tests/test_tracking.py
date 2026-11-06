@@ -27,7 +27,7 @@ _tmp = None
 
 def setUpModule():
     global _env, _tmp
-    _tmp = tempfile.TemporaryDirectory()
+    _tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)  # Windows: SQLAlchemy keeps mlflow.db open
     _env = mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{_tmp.name}/mlflow.db"})
     _env.start()
 
@@ -102,7 +102,9 @@ class Tags(Base):
         self.write_schema(hashlib.md5(self.features.read_bytes()).hexdigest(), BLOCK)
         with tracking.start_run("b", owner="rachna", **self.paths()) as second:
             pass
-        md5 = lambda run: self.client.get_run(run.info.run_id).data.tags["features_md5"]
+
+        def md5(run):
+            return self.client.get_run(run.info.run_id).data.tags["features_md5"]
         self.assertNotEqual(md5(first), md5(second))
         self.assertEqual(md5(second), hashlib.md5(self.features.read_bytes()).hexdigest())
 
@@ -182,9 +184,9 @@ class Refusals(Base):
         self.assertIsNone(self.client.get_experiment_by_name("meridian-defect"))
 
     def test_owner_and_decision_format(self):
-        for owner in ("", "Rochan", "rochan h", None):
+        for owner in ("", "Rochan", "rochan h", None, "ai1", "rochan-tracking"):  # only the six packet owners
             self.assertRefused(ValueError, "owner", owner=owner, **self.paths())
-        for decision in ("4", "rochan4", "Rochan-4"):
+        for decision in ("4", "rochan4", "Rochan-4", "ai1-3"):
             self.assertRefused(ValueError, "decision", decision=decision, **self.paths())
 
     def test_tracking_tags_cant_be_overwritten(self):

@@ -58,13 +58,13 @@ EXPERIMENTS = (MODEL, AGENTS, AUDITOR)
 # Set here and nowhere else: a caller can't overwrite them through tags=.
 OWN_TAGS = ("owner", "block_run_id", "git_sha", "git_dirty", "config_sha256", "meridian_config_sha256",
             "features_md5", "decision")
-OWNER = re.compile(r"^[a-z][a-z0-9-]*$")  # your packet name, lower case: rochan, rachna
-DECISION = re.compile(r"^[a-z][a-z0-9]*-[0-9]+$")  # <packet>-<n>: rochan-4
+OWNERS = ("aniket", "chaitali", "rachna", "rochan", "utkarsh", "vishwa")  # one per packet folder
+DECISION = re.compile(r"^([a-z]+)-[0-9]+$")  # <owner>-<n>: rochan-4
 
 # log_llm_call
 CALLS_FILE = "llm_calls.json"
 CALL_COLUMNS = ("call", "at", "agent", "model", "prompt_version", "tokens_in", "tokens_out", "cost_usd",
-                "cache_hit", "gate_pass", "route", "source", "task", "repo", "team", "latency_ms")
+                "cache_hit", "gate_pass", "route", "source", "task", "repo", "team", "latency_ms", "facts_hash")
 SOURCES = {"codemod", "llm", "template", "rules"}  # Contract 5, suggestion.source
 ROUTES = {"jev", "rules"}
 EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
@@ -86,7 +86,10 @@ def git_state():
                               timeout=30).stdout.strip()
     try:
         sha = git("rev-parse", "HEAD")
-        dirty = git("status", "--porcelain", "--untracked-files=no")
+        # a change to a tracked file anywhere, or new code not yet in git: either way the sha doesn't hold it
+        dirty = git("status", "--porcelain", "--untracked-files=no") or git(
+            "status", "--porcelain", "--untracked-files=all", "--",
+            ":(glob)Model-Pipeline/**/*.py", ":(glob)Data-Pipeline/meridian/**/*.py")
         return sha, "true" if dirty else "false"
     except (OSError, subprocess.SubprocessError):
         sha = os.environ.get("MERIDIAN_GIT_SHA")
@@ -133,10 +136,11 @@ def run_tags(owner, experiment=MODEL, *, block_run_id=None, decision=None, confi
     """The tags start_run puts on a run. Raises before anything is logged if one can't be set."""
     if experiment not in EXPERIMENTS:
         raise ValueError(f"experiment {experiment!r}: Contract 3 has {', '.join(EXPERIMENTS)}")
-    if not isinstance(owner, str) or not OWNER.match(owner):
-        raise ValueError(f"owner {owner!r}: your packet name in lower case, such as 'rochan'")
-    if decision is not None and not (isinstance(decision, str) and DECISION.match(decision)):
-        raise ValueError(f"decision {decision!r}: <packet>-<n>, such as 'rochan-4'")
+    if owner not in OWNERS:
+        raise ValueError(f"owner {owner!r}: one of {', '.join(OWNERS)}")
+    m = DECISION.match(decision) if isinstance(decision, str) else None
+    if decision is not None and not (m and m.group(1) in OWNERS):
+        raise ValueError(f"decision {decision!r}: <owner>-<n>, such as 'rochan-4'")
     extra = {str(k): str(v) for k, v in (tags or {}).items()}
     clash = sorted(set(extra) & set(OWN_TAGS))
     if clash:
@@ -231,8 +235,11 @@ class Run:
     def __exit__(self, exc_type, exc, tb):
         try:
             _close(self._active.info.run_id)
-        finally:
-            self._active.__exit__(exc_type, exc, tb)
+        except Exception:
+            import mlflow
+            mlflow.end_run("FAILED")  # its calls weren't written: the run must not read FINISHED
+            raise
+        self._active.__exit__(exc_type, exc, tb)
         return False
 
 
@@ -268,7 +275,11 @@ def end_run(status="FINISHED"):
     import mlflow
     active = mlflow.active_run()
     if active is not None:
-        _close(active.info.run_id)
+        try:
+            _close(active.info.run_id)
+        except Exception:
+            mlflow.end_run("FAILED")
+            raise
     mlflow.end_run(status)
 
 
@@ -294,7 +305,7 @@ def _check_call(row):
         raise ValueError(f"log_llm_call: source {row['source']!r}: one of {sorted(SOURCES)} (Contract 5)")
     if row["route"] is not None and row["route"] not in ROUTES:
         raise ValueError(f"log_llm_call: route {row['route']!r}: one of {sorted(ROUTES)}")
-    for k in ("task", "repo", "team"):
+    for k in ("task", "repo", "team", "facts_hash"):
         v = row[k]
         if v is not None and not isinstance(v, str):
             raise ValueError(f"log_llm_call: {k} must be a string, got {v!r}")
@@ -328,7 +339,8 @@ def _agents_run(run_id):
 
 
 def log_llm_call(*, agent, model, prompt_version, tokens_in, tokens_out, cost_usd, cache_hit, gate_pass,
-                 route=None, source=None, task=None, repo=None, team=None, latency_ms=None, run_id=None):
+                 route=None, source=None, task=None, repo=None, team=None, latency_ms=None, facts_hash=None,
+                 run_id=None):
     """One LLM call, into the open meridian-agents run.
 
     agent           writer, jev, diff_drafter, ...
@@ -340,6 +352,7 @@ def log_llm_call(*, agent, model, prompt_version, tokens_in, tokens_out, cost_us
     route           jev or rules (Rachna's Jev); source: codemod, llm, template or rules (Contract 5)
     task, repo, team  what the call was for, for slicing. Never a person
     latency_ms      wall time of the call
+    facts_hash      the suggestion row's facts_hash (Contract 5), so a call joins to what it produced
     run_id          the run, when calling from a worker thread with more than one agents run open
 
     Rows stay in memory and are written to the run's llm_calls.json table when the run ends (or every
@@ -349,7 +362,8 @@ def log_llm_call(*, agent, model, prompt_version, tokens_in, tokens_out, cost_us
     """
     row = {"agent": agent, "model": model, "prompt_version": prompt_version, "tokens_in": tokens_in,
            "tokens_out": tokens_out, "cost_usd": cost_usd, "cache_hit": cache_hit, "gate_pass": gate_pass,
-           "route": route, "source": source, "task": task, "repo": repo, "team": team, "latency_ms": latency_ms}
+           "route": route, "source": source, "task": task, "repo": repo, "team": team, "latency_ms": latency_ms,
+           "facts_hash": facts_hash}
     _check_call(row)
     with _lock:
         rid = _agents_run(run_id)
@@ -392,11 +406,9 @@ def _flush(run_id):
 
 def _close(run_id):
     with _lock:
-        try:
-            _flush(run_id)
-        finally:
-            _agent_runs.discard(run_id)
-            _totals.pop(run_id, None)
+        _agent_runs.discard(run_id)  # no more calls go to it
+        _flush(run_id)  # if this raises, the rows and totals stay for _flush_all's retry at exit
+        _totals.pop(run_id, None)
 
 
 @atexit.register

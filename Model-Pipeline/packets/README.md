@@ -135,10 +135,10 @@ Product settings (models, prompts, spend cap, auditor ε and K) go in `Data-Pipe
 
 ## Contract 3: MLflow
 
-- Local on each machine: `MLFLOW_TRACKING_URI=sqlite:///mlflow.db` at the repo root, which git ignores. `mlflow ui` to look.
+- Local on each machine: `mlflow.db` at the repo root, which git ignores. Leave `MLFLOW_TRACKING_URI` unset: `tracking.py` finds the repo root from any folder, while a relative `sqlite:///mlflow.db` makes a new store in whatever folder you run from. `mlflow ui` at the repo root to look.
 - Experiments: `meridian-defect-risk` for the model, `meridian-agents` for LLM calls, `meridian-auditor` for auditor runs.
 - Start runs with `model.tracking.start_run(name, owner)` (Rochan), never `mlflow.start_run` directly. It sets the tags every run needs: `block_run_id`, `git_sha`, `git_dirty`, `config_sha256` (model.toml), `meridian_config_sha256` (meridian.toml), `features_md5` (model runs), `owner`.
-- Decision tests are runs too, tagged `decision=<packet>-<n>`.
+- Decision tests are runs too: pass `decision="<owner>-<n>"` to `start_run` (not `mlflow.set_tag`, which skips the check).
 - Your MLflow isn't shared. What the report needs from it goes in your `decisions.md` with the numbers. The report's final numbers come from Aniket's final runs on Nov 12, which rebuild everything from code, config and seed.
 
 ### How to log a run
@@ -165,7 +165,7 @@ with tracking.start_run("writer", owner="vishwa", experiment="meridian-agents", 
 | | |
 |---|---|
 | Which store | `$MLFLOW_TRACKING_URI` if set, else `mlflow.db` at the repo root from any folder. Artifacts in `mlruns/` next to it. `mlflow ui` at the repo root to look |
-| What it refuses | an unknown experiment, an owner that isn't a lower-case packet name, a decision not shaped `<packet>-<n>`, a model run with no `model.toml` or feature table, a table whose md5 or block doesn't match its `features.schema.json`, an agents or auditor run without `block_run_id`, a tag you try to set that `tracking.py` owns. Each fails before a run is made, with what to fix |
+| What it refuses | an unknown experiment, an owner that isn't one of `aniket`, `chaitali`, `rachna`, `rochan`, `utkarsh`, `vishwa`, a decision not shaped `<owner>-<n>`, a model run with no `model.toml` or feature table, a table whose md5 or block doesn't match its `features.schema.json`, an agents or auditor run without `block_run_id`, a tag you try to set that `tracking.py` owns. Each fails before a run is made, with what to fix |
 | LLM calls | One row per call in the run's `llm_calls.json` table, written when the `with` ends, with totals as metrics: `llm_calls`, `llm_api_calls`, `cache_hit_rate`, `gate_pass_rate` (N = `gate_checked`; `gate_pass=None` isn't counted), `tokens_in`, `tokens_out`, `cost_usd`. No prompt or response text is logged, and an email in `task`, `repo` or `team` is refused. `tracking.load_llm_calls()` returns every call as a DataFrame for slicing |
 | Threads | Calls from worker threads find the one open agents run. With two open, pass `run_id=` |
 | Without `with` | `run = tracking.start_run(...)`, then `tracking.end_run()` |
