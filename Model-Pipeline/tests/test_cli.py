@@ -24,6 +24,7 @@ class Untuned(unittest.TestCase):
         cls.df = fake_table(n=4000, seed=2)
         cls.df.to_csv(d / "features.csv", index=False)
         (d / "model.toml").write_text(
+            '[data]\nrun_id = "0000000000000000"\n'
             '[split]\ntrain = [2015, 2022]\nval = 2023\ntest = 2024\ntest_allowed = false\n[seed]\nvalue = 1\n')
         cls.out = d / "reports"
         main(BASE + ["--config", str(d / "model.toml"), "--features", str(d / "features.csv"), "--out", str(cls.out)])
@@ -54,6 +55,20 @@ class Untuned(unittest.TestCase):
         self.assertEqual(set(self.scores["sha"]), val_shas)
         self.assertFalse(set(self.scores["sha"]) & test_shas)
         self.assertTrue(NAMES <= set(self.scores.columns))
+
+    @unittest.skipUnless(importlib.util.find_spec("mlflow"), "mlflow not installed")
+    def test_logged_with_this_tables_hash_in_a_temporary_store(self):
+        import hashlib
+        import os
+
+        import mlflow
+        repo = str(Path(__file__).resolve().parents[2])
+        self.assertNotIn(repo.replace("\\", "/"), os.environ["MLFLOW_TRACKING_URI"].replace("\\", "/"))
+        md5 = hashlib.md5((Path(self.tmp.name) / "features.csv").read_bytes()).hexdigest()
+        runs = mlflow.search_runs(experiment_names=["meridian-defect-risk"],
+                                  filter_string="tags.decision = 'rachna-1'")
+        self.assertIn(md5, set(runs["tags.features_md5"]))  # this table's, never the real one's
+        self.assertIn("0000000000000000", set(runs["tags.block_run_id"]))
 
     def test_rerun_gives_the_same_numbers(self):
         with tempfile.TemporaryDirectory() as d2:

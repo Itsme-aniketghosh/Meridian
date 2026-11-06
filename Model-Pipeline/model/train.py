@@ -445,15 +445,19 @@ def search_space(cfg):
     return merged
 
 
-def log_to_mlflow(summary, out_dir, decision="rachna-1"):
-    """Through Rochan's tracking.py (Contract 3). Until it's merged, say so and carry on."""
+def log_to_mlflow(summary, out_dir, decision, config, features):
+    """Through Rochan's tracking.py (Contract 3), tagged with the config and table this command was given, so a run
+    on another table never carries the real table's md5. With no model.toml there's no config to hash: say so."""
     try:
         from model import tracking
     except ImportError:
         print("not logged to MLflow: model/tracking.py (Rochan) isn't merged yet")
         return
+    if not Path(config).exists():
+        print(f"not logged to MLflow: {config} doesn't exist, so the run has no config to carry (Contract 2)")
+        return
     import mlflow
-    with tracking.start_run(summary["tag"], owner="rachna", decision=decision):  # checked by tracking.py
+    with tracking.start_run(summary["tag"], owner="rachna", decision=decision, config=config, features=features):
         mlflow.log_param("seed", summary["seed"])
         for name, r in summary["results"].items():
             mlflow.log_metric(f"val_pr_auc_{name}", r["pr_auc"])
@@ -503,7 +507,7 @@ def main(argv=None):
     if a.untuned:
         summary = untuned(df, seed, out, a.reps, a.models)
         print_summary(summary)
-        log_to_mlflow(summary, out, "rachna-1")
+        log_to_mlflow(summary, out, "rachna-1", a.config, a.features)
         print(f"wrote {out / 'untuned_val.json'} and untuned_val_scores.csv")
     if a.tune:
         space = search_space(cfg)
@@ -517,7 +521,7 @@ def main(argv=None):
             best[kind] = result["best_params"]
         summary = evaluate(df, seed, out, best, "tuned", a.reps)
         print_summary(summary)
-        log_to_mlflow(summary, out, "rachna-6")
+        log_to_mlflow(summary, out, "rachna-6", a.config, a.features)
         print(f"wrote {out / 'tuned_val.json'}, tuned_val_scores.csv and tuning_<kind>.json")
     if a.seed_noise:
         kind, params = read_params(a.seed_noise)
