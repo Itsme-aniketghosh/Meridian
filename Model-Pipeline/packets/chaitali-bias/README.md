@@ -1,4 +1,4 @@
-# AI engineer 3: bias, final pick, gates, all CI
+# Chaitali: bias, final pick, gates, all CI
 
 > Check that the model and the agents don't serve some modules, teams or newcomers worse, fix it where they do, and make the final pick. Then build the CI that trains, checks and gates every change to the model and the product, and tells Slack.
 
@@ -6,16 +6,16 @@
 |---|---|
 | Steps | the pass-bars file, F (bias, final pick), `gate.py`, alerts, `model.yml`, the product CI jobs, the LLM bias check. About 5 days |
 | Code | `Model-Pipeline/PASS-BARS.md`, `model/bias.py`, `model/gate.py`, `.github/workflows/model.yml`, product jobs in `.github/workflows/ci.yml`, their tests |
-| Waits on | AI 1's candidate (Nov 6) and `seed_noise.json` (Nov 8), AI 2's `metrics.json` (Nov 6) and `registry.py` (Nov 9), AI 4's writer and views, AI 1's Jev, Utkarsh's diffs (Nov 8–10) |
-| Hands to | AI 2: the final pick. Aniket: green CI on main (Nov 10) |
+| Waits on | Rachna's candidate (Nov 6) and `seed_noise.json` (Nov 8), Rochan's `metrics.json` (Nov 6) and `registry.py` (Nov 9), Vishwa's writer and views, Rachna's Jev, Utkarsh's diffs (Nov 8–10) |
+| Hands to | Rochan: the final pick. Aniket: green CI on main (Nov 10) |
 
 ```mermaid
 flowchart LR
-  ai1["AI 1: candidate, seed noise, image"] --> me["AI 3"]
-  ai2["AI 2: metrics.json, registry.py"] --> me
-  ai4["AI 4: writer, views"] --> me
-  others["AI 1: Jev · Utkarsh: diffs"] --> me
-  me --> pick["final pick: AI 2"]
+  ai1["Rachna: candidate, seed noise, image"] --> me["Chaitali"]
+  ai2["Rochan: metrics.json, registry.py"] --> me
+  ai4["Vishwa: writer, views"] --> me
+  others["Rachna: Jev · Utkarsh: diffs"] --> me
+  me --> pick["final pick: Rochan"]
   me --> ci["green CI, Slack: Aniket"]
 ```
 
@@ -66,22 +66,22 @@ The guideline also wants a message on training done and on registry push. `[aler
 `model.yml`, on pushes and PRs touching `Model-Pipeline/**`:
 
 ```
-build image (AI 1) → run_all in it: data → train → evaluate → bias → gate
-                   → registry and GCP push (AI 2, main only) → Slack: done or failed
+build image (Rachna) → run_all in it: data → train → evaluate → bias → gate
+                   → registry and GCP push (Rochan, main only) → Slack: done or failed
 ```
 
 Product jobs in `ci.yml`, on every PR:
 
 - [ ] LLM off: every view renders (Utkarsh's test with an empty `suggestion` table)
 - [ ] Warm cache: the product run on the fixture makes 0 LLM calls, with no API key in the job
-- [ ] The fact gate's 200 + 200 test (AI 4), Jev's tests (AI 1), the 90% diff test (Utkarsh)
-- [ ] The auditor's simulation tests (AI 2)
+- [ ] The fact gate's 200 + 200 test (Vishwa), Jev's tests (Rachna), the 90% diff test (Utkarsh)
+- [ ] The auditor's simulation tests (Rochan)
 
 Secrets: `MERIDIAN_SLACK_WEBHOOK`, and the Artifact Registry key for main only. No LLM key in CI: the committed cache covers it.
 
 ## Decisions
 
-Write the test and the rule that picks before you run it, in `decisions.md`. Tag each run `decision=ai3-<n>`.
+Write the test and the rule that picks before you run it, in `decisions.md`. Tag each run `decision=chaitali-<n>`.
 
 | # | Decision | Options | Test that decides | Why it matters |
 |---|---|---|---|---|
@@ -89,9 +89,9 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 | 2 | Metric per slice | recall, false-positive rate, PR-AUC | All three. Show where they disagree | The two harms differ. A missed risky commit reaches users; a false alarm costs a reviewer's time |
 | 3 | Flag rule | phase 1's (N ≥ 30, Wilson interval 0.10 below overall), a stricter one | Plant a synthetic slice with a known 0.15 gap and one with none. Flags the first and not the second? Count flags under Bonferroni too | Keeping phase 1's rule lets the report compare the model with the rules it replaces |
 | 4 | Newcomers | | Recall for `exp_bucket = 0` from the model and from lines × files | Newcomers have no history, so the model has less to go on. If the old rule treats them better, that's a real cost of shipping |
-| 5 | Mitigation | none, re-weighting, re-sampling the flagged slice (both with AI 1), per-group thresholds (`ThresholdOptimizer`) | Each on the same `val` rows: overall PR-AUC, the slice's recall, the worst gap. Pick by a rule written first, for example "closes half the gap for at most 0.01 PR-AUC" | Also check the group is known at push time. `module` is; `component` comes from a ticket a commit may not have yet. A threshold on a group CI can't see can't ship |
-| 6 | Gate tolerance | below champion at all, below by more than 2 standard deviations of seed noise | The gate on AI 1's 5 same-config seeds: all pass. On planted bad models (shuffled labels, size-only, half the features): all fail | Too strict blocks honest retrains on noise. Too loose ships a worse model. Seed noise decides it |
-| 7 | What CI trains | the full Optuna search, best params from `model.toml` | Time both on a GitHub runner | PR feedback should take minutes. Tuning belongs to AI 1's runs |
+| 5 | Mitigation | none, re-weighting, re-sampling the flagged slice (both with Rachna), per-group thresholds (`ThresholdOptimizer`) | Each on the same `val` rows: overall PR-AUC, the slice's recall, the worst gap. Pick by a rule written first, for example "closes half the gap for at most 0.01 PR-AUC" | Also check the group is known at push time. `module` is; `component` comes from a ticket a commit may not have yet. A threshold on a group CI can't see can't ship |
+| 6 | Gate tolerance | below champion at all, below by more than 2 standard deviations of seed noise | The gate on Rachna's 5 same-config seeds: all pass. On planted bad models (shuffled labels, size-only, half the features): all fail | Too strict blocks honest retrains on noise. Too loose ships a worse model. Seed noise decides it |
+| 7 | What CI trains | the full Optuna search, best params from `model.toml` | Time both on a GitHub runner | PR feedback should take minutes. Tuning belongs to Rachna's runs |
 | 8 | When CI runs | every push, PRs only, PRs plus main | Pushes touching `Model-Pipeline/**` in a normal day, times the run length | Every push eats runner minutes and fills Slack. Main must always run, since it registers |
 | 9 | LLM slices | repo, owner team, task kind | Rows per slice in the fixture and the real block | A slice the agents rarely see can't be judged. Say which are unjudged |
 

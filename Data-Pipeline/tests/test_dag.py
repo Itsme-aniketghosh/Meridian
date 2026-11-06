@@ -21,7 +21,7 @@ HERE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HERE / "dags"))
 import pipeline_spec as P
 from meridian.common import SCHEMA, load_settings
-from meridian.writer import tables
+from meridian.writer import TRACKING, tables
 
 
 def ancestors(task, dag=None):
@@ -37,7 +37,7 @@ def ancestors(task, dag=None):
 
 class Spec(unittest.TestCase):
     def test_every_table_a_part_reads_is_written_upstream(self):
-        all_tables = set(tables(SCHEMA.read_text(encoding="utf-8")))
+        all_tables = set(tables(SCHEMA.read_text(encoding="utf-8"))) - TRACKING  # stage 6 writes those, not a part
         for part, (_, reads, _) in P.STEPS.items():
             written = {t for up in ancestors(part) for t in P.STEPS[up][2]}
             need = all_tables if reads == ("*",) else set(reads)
@@ -46,7 +46,9 @@ class Spec(unittest.TestCase):
     def test_every_schema_table_has_one_writer(self):
         writers = [t for _, _, w in P.STEPS.values() for t in w]
         self.assertEqual(sorted(writers), sorted(set(writers)))
-        self.assertEqual(set(writers), set(tables(SCHEMA.read_text(encoding="utf-8"))))
+        # the tracking tables are written by the product and the auditor, never by a pipeline part
+        self.assertEqual(set(writers), set(tables(SCHEMA.read_text(encoding="utf-8"))) - TRACKING)
+        self.assertFalse(set(writers) & TRACKING)
 
     def test_each_dag_runs_in_order_and_its_tasks_are_modules(self):
         for name, dag in P.DAGS.items():

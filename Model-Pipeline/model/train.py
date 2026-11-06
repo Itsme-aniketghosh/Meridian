@@ -5,6 +5,7 @@ which only ever returns `train` rows, and `rows` refuses `test` outright: nobody
 """
 import argparse
 import json
+import os
 import sys
 import tomllib
 from pathlib import Path
@@ -32,6 +33,29 @@ CONTRACT_COLUMNS = ID_COLUMNS + NUMERIC + CATEGORICAL + SLICES
 
 SPLITS = {"train", "val", "test", "none"}
 LABELLED = {"train", "val", "test"}
+
+
+def threads():
+    """Threads for one forest or LightGBM fit: $MERIDIAN_THREADS (pmap sets each worker's share), else up to 8.
+    Neither changes a seeded model's predictions (tests/test_parallel.py), only how fast it fits."""
+    return int(os.environ.get("MERIDIAN_THREADS", min(8, os.cpu_count() or 1)))
+
+
+def _set_threads(n):
+    os.environ["MERIDIAN_THREADS"] = n  # top level: Windows starts workers by pickling the initializer
+
+
+def pmap(fn, args):
+    """fn(*a) for each a in args, in separate processes, results in order. Each call seeds its own model, so the
+    result is the same as a loop (tests/test_parallel.py). MERIDIAN_WORKERS caps the processes; 1 runs the loop."""
+    args = [tuple(a) for a in args]
+    workers = min(len(args), int(os.environ.get("MERIDIAN_WORKERS", os.cpu_count() or 1)))
+    if workers <= 1:
+        return [fn(*a) for a in args]
+    from concurrent.futures import ProcessPoolExecutor
+    share = str(max(1, min(8, (os.cpu_count() or 1) // workers)))  # so the processes don't fight for cores
+    with ProcessPoolExecutor(workers, initializer=_set_threads, initargs=(share,)) as ex:
+        return list(ex.map(fn, *zip(*args)))
 
 
 class FeatureError(ValueError):
@@ -158,7 +182,7 @@ def build_model(kind, seed, params=None, imbalance="none", pos_rate=None):
                              LogisticRegression(class_weight=weight, random_state=seed, **lr))
     if kind == "forest":
         from sklearn.ensemble import RandomForestClassifier
-        rf = dict(n_estimators=300, min_samples_leaf=20, max_features="sqrt", n_jobs=-1)
+        rf = dict(n_estimators=300, min_samples_leaf=20, max_features="sqrt", n_jobs=threads())
         rf.update(params)
         return RandomForestClassifier(class_weight=weight, random_state=seed, **rf)
     import lightgbm
@@ -169,9 +193,11 @@ def build_model(kind, seed, params=None, imbalance="none", pos_rate=None):
         if not pos_rate or not 0 < pos_rate < 1:
             raise ValueError("scale_pos_weight needs the train positive rate")
         gbm["scale_pos_weight"] = (1 - pos_rate) / pos_rate
-    # Decision 9: deterministic trees, one fixed thread count, so laptops, the image and CI agree.
+    # Decision 9: deterministic trees, so laptops, the image and CI agree. With deterministic and force_row_wise,
+    # the thread count doesn't change a prediction (max |diff| 0.0 at 1, 4, 8, 16 threads), so use the cores:
+    # 3x faster at 4 threads than at 1.
     return lightgbm.LGBMClassifier(class_weight=weight, random_state=seed, deterministic=True,
-                                   force_row_wise=True, n_jobs=1, verbose=-1, **gbm)
+                                   force_row_wise=True, n_jobs=threads(), verbose=-1, **gbm)
 
 
 def fit_predict(fit, score, kind, seed, params=None, imbalance="none", ticket_features=True, drop=(),
@@ -332,8 +358,7 @@ def seed_noise(df, kind, params, out_dir, seeds=(1, 2, 3, 4, 5)):
     val = rows(df, "val")
     y = val["label"].astype(int).to_numpy()
     values, scores = [], {}
-    for seed in seeds:
-        _, s, scored = fit_and_score(df, kind, seed, params)
+    for seed, (_, s, scored) in zip(seeds, pmap(fit_and_score, [(df, kind, seed, params) for seed in seeds])):
         assert scored.index.equals(val.index)
         values.append(pr_auc(y, s))
         scores[f"seed_{seed}"] = s
@@ -384,8 +409,8 @@ def evaluate(df, seed, out_dir, models, tag, reps=1000):
     val = rows(df, "val")
     y = val["label"].astype(int).to_numpy()
     scores = dict(baseline_scores(val))
-    for kind, params in models.items():
-        _, s, scored = fit_and_score(df, kind, seed, params)
+    fits = pmap(fit_and_score, [(df, kind, seed, params) for kind, params in models.items()])
+    for kind, (_, s, scored) in zip(models, fits):
         assert scored.index.equals(val.index)
         scores[kind] = s
     ref = scores["lines_x_files"]
@@ -420,16 +445,19 @@ def search_space(cfg):
     return merged
 
 
-def log_to_mlflow(summary, out_dir, decision="rachna-1"):
-    """Through Rochan's tracking.py (Contract 3). Until it's merged, say so and carry on."""
+def log_to_mlflow(summary, out_dir, decision, config, features):
+    """Through Rochan's tracking.py (Contract 3), tagged with the config and table this command was given, so a run
+    on another table never carries the real table's md5. With no model.toml there's no config to hash: say so."""
     try:
         from model import tracking
     except ImportError:
         print("not logged to MLflow: model/tracking.py (Rochan) isn't merged yet")
         return
+    if not Path(config).exists():
+        print(f"not logged to MLflow: {config} doesn't exist, so the run has no config to carry (Contract 2)")
+        return
     import mlflow
-    with tracking.start_run(summary["tag"], owner="rachna"):
-        mlflow.set_tag("decision", decision)
+    with tracking.start_run(summary["tag"], owner="rachna", decision=decision, config=config, features=features):
         mlflow.log_param("seed", summary["seed"])
         for name, r in summary["results"].items():
             mlflow.log_metric(f"val_pr_auc_{name}", r["pr_auc"])
@@ -477,20 +505,20 @@ def main(argv=None):
         sys.exit(f"feature table: {e}")
     if a.check:
         counts = df["split"].value_counts()
-        print(f"feature table ok: {len(df):,} rows, " + ", ".join(f"{s} {int(counts.get(s, 0)):,}"
-                                                                for s in ("train", "val", "test", "none")))
+        parts = ", ".join(f"{s} {int(counts.get(s, 0)):,}" for s in ("train", "val", "test", "none"))
+        print(f"feature table ok: {len(df):,} rows: {parts}")
     seed = int(cfg["seed"]["value"])
     out = Path(a.out)
     if a.untuned:
         summary = untuned(df, seed, out, a.reps, a.models)
         print_summary(summary)
-        log_to_mlflow(summary, out, "rachna-1")
+        log_to_mlflow(summary, out, "rachna-1", a.config, a.features)
         print(f"wrote {out / 'untuned_val.json'} and untuned_val_scores.csv")
     if a.tune:
         space = search_space(cfg)
         best = {}
-        for kind in a.tune:
-            result = tune(df, kind, seed, space, a.start, a.step, a.max_trials)
+        results = pmap(tune, [(df, kind, seed, space, a.start, a.step, a.max_trials) for kind in a.tune])
+        for kind, result in zip(a.tune, results):
             out.mkdir(parents=True, exist_ok=True)
             (out / f"tuning_{kind}.json").write_text(json.dumps(result, indent=2) + "\n")
             print(f"{kind}: {result['n_trials']} trials, stopped {result['stopped']}, "
@@ -498,7 +526,7 @@ def main(argv=None):
             best[kind] = result["best_params"]
         summary = evaluate(df, seed, out, best, "tuned", a.reps)
         print_summary(summary)
-        log_to_mlflow(summary, out, "rachna-6")
+        log_to_mlflow(summary, out, "rachna-6", a.config, a.features)
         print(f"wrote {out / 'tuned_val.json'}, tuned_val_scores.csv and tuning_<kind>.json")
     if a.seed_noise:
         kind, params = read_params(a.seed_noise)

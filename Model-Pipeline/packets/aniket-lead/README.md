@@ -11,10 +11,10 @@
 
 ```mermaid
 flowchart LR
-  ai3["AI 3: green CI"] --> me["Aniket"]
-  ai2["AI 2: auditor, 2024 numbers"] --> me
+  ai3["Chaitali: green CI"] --> me["Aniket"]
+  ai2["Rochan: auditor, 2024 numbers"] --> me
   ut["Utkarsh: views"] --> me
-  ai1["AI 1: P9 hook, charts"] --> me
+  ai1["Rachna: P9 hook, charts"] --> me
   sections["every owner's section"] --> me
   me --> rep["REPORT.md"]
 ```
@@ -22,9 +22,9 @@ flowchart LR
 | Date | Due |
 |---|---|
 | Wed Nov 4 | Add the team to the GCP project |
-| Fri Nov 6 | Review the pass bars before AI 3 merges them |
+| Fri Nov 6 | Review the pass bars before Chaitali merges them |
 | Nov 5–10 | Reviews and merges only |
-| Mon Nov 9 | Join AI 3's cut-order check-in |
+| Mon Nov 9 | Join Chaitali's cut-order check-in |
 | Tue Nov 10 | Code freeze at the end of the day |
 | Wed Nov 11 | Integration and simulated faults. Go or no-go for 2024 |
 | Thu Nov 12 | Final runs. Every section in |
@@ -32,20 +32,21 @@ flowchart LR
 
 ## 1. The one early action (Nov 4)
 
-- [ ] Add AI 2 to the $300 trial project with Artifact Registry Admin, so AI 2 can make the model repo and its service account. The credits are on your account, so only you can do this
+- [ ] Add Rochan to the $300 trial project with Artifact Registry Admin, so Rochan can make the model repo and its service account. The credits are on your account, so only you can do this
 - [ ] Note the trial's end date. Phase 3 moves the repo into Terraform
 
 ## 2. Until freeze (Nov 5–10)
 
-- [ ] Review the pass bars. AI 3 merges them by Nov 6, before anyone trains
+- [ ] Review the pass bars. Chaitali merges them by Nov 6, before anyone trains
 - [ ] Review PRs for the contracts in [packets/README.md](../README.md): tags on runs, no names in the table or the facts, nothing hard-coded outside the two config files
-- [ ] On Nov 9, at AI 3's check-in, agree the cut order in [§9](../../PLAN.md#9-open-risks) if anything on the critical paths in [§6](../../PLAN.md#6-dependency-graph) has slipped. Cut from the end, don't move the freeze
+- [ ] On Nov 9, at Chaitali's check-in, agree the cut order in [§9](../../PLAN.md#9-open-risks) if anything on the critical paths in [§6](../../PLAN.md#6-dependency-graph) has slipped. Cut from the end, don't move the freeze
 
 ## 3. Integration (Nov 10–11)
 
 From a clean clone, nothing cached except the committed LLM cache:
 
-- [ ] `python -m model.run_all` on your machine, then in AI 1's Docker image
+- [ ] Before integration: the contract examples and consumer tests in [packets/README.md](../README.md#integration-tests-before-nov-11) are all in and green, and `run_all --fake` runs in CI
+- [ ] `python -m model.run_all` on your machine, then in Rachna's Docker image
 - [ ] The same through `model.yml` on a branch, then on main, ending in a real push
 - [ ] All three give the same `metrics.json` (the same numbers to 4 decimals). If not, it's a reproducibility bug and goes back to its owner the same day
 - [ ] The product on the fixture, the real block and run 2: views, agents, gate, auditor, P9. Every page loads, 0 LLM calls with the warm cache
@@ -85,11 +86,11 @@ Phase 1 broke things on purpose (27 faults, 42 scenarios), and the report was st
 ## 5. Go or no-go (Nov 11)
 
 - [ ] All faults behave, CI is green on main, the pass bars are unchanged since Nov 6
-- [ ] Then flip `model.toml [split] test_allowed` to `true` and tell AI 2 to run 2024. If not, fix first
+- [ ] Then flip `model.toml [split] test_allowed` to `true` and tell Rochan to run 2024. If not, fix first
 
 ## 6. Final runs (Nov 12)
 
-- [ ] AI 2 runs 2024 once, with you watching. Note the time and the git SHA
+- [ ] Rochan runs 2024 once, with you watching. Note the time and the git SHA
 - [ ] The model ships if it meets the pass bars on 2024. If not, lines × files stays, and that's the result we report
 - [ ] The champion pushed to Artifact Registry. Check the version there
 - [ ] The final product run on the real block, run 2 and the fixture

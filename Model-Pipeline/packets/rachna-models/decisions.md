@@ -1,11 +1,11 @@
-# AI 1 decisions
+# Rachna decisions
 
 Each rule below was written before its run, as [packets/README.md](../README.md) requires. Each run is tagged
-`decision=ai1-<n>` in MLflow. The Result and Picked columns are filled in after the run, with N.
+`decision=rachna-<n>` in MLflow. The Result and Picked columns are filled in after the run, with N.
 
 Common terms:
 - **PR-AUC** is on `val` (2023), with its N and positive rate.
-- **Paired bootstrap interval** means AI 2's helper: 1,000 resamples of the same `val` rows, 95% interval of the
+- **Paired bootstrap interval** means Rochan's helper: 1,000 resamples of the same `val` rows, 95% interval of the
   difference. "Tied" means that interval contains 0.
 - **Simpler** means logistic regression < random forest < LightGBM; fewer features < more; raw < calibrated.
 - When a rule can't be run in time, the simpler option is picked and the reason is written here.
@@ -18,7 +18,7 @@ Common terms:
 | 4 | Calibration | raw, isotonic, Platt (fitted on 2022 only) | Reliability curve and Brier on `val` | Lowest Brier wins; if within 0.001 of raw, raw. Calibration never changes the ranking, so PR-AUC must not move | | |
 | 5 | Training window | 2015–2022, 2019–2022 | `val` PR-AUC of each, paired bootstrap; fold-to-fold spread | The shorter window wins only if its interval is above 0. Tied: 2015–2022 (the plan's default, more data) | | |
 | 6 | Number of trials | 50, 100, 200 | Optuna best-so-far curve | Start at 50. Add 50 at a time, up to 200, while the last 30 trials improved the best by ≥ 0.002. Stop at the first batch that doesn't | | |
-| 7 | Seed noise | — | Chosen config, seeds 1–5 | Mean and standard deviation of `val` PR-AUC into `reports/seed_noise.json`. No choice; AI 2 and AI 3 use the SD | | |
+| 7 | Seed noise | — | Chosen config, seeds 1–5 | Mean and standard deviation of `val` PR-AUC into `reports/seed_noise.json`. No choice; Rochan and Chaitali use the SD | | |
 | 8 | Ticket features | keep `fix`, `ticket_type`, `has_ticket`; drop | `val` PR-AUC with and without, paired bootstrap | Drop unless keeping them is better with an interval above 0 (they can leak: ticket type is as of the pull) | | |
 | 9 | Determinism | — | Train twice in the image, once on a laptop; compare every `val` prediction | Pass if the max absolute difference is ≤ 1e-9. Otherwise set `deterministic=true`, fixed `num_threads`, and rerun until it passes | | |
 | 10 | SHAP sample size | all of `val`, 5,000, 2,000 | Spearman correlation of the top-10 feature ranking against all of `val` | The smallest sample with Spearman ≥ 0.9 | | |
@@ -31,16 +31,17 @@ Common terms:
 | 17 | Feature pruning | all features, the smallest set that holds | Backward elimination on the time folds inside train (never `val`): drop the least important group, refit, repeat | The smallest set whose mean fold PR-AUC is within 1 seed-noise SD of all features. Then one check on `val` | | |
 | 18 | Tree compression | LightGBM `max_bin` 255, 63, 15 (feature quantization); trees capped by early stopping on the last train fold (pruning) | `val` PR-AUC, model file size, scoring time | The smallest, fastest setting within 1 seed-noise SD of the full model | | |
 | 19 | Jev's task set | — | 60 fixture tasks labelled by hand (which agent and model a person would pick): 30 to write the prompt, 30 held out | The prompt is tuned only on the first 30. Decisions 13 and 14 are scored only on the held-out 30, so the prompt can't overfit its own test | | |
+| 20 | More model families | decision 1's three, plus `HistGradientBoostingClassifier`, `ExtraTreesClassifier`, `MLPClassifier` (all scikit-learn, nothing new to install) | `val` PR-AUC of each, tuned the same way; paired bootstrap against the best | Same as decision 1: highest PR-AUC wins, and the simplest model tied with it wins. If a new family wins, decisions 3-18 are rerun on it | | |
+| 21 | Quantized open model for Jev | the hosted small model, a 7-8B open instruct model at 4-bit (GGUF, llama.cpp or Ollama), run on CPU | Pick accuracy on decision 19's held-out 30 tasks, cost per task, p95 latency on a CPU runner | Local only if it gets within 3 of the 30 tasks of the hosted model and its p95 latency fits CI's budget. Otherwise the hosted model | | |
 
 ## Options considered and not run
 
 | Idea | Why not |
 |---|---|
 | Fine-tuning a language model for Jev | The hosted models can't be fine-tuned on our account, and 60 labelled tasks are far too few to fine-tune anything. Rules already cost $0, so the cheapest option is measured in decision 13 |
-| A quantized open model for Jev, run locally | Adds a model server to CI and the image for a router that makes one short call per task. Considered only if decision 13 shows the hosted small model losing to rules on cost |
 | Deep learning on the commit features | 25 tabular features and about 30,000 labelled commits: gradient-boosted trees are the standard for this, and Kamei et al.'s set is tabular |
 
-## My pass-bar rows (for AI 3's file)
+## My pass-bar rows (for Chaitali's file)
 
 | What | Bar |
 |---|---|

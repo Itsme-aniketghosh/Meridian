@@ -1,4 +1,4 @@
-# AI engineer 4: fact gate, writer agent, cache, views
+# Vishwa: fact gate, writer agent, cache, views
 
 > Build the parts of the product people see and the check that keeps them honest: the fact gate that stops any made-up number, the writer agent and its cache, and the views and API that show the whole map. Facts come from the block; the LLM only writes.
 
@@ -6,20 +6,20 @@
 |---|---|
 | Steps | N (the fact gate, first), the writer agent and the cache, O (views and API). The policy writer only if time allows. About 5 days |
 | Code | `Data-Pipeline/meridian/fact_gate.py`, `agents.py`, `llm_cache.py`, `views.py`, `Data-Pipeline/llm_cache/`, `meridian.toml [llm]`, their tests |
-| Waits on | nothing for the gate (the fixture is in the repo). Utkarsh's tracking tables (Nov 7) and run 2 (Nov 8). AI 2's `log_llm_call` (Nov 5) |
-| Hands to | Utkarsh: the gate and cache for the diff drafter. AI 1: the writer for Jev. AI 3: views and agent outputs for CI and the LLM bias check. Aniket: the views |
+| Waits on | nothing for the gate (the fixture is in the repo). Utkarsh's tracking tables (Nov 7) and run 2 (Nov 8). Rochan's `log_llm_call` (Nov 5) |
+| Hands to | Utkarsh: the gate and cache for the diff drafter. Rachna: the writer for Jev. Chaitali: views and agent outputs for CI and the LLM bias check. Aniket: the views |
 
 ```mermaid
 flowchart LR
-  ut["Utkarsh: tracking tables, run 2, diffs"] --> me["AI 4"]
-  ai2["AI 2: log_llm_call"] --> me
-  me --> gate["fact gate, cache: Utkarsh, AI 1"]
-  me --> views["views and API: AI 3's CI, Aniket"]
+  ut["Utkarsh: tracking tables, run 2, diffs"] --> me["Vishwa"]
+  ai2["Rochan: log_llm_call"] --> me
+  me --> gate["fact gate, cache: Utkarsh, Rachna"]
+  me --> views["views and API: Chaitali's CI, Aniket"]
 ```
 
 | Date | Due |
 |---|---|
-| Thu Nov 5 | Fact gate started on the fixture. Your pass-bar rows to AI 3 |
+| Thu Nov 5 | Fact gate started on the fixture. Your pass-bar rows to Chaitali |
 | Sat Nov 7 | Fact gate passes 200 + 200 |
 | Sun Nov 8 | Writer agent and cache |
 | Mon Nov 9 | Views and API |
@@ -37,12 +37,12 @@ flowchart LR
 
 ## N. The fact gate (first)
 
-`fact_gate.check(text, facts)`: every number, path, SHA, ticket ID, person and team in the text must be a fact value. Any miss and the whole text becomes the template. Never strip the bad part: it leaves broken sentences (06-dead-ideas).
+`fact_gate.check(text, facts, teams=..., people=...)`: every number, path, SHA, ticket ID, person and team in the text must be a fact value. Any miss and the whole text becomes the template. Never strip the bad part: it leaves broken sentences (06-dead-ideas).
 
 - [ ] Extractors for each kind: numbers (with commas and `%`), `path:line`, SHAs, ticket keys, team names from `team_map`
 - [ ] A template per task kind, filled only from facts
 - [ ] The fallback rate per run, published in the run's output
-- [ ] Utkarsh's diff drafter and AI 1's Jev use it too: keep the interface to `check(text, facts)`
+- [ ] Utkarsh's diff drafter and Rachna's Jev use it too: keep the interface to `check(text, facts, teams=..., people=...)`
 
 ## The writer agent and cache
 
@@ -50,7 +50,7 @@ flowchart LR
 - [ ] Facts per task from the block (Contract 5). No person's name is ever a fact
 - [ ] Output JSON `{"text", "used"}`; bad JSON or a gate miss retries one model up (Jev decides which), then the template
 - [ ] Cache: key sha256(model, prompt version, sorted facts JSON), one JSON file per entry in `Data-Pipeline/llm_cache/`, committed. A rerun makes 0 calls
-- [ ] Every call through AI 2's `log_llm_call`: agent, model, tokens, cost, cache hit, gate pass
+- [ ] Every call through Rochan's `log_llm_call`: agent, model, tokens, cost, cache hit, gate pass
 - [ ] Every offer written as a `suggestion` row
 - [ ] The push check stays templates only. No LLM there
 
@@ -65,7 +65,7 @@ flowchart LR
 
 ## Decisions
 
-Write the test and the rule that picks before you run it, in `decisions.md`. Tag each run `decision=ai4-<n>`.
+Write the test and the rule that picks before you run it, in `decisions.md`. Tag each run `decision=vishwa-<n>`.
 
 | # | Decision | Options | Test that decides | Why it matters |
 |---|---|---|---|---|
@@ -77,6 +77,8 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 | 6 | Cache scope | per run, committed across runs | Rerun the fixture twice: calls made, and diffs between outputs | A committed cache makes CI free and runs byte-identical. It must never serve text for different facts: the key covers that |
 | 7 | Views' stack | standard library like `dashboard.py`, a web framework | Build the staff view the `dashboard.py` way first. Switch only if a view can't be built that way | `dashboard.py` already runs every KB query and serves HTML. A framework adds a dependency phase 3 has to deploy |
 | 8 | Real block or fixture per view | real where its tables have rows, fixture otherwise | For each view, the row counts its queries return on the real block | No real dataset has tickets and tracked code together (G7). A view showing zeros looks broken; a fixture view with a banner tells the true story |
+| 9 | Writer model: hosted or quantized local | the hosted ladder (decision 3), an open instruct model run locally at 4-bit (GGUF through llama.cpp or Ollama), the same model at 8-bit | Gate pass rate, JSON validity, cost and p95 latency on decision 4's 50 fixture tasks, on a CPU runner | A local model is $0 a call and needs no API key in CI. It's picked only if its gate pass rate is within 2 points of the hosted small model's and its p95 latency fits the run's budget. The gate still checks every word, so a weaker model costs fallbacks, never wrong facts |
+| 10 | How small the hosted model can be | the small model, the mid model, as the writer's first rung | Gate pass rate and cost per accepted text on the 50 tasks: what each accepted text really costs, counting the retries | The cheapest model whose accepted texts cost least wins, not the cheapest per call |
 
 ## Tests
 

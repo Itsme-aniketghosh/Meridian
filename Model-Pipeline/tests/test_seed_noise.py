@@ -1,4 +1,4 @@
-"""Seed noise (decision 7): five seeds of one config, the file AI 2 and AI 3 read, and the command."""
+"""Seed noise (decision 7): five seeds of one config, the file Rochan and Chaitali read, and the command."""
 import importlib.util
 import json
 import tempfile

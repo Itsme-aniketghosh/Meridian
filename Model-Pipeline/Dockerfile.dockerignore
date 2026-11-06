@@ -1,0 +1,11 @@
+# For Model-Pipeline/Dockerfile only (Docker reads <Dockerfile>.dockerignore next to the Dockerfile in place of the
+# repo's .dockerignore). Allowlist: only what the Dockerfile COPYs reaches the build. A new COPY needs a ! line.
+*
+!Data-Pipeline/requirements.txt
+!Data-Pipeline/meridian.toml
+!Model-Pipeline/requirements.txt
+!Model-Pipeline/model.toml
+!Model-Pipeline/data/features.parquet
+!Model-Pipeline/data/features.schema.json
+!Model-Pipeline/model/*.py
+!Model-Pipeline/tests/*.py

@@ -93,3 +93,15 @@ class Plan(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Check(unittest.TestCase):
+    def test_check_prints_rows_per_split_and_writes_nothing(self):
+        from model.train import main as train_main
+        from tests.fake_table import fake_table
+        with tempfile.TemporaryDirectory() as d:
+            fake_table(n=500, seed=1).to_csv(Path(d) / "f.csv", index=False)
+            _, out = quiet(train_main, ["--check", "--features", str(Path(d) / "f.csv"), "--config",
+                                        str(Path(d) / "none.toml"), "--out", str(Path(d) / "r")])
+            self.assertFalse((Path(d) / "r").exists())
+        self.assertIn("feature table ok: 500 rows", out)
