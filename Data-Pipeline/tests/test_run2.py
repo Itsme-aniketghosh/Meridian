@@ -72,7 +72,7 @@ class SecondRun(unittest.TestCase):
         bad = self.db.execute("""SELECT count(*) FROM call_site
                                  WHERE status = 'removed' AND known_at != ?""", (self.snap,)).fetchone()[0]
         self.assertEqual(bad, 0)
-        self.assertGreater(self.snap, self.db.execute(f"SELECT max(known_at) FROM first").fetchone()[0])
+        self.assertGreater(self.snap, self.db.execute("SELECT max(known_at) FROM first").fetchone()[0])
 
 
 if __name__ == "__main__":
