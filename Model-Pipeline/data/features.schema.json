@@ -1,0 +1,253 @@
+{
+ "table": "features.parquet",
+ "md5": "9c0ab22048fff931ac89e27c20112c56",
+ "rows": 41163,
+ "block_run_id": "c5118b019d642a9b",
+ "snapshot_at": "2026-10-01T01:23:03Z",
+ "block_status": "complete",
+ "config": {
+  "data": {
+   "run_id": "c5118b019d642a9b",
+   "window_days": 365,
+   "follow_up_end": "2025-10-01T00:00:00Z",
+   "start_year": 2015,
+   "repo": "apache/spark",
+   "prior_fix_days": 365
+  },
+  "split": {
+   "train": [
+    2015,
+    2022
+   ],
+   "val": 2023,
+   "test": 2024
+  }
+ },
+ "fix_rule": {
+  "fix": {
+   "effective_type": "Bug",
+   "resolution": "Fixed"
+  },
+  "fix_since": "2015-01-01T00:00:00Z"
+ },
+ "columns": [
+  {
+   "name": "sha",
+   "type": "str",
+   "meaning": "commit SHA"
+  },
+  {
+   "name": "authored_at",
+   "type": "str",
+   "meaning": "UTC, %Y-%m-%dT%H:%M:%SZ"
+  },
+  {
+   "name": "year",
+   "type": "int",
+   "meaning": "from authored_at"
+  },
+  {
+   "name": "split",
+   "type": "str",
+   "meaning": "train, val, test by year; none after the test year or after follow_up_end"
+  },
+  {
+   "name": "label",
+   "type": "int",
+   "meaning": "1 if a fix commit authored within window_days after this one blames it (bug_inducing)"
+  },
+  {
+   "name": "la",
+   "type": "int",
+   "meaning": "lines added (binary files count 0)"
+  },
+  {
+   "name": "ld",
+   "type": "int",
+   "meaning": "lines deleted (binary files count 0)"
+  },
+  {
+   "name": "nf",
+   "type": "int",
+   "meaning": "files touched"
+  },
+  {
+   "name": "nd",
+   "type": "int",
+   "meaning": "directories touched"
+  },
+  {
+   "name": "ns",
+   "type": "int",
+   "meaning": "top-level directories touched"
+  },
+  {
+   "name": "entropy",
+   "type": "float",
+   "meaning": "Shannon entropy (bits) of changed lines across files"
+  },
+  {
+   "name": "ndev",
+   "type": "int",
+   "meaning": "distinct earlier authors (merged persons) on these files"
+  },
+  {
+   "name": "age",
+   "type": "float",
+   "meaning": "mean days since these files last changed; 0 when none changed before"
+  },
+  {
+   "name": "nuc",
+   "type": "int",
+   "meaning": "distinct earlier commits on these files"
+  },
+  {
+   "name": "exp",
+   "type": "int",
+   "meaning": "the author's earlier commits (merged person)"
+  },
+  {
+   "name": "sexp",
+   "type": "int",
+   "meaning": "the author's earlier commits in this commit's module"
+  },
+  {
+   "name": "prior_bug_fixes",
+   "type": "int",
+   "meaning": "fix commits on these files in the prior_fix_days before this commit"
+  },
+  {
+   "name": "fix",
+   "type": "int",
+   "meaning": "1 if a linked ticket's effective_type is Bug"
+  },
+  {
+   "name": "has_ticket",
+   "type": "int",
+   "meaning": "1 if the commit carries a ticket key that exists in the tracker"
+  },
+  {
+   "name": "ticket_type",
+   "type": "str",
+   "meaning": "the linked ticket's effective_type (smallest key), or none"
+  },
+  {
+   "name": "is_minor",
+   "type": "int",
+   "meaning": "subject starts with [MINOR], any case"
+  },
+  {
+   "name": "module",
+   "type": "str",
+   "meaning": "slice: top-level directory with the most changed lines; inside sql/, the second level"
+  },
+  {
+   "name": "component",
+   "type": "str",
+   "meaning": "slice: the linked ticket's first Jira component (smallest key), or none"
+  },
+  {
+   "name": "exp_bucket",
+   "type": "str",
+   "meaning": "slice: 0, 1, 2-10, >10 earlier commits"
+  },
+  {
+   "name": "size_bucket",
+   "type": "str",
+   "meaning": "slice: la + ld by quartile on train, Q1 to Q4"
+  }
+ ],
+ "size_bucket_edges": {
+  "Q1": "<= 11",
+  "Q2": "<= 42",
+  "Q3": "<= 136.75",
+  "Q4": "> 136.75"
+ },
+ "labels": {
+  "by_year": {
+   "2015": {
+    "N": 5030,
+    "positives": 1549,
+    "share": 0.308
+   },
+   "2016": {
+    "N": 4345,
+    "positives": 1204,
+    "share": 0.2771
+   },
+   "2017": {
+    "N": 2527,
+    "positives": 501,
+    "share": 0.1983
+   },
+   "2018": {
+    "N": 2356,
+    "positives": 365,
+    "share": 0.1549
+   },
+   "2019": {
+    "N": 2623,
+    "positives": 399,
+    "share": 0.1521
+   },
+   "2020": {
+    "N": 2862,
+    "positives": 416,
+    "share": 0.1454
+   },
+   "2021": {
+    "N": 3085,
+    "positives": 314,
+    "share": 0.1018
+   },
+   "2022": {
+    "N": 3222,
+    "positives": 290,
+    "share": 0.09
+   },
+   "2023": {
+    "N": 4113,
+    "positives": 486,
+    "share": 0.1182
+   },
+   "2024": {
+    "N": 3762,
+    "positives": 283,
+    "share": 0.0752
+   },
+   "2025": {
+    "N": 3411,
+    "positives": 224,
+    "share": 0.0657
+   },
+   "2026": {
+    "N": 3827,
+    "positives": 200,
+    "share": 0.0523
+   }
+  },
+  "by_split": {
+   "none": {
+    "N": 7238,
+    "positives": 424,
+    "share": 0.0586
+   },
+   "test": {
+    "N": 3762,
+    "positives": 283,
+    "share": 0.0752
+   },
+   "train": {
+    "N": 26050,
+    "positives": 5038,
+    "share": 0.1934
+   },
+   "val": {
+    "N": 4113,
+    "positives": 486,
+    "share": 0.1182
+   }
+  }
+ },
+ "notes": "Decisions and label checks: Model-Pipeline/packets/utkarsh-data/decisions.md"
+}

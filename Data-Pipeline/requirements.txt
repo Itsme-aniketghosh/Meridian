@@ -13,6 +13,7 @@ pandas==3.1.0
 numpy==2.4.6                # the last numpy line that supports Python 3.11
 scipy==1.17.1
 scikit-learn==1.9.1
+pyarrow==22.0.0             # the model's feature table (Model-Pipeline/model/data.py): same version, same parquet bytes
 
 # data versioning
 dvc==3.67.1

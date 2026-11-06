@@ -1,0 +1,10 @@
+# The model pipeline's packages, on top of the data pipeline's lockfile. numpy, pandas, scikit-learn and pyarrow come
+# only from there, so laptops, the image and CI read and write the same parquet bytes (features_md5).
+# Add model-only packages here, shared ones in Data-Pipeline/requirements.txt. Never pin one package in both.
+-r ../Data-Pipeline/requirements.txt
+
+lightgbm==4.7.0
+optuna==5.0.0
+shap==0.51.0
+matplotlib==3.11.2
+mlflow==3.18.0

@@ -120,6 +120,9 @@ The feature names follow Kamei et al. 2013, the usual just-in-time defect predic
 run_id = "c5118b019d642a9b"        # the block the table was built from
 window_days = 365                  # Utkarsh's decision 1 can change this, by Nov 6
 follow_up_end = "2025-10-01T00:00:00Z"
+start_year = 2015                  # Utkarsh decision 2: the first year with rows
+repo = "apache/spark"
+prior_fix_days = 365               # prior_bug_fixes looks back this far
 
 [split]
 train = [2015, 2022]
