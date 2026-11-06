@@ -32,18 +32,24 @@ NUMBER_MODES = ("exact", "format", "round")
 DEFAULT_KINDS = "teams"
 DEFAULT_NUMBERS = "round"
 
-_EXT = r"(?:py|pyi|rb|js|ts|java|scala|go|toml|cfg|ini|txt|md|rst|sql|yml|yaml|json|html|sh)"
-_PATH = re.compile(rf"(?<![\w/.\-])((?:[\w.\-]+/)*[\w\-][\w.\-]*\.{_EXT})(?::(\d+))?(?![\w/])")
+_EXT = (r"(?:py|pyi|rb|erb|rake|js|jsx|mjs|cjs|ts|tsx|vue|java|kt|kts|scala|go|rs|c|h|cc|cpp|hpp|cs|php|swift|"
+        r"proto|toml|cfg|ini|txt|md|rst|sql|yml|yaml|json|html|css|sh|ipynb)")
+_PATH = re.compile(rf"(?<![\w/.\-])((?:\./|/)?(?:[\w.\-]+/)*[\w\-][\w.\-]*\.{_EXT})(?::(\d+))?(?![\w/])")
 _LINE_ONLY = re.compile(r"(?<![\w:/.])(:\d+)(?!\w)")  # ":231" after a path, as in "cart/pricing.py:214 and :231"
 _TICKET = re.compile(r"(?<![\w\-])([A-Z][A-Z0-9_]*-\d+)(?![\w\-])")
-_SHA = re.compile(r"(?<![\w])([0-9a-f]{7,40})(?![\w])")
+_SHA = re.compile(r"(?<![\w])([0-9a-fA-F]{7,40})(?![\w])")
 _EMAIL = re.compile(r"[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+")
 _HANDLE = re.compile(r"(?<![\w@.])@([A-Za-z0-9_][A-Za-z0-9_.\-]*[A-Za-z0-9_]|[A-Za-z0-9_])")
 _ISO_DATE = re.compile(r"(?<!\d)(\d{4})-(\d{2})-(\d{2})(?:T[\d:.]+Z?)?(?!\d)")
 _MONTHS = ("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
 _MONTH_DATE = re.compile(r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?"
                          r"(?:,?\s+(\d{4}))?\b")
-_NUMBER = re.compile(r"(?<![\w.])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(%?)(?:st|nd|rd|th)?(?![\w])")
+_NUMBER = re.compile(r"(?<![\w.])(-?(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?))(%?)"
+                     r"(?:st|nd|rd|th|ms|[smhdwkx]|mo|yrs?|kb|mb|gb)?(?![\w])")
+# counts written as words. "one" is left out: it's a pronoun far more often than a count ("no one", "one of")
+_WORDS = ("zero", "", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
+          "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty")
+_WORD_NUMBER = re.compile(r"\b(" + "|".join(w for w in _WORDS if w) + r")\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -79,12 +85,14 @@ def _num(raw, pct=""):
 class _Facts:
     """Every fact value, sorted into the sets the text is looked up in."""
 
-    def __init__(self, facts, teams):
+    def __init__(self, facts, teams, people=()):
         if isinstance(facts, dict) and "facts" in facts and set(facts) <= {"facts", "source"}:
             facts = facts["facts"]
         self.numbers, self.raw_numbers, self.strings = set(), set(), set()
+        self.shares = set()  # floats and "x%" strings: the only facts a percent in the text can be
         self.paths, self.path_lines, self.tickets, self.shas, self.dates = set(), set(), set(), set(), set()
         self.teams = {t.lower() for t in teams}
+        self._people = _words(people)
         self._walk(facts)
 
     def _walk(self, v):
@@ -93,6 +101,8 @@ class _Facts:
         if isinstance(v, (int, float)):
             self.numbers.add(Decimal(str(v)))
             self.raw_numbers.add(str(v))
+            if isinstance(v, float):
+                self.shares.add(Decimal(str(v)))
         elif isinstance(v, str):
             self._string(v)
         elif isinstance(v, dict):
@@ -108,6 +118,8 @@ class _Facts:
                 self._walk(x)
 
     def _string(self, s):
+        if _EMAIL.search(s) or (self._people and self._people.search(s)):
+            raise ValueError(f"a fact names a person ({s[:40]!r}): no person is ever a fact (Contract 5)")
         self.strings.add(s.strip().lower())
         for m in _PATH.finditer(s):
             self.paths.add(m.group(1))
@@ -121,9 +133,12 @@ class _Facts:
             n = _num(s.strip().rstrip("%"), "%" if s.strip().endswith("%") else "")
             self.numbers.add(n.value / 100 if n.pct else n.value)
             self.raw_numbers.add(s.strip())
+            if n.pct or n.decimals:
+                self.shares.add(n.value / 100 if n.pct else n.value)
 
     def path_known(self, path, line):
         """A path written in full, or a unique tail of one at a '/' ("pricing.py" for "cart/pricing.py")."""
+        path = path.removeprefix("./").lstrip("/")
         known = {p for p, _ in self.path_lines} | self.paths
         full = [path] if path in known else sorted(p for p in known if p.endswith("/" + path))
         if len(full) != 1:
@@ -133,15 +148,14 @@ class _Facts:
     def number_known(self, n, mode):
         if mode == "exact":
             return n.text in self.raw_numbers or (not n.pct and n.text in {str(x) for x in self.numbers})
-        values = [n.value] + ([n.value / 100] if n.pct else [])
-        if any(v == f for v in values for f in self.numbers):
+        # a percent is a share (0.596 -> 59.6%), never a count: "4%" doesn't pass from bug_fixes = 4
+        pool, scale = (self.shares, 100) if n.pct else (self.numbers, 1)
+        if any(f * scale == n.value for f in pool):
             return True
         if mode == "round" and (n.pct or n.decimals):
             q = Decimal(1).scaleb(-n.decimals)
-            for f in self.numbers:
-                for scale in ((100,) if n.pct else ()) + (1,):
-                    if (f * scale).quantize(q, rounding=ROUND_HALF_UP) == n.value:
-                        return True
+            if any((f * scale).quantize(q, rounding=ROUND_HALF_UP) == n.value for f in pool):
+                return True
         # a year written alone is a fact when a fact date has that year
         return not n.pct and n.decimals == 0 and int(n.value) in {d[0] for d in self.dates}
 
@@ -150,7 +164,8 @@ class _Facts:
 
 
 def _is_sha(s):
-    return any(c.isdigit() for c in s) and any(c.isalpha() for c in s)
+    """Hex with at least one letter (deadbeef too). All digits is a number."""
+    return any(c.isalpha() for c in s)
 
 
 def _words(names):
@@ -160,15 +175,16 @@ def _words(names):
     return re.compile(r"(?<![\w\-])(" + "|".join(re.escape(n) for n in names) + r")(?![\w\-])", re.IGNORECASE)
 
 
-def check(text, facts, *, teams=(), people=(), kinds=DEFAULT_KINDS, numbers=DEFAULT_NUMBERS):
+def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NUMBERS):
     """Every fact-like token in `text` must be in `facts`. `teams` and `people` are the known names from the block
-    (team_map.team, person.name): a team in the text must be a fact, a person never may be."""
+    (team_map.team, person.name): a team in the text must be a fact, a person never may be. Both are required:
+    left out, the gate couldn't see a swapped team or a name. A fact that names a person raises ValueError."""
     if kinds not in KIND_SETS:
         raise ValueError(f"kinds must be one of {sorted(KIND_SETS)}, not {kinds!r}")
     if numbers not in NUMBER_MODES:
         raise ValueError(f"numbers must be one of {NUMBER_MODES}, not {numbers!r}")
     on = KIND_SETS[kinds]
-    known = _Facts(facts, teams)
+    known = _Facts(facts, teams, people)
     misses, checked = [], 0
     taken = [False] * len(text)  # characters already read as one token, so 214 in "pricing.py:214" isn't a number
 
@@ -226,7 +242,7 @@ def check(text, facts, *, teams=(), people=(), kinds=DEFAULT_KINDS, numbers=DEFA
     for m in _SHA.finditer(text):
         if _is_sha(m.group(1)) and take(m) and "sha" in on:
             checked += 1
-            if not any(f.startswith(m.group(1)) for f in known.shas):
+            if not any(f.lower().startswith(m.group(1).lower()) for f in known.shas):
                 miss("sha", m.group(0), m.start())
 
     for m in _ISO_DATE.finditer(text):
@@ -241,12 +257,16 @@ def check(text, facts, *, teams=(), people=(), kinds=DEFAULT_KINDS, numbers=DEFA
             if not known.date_known(year, _MONTHS.index(m.group(1).lower()) + 1, int(m.group(2))):
                 miss("date", m.group(0), m.start())
 
-    team_re = _words(known.teams)
+    variant = {}  # "payment" and "payments" both name the team payments
+    for t in sorted(known.teams):
+        for v in (t, t[:-1] if t.endswith("s") else t + "s", t + "es"):
+            variant.setdefault(v, t)
+    team_re = _words(variant)
     if team_re:
         for m in team_re.finditer(text):
             if take(m) and "team" in on:
                 checked += 1
-                if m.group(1).lower() not in known.strings:
+                if variant[m.group(1).lower()] not in known.strings:
                     miss("team", m.group(0), m.start())
 
     for m in _NUMBER.finditer(text):
@@ -255,14 +275,20 @@ def check(text, facts, *, teams=(), people=(), kinds=DEFAULT_KINDS, numbers=DEFA
             if not known.number_known(_num(m.group(1), m.group(2)), numbers):
                 miss("number", m.group(0), m.start())
 
+    for m in _WORD_NUMBER.finditer(text):
+        if take(m) and "number" in on:
+            checked += 1
+            if Decimal(_WORDS.index(m.group(1).lower())) not in known.numbers:
+                miss("number", m.group(0), m.start())
+
     misses.sort(key=lambda x: x.at)
     return Result(not misses, tuple(misses), checked)
 
 
-def gate(text, facts, template, **kw):
+def gate(text, facts, template, *, teams, people, **kw):
     """The text to ship: the LLM's if it passes, else the template, whole. `template` is a string or a function of
     the facts. Returns (text, source, result) with source "llm" or "template" (the suggestion row's `source`)."""
-    result = check(text, facts, **kw) if text is not None else Result(False, (), 0)
+    result = check(text, facts, teams=teams, people=people, **kw) if text is not None else Result(False, (), 0)
     if result:
         return text, "llm", result
     body = template(facts) if callable(template) else template

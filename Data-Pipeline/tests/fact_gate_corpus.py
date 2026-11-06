@@ -37,7 +37,7 @@ TASKS = [
      "facts": {"key": "CHK-311", "team": "checkout",
                "s0": {"path": "cart/pricing.py", "line": 214, "owner_team": "checkout", "bug_fixes": 4, "in_except": 0},
                "s1": {"path": "cart/pricing.py", "line": 231, "owner_team": "checkout", "bug_fixes": 4, "in_except": 1},
-               "bug_fixes": 4},
+               "bug_fixes": 4, "left": 2},  # "Two calls left" is a count, so it's a fact too
      "say": ["{ticket:key}: replace verify_token in {team:team}'s {path:s0} and {line:s1}. The second call sits inside "
              "`except AuthError`. Keep the same handling?",
              "{ticket:key} has no description. Done when {path:s0} and {line:s1} no longer call verify_token.",

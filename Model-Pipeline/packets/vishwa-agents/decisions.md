@@ -11,7 +11,7 @@ Options:
 
 Always on, whatever the option: emails, `@handles` and known person names fail the gate. No person is ever a fact (Contract 5).
 
-Test: `tests/test_fact_gate.py` builds 200 clean texts and 200 injected errors from the fixture's facts (`acme/shop`, KNOWLEDGE-BASE.md). There are 40 errors of each kind: a wrong number, a made-up path, a swapped team, a fake ticket key, and a real fact from another task. The test measures the catch rate and the false-reject rate for each option.
+Test: `tests/fact_gate_corpus.py` builds 200 clean texts and 200 injected errors from the fixture's facts (`acme/shop`, KNOWLEDGE-BASE.md). There are 40 errors of each kind: a wrong number, a made-up path, a swapped team, a fake ticket key, and a real fact from another task. The test measures the catch rate and the false-reject rate for each option.
 
 Rule: pick the smallest option that catches 100% with at most 5% false rejects (05-test). If none does, pick the one with the highest catch rate and write down what it misses.
 
@@ -55,9 +55,27 @@ From decision 1: all 10 false rejects are a team name (`platform`) used as a pla
 - [ ] The writer's prompt tells the LLM: "Use team names only to name teams. Don't use them as ordinary words." So it writes "across the codebase", not "across the platform".
 - [ ] Measure the gate's false-reject rate on real LLM output (decision 5). At or under 5%: done. Over 5%: revisit the team rule then, with real data, not our own test sentence.
 
+## Review fixes, Nov 6 (PR #28)
+
+The lead's review probed the gate and found these passing when they shouldn't. Each is now a test in `tests/test_fact_gate.py` (`Bypasses`), and the corpus result above didn't move (seed 5: 200 / 200 caught, 10 / 200 false rejects).
+
+- `check(text, facts)` had `teams=()` and `people=()` as defaults, so the Contract 5 call checked no teams and no names. Both are now required keywords: `check(text, facts, teams=..., people=...)`, from `team_map.team` and `person.name`. Utkarsh's diff drafter and Rachna's Jev must pass them.
+- A fact that names a person (an email or a name in `people`) raises `ValueError`: no person is ever a fact.
+- A percent matched counts and the wrong scale ("4%" and "400%" from `bug_fixes = 4`, "1%" from 0.712). A percent now only matches a share (a float or an "x%" fact), at ×100.
+- Counts in words, two to twenty, are checked like digits. "one" isn't: it's a pronoun far more often than a count.
+- Numbers with a unit (`14d`, `3x`, `5k`, `500ms`) and a minus sign are read.
+- SHAs in any case, and all-letter hex (`deadbee`), are checked.
+- More extensions (`.rs .tsx .jsx .vue .erb .kt .c .h .cpp .cs .php` and others), and `./` or `/` before a path.
+- A team's plural or singular ("payment", "checkouts") counts as the team.
+
+Still not checked: a year alone when some fact date has that year ("2026 calls"), hashes under 7 characters, `1e3` and `1_526`, directories and files with no extension, spelling variants ("fulfilment").
+
+Seed sweep (the corpus re-samples formats per seed, seeds 0–9, N = 200 + 200 each): caught 200 in 8 seeds, 199 and 198 in the other two; false rejects 7–14, mean 9.9 (4.95%), over 10 in seeds 3, 8 and 9. Every false reject is the `platform` filler, so the bar sits on how often that one sentence is drawn. The honest number is the one decision 5 measures on real LLM output.
+
+Process note: the rules and results for decisions 1 and 2 landed in one commit (5147d54), so git can't show the rule came first. Decisions 3 on are committed before their run. The settings stay as constants in `fact_gate.py` (`DEFAULT_KINDS`, `DEFAULT_NUMBERS`), not `meridian.toml`, so the gate doesn't change the block's run_id; a run records them with the writer's settings.
+
 ## Known limits, written before the run
 
-- Numbers written as words ("two calls") aren't checked. Only digits are. A wrong count in words passes.
 - A team name that's also a plain word ("search", "platform") is flagged wherever it appears in the text. Decision 1 measures what that costs.
 - A 0 or 1 flag in the facts (`in_except`) also lets "0" and "1" pass as numbers. Found while testing; a flag should reach the gate as a bool, which the gate skips.
 - A line number counts only next to its path, never as a count (found by the tests: "214 bug fixes" passed before).

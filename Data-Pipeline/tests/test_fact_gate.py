@@ -91,10 +91,60 @@ class Tokens(unittest.TestCase):
         self.assertFalse(ok("payments owns it."))
 
     def test_people_never_pass(self):
-        facts = {"author": "Ann", "email": "ann@corp.example"}  # even if someone put them in the facts
         for text in ("Ask Ann.", "Mail ann@corp.example.", "cc @ann"):
-            self.assertFalse(ok(text, facts), text)
-            self.assertFalse(ok(text, facts, kinds="numbers"), text)
+            self.assertFalse(ok(text), text)
+            self.assertFalse(ok(text, kinds="numbers"), text)
+
+    def test_facts_that_name_a_person_are_refused(self):
+        for facts in ({"author": "Ann"}, {"email": "ann@corp.example"}, {"note": "asked Bob Lee"}):
+            with self.assertRaises(ValueError):
+                ok("x", facts)
+
+    def test_teams_and_people_are_required(self):
+        # left out, a swapped team or a name would pass unseen (Contract 5)
+        with self.assertRaises(TypeError):
+            check("payments owns it.", CHK_311)
+        with self.assertRaises(TypeError):
+            gate("payments owns it.", CHK_311, "T")
+
+
+class Bypasses(unittest.TestCase):
+    """The review's probes on PR #28: each one passed before the fix."""
+    F = {"key": "CHK-311", "team": "checkout", "bug_fixes": 4, "share": 0.596, "reach": 0.712,
+         "site": {"path": "cart/pricing.py", "line": 214}, "sha": corpus.SHA}
+
+    def test_a_percent_is_a_share_never_a_count(self):
+        for bad in ("4%", "400%", "1%", "0.7%"):
+            self.assertFalse(ok(f"checkout is {bad} done", self.F), bad)
+        for good in ("59.6%", "60%", "71%"):
+            self.assertTrue(ok(f"checkout is {good} done", self.F), good)
+
+    def test_counts_in_words(self):
+        self.assertTrue(ok("four bug fixes", self.F))
+        self.assertFalse(ok("five bug fixes", self.F))
+        self.assertFalse(ok("Two calls", self.F))
+        self.assertTrue(ok("no one has touched it", self.F))  # "one" is a pronoun, not checked
+
+    def test_numbers_with_units_and_signs(self):
+        for bad in ("stalled for 14d", "3x the calls", "5k rows", "500ms", "-4 bug fixes"):
+            self.assertFalse(ok(bad, self.F), bad)
+        self.assertTrue(ok("4x the calls", self.F))
+        self.assertFalse(ok("2-10 commits", self.F))  # both ends of a range are read
+
+    def test_sha_any_case(self):
+        for bad in ("commit DEADBEEF12", "commit deadbee"):
+            self.assertFalse(ok(bad, self.F), bad)
+        self.assertTrue(ok(f"commit {corpus.SHA[:7].upper()}", self.F))
+
+    def test_more_paths(self):
+        for bad in ("see cart/discount.rs", "see cart/tax.tsx", "see app/models/user.erb", "see /cart/discount.py"):
+            self.assertFalse(ok(bad, self.F), bad)
+        for good in ("see ./cart/pricing.py:214", "see /cart/pricing.py"):
+            self.assertTrue(ok(good, self.F), good)
+
+    def test_team_plural_and_singular(self):
+        self.assertFalse(ok("the payment team owns it", self.F))
+        self.assertTrue(ok("the checkouts are done", self.F))
 
 
 class Numbers(unittest.TestCase):
@@ -123,24 +173,27 @@ class Numbers(unittest.TestCase):
 
 class Gate(unittest.TestCase):
     def test_a_pass_ships_the_llm_text(self):
-        text, source, result = gate("CHK-311: 4 bug fixes.", CHK_311, "TEMPLATE", teams=TEAMS)
+        text, source, result = gate("CHK-311: 4 bug fixes.", CHK_311, "TEMPLATE", teams=TEAMS, people=corpus.PEOPLE)
         self.assertEqual((text, source, result.passed), ("CHK-311: 4 bug fixes.", "llm", True))
 
     def test_a_miss_ships_the_whole_template_never_a_stripped_text(self):
         text, source, result = gate("CHK-311 has 5 bug fixes. Keep the handling.", CHK_311,
-                                    lambda f: f"{f['facts']['key']}: see the call sites.", teams=TEAMS)
+                                    lambda f: f"{f['facts']['key']}: see the call sites.",
+                                    teams=TEAMS, people=corpus.PEOPLE)
         self.assertEqual((text, source), ("CHK-311: see the call sites.", "template"))
         self.assertEqual([(m.kind, m.token) for m in result.misses], [("number", "5")])
 
     def test_no_text_ships_the_template(self):
-        self.assertEqual(gate(None, CHK_311, "T")[:2], ("T", "template"))
+        self.assertEqual(gate(None, CHK_311, "T", teams=TEAMS, people=())[:2], ("T", "template"))
 
     def test_contract_5_object_or_the_inner_facts(self):
         self.assertEqual(ok("CHK-311 at cart/pricing.py:214"), ok("CHK-311 at cart/pricing.py:214", CHK_311["facts"]))
 
     def test_same_input_same_result(self):
         t = "CHK-311 has 5 bug fixes at cart/pricing.py:215, ask payments."
-        self.assertEqual(check(t, CHK_311, teams=TEAMS), check(t, CHK_311, teams=TEAMS))
+        self.assertEqual(ok(t), ok(t))
+        self.assertEqual(check(t, CHK_311, teams=TEAMS, people=corpus.PEOPLE).misses,
+                         check(t, CHK_311, teams=TEAMS, people=corpus.PEOPLE).misses)
 
     def test_fallback_rate(self):
         self.assertEqual(fallback_rate(["llm", "template", "llm", "llm"]), {"texts": 4, "fallbacks": 1, "rate": 0.25})
@@ -148,9 +201,9 @@ class Gate(unittest.TestCase):
 
     def test_unknown_settings_stop(self):
         with self.assertRaises(ValueError):
-            check("x", {}, kinds="everything")
+            check("x", {}, teams=(), people=(), kinds="everything")
         with self.assertRaises(ValueError):
-            check("x", {}, numbers="fuzzy")
+            check("x", {}, teams=(), people=(), numbers="fuzzy")
 
 
 if __name__ == "__main__":
