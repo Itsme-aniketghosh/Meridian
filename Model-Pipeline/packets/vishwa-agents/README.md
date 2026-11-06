@@ -37,12 +37,12 @@ flowchart LR
 
 ## N. The fact gate (first)
 
-`fact_gate.check(text, facts)`: every number, path, SHA, ticket ID, person and team in the text must be a fact value. Any miss and the whole text becomes the template. Never strip the bad part: it leaves broken sentences (06-dead-ideas).
+`fact_gate.check(text, facts, teams=..., people=...)`: every number, path, SHA, ticket ID, person and team in the text must be a fact value. Any miss and the whole text becomes the template. Never strip the bad part: it leaves broken sentences (06-dead-ideas).
 
 - [ ] Extractors for each kind: numbers (with commas and `%`), `path:line`, SHAs, ticket keys, team names from `team_map`
 - [ ] A template per task kind, filled only from facts
 - [ ] The fallback rate per run, published in the run's output
-- [ ] Utkarsh's diff drafter and Rachna's Jev use it too: keep the interface to `check(text, facts)`
+- [ ] Utkarsh's diff drafter and Rachna's Jev use it too: keep the interface to `check(text, facts, teams=..., people=...)`
 
 ## The writer agent and cache
 
