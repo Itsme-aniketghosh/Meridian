@@ -82,6 +82,16 @@ Test: the paired interval of the candidate against lines × files on `val`, at e
 
 Rule: the smallest size whose 3-seed check passes in at least 95% of the triples. Then the pass bar's own check (seeds 1–3) at that size.
 
+Result (Nov 6, `val` N = 4,113, 486 bug-inducing; LightGBM against lines × files; 20 seeds per size):
+
+| Resamples | SD of the low end | SD of the high end | 3-seed triples that pass | One bootstrap |
+|---|---|---|---|---|
+| 500 | 0.0020 | 0.0023 | 57% of 1,140 | 0.07 s |
+| 1,000 | 0.0015 | 0.0017 | 90% | 0.14 s |
+| 2,000 | 0.0012 | 0.0014 | **100%** | 0.28 s |
+
+Picked: **2,000** (`model.toml [eval] bootstrap_reps`). At 1,000, seeds 1–3 alone would have passed (the ends moved 0.0009 and 0.0017), but 1 seed triple in 10 fails: the packet's check would have picked 1,000 on luck. The pass bar's check at 2,000, seeds 1–3: the ends move 0.0011 and 0.0027, under 0.005. What it costs: 0.28 s a bootstrap, so the 60-second bar isn't at risk.
+
 ### 5. Paired or unpaired
 
 Test: on `val`, the candidate against lines × files at decision 4's size. The paired interval (both scores on the same resamples), and the unpaired one (each score on its own resamples). Compare the widths.

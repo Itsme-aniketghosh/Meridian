@@ -21,7 +21,7 @@ value = 1
 
 # Rochan's keys: evaluate.py (packets/rochan-tracking/decisions.md, decisions 2-4)
 [eval]
-bootstrap_reps = 1000              # decision 4: 500, 1,000 or 2,000 resamples
+bootstrap_reps = 2000              # decision 4: the smallest stable size of 500, 1,000 and 2,000
 interval = 0.95                    # bootstrap intervals from 2.5% to 97.5%
 effort = 0.2                       # recall at 20% of changed lines
 effort_ranking = "risk_per_line"   # decision 2: risk or risk_per_line
