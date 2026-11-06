@@ -191,7 +191,7 @@ with tracking.start_run("writer", owner="vishwa", experiment="meridian-agents", 
 
 - An agent gets a facts object: `{"facts": {<name>: <value>}, "source": {<name>: "<table>:<row key>"}}`. Every fact comes from a block row. No person's name or email is ever a fact.
 - It returns JSON: `{"text": "...", "used": [<fact names>]}`, or a diff for the diff drafter.
-- `fact_gate.check(text, facts)` passes only if every number, path, SHA, ticket ID and team in the text is a fact value. A miss means the template ships instead (`source = template`).
+- `fact_gate.check(text, facts, teams=..., people=...)` passes only if every number, path, SHA, ticket ID and team in the text is a fact value. `teams` and `people` are required (`team_map.team`, `person.name`), and a fact that names a person raises. A miss means the template ships instead (`source = template`).
 - Each offer is one `suggestion` row (Utkarsh's table): `kind`, `target`, `owner_team`, `source` (`codemod`, `llm`, `template`, `rules`), `body`, `facts_hash`, plus `agent`, `model`, `route` (`jev` or `rules`).
 - Cache key: sha256 of (model, prompt version, facts JSON with sorted keys). One JSON file per entry in `Data-Pipeline/llm_cache/`.
 
