@@ -180,6 +180,12 @@ default = 0.0
 "ticket_link.added_at" = 0.6          # links older than the changelog (39%)
 "ticket_link.removed_at" = 1.0        # set only on removed links
 "ticket_map.target" = 0.3             # '' on unmapped tickets (15%)
+"suggestion.model" = 1.0              # NULL for codemod, template and rules
+"suggestion.policy_id" = 1.0          # set on stall_reason only
+"suggestion.body" = 1.0               # the KB fixture leaves it empty; a real offer never does
+"outcome.latency_days" = 1.0          # set on applied and edited only
+"push_alert.outcome" = 1.0            # NULL until the PR is merged or closed
+"push_alert.decided_at" = 1.0
 
 [validate.outliers]                   # share of values beyond Q1 - k*IQR or Q3 + k*IQR above max_share is a warning
 iqr_k = 3.0

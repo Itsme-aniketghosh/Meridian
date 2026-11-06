@@ -1,8 +1,8 @@
--- Meridian graph data block · schema v1.2 (v1.1 + call_site.effective_sha, call_edge.introduced_sha: UPDATE-PLAN.md #17. v1.1 = v1 + description, in_except, receiver_from, module_import, deprecation; see FIXES.md)
+-- Meridian graph data block · schema v1.3 (v1.2 + the stage-6 tracking tables: suggestion, outcome, push_alert, policy, match. v1.2 = v1.1 + call_site.effective_sha, call_edge.introduced_sha: UPDATE-PLAN.md #17. v1.1 = v1 + description, in_except, receiver_from, module_import, deprecation; see FIXES.md)
 -- The contract every part writes to. Change it only with Utkarsh and Aniket's OK.
 --
 -- Conventions (full list in CONTRACTS.md):
---   every table carries run_id · times are UTC text 'YYYY-MM-DDTHH:MM:SSZ' · paths are repo-relative POSIX
+--   every table carries run_id (but the stage-6 tracking tables, see there) · times are UTC text 'YYYY-MM-DDTHH:MM:SSZ' · paths are repo-relative POSIX
 --   booleans are 0/1 · lists are sorted JSON arrays · IDs are content hashes (16 hex chars)
 --   rows are inserted in primary-key order · WITHOUT ROWID so the file layout follows the key
 
@@ -324,4 +324,76 @@ CREATE TABLE chain (
   evidence        TEXT NOT NULL,             -- JSON, sorted list of call_site_id / blocked_by keys
   in_cycle        INTEGER NOT NULL CHECK (in_cycle IN (0,1)),
   PRIMARY KEY (run_id, from_key, to_key, type)
+) WITHOUT ROWID;
+
+-- ───────────────────────── Stage 6 · Utkarsh · tracking ─────────────────────────
+-- Written by the product and the auditor, not by a pipeline run: a block whose run left them out has them empty.
+-- They keep rows across runs (like call_site), so their *_at column, not run_id, says when a row became known: a
+-- block never holds one known after its snapshot_at. outcome, push_alert, policy and match have no run_id of their
+-- own: they're keyed by what they decide. REFERENCES are checked by meridian.writer (SQLite's own check stays off).
+
+CREATE TABLE suggestion (                    -- everything we offered, once, as it was shown
+  run_id          TEXT NOT NULL,             -- the run that offered it
+  suggestion_id   TEXT NOT NULL,             -- h(kind, target, facts_hash)
+  kind            TEXT NOT NULL CHECK (kind IN ('diff','ticket_draft','rewrite','stall_reason','legacy')),
+  target_kind     TEXT NOT NULL CHECK (target_kind IN ('call_site','ticket','team','file')),
+  target          TEXT NOT NULL,
+  owner_team      TEXT NOT NULL,
+  source          TEXT NOT NULL CHECK (source IN ('codemod','llm','template','rules')),
+  body            TEXT NOT NULL,             -- the diff, draft or rewrite, exactly as shown
+  facts_hash      TEXT NOT NULL,             -- the gate's facts: all it was allowed to say
+  offered_at      TEXT NOT NULL,             -- = run.snapshot_at of the offering run
+  agent           TEXT NOT NULL,             -- what wrote it: 'diff_drafter', 'writer', 'auditor', ...
+  model           TEXT,                      -- the LLM that wrote it; NULL for codemod, template and rules
+  route           TEXT NOT NULL CHECK (route IN ('jev','rules')),   -- who picked the model: Jev, or the fixed rules
+  policy_id       TEXT REFERENCES policy (policy_id),               -- the auditor policy behind a stall_reason
+  PRIMARY KEY (run_id, suggestion_id)
+  UNIQUE (suggestion_id)                     -- offered once: outcome's REFERENCES needs a unique parent
+) WITHOUT ROWID;
+
+CREATE TABLE outcome (                       -- append-only: a row only when the verdict changes; the newest wins
+  suggestion_id   TEXT NOT NULL REFERENCES suggestion (suggestion_id),
+  decided_run_id  TEXT NOT NULL,
+  outcome         TEXT NOT NULL CHECK (outcome IN ('applied','edited','ignored','rejected','superseded')),
+  decided_at      TEXT NOT NULL,             -- when the code or the ticket showed it, not when we noticed
+  latency_days    INTEGER,                   -- offer -> applied or edited; NULL otherwise
+  rule            TEXT NOT NULL,             -- which [outcomes] rule decided it, or a person's initials
+  evidence        TEXT NOT NULL,             -- JSON: the sha and line, or the ticket key, that proves it
+  PRIMARY KEY (suggestion_id, decided_run_id)
+) WITHOUT ROWID;
+
+CREATE TABLE push_alert (
+  push_sha        TEXT NOT NULL,
+  base_run_id     TEXT NOT NULL,
+  check_id        TEXT NOT NULL CHECK (check_id IN ('P1','P2','P3','P4','P5','P6','P7','P8','P9')),
+  target          TEXT NOT NULL,
+  evidence        TEXT NOT NULL,
+  outcome         TEXT CHECK (outcome IN ('fixed','dismissed','ignored')),   -- NULL until merged or closed
+  decided_at      TEXT,
+  PRIMARY KEY (push_sha, check_id, target)
+) WITHOUT ROWID;
+
+CREATE TABLE policy (                        -- auditor policies: versioned code choosing where to look (04 §9)
+  policy_id       TEXT NOT NULL,             -- '<job>-v<version>', e.g. 'stall-v0'
+  job             TEXT NOT NULL CHECK (job IN ('stall','explore')),
+  version         INTEGER NOT NULL CHECK (version >= 0),
+  author          TEXT NOT NULL,             -- a person's initials, or 'llm:<model>' (never promoted without a person)
+  created_at      TEXT NOT NULL,
+  PRIMARY KEY (policy_id),
+  UNIQUE (job, version)
+) WITHOUT ROWID;
+
+CREATE TABLE match (                         -- the Elo log: one row per decided match. No verdict, no row
+  match_id        TEXT NOT NULL,             -- h(task_id, mode, the two policies sorted, decided_at): a replay and
+                                             -- a live match, or the same pair decided again, are different rows
+  task_id         TEXT NOT NULL,             -- the stall or explore task both policies ranked
+  policy_a        TEXT NOT NULL REFERENCES policy (policy_id),
+  policy_b        TEXT NOT NULL REFERENCES policy (policy_id),
+  result          TEXT NOT NULL CHECK (result IN ('a','b','draw')),
+  mode            TEXT NOT NULL CHECK (mode IN ('live','replay')),   -- replay counts half K, never toward promotion
+  verdict_source  TEXT NOT NULL CHECK (verdict_source IN ('rule','person')),
+  decided_by      TEXT NOT NULL,             -- the verdict rule's name, or a person's initials
+  decided_at      TEXT NOT NULL,
+  PRIMARY KEY (match_id),
+  CHECK (policy_a != policy_b)
 ) WITHOUT ROWID;

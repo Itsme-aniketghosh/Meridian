@@ -48,7 +48,7 @@ The proof shows the KB can carry and answer each feature. The fixture fills `cal
 | Consumer: sites per file, bug fixes this year | ✅ | `call_site`, `file_bug_fixes` | `consumer_files` |
 | Consumer: blocked by shared client; "you are blocking X" | ✅ | `blocked_by`, `call_site.owner_team` | `consumer_blocked`, `consumer_blocking` |
 | Consumer: one-line swaps, diffs | ⛔ | `suggestion` (stage 6) | G1 |
-| Success: used, edited, ignored; burndown before vs after; week-8 review; auto-apply gate | ✅ proposed | `suggestion`, `outcome`, `push_alert` (DDL below), `call_site` | `outcome_*`, `auto_apply_gate` |
+| Success: used, edited, ignored; burndown before vs after; week-8 review; auto-apply gate | ✅ in schema.sql | `suggestion`, `outcome`, `push_alert` (schema.sql), `call_site` | `outcome_*`, `auto_apply_gate` |
 | Developer: push notes P1–P9 | ✅ (P8 in Python) | see push check | `p1_*` … `p9_*` |
 
 ### Ticket tools
@@ -549,44 +549,7 @@ Code decides, not clicks. An outcome is read off later runs, by rule, like every
 | Stall reason | 04 §9's verdict rules (block removed ≤ 7 days before resumption, …), or a person's call, logged with who | | No verdict in the window: no match |
 | Push alert | `fixed`: the merged SHA doesn't have the flagged row | `dismissed`: the comment was resolved with no change | `ignored`: merged with it |
 
-Proposed tables (03-data named `suggestion` and `push_alert`; this fixes their columns and adds `outcome`). They move into schema.sql when stage 6 starts writing suggestions. The proof below runs on exactly this DDL.
-
-```sql
--- name: schema_outcomes
-CREATE TABLE suggestion (                    -- everything we offered, once, as it was shown
-  run_id          TEXT NOT NULL,             -- the run that offered it
-  suggestion_id   TEXT NOT NULL,             -- h(kind, target, facts_hash)
-  kind            TEXT NOT NULL CHECK (kind IN ('diff','ticket_draft','rewrite','stall_reason','legacy')),
-  target_kind     TEXT NOT NULL CHECK (target_kind IN ('call_site','ticket','team','file')),
-  target          TEXT NOT NULL,
-  owner_team      TEXT NOT NULL,
-  source          TEXT NOT NULL CHECK (source IN ('codemod','llm','template','rules')),
-  body            TEXT NOT NULL,             -- the diff, draft or rewrite, exactly as shown
-  facts_hash      TEXT NOT NULL,             -- the gate's facts: all it was allowed to say
-  offered_at      TEXT NOT NULL,             -- = run.snapshot_at of the offering run
-  PRIMARY KEY (run_id, suggestion_id)
-) WITHOUT ROWID;
-CREATE TABLE outcome (                       -- append-only: a row only when the verdict changes; the newest wins
-  suggestion_id   TEXT NOT NULL,
-  decided_run_id  TEXT NOT NULL,
-  outcome         TEXT NOT NULL CHECK (outcome IN ('applied','edited','ignored','rejected','superseded')),
-  decided_at      TEXT NOT NULL,             -- when the code or the ticket showed it, not when we noticed
-  latency_days    INTEGER,                   -- offer -> applied or edited; NULL otherwise
-  rule            TEXT NOT NULL,             -- which [outcomes] rule decided it, or a person's initials
-  evidence        TEXT NOT NULL,             -- JSON: the sha and line, or the ticket key, that proves it
-  PRIMARY KEY (suggestion_id, decided_run_id)
-) WITHOUT ROWID;
-CREATE TABLE push_alert (
-  push_sha        TEXT NOT NULL,
-  base_run_id     TEXT NOT NULL,
-  check_id        TEXT NOT NULL CHECK (check_id IN ('P1','P2','P3','P4','P5','P6','P7','P8','P9')),
-  target          TEXT NOT NULL,
-  evidence        TEXT NOT NULL,
-  outcome         TEXT CHECK (outcome IN ('fixed','dismissed','ignored')),   -- NULL until merged or closed
-  decided_at      TEXT,
-  PRIMARY KEY (push_sha, check_id, target)
-) WITHOUT ROWID;
-```
+The tables are `suggestion`, `outcome` and `push_alert` in [schema.sql](schema.sql) (stage 6, with `policy` and `match` for the auditor). 03-data named `suggestion` and `push_alert`; this doc fixed their columns and added `outcome`, and schema.sql added `agent`, `model`, `route` and `policy_id` to `suggestion` (Contract 5). The proof below runs on schema.sql's tables.
 
 In the fixture, R1 offered six suggestions. Checkout and payments got diffs, billing a ticket draft, `CHK-311` a rewrite. Search, platform and fulfillment got nothing: they are the control group.
 

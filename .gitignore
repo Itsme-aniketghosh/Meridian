@@ -51,6 +51,9 @@ Data-Pipeline/logs/*
 # the Gantt's task timings: no personal data
 !Data-Pipeline/report/airflow_run.csv
 !Data-Pipeline/report/airflow_run_warm.csv
+# the model's feature table: no names or emails, a few MB (Model-Pipeline/packets/README.md, Contract 1)
+!Model-Pipeline/data/
+!Model-Pipeline/data/features.parquet
 
 # OS / editor junk
 .DS_Store
@@ -65,3 +68,8 @@ __pycache__/
 .venv/
 venv/
 .env
+
+# MLflow, local on each machine (Model-Pipeline/packets/README.md, Contract 3)
+mlflow.db*
+mlruns/
+mlartifacts/
