@@ -64,3 +64,19 @@ Why two of these differ from a first reading of 05-test (simulated on Nov 5, bef
 - **Skill 200 Elo apart.** With 200 Elo between policies, a correct Elo got the order right in 2,000 of 2,000 simulated seeds. At 100 apart (64% head-to-head) it gets it right in 94% of seeds, so "20 of 20" would fail 72% of the time with nothing wrong. Smaller gaps are decision 10's question (rank error after 30, 60, 100 matches), not a bar.
 
 Results go in a Results section after each run. The bars above stay as written.
+
+## Results
+
+### Evaluation, Nov 6 (`val` only)
+
+On Rachna's untuned LightGBM (her `candidate.json` isn't written yet), `val` N = 4,113, 486 bug-inducing. These are checked again on the tuned candidate (Nov 8) and on 2024 (Nov 12).
+
+| Bar | Result |
+|---|---|
+| Right numbers | ✅ `test_evaluate.py`, against the hand calculation on the 10-commit example, to 12 decimals: PR-AUC 25/36, ROC-AUC 15/25, F1 at 0.6 = 2/3, recall at 20% of lines 3/5 by risk and 3.35/5 by risk per line. A perfect score: 1.0. A random score on 10,000 rows: within 0.02 of the positive rate |
+| Every number has its N | ✅ 25 of 25 metric blocks in the `val` `metrics.json` carry N and the positive rate |
+| Repeatable | ✅ Three runs on `val`: byte-identical `metrics.json` |
+| Stable intervals | ✅ At 2,000 resamples (decision 4), seeds 1–3: the ends move 0.0011 and 0.0027 (bar: under 0.005) |
+| Fast | ✅ 1.4 s for every model and baseline, 2,000 resamples and three charts (bar: 60 s). 5 s with Python's start and the MLflow run |
+| 2024, once | ✅ for the refusal: `--split test` is refused without `test_allowed = true`, and on uncommitted code (tested). That the choices were committed first is checked on Nov 12, from the run's `git_sha` |
+| Threshold | ✅ Fixed on `val` by decision 3 (precision 0.80 on at least 30 alerts). The test run reuses `val`'s number (tested). `metrics.json` holds its alerts, alert rate and precision, with N |
