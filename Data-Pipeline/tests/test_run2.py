@@ -36,6 +36,25 @@ REMOVED = {
 }
 
 
+class SameConfigAsRunOne(unittest.TestCase):
+    """meridian.next.toml is meridian.toml with only the refs and snapshot_at moved. Runs everywhere, CI included:
+    a later change to meridian.toml (a new [llm] section, a rule) that doesn't reach run 2 fails here."""
+
+    def test_only_refs_and_snapshot_at_differ(self):
+        import tomllib
+        here = Path(__file__).resolve().parents[1]
+
+        def strip(v):
+            if isinstance(v, dict):
+                return {k: strip(x) for k, x in v.items() if k not in ("ref", "snapshot_at")}
+            if isinstance(v, list):
+                return [strip(x) for x in v]
+            return v
+        one, two = (tomllib.loads((here / f).read_text(encoding="utf-8"))
+                    for f in ("meridian.toml", "meridian.next.toml"))
+        self.assertEqual(strip(one), strip(two))
+
+
 @unittest.skipUnless((OUT / "meridian.sqlite").exists(), "needs MERIDIAN_RUN2=<out/<run_id>/> of the second run")
 class SecondRun(unittest.TestCase):
     @classmethod
