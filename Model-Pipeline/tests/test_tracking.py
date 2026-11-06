@@ -1,4 +1,4 @@
-"""model.tracking: the Contract 3 tags on every run, the three experiments, and clear failures.
+"""model.tracking: the Contract 3 tags on every run, the three experiments, LLM calls, and clear failures.
 
 Every test writes to one temporary SQLite store (made once: a new store costs about 2 s of migrations),
 never to the repo's mlflow.db. Run from Model-Pipeline/: python -m pytest tests/test_tracking.py
@@ -10,6 +10,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
@@ -36,6 +37,14 @@ def tearDownModule():
         mlflow.end_run()
     _env.stop()
     _tmp.cleanup()
+
+
+def call(**kw):
+    """One valid log_llm_call, with any field changed."""
+    args = dict(agent="writer", model="small", prompt_version="v1", tokens_in=800, tokens_out=100,
+                cost_usd=0.0004, cache_hit=False, gate_pass=True)
+    args.update(kw)
+    tracking.log_llm_call(**args)
 
 
 class Base(unittest.TestCase):
@@ -209,6 +218,93 @@ class Store(unittest.TestCase):
                 self.assertEqual(tracking.git_state(), ("abc123", "unknown"))
         finally:
             tracking.git_state.cache_clear()
+
+
+class LLMCalls(Base):
+    def agents_run(self, name="writer", nested=False):
+        return tracking.start_run(name, owner="vishwa", experiment="meridian-agents", block_run_id=BLOCK,
+                                  nested=nested, meridian_config=self.meridian, config=self.config)
+
+    def table(self, run):
+        return tracking.load_llm_calls([run.info.run_id]).sort_values("call").reset_index(drop=True)
+
+    def metrics(self, run):
+        return self.client.get_run(run.info.run_id).data.metrics
+
+    def test_one_row_per_call_and_the_totals_with_their_n(self):
+        with self.agents_run() as run:
+            call(tokens_in=1000, tokens_out=200, cost_usd=0.002, gate_pass=True, repo="apache/spark", team="sql")
+            call(tokens_in=0, tokens_out=0, cost_usd=0, cache_hit=True, gate_pass=True)
+            call(tokens_in=500, tokens_out=50, cost_usd=0.001, gate_pass=False, source="template")
+            call(agent="jev", tokens_in=0, tokens_out=0, cost_usd=0, cache_hit=True, gate_pass=None, route="jev")
+        t = self.table(run)
+        self.assertEqual(list(t["call"]), [1, 2, 3, 4])
+        self.assertEqual(set(tracking.CALL_COLUMNS) | {"run_id"}, set(t.columns))
+        self.assertEqual(t.loc[0, "team"], "sql")
+        self.assertEqual(t.loc[3, "route"], "jev")
+        m = self.metrics(run)
+        self.assertEqual(m["llm_calls"], 4)
+        self.assertEqual(m["llm_api_calls"], 2)
+        self.assertEqual(m["cache_hit_rate"], 0.5)
+        self.assertEqual(m["gate_checked"], 3)  # the Jev pick isn't gated: not in the rate's N
+        self.assertAlmostEqual(m["gate_pass_rate"], 2 / 3)
+        self.assertEqual(m["tokens_in"], 1500)
+        self.assertEqual(m["tokens_out"], 250)
+        self.assertAlmostEqual(m["cost_usd"], 0.003)
+
+    def test_rows_written_in_batches_add_up(self):
+        with mock.patch.object(tracking, "FLUSH_EVERY", 3), self.agents_run() as run:
+            for _ in range(7):
+                call()
+        t = self.table(run)
+        self.assertEqual(list(t["call"]), list(range(1, 8)))
+        history = self.client.get_metric_history(run.info.run_id, "llm_calls")
+        self.assertEqual(sorted(h.step for h in history), [3, 6, 7])
+
+    def test_calls_from_worker_threads(self):
+        with self.agents_run() as run:
+            with ThreadPoolExecutor(8) as pool:
+                list(pool.map(lambda i: call(task=f"t{i}"), range(400)))
+        t = self.table(run)
+        self.assertEqual(len(t), 400)
+        self.assertEqual(sorted(t["call"]), list(range(1, 401)))
+        self.assertEqual(self.metrics(run)["llm_calls"], 400)
+
+    def test_a_failed_run_keeps_its_calls(self):
+        with self.assertRaises(RuntimeError):
+            with self.agents_run() as run:
+                call()
+                call()
+                raise RuntimeError("the model went away")
+        self.assertEqual(len(self.table(run)), 2)
+        self.assertEqual(self.client.get_run(run.info.run_id).info.status, "FAILED")
+
+    def test_no_agents_run_open(self):
+        with self.assertRaisesRegex(RuntimeError, "no meridian-agents run is open"):
+            call()
+        with tracking.start_run("model", owner="rachna", **self.paths()):
+            with self.assertRaisesRegex(ValueError, "isn't in meridian-agents"):
+                call()
+
+    def test_two_agents_runs_from_a_thread_need_run_id(self):
+        with self.agents_run("a") as a:
+            with self.agents_run("b", nested=True):
+                with ThreadPoolExecutor(1) as pool:
+                    with self.assertRaisesRegex(RuntimeError, "pass run_id"):
+                        pool.submit(call).result()
+                    pool.submit(lambda: call(run_id=a.info.run_id)).result()
+        self.assertEqual(len(self.table(a)), 1)
+
+    def test_bad_values(self):
+        bad = [dict(team="jane.doe@example.com"), dict(task="ask a@b.io"), dict(tokens_in=-1),
+               dict(tokens_out=1.5), dict(cost_usd=float("nan")), dict(cost_usd=None), dict(cache_hit="yes"),
+               dict(gate_pass=1), dict(source="gpt"), dict(route="llm"), dict(agent=""), dict(latency_ms=-3)]
+        with self.agents_run() as run:
+            for kw in bad:
+                with self.subTest(**{k: repr(v) for k, v in kw.items()}), self.assertRaises(ValueError):
+                    call(**kw)
+            call(model="some-model@20250101", latency_ms=420)  # an @ in a model id is fine
+        self.assertEqual(len(self.table(run)), 1)
 
 
 if __name__ == "__main__":

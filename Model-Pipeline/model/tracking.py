@@ -6,6 +6,11 @@
     with tracking.start_run("lgbm-untuned", owner="rachna", decision="rachna-1"):
         mlflow.log_metric("val_pr_auc", 0.41)
 
+    with tracking.start_run("writer", owner="vishwa", experiment="meridian-agents",
+                            block_run_id="c5118b019d642a9b"):
+        tracking.log_llm_call(agent="writer", model="small", prompt_version="v1", tokens_in=812,
+                              tokens_out=96, cost_usd=0.0004, cache_hit=False, gate_pass=True)
+
 Every run gets the tags below, so any number in MLflow traces back to the block, the code, the
 config and the feature table it came from:
 
@@ -24,13 +29,16 @@ repo root.
 `python -m model.tracking --owner <you>` prints the tags a run would get here, and logs nothing.
 """
 import argparse
+import atexit
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
 import sys
 import threading
+import time
 import tomllib
 import warnings
 from functools import lru_cache
@@ -53,8 +61,20 @@ OWN_TAGS = ("owner", "block_run_id", "git_sha", "git_dirty", "config_sha256", "m
 OWNER = re.compile(r"^[a-z][a-z0-9-]*$")  # your packet name, lower case: rochan, rachna
 DECISION = re.compile(r"^[a-z][a-z0-9]*-[0-9]+$")  # <packet>-<n>: rochan-4
 
+# log_llm_call
+CALLS_FILE = "llm_calls.json"
+CALL_COLUMNS = ("call", "at", "agent", "model", "prompt_version", "tokens_in", "tokens_out", "cost_usd",
+                "cache_hit", "gate_pass", "route", "source", "task", "repo", "team", "latency_ms")
+SOURCES = {"codemod", "llm", "template", "rules"}  # Contract 5, suggestion.source
+ROUTES = {"jev", "rules"}
+EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+FLUSH_EVERY = 500  # rows kept in memory before they're appended to the run's table
+
 _lock = threading.RLock()
 _experiment_ids = {}  # (tracking uri, experiment name) -> id
+_agent_runs = set()  # meridian-agents runs started here and not ended yet
+_pending = {}  # run id -> call rows not yet written
+_totals = {}  # run id -> running totals, logged as metrics
 
 
 # ---------- the tags ----------
@@ -195,6 +215,27 @@ def experiment_id(name):
 
 
 # ---------- runs ----------
+class Run:
+    """What start_run returns. Use it in a `with`: on the way out it writes the run's LLM calls, then ends
+    the run, FAILED if an exception is leaving. Anything else is passed to mlflow's ActiveRun."""
+
+    def __init__(self, active):
+        self._active = active
+
+    def __getattr__(self, name):
+        return getattr(self._active, name)
+
+    def __enter__(self):
+        return self._active
+
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            _close(self._active.info.run_id)
+        finally:
+            self._active.__exit__(exc_type, exc, tb)
+        return False
+
+
 def start_run(name, owner, *, experiment=MODEL, block_run_id=None, decision=None, nested=False, config=None,
               meridian_config=None, features=None, tags=None):
     """Start an MLflow run with the Contract 3 tags. Use instead of mlflow.start_run.
@@ -215,7 +256,164 @@ def start_run(name, owner, *, experiment=MODEL, block_run_id=None, decision=None
                         meridian_config=meridian_config, features=features, tags=tags)
     eid = experiment_id(experiment)
     mlflow, _ = _client()
-    return mlflow.start_run(experiment_id=eid, run_name=name, nested=nested, tags=all_tags)
+    active = mlflow.start_run(experiment_id=eid, run_name=name, nested=nested, tags=all_tags)
+    if experiment == AGENTS:
+        with _lock:
+            _agent_runs.add(active.info.run_id)
+    return Run(active)
+
+
+def end_run(status="FINISHED"):
+    """For a run started without `with`: write its LLM calls, then end it."""
+    import mlflow
+    active = mlflow.active_run()
+    if active is not None:
+        _close(active.info.run_id)
+    mlflow.end_run(status)
+
+
+# ---------- LLM calls ----------
+def _check_call(row):
+    for k in ("agent", "model", "prompt_version"):
+        if not isinstance(row[k], str) or not row[k].strip():
+            raise ValueError(f"log_llm_call: {k} must be a non-empty string")
+    for k in ("tokens_in", "tokens_out"):
+        if isinstance(row[k], bool) or not isinstance(row[k], int) or row[k] < 0:
+            raise ValueError(f"log_llm_call: {k} must be an int >= 0, got {row[k]!r}")
+    for k in ("cost_usd", "latency_ms"):
+        v = row[k]
+        if k == "latency_ms" and v is None:
+            continue
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0:
+            raise ValueError(f"log_llm_call: {k} must be a number >= 0, got {v!r}")
+    if not isinstance(row["cache_hit"], bool):
+        raise ValueError(f"log_llm_call: cache_hit must be True or False, got {row['cache_hit']!r}")
+    if row["gate_pass"] is not None and not isinstance(row["gate_pass"], bool):
+        raise ValueError(f"log_llm_call: gate_pass must be True, False or None, got {row['gate_pass']!r}")
+    if row["source"] is not None and row["source"] not in SOURCES:
+        raise ValueError(f"log_llm_call: source {row['source']!r}: one of {sorted(SOURCES)} (Contract 5)")
+    if row["route"] is not None and row["route"] not in ROUTES:
+        raise ValueError(f"log_llm_call: route {row['route']!r}: one of {sorted(ROUTES)}")
+    for k in ("task", "repo", "team"):
+        v = row[k]
+        if v is not None and not isinstance(v, str):
+            raise ValueError(f"log_llm_call: {k} must be a string, got {v!r}")
+    for k in ("agent", "prompt_version", "task", "repo", "team"):  # not model: some model ids carry an @
+        v = row[k]
+        if v is not None and EMAIL.search(v):
+            raise ValueError(f"log_llm_call: {k} looks like it holds an email. No names or emails leave the block")
+
+
+def _agents_run(run_id):
+    """The meridian-agents run a call belongs to: run_id if given, else this thread's active run, else the
+    only one open in this process (worker threads don't see the main thread's active run)."""
+    import mlflow
+    with _lock:
+        if run_id is not None:
+            if run_id not in _agent_runs:
+                raise ValueError(f"run {run_id} isn't an open meridian-agents run started with tracking.start_run")
+            return run_id
+        active = mlflow.active_run()
+        if active is not None:
+            if active.info.run_id in _agent_runs:
+                return active.info.run_id
+            raise ValueError("the active run isn't in meridian-agents: start one with "
+                             "tracking.start_run(name, owner, experiment='meridian-agents', block_run_id=...)")
+        if len(_agent_runs) == 1:
+            return next(iter(_agent_runs))
+        if not _agent_runs:
+            raise RuntimeError("no meridian-agents run is open: start one with "
+                               "tracking.start_run(name, owner, experiment='meridian-agents', block_run_id=...)")
+        raise RuntimeError(f"{len(_agent_runs)} meridian-agents runs are open: pass run_id=")
+
+
+def log_llm_call(*, agent, model, prompt_version, tokens_in, tokens_out, cost_usd, cache_hit, gate_pass,
+                 route=None, source=None, task=None, repo=None, team=None, latency_ms=None, run_id=None):
+    """One LLM call, into the open meridian-agents run.
+
+    agent           writer, jev, diff_drafter, ...
+    model           the model id the call used (meridian.toml [llm])
+    prompt_version  the prompt's version, the same one the cache key uses
+    tokens_in, tokens_out, cost_usd   what the call cost. 0 for a cache hit
+    cache_hit       True if the answer came from llm_cache/ and no call was made
+    gate_pass       the fact gate's verdict; None if the output isn't gated (a Jev pick)
+    route           jev or rules (Rachna's Jev); source: codemod, llm, template or rules (Contract 5)
+    task, repo, team  what the call was for, for slicing. Never a person
+    latency_ms      wall time of the call
+    run_id          the run, when calling from a worker thread with more than one agents run open
+
+    Rows stay in memory and are written to the run's llm_calls.json table when the run ends (or every
+    FLUSH_EVERY calls), with the totals as metrics. A call costs about 0.06 ms; one MLflow run per call
+    cost 7.4 ms (packets/rochan-tracking/decisions.md). No prompt or response text is logged, by design:
+    only counts and labels, so nothing a person wrote can leave the block through MLflow.
+    """
+    row = {"agent": agent, "model": model, "prompt_version": prompt_version, "tokens_in": tokens_in,
+           "tokens_out": tokens_out, "cost_usd": cost_usd, "cache_hit": cache_hit, "gate_pass": gate_pass,
+           "route": route, "source": source, "task": task, "repo": repo, "team": team, "latency_ms": latency_ms}
+    _check_call(row)
+    with _lock:
+        rid = _agents_run(run_id)
+        t = _totals.setdefault(rid, {"calls": 0, "api_calls": 0, "gate_checked": 0, "gate_passed": 0,
+                                     "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0})
+        t["calls"] += 1
+        t["api_calls"] += not cache_hit
+        t["gate_checked"] += gate_pass is not None
+        t["gate_passed"] += gate_pass is True
+        t["tokens_in"] += tokens_in
+        t["tokens_out"] += tokens_out
+        t["cost_usd"] += float(cost_usd)
+        row["call"] = t["calls"]
+        row["at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        rows = _pending.setdefault(rid, [])
+        rows.append(row)
+        if len(rows) >= FLUSH_EVERY:
+            _flush(rid)
+
+
+def _flush(run_id):
+    """Append the run's pending rows to llm_calls.json and log its totals. Called with _lock held."""
+    rows = _pending.get(run_id)
+    if not rows:
+        return
+    from mlflow.entities import Metric
+    _, client = _client()
+    client.log_table(run_id, {c: [r[c] for r in rows] for c in CALL_COLUMNS}, CALLS_FILE)
+    del _pending[run_id]  # only once written: a failed write keeps them for the next try
+    t = _totals[run_id]
+    values = {"llm_calls": t["calls"], "llm_api_calls": t["api_calls"],
+              "cache_hit_rate": (t["calls"] - t["api_calls"]) / t["calls"],
+              "gate_checked": t["gate_checked"], "tokens_in": t["tokens_in"], "tokens_out": t["tokens_out"],
+              "cost_usd": t["cost_usd"]}
+    if t["gate_checked"]:
+        values["gate_pass_rate"] = t["gate_passed"] / t["gate_checked"]
+    now = int(time.time() * 1000)
+    client.log_batch(run_id, metrics=[Metric(k, float(v), now, t["calls"]) for k, v in values.items()])
+
+
+def _close(run_id):
+    with _lock:
+        try:
+            _flush(run_id)
+        finally:
+            _agent_runs.discard(run_id)
+            _totals.pop(run_id, None)
+
+
+@atexit.register
+def _flush_all():
+    """A run ended with mlflow.end_run() instead of `with` still keeps its calls."""
+    with _lock:
+        for rid in list(_pending):
+            try:
+                _flush(rid)
+            except Exception as e:  # the interpreter is going away: say so, don't raise
+                print(f"tracking: couldn't write the LLM calls of run {rid}: {e}", file=sys.stderr)
+
+
+def load_llm_calls(run_ids=None):
+    """Every logged LLM call as a DataFrame with a run_id column, for slicing by agent, repo or team."""
+    _, client = _client()
+    return client.load_table(experiment_id(AGENTS), CALLS_FILE, run_ids=run_ids, extra_columns=["run_id"])
 
 
 # ---------- the command ----------
