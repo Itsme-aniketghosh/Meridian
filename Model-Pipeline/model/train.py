@@ -1,10 +1,11 @@
-"""Baselines, models and tuning for the defect-risk model (AI 1, step C).
+"""Baselines, models and tuning for the defect-risk model (Rachna, step C).
 
 Reads the feature table of Contract 1 (Model-Pipeline/packets/README.md). Every fit goes through `fit_rows`,
 which only ever returns `train` rows, and `rows` refuses `test` outright: nobody looks at 2024 until Nov 12.
 """
 import argparse
 import json
+import os
 import sys
 import tomllib
 from pathlib import Path
@@ -27,11 +28,34 @@ TICKET = ["fix", "has_ticket"]
 OTHER = ["is_minor"]
 NUMERIC = SIZE + HISTORY + TICKET + OTHER
 CATEGORICAL = ["ticket_type"]
-SLICES = ["module", "component", "exp_bucket", "size_bucket"]   # AI 3's bias slices: never model inputs
+SLICES = ["module", "component", "exp_bucket", "size_bucket"]   # Chaitali's bias slices: never model inputs
 CONTRACT_COLUMNS = ID_COLUMNS + NUMERIC + CATEGORICAL + SLICES
 
 SPLITS = {"train", "val", "test", "none"}
 LABELLED = {"train", "val", "test"}
+
+
+def threads():
+    """Threads for one forest or LightGBM fit: $MERIDIAN_THREADS (pmap sets each worker's share), else up to 8.
+    Neither changes a seeded model's predictions (tests/test_parallel.py), only how fast it fits."""
+    return int(os.environ.get("MERIDIAN_THREADS", min(8, os.cpu_count() or 1)))
+
+
+def _set_threads(n):
+    os.environ["MERIDIAN_THREADS"] = n  # top level: Windows starts workers by pickling the initializer
+
+
+def pmap(fn, args):
+    """fn(*a) for each a in args, in separate processes, results in order. Each call seeds its own model, so the
+    result is the same as a loop (tests/test_parallel.py). MERIDIAN_WORKERS caps the processes; 1 runs the loop."""
+    args = [tuple(a) for a in args]
+    workers = min(len(args), int(os.environ.get("MERIDIAN_WORKERS", os.cpu_count() or 1)))
+    if workers <= 1:
+        return [fn(*a) for a in args]
+    from concurrent.futures import ProcessPoolExecutor
+    share = str(max(1, min(8, (os.cpu_count() or 1) // workers)))  # so the processes don't fight for cores
+    with ProcessPoolExecutor(workers, initializer=_set_threads, initargs=(share,)) as ex:
+        return list(ex.map(fn, *zip(*args)))
 
 
 class FeatureError(ValueError):
@@ -70,7 +94,7 @@ def check_table(df, split_years=None):
 def rows(df, *splits):
     """The rows of the named splits. `test` is refused: train.py never sees 2024."""
     if "test" in splits:
-        raise PermissionError("train.py never reads test rows; the one 2024 run is AI 2's, on Nov 12")
+        raise PermissionError("train.py never reads test rows; the one 2024 run is Rochan's, on Nov 12")
     unknown = set(splits) - SPLITS
     if unknown:
         raise ValueError(f"unknown split(s): {sorted(unknown)}")
@@ -158,7 +182,7 @@ def build_model(kind, seed, params=None, imbalance="none", pos_rate=None):
                              LogisticRegression(class_weight=weight, random_state=seed, **lr))
     if kind == "forest":
         from sklearn.ensemble import RandomForestClassifier
-        rf = dict(n_estimators=300, min_samples_leaf=20, max_features="sqrt", n_jobs=-1)
+        rf = dict(n_estimators=300, min_samples_leaf=20, max_features="sqrt", n_jobs=threads())
         rf.update(params)
         return RandomForestClassifier(class_weight=weight, random_state=seed, **rf)
     import lightgbm
@@ -169,9 +193,11 @@ def build_model(kind, seed, params=None, imbalance="none", pos_rate=None):
         if not pos_rate or not 0 < pos_rate < 1:
             raise ValueError("scale_pos_weight needs the train positive rate")
         gbm["scale_pos_weight"] = (1 - pos_rate) / pos_rate
-    # Decision 9: deterministic trees, one fixed thread count, so laptops, the image and CI agree.
+    # Decision 9: deterministic trees, so laptops, the image and CI agree. With deterministic and force_row_wise,
+    # the thread count doesn't change a prediction (max |diff| 0.0 at 1, 4, 8, 16 threads), so use the cores:
+    # 3x faster at 4 threads than at 1.
     return lightgbm.LGBMClassifier(class_weight=weight, random_state=seed, deterministic=True,
-                                   force_row_wise=True, n_jobs=1, verbose=-1, **gbm)
+                                   force_row_wise=True, n_jobs=threads(), verbose=-1, **gbm)
 
 
 def fit_predict(fit, score, kind, seed, params=None, imbalance="none", ticket_features=True, drop=(),
@@ -207,7 +233,7 @@ def chance_ceiling(y, q=0.99, reps=300, seed=0):
 
 def paired_bootstrap(y, a, b, reps=1000, seed=0):
     """PR-AUC of a minus PR-AUC of b on the same rows, with a 95% interval from resampling rows.
-    Stands in for AI 2's helper until it's merged; same method."""
+    Stands in for Rochan's helper until it's merged; same method."""
     y, a, b = (np.asarray(v) for v in (y, a, b))
     rng = np.random.default_rng(seed)
     diffs = []
@@ -326,14 +352,13 @@ def tune(df, kind, seed, search=None, start=50, step=50, max_trials=200, window=
 def seed_noise(df, kind, params, out_dir, seeds=(1, 2, 3, 4, 5)):
     """The chosen config refitted with each seed, scored on val. Writes reports/seed_noise.json
     (Contract 5: mean and standard deviation of val PR-AUC) and every seed's val scores beside it.
-    Any gap smaller than this noise isn't real: AI 2's promotion rule and AI 3's gate read it."""
+    Any gap smaller than this noise isn't real: Rochan's promotion rule and Chaitali's gate read it."""
     if len(seeds) < 2 or len(set(seeds)) != len(seeds):
         raise ValueError("seed noise needs at least two different seeds")
     val = rows(df, "val")
     y = val["label"].astype(int).to_numpy()
     values, scores = [], {}
-    for seed in seeds:
-        _, s, scored = fit_and_score(df, kind, seed, params)
+    for seed, (_, s, scored) in zip(seeds, pmap(fit_and_score, [(df, kind, seed, params) for seed in seeds])):
         assert scored.index.equals(val.index)
         values.append(pr_auc(y, s))
         scores[f"seed_{seed}"] = s
@@ -384,8 +409,8 @@ def evaluate(df, seed, out_dir, models, tag, reps=1000):
     val = rows(df, "val")
     y = val["label"].astype(int).to_numpy()
     scores = dict(baseline_scores(val))
-    for kind, params in models.items():
-        _, s, scored = fit_and_score(df, kind, seed, params)
+    fits = pmap(fit_and_score, [(df, kind, seed, params) for kind, params in models.items()])
+    for kind, (_, s, scored) in zip(models, fits):
         assert scored.index.equals(val.index)
         scores[kind] = s
     ref = scores["lines_x_files"]
@@ -420,16 +445,15 @@ def search_space(cfg):
     return merged
 
 
-def log_to_mlflow(summary, out_dir, decision="ai1-1"):
-    """Through AI 2's tracking.py (Contract 3). Until it's merged, say so and carry on."""
+def log_to_mlflow(summary, out_dir, decision="rachna-1"):
+    """Through Rochan's tracking.py (Contract 3). Until it's merged, say so and carry on."""
     try:
         from model import tracking
     except ImportError:
-        print("not logged to MLflow: model/tracking.py (AI 2) isn't merged yet")
+        print("not logged to MLflow: model/tracking.py (Rochan) isn't merged yet")
         return
     import mlflow
-    with tracking.start_run(summary["tag"], owner="ai1"):
-        mlflow.set_tag("decision", decision)
+    with tracking.start_run(summary["tag"], owner="rachna", decision=decision):  # checked by tracking.py
         mlflow.log_param("seed", summary["seed"])
         for name, r in summary["results"].items():
             mlflow.log_metric(f"val_pr_auc_{name}", r["pr_auc"])
@@ -449,7 +473,7 @@ def print_summary(s):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description="AI 1: baselines and models on val. Run from Model-Pipeline/.")
+    p = argparse.ArgumentParser(description="Rachna: baselines and models on val. Run from Model-Pipeline/.")
     p.add_argument("--config", default=str(HERE / "model.toml"))
     p.add_argument("--features", default=str(HERE / "data" / "features.parquet"))
     p.add_argument("--out", default=str(HERE / "reports"))
@@ -479,13 +503,13 @@ def main(argv=None):
     if a.untuned:
         summary = untuned(df, seed, out, a.reps, a.models)
         print_summary(summary)
-        log_to_mlflow(summary, out, "ai1-1")
+        log_to_mlflow(summary, out, "rachna-1")
         print(f"wrote {out / 'untuned_val.json'} and untuned_val_scores.csv")
     if a.tune:
         space = search_space(cfg)
         best = {}
-        for kind in a.tune:
-            result = tune(df, kind, seed, space, a.start, a.step, a.max_trials)
+        results = pmap(tune, [(df, kind, seed, space, a.start, a.step, a.max_trials) for kind in a.tune])
+        for kind, result in zip(a.tune, results):
             out.mkdir(parents=True, exist_ok=True)
             (out / f"tuning_{kind}.json").write_text(json.dumps(result, indent=2) + "\n")
             print(f"{kind}: {result['n_trials']} trials, stopped {result['stopped']}, "
@@ -493,7 +517,7 @@ def main(argv=None):
             best[kind] = result["best_params"]
         summary = evaluate(df, seed, out, best, "tuned", a.reps)
         print_summary(summary)
-        log_to_mlflow(summary, out, "ai1-6")
+        log_to_mlflow(summary, out, "rachna-6")
         print(f"wrote {out / 'tuned_val.json'}, tuned_val_scores.csv and tuning_<kind>.json")
     if a.seed_noise:
         kind, params = read_params(a.seed_noise)

@@ -120,7 +120,7 @@ class BuildModel(unittest.TestCase):
         m = build_model("lgbm", 1)
         p = m.get_params()
         self.assertTrue(p["deterministic"])
-        self.assertEqual(p["n_jobs"], 1)
+        self.assertTrue(p["force_row_wise"])  # with deterministic: any thread count, same predictions (test_parallel)
 
 
 if __name__ == "__main__":
