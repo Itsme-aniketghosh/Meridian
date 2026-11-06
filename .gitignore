@@ -65,3 +65,8 @@ __pycache__/
 .venv/
 venv/
 .env
+
+# MLflow, local on each machine (Model-Pipeline/packets/README.md, Contract 3)
+mlflow.db*
+mlruns/
+mlartifacts/
