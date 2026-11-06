@@ -96,7 +96,8 @@ class _Facts:
         elif isinstance(v, str):
             self._string(v)
         elif isinstance(v, dict):
-            paired = isinstance(v.get("path"), str) and isinstance(v.get("line"), int) and not isinstance(v["line"], bool)
+            line = v.get("line")
+            paired = isinstance(v.get("path"), str) and isinstance(line, int) and not isinstance(line, bool)
             if paired:
                 self.path_lines.add((v["path"], v["line"]))
             for k, x in v.items():
@@ -197,12 +198,10 @@ def check(text, facts, *, teams=(), people=(), kinds=DEFAULT_KINDS, numbers=DEFA
                 checked += 1
                 miss("person", m.group(0), m.start())
 
-    last_path = None
     for m in _PATH.finditer(text):
         if not take(m):
             continue
         path, line = m.group(1), int(m.group(2)) if m.group(2) else None
-        last_path = (m.end(), path)
         if "path" in on:
             checked += 1
             if not known.path_known(path, line):
