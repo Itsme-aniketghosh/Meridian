@@ -1,4 +1,4 @@
-"""Baselines, models and tuning for the defect-risk model (AI 1, step C).
+"""Baselines, models and tuning for the defect-risk model (Rachna, step C).
 
 Reads the feature table of Contract 1 (Model-Pipeline/packets/README.md). Every fit goes through `fit_rows`,
 which only ever returns `train` rows, and `rows` refuses `test` outright: nobody looks at 2024 until Nov 12.
@@ -27,7 +27,7 @@ TICKET = ["fix", "has_ticket"]
 OTHER = ["is_minor"]
 NUMERIC = SIZE + HISTORY + TICKET + OTHER
 CATEGORICAL = ["ticket_type"]
-SLICES = ["module", "component", "exp_bucket", "size_bucket"]   # AI 3's bias slices: never model inputs
+SLICES = ["module", "component", "exp_bucket", "size_bucket"]   # Chaitali's bias slices: never model inputs
 CONTRACT_COLUMNS = ID_COLUMNS + NUMERIC + CATEGORICAL + SLICES
 
 SPLITS = {"train", "val", "test", "none"}
@@ -70,7 +70,7 @@ def check_table(df, split_years=None):
 def rows(df, *splits):
     """The rows of the named splits. `test` is refused: train.py never sees 2024."""
     if "test" in splits:
-        raise PermissionError("train.py never reads test rows; the one 2024 run is AI 2's, on Nov 12")
+        raise PermissionError("train.py never reads test rows; the one 2024 run is Rochan's, on Nov 12")
     unknown = set(splits) - SPLITS
     if unknown:
         raise ValueError(f"unknown split(s): {sorted(unknown)}")
@@ -207,7 +207,7 @@ def chance_ceiling(y, q=0.99, reps=300, seed=0):
 
 def paired_bootstrap(y, a, b, reps=1000, seed=0):
     """PR-AUC of a minus PR-AUC of b on the same rows, with a 95% interval from resampling rows.
-    Stands in for AI 2's helper until it's merged; same method."""
+    Stands in for Rochan's helper until it's merged; same method."""
     y, a, b = (np.asarray(v) for v in (y, a, b))
     rng = np.random.default_rng(seed)
     diffs = []
@@ -326,7 +326,7 @@ def tune(df, kind, seed, search=None, start=50, step=50, max_trials=200, window=
 def seed_noise(df, kind, params, out_dir, seeds=(1, 2, 3, 4, 5)):
     """The chosen config refitted with each seed, scored on val. Writes reports/seed_noise.json
     (Contract 5: mean and standard deviation of val PR-AUC) and every seed's val scores beside it.
-    Any gap smaller than this noise isn't real: AI 2's promotion rule and AI 3's gate read it."""
+    Any gap smaller than this noise isn't real: Rochan's promotion rule and Chaitali's gate read it."""
     if len(seeds) < 2 or len(set(seeds)) != len(seeds):
         raise ValueError("seed noise needs at least two different seeds")
     val = rows(df, "val")
@@ -420,15 +420,15 @@ def search_space(cfg):
     return merged
 
 
-def log_to_mlflow(summary, out_dir, decision="ai1-1"):
-    """Through AI 2's tracking.py (Contract 3). Until it's merged, say so and carry on."""
+def log_to_mlflow(summary, out_dir, decision="rachna-1"):
+    """Through Rochan's tracking.py (Contract 3). Until it's merged, say so and carry on."""
     try:
         from model import tracking
     except ImportError:
-        print("not logged to MLflow: model/tracking.py (AI 2) isn't merged yet")
+        print("not logged to MLflow: model/tracking.py (Rochan) isn't merged yet")
         return
     import mlflow
-    with tracking.start_run(summary["tag"], owner="ai1"):
+    with tracking.start_run(summary["tag"], owner="rachna"):
         mlflow.set_tag("decision", decision)
         mlflow.log_param("seed", summary["seed"])
         for name, r in summary["results"].items():
@@ -449,7 +449,7 @@ def print_summary(s):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description="AI 1: baselines and models on val. Run from Model-Pipeline/.")
+    p = argparse.ArgumentParser(description="Rachna: baselines and models on val. Run from Model-Pipeline/.")
     p.add_argument("--config", default=str(HERE / "model.toml"))
     p.add_argument("--features", default=str(HERE / "data" / "features.parquet"))
     p.add_argument("--out", default=str(HERE / "reports"))
@@ -464,9 +464,10 @@ def main(argv=None):
     p.add_argument("--seed-noise", metavar="TUNING_JSON", help="refit the config in this tuning_<kind>.json "
                    "with seeds 1-5 and write seed_noise.json (decision 7)")
     p.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5])
+    p.add_argument("--check", action="store_true", help="only check the feature table against Contract 1")
     a = p.parse_args(argv)
-    if not a.untuned and not a.tune and not a.seed_noise:
-        p.error("nothing to do: pass --untuned, --tune or --seed-noise")
+    if not (a.untuned or a.tune or a.seed_noise or a.check):
+        p.error("nothing to do: pass --check, --untuned, --tune or --seed-noise")
     cfg = load_config(a.config)
     try:
         df = load_features(a.features)
@@ -474,12 +475,16 @@ def main(argv=None):
         check_table(df, {"train": sp["train"], "val": sp["val"], "test": sp["test"]})
     except FeatureError as e:
         sys.exit(f"feature table: {e}")
+    if a.check:
+        counts = df["split"].value_counts()
+        print(f"feature table ok: {len(df):,} rows, " + ", ".join(f"{s} {int(counts.get(s, 0)):,}"
+                                                                for s in ("train", "val", "test", "none")))
     seed = int(cfg["seed"]["value"])
     out = Path(a.out)
     if a.untuned:
         summary = untuned(df, seed, out, a.reps, a.models)
         print_summary(summary)
-        log_to_mlflow(summary, out, "ai1-1")
+        log_to_mlflow(summary, out, "rachna-1")
         print(f"wrote {out / 'untuned_val.json'} and untuned_val_scores.csv")
     if a.tune:
         space = search_space(cfg)
@@ -493,7 +498,7 @@ def main(argv=None):
             best[kind] = result["best_params"]
         summary = evaluate(df, seed, out, best, "tuned", a.reps)
         print_summary(summary)
-        log_to_mlflow(summary, out, "ai1-6")
+        log_to_mlflow(summary, out, "rachna-6")
         print(f"wrote {out / 'tuned_val.json'}, tuned_val_scores.csv and tuning_<kind>.json")
     if a.seed_noise:
         kind, params = read_params(a.seed_noise)
