@@ -364,7 +364,7 @@ def _axes(ax):
 
 
 def _title(fig, title, subtitle):
-    fig.text(0.02, 0.97, title, ha="left", va="top", fontsize=12, color=INK, weight="semibold")
+    fig.text(0.02, 0.97, title, ha="left", va="top", fontsize=12, color=INK, weight="bold")
     fig.text(0.02, 0.91, subtitle, ha="left", va="top", fontsize=9, color=INK2)
 
 
@@ -391,9 +391,9 @@ def charts(m, y, scores, out_dir):
 
     # 1. PR-AUC with intervals, best first
     names = sorted(models, key=lambda k: models[k]["pr_auc"]["value"])
-    fig, ax = plt.subplots(figsize=(8, 1.2 + 0.5 * len(names)), facecolor=SURFACE)
-    fig.subplots_adjust(left=0.17, right=0.8, top=1 - 0.75 / (1.2 + 0.5 * len(names)), bottom=0.6 / (1.2 + 0.5 * len(
-        names)))
+    height = 1.2 + 0.5 * len(names)
+    fig, ax = plt.subplots(figsize=(9, height), facecolor=SURFACE)
+    fig.subplots_adjust(left=0.15, right=0.76, top=1 - 0.75 / height, bottom=0.6 / height)
     _axes(ax)
     ax.grid(axis="y", visible=False)
     for i, name in enumerate(names):
@@ -407,8 +407,8 @@ def charts(m, y, scores, out_dir):
     ax.set_yticks(range(len(names)), [label[k] for k in names])
     ax.set_xlim(0, min(1, max(models[k]["pr_auc"]["interval"][1] for k in names) + 0.12))
     ax.set_xlabel("PR-AUC (average precision)", color=INK2, fontsize=9)
-    ax.legend(handles=[Patch(color=BLUE, label="candidate"), Patch(color=ORANGE, label="lines × files, the bar"),
-                       Patch(color=GRAY, label="other")], loc="lower left", bbox_to_anchor=(1.0, 0.0),
+    ax.legend(handles=[Patch(color=BLUE, label="candidate"), Patch(color=ORANGE, label="lines × files (the bar)"),
+                       Patch(color=GRAY, label="others")], loc="lower left", bbox_to_anchor=(1.02, 0.0),
               frameon=False, fontsize=8.5, labelcolor=INK2)
     _title(fig, f"PR-AUC on {split}, with 95% bootstrap intervals",
            f"N = {n:,} commits, {pos:,} bug-inducing ({rate:.1%}); {m['settings']['bootstrap_reps']:,} resamples")
@@ -449,7 +449,8 @@ def charts(m, y, scores, out_dir):
     handles = []
     for name in (REFERENCE, cand):
         p, r, _ = precision_recall_curve(y, scores[name])
-        ax.step(r, p, where="post", color=color[name], linewidth=2, solid_joinstyle="round")
+        # the last point is scikit-learn's (recall 0, precision 1) end marker, not a threshold: left out
+        ax.step(r[:-1], p[:-1], where="post", color=color[name], linewidth=2, solid_joinstyle="round")
         handles.append(Line2D([], [], color=color[name], linewidth=2,
                               label=f"{label[name]}, PR-AUC {models[name]['pr_auc']['value']:.3f}"))
     if t["threshold"] is not None and t["alerts"]:
@@ -459,7 +460,7 @@ def charts(m, y, scores, out_dir):
                     (t["recall"], t["precision"]), xytext=(10, 6), textcoords="offset points", fontsize=8.5,
                     color=INK2)
     ax.axhline(rate, color=MUTED, linewidth=1)
-    ax.text(1.0, rate, f"chance {rate:.3f} ", ha="right", va="bottom", fontsize=8, color=MUTED)
+    ax.text(0.01, rate, f"chance = positive rate {rate:.3f}", ha="left", va="bottom", fontsize=8, color=MUTED)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1.02)
     ax.set_xlabel("recall", color=INK2, fontsize=9)
