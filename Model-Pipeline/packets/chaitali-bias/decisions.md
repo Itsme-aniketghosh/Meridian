@@ -105,3 +105,15 @@ Used `alert_rate` (0.154): `[eval]`'s precision rule flags 0 val commits.
 ## Context for decision 5: the old rule is more skewed than the model
 
 The same check on lines × files at the same alert rate flags 6 slices: `size_bucket` Q2 recall **0.000**, Q3 recall **0.018**, Q4 false-positive rate **0.540**, both PR-AUCs, and `component=Pandas API on Spark` false-positive rate 0.294 (not under Bonferroni). The model is less skewed in every size slice. Part of the skew is the base rate: positives are 1.9% of Q1, 5.2% of Q2, 12.4% of Q3 and 29.0% of Q4, so at a fixed alert budget most alerts go to large commits. Decision 5 tests whether a mitigation can narrow it further within its rule.
+
+---
+
+# Decision 5: how it runs (Nov 8, before the run)
+
+Written after decisions 1–4 found the flags (all on `size_bucket`) and before any mitigation was tried.
+
+- **The gap it judges:** the worst flagged gap on the candidate with no mitigation (on the first candidate: `size_bucket=Q2` recall, 0.039 against 0.496). Closing = how much of that slice-and-metric gap goes, at the same alert budget.
+- **Per-group thresholds, by `size_bucket`** (known at push time): (a) one threshold per bucket so every bucket reaches the same recall, with total alerts held at the budget; (b) Fairlearn's `ThresholdOptimizer` with true-positive-rate parity, reported for its own alert count. Both are fitted on one half of `val` (split by `sha`) and scored on the other, then swapped, so no threshold is judged on the rows that set it.
+- **Re-sampling, with Rachna's code unchanged:** the train rows of positives in `size_bucket` Q1–Q3 added 1 and 3 more times (×2, ×4), refitted by `train.fit_and_score` with the candidate's kind, params and seed, scored on all of `val`. Whole-number re-weighting is the same fit, so it's covered by this.
+- **Cost:** `val` PR-AUC against no mitigation. A threshold doesn't change the score, so its PR-AUC cost is 0 by construction; overall recall and precision at the budget are reported beside it, and a threshold that costs more than 0.02 overall precision isn't adopted (the 0.01 PR-AUC bar can't see that cost).
+- **If more than one qualifies:** the one with the smallest cost; on a tie, the simpler (a threshold before a refit).
