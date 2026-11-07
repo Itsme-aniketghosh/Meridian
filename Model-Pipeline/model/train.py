@@ -30,6 +30,7 @@ NUMERIC = SIZE + HISTORY + TICKET + OTHER
 # Every numeric input except age is a count, a 0/1 flag or an entropy: never below 0. age can be: when a commit's
 # author date is earlier than the last change to its files (rebases, cherry-picks), "days since" comes out a little
 # negative (8 of 41,163 rows on c5118, min -1.94 days). feature_matrix reads those as 0, "changed just before".
+# shortcut: data.py now writes 0 itself (Nov 6); once features.parquet is rebuilt, empty this so check_table refuses it.
 CAN_BE_NEGATIVE = ("age",)
 CATEGORICAL = ["ticket_type"]
 SLICES = ["module", "component", "exp_bucket", "size_bucket"]   # Chaitali's bias slices: never model inputs

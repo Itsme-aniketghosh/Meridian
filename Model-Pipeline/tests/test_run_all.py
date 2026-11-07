@@ -91,10 +91,6 @@ class Plan(unittest.TestCase):
         self.assertEqual(out.count("python -m"), 7)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class Check(unittest.TestCase):
     def test_check_prints_rows_per_split_and_writes_nothing(self):
         from model.train import main as train_main
@@ -117,3 +113,7 @@ class Check(unittest.TestCase):
             _, out = quiet(train_main, ["--check", "--features", str(Path(d) / "f.csv"), "--config",
                                         str(Path(d) / "none.toml")])
         self.assertIn("age is below 0 on 2 rows (min -1.94)", out)
+
+
+if __name__ == "__main__":
+    unittest.main()
