@@ -59,7 +59,7 @@ COLUMNS = [
     ("ns", "int", "top-level directories touched"),
     ("entropy", "float", "Shannon entropy (bits) of changed lines across files"),
     ("ndev", "int", "distinct earlier authors (merged persons) on these files"),
-    ("age", "float", "mean days since these files last changed; 0 when none changed before, never below 0"),
+    ("age", "float", "mean days since these files last changed; 0 when none changed before"),
     ("nuc", "int", "distinct earlier commits on these files"),
     ("exp", "int", "the author's earlier commits (merged person)"),
     ("sexp", "int", "the author's earlier commits in this commit's module"),
@@ -211,9 +211,7 @@ def history(commits, files, person, fixes, prior_fix_days):
             "ns": len({top(p) for p, _, _, _ in fs}),
             "entropy": round(entropy(lines), 6),
             "ndev": len(authors),
-            # author dates aren't in first-parent order (rebases, cherry-picks): a file "last changed" up to ~2 days
-            # after this commit reads as just changed, 0, never below
-            "age": max(0.0, round(sum(t - s[0] for s in seen) / len(seen), 4)) if seen else 0.0,
+            "age": round(sum(t - s[0] for s in seen) / len(seen), 4) if seen else 0.0,
             "nuc": len(earlier),
             "exp": exp[who], "sexp": sexp[(who, module)],
             "prior_bug_fixes": len(fixed),

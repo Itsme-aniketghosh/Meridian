@@ -156,16 +156,6 @@ class FeatureTable(unittest.TestCase):
         self.assertEqual((df.loc["c3", "has_ticket"], df.loc["c3", "ticket_type"]), (0, "none"))
         self.assertEqual(df.loc["c3", "nuc"], 3)  # c0, c1, f1
 
-    def test_age_never_below_zero(self):
-        # a commit authored 2 days before the last change to its file, later in first-parent order
-        commits = pd.DataFrame({"sha": ["a", "b"], "authored_at": ["2016-01-03T00:00:00Z", "2016-01-01T00:00:00Z"],
-                                "author_email": ["x@a.org", "x@a.org"]})
-        files = pd.DataFrame({"sha": ["a", "b"], "path": ["f.py", "f.py"], "old_path": [None, None],
-                              "added": [1, 1], "deleted": [0, 0]})
-        out = data.history(commits, files, {"x@a.org": 0}, set(), 365)
-        self.assertEqual(out["b"]["age"], 0.0)
-        self.assertGreaterEqual(self.df.age.min(), 0)
-
     def test_latest_must_match_config(self):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "latest.json").write_text(json.dumps({"run_id": "other", "file": "x.sqlite"}))

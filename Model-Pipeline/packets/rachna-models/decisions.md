@@ -38,7 +38,7 @@ Common terms:
 
 | Date | What | Handling |
 |---|---|---|
-| Nov 6 | `age` is below 0 on 8 of 41,163 rows of the c5118 table (train 6, val 1, test 1), min −1.94 days. Found by the first real `--untuned` run: `log1p` of the one value below −1 made a NaN, and logistic regression stopped | `feature_matrix` reads `age` below 0 as 0 for every model: "days since the files last changed" can't be negative, and under 2 days below 0 is author dates out of order (rebases, cherry-picks). `check_table` now refuses a negative count or flag, and `--check` reports the negative `age` rows. Told Utkarsh, who owns the table. Fixed at the source the same day: `data.py` writes `age` as 0 when the mean is below 0 (the same values the models already read, so no result changes). When the table is rebuilt, `CAN_BE_NEGATIVE` is emptied and `check_table` refuses a negative `age` too |
+| Nov 6 | `age` is below 0 on 8 of 41,163 rows of the c5118 table (train 6, val 1, test 1), min −1.94 days. Found by the first real `--untuned` run: `log1p` of the one value below −1 made a NaN, and logistic regression stopped | `feature_matrix` reads `age` below 0 as 0 for every model: "days since the files last changed" can't be negative, and under 2 days below 0 is author dates out of order (rebases, cherry-picks). `check_table` now refuses a negative count or flag, and `--check` reports the negative `age` rows. Told Utkarsh, who owns the table |
 
 ## Options considered and not run
 
