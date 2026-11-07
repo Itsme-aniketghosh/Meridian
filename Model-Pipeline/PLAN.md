@@ -328,13 +328,13 @@ Never cut: anything in the course guideline, the gate, the LLM-off fallback, det
 
 Work starts Thu Nov 5 (day 1). Wed Nov 4 is an optional head start: anyone who starts then has a day of slack. The deadline is Sun Nov 15, and the report takes Nov 13–15, so all work and every report section are due Thu Nov 12.
 
-✓ = merged in main as of Nov 6.
+✓ = merged in main as of Nov 7.
 
 | Date | Utkarsh | Rachna | Rochan | Chaitali | Vishwa |
 |---|---|---|---|---|---|
 | Wed Nov 4, optional | Packets read. Aniket adds the team to the GCP project | | | | |
-| Thu Nov 5, day 1 | v1 feature table in git ✓ | pass-bar rows ✓ | `tracking.py` merged ✓ | pass-bars file drafted | fact gate started ✓ |
-| Fri Nov 6, day 2 | label window settled ✓, c5118 rebuild running ✓ | baselines ✓, first candidate ✓ | `evaluate.py` on val ✓ | pass bars merged | fact gate ✓ |
+| Thu Nov 5, day 1 | v1 feature table in git ✓ | pass-bar rows ✓ | `tracking.py` merged ✓ | pass-bars file drafted ✓ | fact gate started ✓ |
+| Fri Nov 6, day 2 | label window settled ✓, c5118 rebuild running ✓ | baselines ✓, first candidate ✓ | `evaluate.py` on val ✓ | pass bars merged ✓ | fact gate ✓ |
 | Sat Nov 7, day 3 | c5118 table ✓, tracking tables ✓ | tuning ✓ | auditor: policy v0, Elo | bias code on the first candidate | fact gate passes 200 + 200 |
 | Sun Nov 8, day 4 | second real run ✓ | tuned candidate, seed noise ✓, image ✓ | auditor stall job, simulation | bias on the tuned candidate | writer agent and cache |
 | Mon Nov 9, day 5 | diff drafter: codemod | SHAP and sensitivity, Jev started | registry, GCP push, rollback | final pick, `gate.py`, alerts | views and API |
