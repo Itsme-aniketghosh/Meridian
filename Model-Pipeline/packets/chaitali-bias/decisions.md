@@ -58,3 +58,50 @@ Found on Nov 7: `[eval] threshold = "precision"` (precision 0.80 on at least 30 
 Options: `[eval]`'s threshold; the alert rate today's P9 rule flags (`[eval] threshold_alert_rate`, 15.4%).
 
 Rule: use `[eval]`'s threshold when it flags at least `threshold_min_alerts` `val` commits; otherwise the alert-rate rule, the same share of commits as today's rule, so the model and lines × files are compared at the same reviewer workload. `bias_report.json` names which one was used. Rochan to be told: `metrics.json` has the same 0 alerts.
+
+---
+
+# Results, first candidate (Nov 7)
+
+Run on the untuned LightGBM (`reports/untuned_val_scores.csv`, column `lgbm`), the candidate until Rachna's tuned one lands (Nov 8), when every number below is redone. `val` N = 4,113, 486 positives. Threshold by decision 10: `[eval]`'s precision rule flags 0, so the P9 alert rate: 634 alerts (15.4%), for the model and lines × files alike. MLflow `meridian-defect-risk`, runs tagged `chaitali-1` and `chaitali-3`; the report run `4e53702581af4b14ae2458ad4e3ba624`.
+
+## 1. Which slices: pool
+
+Judged slices per metric (recall / false-positive rate / PR-AUC):
+
+| Slice | As they are | Under 30 rows into `(other)` |
+|---|---|---|
+| `module` | 4 / 14 / 4 | 4 / **15** / 4 |
+| `component` | 3 / 14 / 3 | 3 / **15** / 3 |
+| `exp_bucket` | 2 / 4 / 2 | 2 / 4 / 2 |
+| `size_bucket` | 3 / 4 / 3 | 3 / 4 / 3 |
+
+Pooling adds one judged slice each for `module` and `component` and hides none: **pooled** (`pool_below = 30`). `(other)` holds 19 modules and 17 components, listed in `bias_report.json`. 62 judged tests in all.
+
+## 2. Metric per slice: they disagree, by size
+
+| Slice | Recall | False-positive rate | PR-AUC |
+|---|---|---|---|
+| `size_bucket=Q2` (986 rows, 51 positives) | **0.039**, flagged | 0.007 | **0.135**, flagged |
+| `size_bucket=Q3` (917, 114) | **0.140**, flagged | 0.070 | **0.210**, flagged (not under Bonferroni) |
+| `size_bucket=Q4` (1,031, 299) | 0.746 | **0.449**, flagged | 0.488 |
+
+Overall: recall 0.496, false-positive rate 0.108, PR-AUC 0.394. The two harms land on different commits: smaller commits get their bugs missed, large ones get false alarms. No `module`, `component` or `exp_bucket` slice is flagged by any metric.
+
+## 3. Flag rule: phase 1's
+
+The planted slices on exact counts: recall 175 of 500 (0.35, interval 0.310–0.393) against 0.50 flagged; 250 of 500 not; the false-positive version flagged, its no-gap version not. Phase 1's rule passes, so it stays. Bonferroni (95% split over 62 tests) keeps 4 of the 5 flags; `size_bucket=Q3` PR-AUC is the one that might be one of many tests.
+
+Power at a true 0.15 gap, judged recall slices: 0.10 to 0.53 (`exp_bucket=>10`, 410 positives, is the highest). False-positive rate: 0.12 to 1.00. So no recall flag on a module or component is weak evidence of no gap: the rule would have caught a 0.15 gap there at most 1 time in 3.
+
+## 4. Newcomers: no worse off, not judged
+
+`exp_bucket = 0`: 176 rows, 16 positives, under 30, so not judged. Recall at the same alert rate: model **0.562** (9 of 16), lines × files **0.438** (7 of 16). The model doesn't treat newcomers worse than the rule it replaces; 16 is too few to say more.
+
+## 10. Threshold: the alert rate
+
+Used `alert_rate` (0.154): `[eval]`'s precision rule flags 0 val commits.
+
+## Context for decision 5: the old rule is more skewed than the model
+
+The same check on lines × files at the same alert rate flags 6 slices: `size_bucket` Q2 recall **0.000**, Q3 recall **0.018**, Q4 false-positive rate **0.540**, both PR-AUCs, and `component=Pandas API on Spark` false-positive rate 0.294 (not under Bonferroni). The model is less skewed in every size slice. Part of the skew is the base rate: positives are 1.9% of Q1, 5.2% of Q2, 12.4% of Q3 and 29.0% of Q4, so at a fixed alert budget most alerts go to large commits. Decision 5 tests whether a mitigation can narrow it further within its rule.

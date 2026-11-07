@@ -36,6 +36,6 @@ slices = ["module", "component", "exp_bucket", "size_bucket"]   # decision 1
 min_n = 30                         # judged when the count a metric is a share of reaches this (phase 1, 05-test)
 max_gap = 0.10                     # flagged when the whole interval is more than this worse than overall (phase 1)
 power_gap = 0.15                   # each slice reports its chance of flagging a true gap this big (decision 3)
-pool_below = 0                     # decision 1: groups under this many rows merge into "other" (0: never)
+pool_below = 30                    # decision 1: groups under this many rows merge into "(other)" (0: never)
 baseline = "lines_x_files"         # decision 4: compared with the candidate at the same alert rate
 accepted = []                      # flagged slices with a mitigation tried and written down: "module=core:recall"
