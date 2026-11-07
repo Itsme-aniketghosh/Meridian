@@ -66,10 +66,10 @@ The GCP repo, once, on the trial project (no Terraform until phase 3):
 
 `python -m meridian.auditor --run-id <id> --config meridian.toml`, settings in `meridian.toml [auditor]`. From [04-architecture §9](../../../docs/04-architecture.md):
 
-- [ ] Policy v0 as code: the stall-reason table (#1–8), ranked by number, then evidence. No probabilities
+- [x] Policy v0 as code: the stall-reason table (#1–8), ranked by number, then evidence. No probabilities
 - [ ] Explore job v0: nominate deprecation-marked symbols with callers (`radar_deprecated_with_callers`). The fan-in and twin signals wait for gaps G3 and G4
 - [ ] ε-greedy: the champion with 1 − ε, else a random challenger. Seed hash(run_id, task_id). ε = 0.2, then 0.1 after 30 matches
-- [ ] Elo: start 1500, K 32, then 16 after 30 matches. Recomputed from the `match` log every run
+- [x] Elo: start 1500, K 32, then 16 after 30 matches. Recomputed from the `match` log every run
 - [ ] Verdict rules: block removed ≤ 7 days before resumption, ticket created ≤ 14 days before, new author resumed, ticket reopened. Else a person picks. None: no match
 - [ ] Replay matches: past stalls, rows with `known_at` ≤ stall time only, half K
 - [ ] Promotion guard: ≥ 30 live matches, +50 Elo, beats v0. LLM-written policies are never promoted without a person
