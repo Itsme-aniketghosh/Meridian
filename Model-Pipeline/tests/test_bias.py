@@ -120,6 +120,33 @@ class Rule(unittest.TestCase):
             bias.bias_settings({"bias": {k: v for k, v in B.items() if k != "max_gap"}})
 
 
+class Mitigation(unittest.TestCase):
+    """Decision 5's pieces: equal-recall thresholds and cross-fitting."""
+
+    def test_equal_recall_thresholds_hold_the_budget_and_equalise_recall(self):
+        rng = np.random.default_rng(5)
+        g = np.repeat(["small", "big"], 1000)
+        y = np.concatenate([rng.random(1000) < 0.05, rng.random(1000) < 0.30]).astype(int)
+        s = rng.random(2000) + y * 0.5 + (g == "big") * 0.5          # big commits score higher, like the size skew
+        t = bias.equal_recall_thresholds(y, s, g, 0.2)
+        flag = np.array([x >= t[k] for x, k in zip(s, g)])
+        self.assertLessEqual(flag.mean(), 0.2)
+        rec = {k: flag[(g == k) & (y == 1)].mean() for k in ("small", "big")}
+        self.assertLess(abs(rec["small"] - rec["big"]), 0.05)
+
+    def test_cross_fit_never_scores_the_rows_that_set_it(self):
+        rows = pd.DataFrame({"sha": [f"{i:040x}" for i in range(40)]})
+        seen = []
+
+        def fit_one(yf, sf, gf, sa, ga):
+            seen.append((set(sf), set(sa)))
+            return np.zeros(len(sa), bool)
+        bias.cross_fit(rows, np.zeros(40), np.arange(40.0), np.zeros(40), fit_one)
+        self.assertEqual(len(seen), 2)
+        for fit, applied in seen:
+            self.assertFalse(fit & applied)
+
+
 class Threshold(unittest.TestCase):
     """Decision 10: [eval]'s rule when it flags enough val commits, else the P9 alert rate."""
     S = {"threshold": "precision", "threshold_precision": 0.8, "threshold_min_alerts": 5, "threshold_alert_rate": 0.2}

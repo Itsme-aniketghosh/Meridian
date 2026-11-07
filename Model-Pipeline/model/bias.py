@@ -34,6 +34,7 @@ import numpy as np
 import pandas as pd
 from fairlearn.metrics import MetricFrame
 from scipy.stats import binom, norm
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import average_precision_score
 
 from model.evaluate import (CANDIDATE, FEATURES, MODEL_TOML, REPORTS, ScoresError, _rel, bootstrap, choose_threshold,
@@ -333,6 +334,132 @@ def decision_3(b):
             "fpr gap 0.15": one("fpr", 125, 500, 0.10), "fpr no gap": one("fpr", 50, 500, 0.10)}
 
 
+def _halves(rows):
+    """Two halves of the val rows by sha, for cross-fitting: a threshold is never scored on the rows that set it."""
+    return np.array([int(s[-1], 16) % 2 for s in rows["sha"]])
+
+
+def equal_recall_thresholds(y, s, g, alert_rate):
+    """{group: threshold} so every group reaches the same recall, with alerts at alert_rate of the rows overall.
+    Found by bisection on the shared recall. A group with no positives gets no alerts."""
+    groups = sorted(set(g))
+    pos = {k: np.sort(s[(g == k) & (y == 1)])[::-1] for k in groups}
+
+    def at(r):
+        t = {k: (p[max(0, int(np.ceil(r * len(p))) - 1)] if len(p) and r > 0 else np.inf) for k, p in pos.items()}
+        return t, sum(int((s[g == k] >= t[k]).sum()) for k in groups) / len(s)
+    lo, hi = 0.0, 1.0
+    for _ in range(50):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if at(mid)[1] <= alert_rate else (lo, mid)
+    return at(lo)[0]
+
+
+class _Scores(ClassifierMixin, BaseEstimator):
+    """A prefit 'estimator' for Fairlearn's ThresholdOptimizer: the score is the only column of X."""
+    def __init__(self):
+        self.classes_ = np.array([0, 1])   # marks it fitted for sklearn's check_is_fitted
+
+    def fit(self, X, y):
+        return self
+
+    def predict_proba(self, X):
+        x = np.asarray(X, dtype=float)[:, 0]
+        return np.column_stack([1 - x, x])
+
+
+def cross_fit(rows, y, s, groups, fit_one):
+    """Flags from fit_one(y, s, groups, train mask) -> predict(mask), fitted on each half and applied to the other."""
+    h = _halves(rows)
+    flag = np.zeros(len(y), bool)
+    for half in (0, 1):
+        fit, apply = h == half, h != half
+        flag[apply] = fit_one(y[fit], s[fit], groups[fit], s[apply], groups[apply])
+    return flag
+
+
+def _resampled(table, small, k, kind, seed, params):
+    """Val scores from a refit with the `small` train rows in k times, by Rachna's train.fit_and_score, unchanged.
+    Top level so train.pmap can run each factor in its own process."""
+    from model import train
+    df = pd.concat([table] + [table[small]] * (k - 1), ignore_index=True)
+    _, s, scored = train.fit_and_score(df, kind, seed, params)
+    return s, scored["sha"].to_numpy()
+
+
+def decision_5(table, rows, scores, column, kind, params, seed, b, settings, factors=(2, 4)):
+    """Each mitigation of decisions.md on the same val rows: no mitigation, equal-recall thresholds by size,
+    Fairlearn's ThresholdOptimizer (true-positive-rate parity), and re-sampling Q1-Q3 positives in train."""
+    from model import train
+    y = rows["label"].to_numpy()
+    size = rows["size_bucket"].astype(str).to_numpy()
+    base_s = np.asarray(scores[column], dtype=float)
+    t0, rule, _ = threshold_for(y, base_s, settings)
+    budget = float((base_s >= t0).mean())
+    reps = settings["bootstrap_reps"]
+
+    def scored(name, s, flag, note=""):
+        r = report(rows, y, s, flag, b, reps, seed, settings["interval"])
+        tp, fp = int((flag & (y == 1)).sum()), int((flag & (y == 0)).sum())
+        return name, {"pr_auc": r["overall"]["pr_auc"], "alerts": int(flag.sum()), "recall": tp / int(y.sum()),
+                      "precision": tp / (tp + fp) if tp + fp else None, "report": r, "note": note}
+
+    out = dict([scored("none", base_s, base_s >= t0)])
+    worst = max(out["none"]["report"]["flags"], key=lambda f: f["gap"], default=None)
+
+    def equal(yf, sf, gf, sa, ga):
+        t = equal_recall_thresholds(yf, sf, gf, budget)
+        return np.array([sa_ >= t.get(k, np.inf) for sa_, k in zip(sa, ga)])
+    out.update([scored("thresholds: equal recall by size", base_s, cross_fit(rows, y, base_s, size, equal),
+                       "cross-fitted on two halves of val; alerts held at the budget")])
+
+    from fairlearn.postprocessing import ThresholdOptimizer
+    ranks = pd.Series(base_s).rank(pct=True).to_numpy()   # ThresholdOptimizer wants a score in 0..1
+
+    def parity(yf, sf, gf, sa, ga):
+        rf, ra = pd.Series(sf).rank(pct=True).to_numpy(), pd.Series(sa).rank(pct=True).to_numpy()
+        opt = ThresholdOptimizer(estimator=_Scores(), constraints="true_positive_rate_parity",
+                                 objective="balanced_accuracy_score", prefit=True, predict_method="predict_proba")
+        opt.fit(rf.reshape(-1, 1), yf, sensitive_features=gf)
+        return opt.predict(ra.reshape(-1, 1), sensitive_features=ga, random_state=seed).astype(bool)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        flag_p = cross_fit(rows, y, ranks, size, parity)
+    out.update([scored("thresholds: Fairlearn TPR parity", base_s, flag_p,
+                       "cross-fitted; its own alert count, not the budget")])
+
+    small = (table["split"] == "train") & (table["label"] == 1) & table["size_bucket"].isin(["Q1", "Q2", "Q3"])
+    fits = train.pmap(_resampled, [(table, small, k, kind, seed, params) for k in factors])
+    for k, (s, shas) in zip(factors, fits):
+        if not (shas == rows["sha"].to_numpy()).all():
+            raise ScoresError("re-sampled scores are not in the val rows' order")
+        t, _, _ = threshold_for(y, s, settings)
+        out.update([scored(f"re-sampling Q1-Q3 positives x{k}", s, s >= t,
+                           f"{int(small.sum()) * (k - 1):,} train rows added; refitted by train.fit_and_score")])
+
+    # each option against the rule written first
+    res = {"candidate": column, "kind": kind, "threshold_rule": rule, "budget": budget, "worst": None, "options": {}}
+    if worst:
+        dim, g = worst["slice"].split("=", 1)
+        res["worst"] = {"slice": worst["slice"], "metric": worst["metric"], "gap": worst["gap"]}
+    for name, o in out.items():
+        r = o.pop("report")
+        row = {**o, "flags": [f"{f['slice']}:{f['metric']}" for f in r["flags"]],
+               "pr_auc_cost": out["none"]["pr_auc"] - o["pr_auc"],
+               "precision_cost": ((out["none"]["precision"] or 0) - (o["precision"] or 0))}
+        if worst:
+            e = r["slices"][dim][g][worst["metric"]]
+            gap = HARM[worst["metric"]] * (e["value"] - r["overall"][worst["metric"]])
+            row.update({"slice_value": e["value"], "gap": gap, "closes": 1 - gap / worst["gap"]})
+            row["qualifies"] = bool(name != "none" and row["closes"] >= 0.5 and row["pr_auc_cost"] <= 0.01
+                                    and row["precision_cost"] <= 0.02)
+        res["options"][name] = row
+    ok = [n for n, r in res["options"].items() if r.get("qualifies")]
+    res["picked"] = min(ok, key=lambda n: (res["options"][n]["pr_auc_cost"], not n.startswith("thresholds"))) \
+        if ok else "none"
+    return _round(res)
+
+
 # ---------- run ----------
 
 def log_run(rep, files, config, features, name="bias-val", decision=None, extra=None):
@@ -363,7 +490,10 @@ def main(argv=None):
     p.add_argument("--out", default=str(REPORTS))
     p.add_argument("--no-mlflow", action="store_true")
     p.add_argument("--no-charts", action="store_true")
-    p.add_argument("--decide", type=int, nargs="+", choices=(1, 3), help="run these decision tests instead")
+    p.add_argument("--decide", type=int, nargs="+", choices=(1, 3, 5), help="run these decision tests instead")
+    p.add_argument("--kind", help="decision 5: the candidate's model kind; default: candidate.json's")
+    p.add_argument("--params", help="decision 5: a tuning_<kind>.json whose params to refit with; "
+                                    "default: candidate.json's (none: the kind's defaults)")
     a = p.parse_args(argv)
 
     from model.data import load_config
@@ -392,7 +522,19 @@ def main(argv=None):
 
     if a.decide:
         for n in a.decide:
-            r = decision_1(rows, scores, column, b, settings, seed) if n == 1 else decision_3(b)
+            if n == 5:
+                kind, params = a.kind, None
+                if a.params:
+                    from model.train import read_params
+                    kind, params = read_params(a.params)
+                elif Path(a.candidate).exists():
+                    c = json.loads(Path(a.candidate).read_text(encoding="utf-8"))
+                    kind, params = kind or c.get("kind"), c.get("params")
+                if not kind:
+                    sys.exit("decision 5 refits: pass --kind (and --params), or write candidate.json")
+                r = decision_5(table, rows, scores, column, kind, params, seed, b, settings)
+            else:
+                r = decision_1(rows, scores, column, b, settings, seed) if n == 1 else decision_3(b)
             path = out / f"decision_chaitali-{n}.json"
             path.write_text(json.dumps(r, indent=2) + "\n", encoding="utf-8", newline="\n")
             print(f"decision {n}: {json.dumps(r, indent=2)}")
