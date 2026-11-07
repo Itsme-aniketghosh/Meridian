@@ -18,3 +18,14 @@ test_allowed = false               # Aniket flips it on Nov 12, once
 
 [seed]
 value = 1
+
+# Rochan's keys: evaluate.py (packets/rochan-tracking/decisions.md, decisions 2-4)
+[eval]
+bootstrap_reps = 2000              # decision 4: the smallest stable size of 500, 1,000 and 2,000
+interval = 0.95                    # bootstrap intervals from 2.5% to 97.5%
+effort = 0.2                       # recall at 20% of changed lines
+effort_ranking = "risk_per_line"   # decision 2: risk or risk_per_line
+threshold = "precision"            # decision 3: best_f1, precision or alert_rate
+threshold_precision = 0.8          # PLAN §4's push-check bar
+threshold_min_alerts = 30          # 05-test: no claim below N = 30
+threshold_alert_rate = 0.154       # the share of val commits today's P9 rule flags (decision 3)

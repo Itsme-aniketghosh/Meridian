@@ -39,9 +39,9 @@ flowchart LR
 
 ## Tracking
 
-- [ ] `tracking.py`: `start_run(name, owner)` sets the Contract 3 tags and experiment, on the local store `sqlite:///mlflow.db`
-- [ ] A short how-to in [packets/README.md](../README.md)
-- [ ] `log_llm_call(...)` for Vishwa: agent, model, prompt version, tokens, cost, cache hit, gate pass, into `meridian-agents`
+- [x] `tracking.py`: `start_run(name, owner)` sets the Contract 3 tags and experiment, on the local store `sqlite:///mlflow.db`
+- [x] A short how-to in [packets/README.md](../README.md)
+- [x] `log_llm_call(...)` for Vishwa: agent, model, prompt version, tokens, cost, cache hit, gate pass, into `meridian-agents`
 
 ## D. Evaluation
 
@@ -95,7 +95,7 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 
 ## Tests
 
-- [ ] `test_evaluate.py`: PR-AUC, F1 and recall at 20% match a hand calculation. Same seed, same interval. Every number in `metrics.json` has an N. A perfect score gives 1.0, a random one about the positive rate. `--split test` refuses unless allowed
+- [x] `test_evaluate.py`: PR-AUC, F1 and recall at 20% match a hand calculation. Same seed, same interval. Every number in `metrics.json` has an N. A perfect score gives 1.0, a random one about the positive rate. `--split test` refuses unless allowed
 - [ ] `test_registry.py`, against a temp local store: a better model takes `champion` and `previous` points at the old one; a worse one is registered, not promoted; one better only within seed noise isn't promoted; a failed bias report blocks promotion; `--rollback` restores; the first model ever is promoted if it passes; `--push` without credentials skips and says so
 - [ ] `test_auditor.py`, the 05-test Auditor bars: the Elo simulation with known skill ranks right; recomputing from the log twice gives the same ratings; seeded ε within ±2% over 1,000 draws; a replay never reads a row with `known_at` after the stall; the promotion guard blocks at 29 matches and at +49 Elo
 - [ ] Once on the real repo: push, roll back, and check the versions in Artifact Registry
