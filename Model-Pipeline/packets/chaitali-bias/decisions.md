@@ -117,3 +117,39 @@ Written after decisions 1–4 found the flags (all on `size_bucket`) and before 
 - **Re-sampling, with Rachna's code unchanged:** the train rows of positives in `size_bucket` Q1–Q3 added 1 and 3 more times (×2, ×4), refitted by `train.fit_and_score` with the candidate's kind, params and seed, scored on all of `val`. Whole-number re-weighting is the same fit, so it's covered by this.
 - **Cost:** `val` PR-AUC against no mitigation. A threshold doesn't change the score, so its PR-AUC cost is 0 by construction; overall recall and precision at the budget are reported beside it, and a threshold that costs more than 0.02 overall precision isn't adopted (the 0.01 PR-AUC bar can't see that cost).
 - **If more than one qualifies:** the one with the smallest cost; on a tie, the simpler (a threshold before a refit).
+
+---
+
+# Decision 5: results (Nov 8)
+
+`python -m model.bias --decide 5`. Alert budget 15.4% (634 of 4,113 `val` commits). The worst flagged gap is `size_bucket=Q2` recall on both candidates. "Closes" is the share of that gap gone, at the option's own overall recall.
+
+## First candidate: untuned LightGBM
+
+| Option | Alerts | PR-AUC (cost) | Recall | Precision (cost) | Q2 recall | Closes | Flags | Meets the rule |
+|---|---:|---|---:|---|---:|---:|---:|---|
+| none | 634 | 0.394 | 0.496 | 0.380 | 0.039 | — | 5 | — |
+| thresholds, equal recall by size | 614 | 0.394 (0) | 0.333 | 0.264 (−0.116) | 0.353 | 104% | 2 | no: precision cost |
+| thresholds, Fairlearn TPR parity | 1,448 | 0.394 (0) | 0.603 | 0.202 (−0.178) | 0.549 | 88% | 3 | no: precision cost, 2.3× the alerts |
+| re-sampling ×2 | 634 | 0.388 (−0.006) | 0.481 | 0.369 (−0.011) | 0.078 | 12% | 6 | no: closes too little |
+| re-sampling ×4 | 634 | 0.356 (−0.038) | 0.426 | 0.326 (−0.054) | 0.196 | 50% | 4 | no: PR-AUC cost |
+
+## Provisional tuned candidate: tuned LightGBM
+
+Rachna's `candidate.json` isn't out yet, so this is `train.py --tune logreg forest lgbm` run locally into `reports/provisional/` (5 minutes; best `val` PR-AUC: LightGBM 0.413, forest 0.406, logistic regression 0.382, lines × files 0.319). Redone on her candidate when it lands.
+
+Bias: the same 5 flags, all on size, and stronger than untuned: `size_bucket=Q2` recall **0.000** (0 of 51), Q3 recall 0.070, Q4 false-positive rate 0.488. Newcomers unchanged: 0.562 against lines × files 0.438 (16 positives, not judged).
+
+| Option | Alerts | PR-AUC (cost) | Recall | Precision (cost) | Q2 recall | Closes | Flags | Meets the rule |
+|---|---:|---|---:|---|---:|---:|---:|---|
+| none | 634 | 0.413 | 0.504 | 0.386 | 0.000 | — | 5 | — |
+| thresholds, equal recall by size | 618 | 0.413 (0) | 0.368 | 0.290 (−0.097) | 0.353 | 97% | 2 | no: precision cost |
+| thresholds, Fairlearn TPR parity | 1,722 | 0.413 (0) | 0.708 | 0.200 (−0.187) | 0.706 | 100% | 3 | no: precision cost, 2.7× the alerts |
+| re-sampling ×2 | 634 | 0.401 (−0.012) | 0.494 | 0.379 (−0.008) | 0.098 | 21% | 4 | no: closes too little, PR-AUC cost |
+| re-sampling ×4 | 634 | 0.344 (−0.069) | 0.420 | 0.322 (−0.065) | 0.235 | 63% | 1 | no: PR-AUC cost |
+
+## What it means
+
+On both candidates no mitigation meets the rule, so the model ships unmitigated and the report says why. The reason is the same each time: at a fixed alert budget, catching small commits' bugs means taking alerts from large commits, where bugs are 15 times as common (1.9% of Q1 against 29.0% of Q4 in `val`). Equal recall by size costs a quarter to a third of all bugs caught (recall 0.50 → 0.33–0.37). Re-sampling that closes half the gap costs 4 to 7 times the 0.01 PR-AUC the rule allows. Lines × files, the rule the model replaces, is more skewed still (Q2 recall 0.000, Q3 0.018, Q4 false-positive rate 0.540).
+
+For the final pick (Nov 9): the flagged size slices go in `[bias] accepted`, each pointing here, since a mitigation was tried and written down (the team bias bar). That is done on Rachna's candidate, not this provisional one.
