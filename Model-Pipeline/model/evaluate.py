@@ -243,8 +243,9 @@ def file_md5(path):
 
 
 def _rel(path):
+    """Same text on every OS; outside Model-Pipeline/ only the file name, so no home folder lands in metrics.json."""
     path = Path(path).resolve()
-    return str(path.relative_to(HERE)) if path.is_relative_to(HERE) else str(path)
+    return path.relative_to(HERE).as_posix() if path.is_relative_to(HERE) else path.name
 
 
 def read_candidate(path):

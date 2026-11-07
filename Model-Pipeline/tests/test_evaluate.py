@@ -359,5 +359,11 @@ class Command(unittest.TestCase):
             self.assertEqual([a.path for a in client.list_artifacts(run.info.run_id)], ["metrics.json"])
 
 
+class Paths(unittest.TestCase):
+    def test_paths_in_metrics_are_posix_and_never_a_home_folder(self):
+        self.assertEqual(ev._rel(ev.HERE / "reports" / "x.csv"), "reports/x.csv")
+        self.assertEqual(ev._rel(Path(tempfile.gettempdir()) / "y.csv"), "y.csv")
+
+
 if __name__ == "__main__":
     unittest.main()
