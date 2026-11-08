@@ -73,3 +73,5 @@ venv/
 mlflow.db*
 mlruns/
 mlartifacts/
+!Model-Pipeline/tests/contracts/*.csv
+!Model-Pipeline/reports/*_val_scores.csv

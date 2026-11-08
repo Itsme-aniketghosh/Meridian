@@ -389,11 +389,76 @@ def seed_noise(df, kind, params, out_dir, seeds=(1, 2, 3, 4, 5)):
 
 
 def read_params(path):
-    """best_params from a tuning_<kind>.json, so seed noise uses exactly the tuned config."""
+    """(kind, params) from a tuning_<kind>.json (best_params) or a candidate.json (params), so seed noise uses
+    exactly the config that was tuned or picked."""
     data = json.loads(Path(path).read_text())
-    if "best_params" not in data or "kind" not in data:
-        raise ValueError(f"{path} isn't a tuning_<kind>.json (no kind or best_params)")
-    return data["kind"], data["best_params"]
+    params_key = "best_params" if "best_params" in data else "params"
+    if "kind" not in data or params_key not in data:
+        raise ValueError(f"{path} isn't a tuning_<kind>.json or a candidate.json (no kind, or no params)")
+    return data["kind"], data[params_key] or {}
+
+
+# ---------- the candidate (decision 1, Contract 4) ----------
+SIMPLEST_FIRST = ("logreg", "forest", "lgbm")
+
+
+def pick_candidate(out_dir, tag, seed, reps=1000):
+    """Decision 1's rule on <tag>_val.json and <tag>_val_scores.csv, read from out_dir (no refit, S6): the model with
+    the highest val PR-AUC wins; if a simpler model's paired bootstrap interval against it contains 0, the simplest
+    such model wins. Writes out_dir/candidate.json (Contract 4) and returns it."""
+    out_dir = Path(out_dir)
+    summary_path, scores_path = out_dir / f"{tag}_val.json", out_dir / f"{tag}_val_scores.csv"
+    for f in (summary_path, scores_path):
+        if not f.exists():
+            raise FileNotFoundError(f"{f} not found: run --untuned or --tune first")
+    summary = json.loads(summary_path.read_text())
+    scores = pd.read_csv(scores_path)
+    kinds = [k for k in SIMPLEST_FIRST if k in summary.get("params", {}) and k in scores.columns]
+    if not kinds:
+        raise ValueError(f"{summary_path} names no model to pick from")
+    y = scores["label"].to_numpy(dtype=int)
+    pr = {k: pr_auc(y, scores[k]) for k in kinds}
+    best = max(kinds, key=lambda k: (pr[k], -SIMPLEST_FIRST.index(k)))
+    compared = {}
+    for k in kinds:
+        if k == best:
+            compared[k] = {"pr_auc": pr[k], "tied_with_best": True}
+            continue
+        d, lo, hi = paired_bootstrap(y, scores[best].to_numpy(), scores[k].to_numpy(), reps=reps, seed=seed)
+        compared[k] = {"pr_auc": pr[k], "best_minus_this": d, "interval": [lo, hi], "tied_with_best": lo <= 0}
+    winner = next(k for k in SIMPLEST_FIRST if k in compared and compared[k]["tied_with_best"])
+    candidate = {
+        "kind": winner,
+        "params": summary["params"][winner] or {},
+        "scores_file": scores_path.name,
+        "column": winner,
+        "seed": seed,
+        "tag": tag,
+        "decision": "rachna-1",
+        "rule": "highest val PR-AUC; a simpler model tied with it (paired bootstrap interval contains 0) wins",
+        "best_by_pr_auc": best,
+        "val_n": int(len(y)),
+        "val_positives": int(y.sum()),
+        "bootstrap_reps": reps,
+        "compared": compared,
+    }
+    (out_dir / "candidate.json").write_text(json.dumps(candidate, indent=2) + "\n")
+    return candidate
+
+
+def print_pick(c):
+    print(f"candidate: {c['kind']} (decision 1 on {c['tag']}; best by PR-AUC: {c['best_by_pr_auc']}, "
+          f"val N = {c['val_n']:,})")
+    for k, r in c["compared"].items():
+        extra = "" if k == c["best_by_pr_auc"] else (
+            f"   best - this {r['best_minus_this']:+.3f} [{r['interval'][0]:+.3f}, {r['interval'][1]:+.3f}]"
+            f" {'tied' if r['tied_with_best'] else 'worse'}")
+        print(f"  {k:8}{r['pr_auc']:8.3f}{extra}")
+
+
+def bootstrap_reps(cfg, default):
+    """Rochan's model.toml [eval] bootstrap_reps (his decision 4) when set, so the pick and evaluate.py agree."""
+    return int(cfg.get("eval", {}).get("bootstrap_reps", default))
 
 
 # ---------- the command ----------
@@ -506,9 +571,11 @@ def main(argv=None):
                    "with seeds 1-5 and write seed_noise.json (decision 7)")
     p.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5])
     p.add_argument("--check", action="store_true", help="only check the feature table against Contract 1")
+    p.add_argument("--pick", metavar="TAG", help="write reports/candidate.json from <TAG>_val.json and its scores "
+                   "(decision 1; --tune does this itself on the tuned run)")
     a = p.parse_args(argv)
-    if not (a.untuned or a.tune or a.seed_noise or a.check):
-        p.error("nothing to do: pass --check, --untuned, --tune or --seed-noise")
+    if not (a.untuned or a.tune or a.seed_noise or a.check or a.pick):
+        p.error("nothing to do: pass --check, --untuned, --tune, --pick or --seed-noise")
     cfg = load_config(a.config)
     try:
         df = load_features(a.features)
@@ -546,6 +613,11 @@ def main(argv=None):
         print_summary(summary)
         log_to_mlflow(summary, out, "rachna-6", a.config, a.features)
         print(f"wrote {out / 'tuned_val.json'}, tuned_val_scores.csv and tuning_<kind>.json")
+        print_pick(pick_candidate(out, "tuned", seed, bootstrap_reps(cfg, a.reps)))
+        print(f"wrote {out / 'candidate.json'}")
+    if a.pick:
+        print_pick(pick_candidate(out, a.pick, seed, bootstrap_reps(cfg, a.reps)))
+        print(f"wrote {out / 'candidate.json'}")
     if a.seed_noise:
         kind, params = read_params(a.seed_noise)
         r = seed_noise(df, kind, params, out, tuple(a.seeds))
