@@ -2,12 +2,10 @@
 
 Every table here is made up from a seed. Nothing reads the real feature table or its test rows."""
 import json
-import os
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
 import numpy as np
 import pandas as pd
@@ -83,6 +81,20 @@ class Rule(unittest.TestCase):
         c30 = pd.Series({"tp": 0, "fn": 30, "fp": 0, "tn": 100})
         e = bias.share("recall", c30, 0.9, B, 0.95, None)
         self.assertEqual((e["n"], e["judged"], e["flagged"]), (30, True, True))
+
+    def test_fpr_is_judged_on_negatives(self):
+        # 29 negatives, many positives: the false-positive rate's count is the negatives, so not judged
+        e = bias.share("fpr", pd.Series({"tp": 100, "fn": 0, "fp": 29, "tn": 0}), 0.1, B, 0.95, None)
+        self.assertEqual((e["n"], e["judged"], e["flagged"], e["power"]), (29, False, False, None))
+        e = bias.share("fpr", pd.Series({"tp": 0, "fn": 0, "fp": 30, "tn": 0}), 0.1, B, 0.95, None)
+        self.assertEqual((e["n"], e["judged"], e["flagged"]), (30, True, True))
+
+    def test_pr_auc_is_judged_on_positives(self):
+        rng = np.random.default_rng(2)
+        for pos, judged in ((29, False), (30, True)):
+            y = np.array([1] * pos + [0] * 500)
+            e = bias.pr_auc(y, rng.random(len(y)), 0.9, B, 50, 1, 0.95)   # random scores against 0.9: as bad as it gets
+            self.assertEqual((e["n"], e["judged"], e["flagged"]), (pos, judged, judged))
 
     def test_a_slice_with_no_positives_has_no_recall(self):
         e = bias.share("recall", pd.Series({"tp": 0, "fn": 0, "fp": 3, "tn": 40}), 0.5, B, 0.95, None)
@@ -215,6 +227,11 @@ class Report(unittest.TestCase):
                         self.assertIn(k, e[m])
         self.assertIn("pass", rep)
         self.assertEqual(rep["threshold"]["rule"], "alert_rate")
+        nc = rep["newcomers"]   # PASS-BARS §6.2, decision 4: both recalls, with N, whatever they show
+        self.assertEqual((nc["n"], nc["positives"]), (int((self.val["exp_bucket"] == "0").sum()),
+                                                      int(self.val.loc[self.val["exp_bucket"] == "0", "label"].sum())))
+        for name in ("model", "lines_x_files"):
+            self.assertIn("recall", nc[name])
 
     def test_same_inputs_same_bytes(self):
         a, b = self.run_bias().read_bytes(), self.run_bias().read_bytes()
@@ -225,8 +242,9 @@ class Report(unittest.TestCase):
         s = pd.read_csv(self.scores)
         s.loc[0, "sha"] = "f" * 40
         s.to_csv(bad, index=False)
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(SystemExit) as cm:
             self.run_bias(scores=bad)
+        self.assertIn("1 rows differ", str(cm.exception.code))
 
     def test_size_only_scores_flag_by_size(self):
         # a model that is only the size rule should treat small commits worse: the report has to see it
@@ -266,17 +284,17 @@ class Report(unittest.TestCase):
         self.assertEqual(again["open_flags"], 0)
 
     def test_logs_a_run_tagged_chaitali(self):
-        store = Path(tempfile.mkdtemp(dir=self.dir))
-        with mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{store / 'mlflow.db'}"}):
-            out = Path(tempfile.mkdtemp(dir=self.dir))
-            config = self.config()
-            bias.main(["--scores", str(self.scores), "--column", "model", "--config", str(config),
-                       "--features", str(self.features), "--out", str(out), "--no-charts",
-                       "--candidate", str(self.dir / "none.json")])
-            import mlflow
-            runs = mlflow.search_runs(experiment_names=["meridian-defect-risk"])
-        self.assertEqual(len(runs), 1)
-        self.assertEqual(runs.iloc[0]["tags.owner"], "chaitali")
+        # the package's temporary store (tests/__init__.py): a fresh one costs ~10 s of MLflow migrations
+        import mlflow
+        mine = lambda: len(mlflow.search_runs(experiment_names=["meridian-defect-risk"],
+                                              filter_string="tags.owner = 'chaitali'"))
+        before = mine()
+        out = Path(tempfile.mkdtemp(dir=self.dir))
+        bias.main(["--scores", str(self.scores), "--column", "model", "--config", str(self.config()),
+                   "--features", str(self.features), "--out", str(out), "--candidate", str(self.dir / "none.json")])
+        self.assertEqual(mine(), before + 1)
+        for dim in ("module", "component", "exp_bucket", "size_bucket"):
+            self.assertTrue((out / f"bias_{dim}.png").stat().st_size > 0)
 
 
 if __name__ == "__main__":
