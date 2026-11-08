@@ -1,5 +1,5 @@
-"""The auditor (04 §9): policy v0 and Elo, against hand calculations and Model-Pipeline/packets/rochan-tracking/
-pass-bars.md, section 4.
+"""The auditor (04 §9): policy v0, ε-greedy, Elo and the promotion guard, against hand calculations and
+Model-Pipeline/packets/rochan-tracking/pass-bars.md, section 4.
 
     python -m unittest tests.test_auditor -v      # from Data-Pipeline/
 
@@ -149,10 +149,92 @@ class Elo(unittest.TestCase):
 
     def test_settings_are_04s_unless_meridian_toml_has_an_auditor_section(self):
         self.assertEqual(A.settings({}), {"elo_start": 1500, "k": 32, "k_after": 16, "k_after_matches": 30,
-                                          "replay_k": 0.5})
+                                          "replay_k": 0.5, "eps": 0.2, "eps_after": 0.1, "eps_after_matches": 30,
+                                          "promote_matches": 30, "promote_elo": 50})
         self.assertEqual(A.settings({"auditor": {"k": 24}})["k"], 24)
         with self.assertRaises(SystemExit):
             A.settings({"auditor": {"K": 24}})
+
+
+class Epsilon(unittest.TestCase):
+    """pass-bars.md §4 'Seeded ε', and 04 §9's schedule."""
+
+    def test_the_challenger_share_is_within_2_points_of_eps_over_10000_seeded_draws(self):
+        for eps in (0.2, 0.1):
+            picks = [A.serve("R2", f"task-{i}", "stall-v0", ["stall-v1", "stall-v2"], eps) for i in range(10_000)]
+            challengers = sum(p != "stall-v0" for p in picks)
+            self.assertAlmostEqual(challengers / len(picks), eps, delta=0.02, msg=eps)
+            self.assertAlmostEqual(picks.count("stall-v1") / challengers, 0.5, delta=0.05, msg="a random challenger")
+
+    def test_a_task_in_a_run_is_served_the_same_every_time_and_another_run_draws_again(self):
+        picks = [A.serve("R2", f"t{i}", "stall-v0", ["stall-v1"], 0.5) for i in range(200)]
+        self.assertEqual(picks, [A.serve("R2", f"t{i}", "stall-v0", ["stall-v1"], 0.5) for i in range(200)])
+        self.assertNotEqual(picks, [A.serve("R3", f"t{i}", "stall-v0", ["stall-v1"], 0.5) for i in range(200)])
+
+    def test_eps_is_02_until_the_job_has_30_live_matches_then_01(self):
+        s = A.settings({})
+        self.assertEqual([A.epsilon(n, s) for n in (0, 29, 30, 500)], [0.2, 0.2, 0.1, 0.1])
+
+    def test_with_no_challenger_the_champion_is_served(self):
+        self.assertEqual({A.serve("R2", f"t{i}", "stall-v0", [], 0.9) for i in range(100)}, {"stall-v0"})
+
+
+class Promotion(unittest.TestCase):
+    """pass-bars.md §4 'Promotion guard': at least 30 live matches, +50 Elo over the champion, a winning live record
+    against v0, and a person for an LLM's policy. Blocks at 29 matches and at +49 Elo; replay never counts."""
+    S = A.settings({})
+
+    def league(self, live=30, gap=50.0, vs_v0=(20.0, 30), author="rh", approved_by=""):
+        new = A.Policy("stall-v9", "stall", 9, author, A.stall_v0, "2026-01-01T00:00:00Z", approved_by)
+        league = A.League(self.S, {"stall-v0": A.POLICIES["stall-v0"], "stall-v9": new})
+        league.rating = {"stall-v0": 1500.0, "stall-v9": 1500.0 + gap}
+        league.live = {"stall-v0": live, "stall-v9": live}
+        league.vs_v0 = {"stall-v9": vs_v0}
+        return league
+
+    def test_30_live_matches_and_plus_50_pass(self):
+        self.assertEqual(self.league().guard("stall-v9"), [])
+
+    def test_29_live_matches_block(self):
+        self.assertEqual(self.league(live=29).guard("stall-v9"), ["29 live match(es), needs 30"])
+
+    def test_plus_49_elo_blocks(self):
+        self.assertEqual(self.league(gap=49.9).guard("stall-v9"), ["+49.9 Elo over stall-v0, needs +50"])
+
+    def test_it_must_have_beaten_v0_in_live_matches(self):
+        self.assertEqual(self.league(vs_v0=(15.0, 30)).guard("stall-v9"), ["hasn't beaten stall-v0: 15 of 30 live"])
+        self.assertEqual(self.league(vs_v0=(15.5, 30)).guard("stall-v9"), [])
+
+    def test_an_llms_policy_needs_a_person(self):
+        self.assertEqual(self.league(author="llm:model-x").guard("stall-v9"),
+                         ["an LLM wrote it and no person has approved it"])
+        self.assertEqual(self.league(author="llm:model-x", approved_by="rh").guard("stall-v9"), [])
+
+    def test_replay_matches_never_count_toward_the_30(self):
+        league = self.league(live=0, gap=0, vs_v0=(0.0, 0))
+        league.rating = {}
+        for i in range(100):
+            league.add(match(i, "stall-v9", "stall-v0", "a", mode="replay"))
+        for i in range(100, 129):
+            league.add(match(i, "stall-v9", "stall-v0", "a"))
+        self.assertEqual(league.live["stall-v9"], 29)
+        self.assertEqual(league.guard("stall-v9"), ["29 live match(es), needs 30"])
+        league.add(match(129, "stall-v9", "stall-v0", "a"))
+        self.assertEqual(league.guard("stall-v9"), [])
+
+    def test_the_champion_is_replayed_from_the_log_after_each_batch(self):
+        """v1 wins every live match against v0, three a day: its 30th match is on day 10, where it's promoted."""
+        log = [match(i, "stall-v1", "stall-v0", "a", at=f"2026-10-{1 + i // 3:02d}T00:00:00Z") for i in range(45)]
+        league = A.standings(log, self.S)
+        self.assertEqual(league.champion, "stall-v1")
+        self.assertEqual(league.promotions, [("2026-10-10T00:00:00Z", "stall-v0", "stall-v1")])
+        again = A.standings(list(reversed(log)), self.S)
+        self.assertEqual((again.champion, again.promotions, again.rating),
+                         (league.champion, league.promotions, league.rating))
+
+    def test_with_no_log_v0_is_champion(self):
+        league = A.standings([], self.S)
+        self.assertEqual((league.champion, league.promotions), ("stall-v0", []))
 
 
 class RanksRight(unittest.TestCase):
@@ -195,6 +277,10 @@ class Command(unittest.TestCase):
                       "7 Test gap (1), 8 Competing load (1)", out)
         self.assertIn("Elo from 0 match(es) in the log, 0 live: no live verdicts yet", out)
         self.assertRegex(out, r"stall-v0 +1500\.0  0 match\(es\)")
+        self.assertIn("stall job: champion stall-v0, ε 0.2 (0 live match(es) so far)", out)
+        self.assertRegex(out, r"fulfillment: .* · served: stall-v[01]\n")
+        self.assertIn("stall-v1 stays a challenger: 0 live match(es), needs 30; +0.0 Elo over stall-v0, needs +50; "
+                      "hasn't beaten stall-v0: 0 of 0 live", out)
 
     def test_elo_reads_only_matches_decided_by_then(self):
         log = [match(0, "stall-v0", "stall-v1", "a", at="2026-09-20T00:00:00Z"),
