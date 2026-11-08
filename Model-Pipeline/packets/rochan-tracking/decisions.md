@@ -181,3 +181,94 @@ Result (Nov 5, `mlflow==3.18.0`):
 | SQLite | pass (0.04 s) | pass | pass |
 
 Picked: **SQLite**. The packet's reason, that the file store can't hold aliases reliably, isn't what we found: with the opt-out set, it held them. The real reason is that MLflow 3.18 refuses the file store unless every laptop and CI sets an opt-out flag, and it gets no more updates. `tracking.py` defaults to `sqlite:///<repo root>/mlflow.db`.
+
+## Auditor: decisions 9–11 (Nov 8)
+
+Written before any of them ran. Each runs with `python -m meridian.auditor_sim --decide <n>` and logs a run tagged `decision=rochan-<n>` in `meridian-auditor`.
+
+The simulated world is the "Ranks right" bar's (pass-bars §4): three stall policies of known skill, v1 at 1700, v0 at 1500 (the rule table, champion at the start) and v2 at 1300, so the better of any two wins 76% of their matches. Each decided stall draws one performance per policy, and every policy ranks every stall in shadow (04 §9), so one stall makes 3 matches. Promotion uses 04 §9's guard, checked after every stall: at least 30 live matches, at least 50 Elo above the champion, and a winning live record against v0.
+
+The packet says 20 seeds. Each test also runs on 2,000, because 20 seeds can't tell 5% from 10%. The picks are made on the 2,000.
+
+### 9. ε schedule
+
+Options: **0.2, then 0.1 after 30 matches** (04 §9), **0.1 from the start**.
+
+Test: 200 matches a seed (67 stalls). For every stall, ε-greedy picks the ranking the team sees: the champion with 1 − ε, else a challenger at random. "30 matches" counts the job's live matches. Measured: matches until v1, the best, is champion; the share of stalls where a worse policy is champion; the share of stalls where the team sees a worse ranking than v1's.
+
+Rule: in the stall job every policy ranks every stall in shadow, so ε can't change what Elo learns or when v1 is promoted. The first two numbers must come out the same for both options; if they don't, the simulation is wrong and gets fixed first. So the pick is on the third: the option under which the team sees a worse ranking less often. Within 0.5 percentage points of each other: 04's schedule stays.
+
+Result (run Nov 7 with `python -m meridian.auditor_sim --decide 9 10 11`; 67 stalls, 201 matches a seed; 4 s for 2,000 seeds):
+
+| Schedule | Matches until v1 is champion (median) | Seeds where it never is | Stalls with a worse champion | Stalls where the team sees a worse ranking than v1's |
+|---|---|---|---|---|
+| 0.2, then 0.1 after 30 | 45 | 0 of 2,000 | 23.1% | **28.7%** |
+| 0.1 | 45 | 0 of 2,000 | 23.1% | 29.4% |
+
+Seeds 1–20 alone: the same 45 and 0, then 26.8% for both, and 31.2% against 32.2%.
+
+Picked: **0.2, then 0.1 after 30 matches** (04's). The first two columns agree seed by seed, as the rule said they must: every policy is judged in shadow, so ε can't change when v1 is promoted. That's always at match 45, when each policy has the guard's 30 live matches. With 04's schedule the team sees a worse ranking 0.7 points less often. Before v1 is promoted, v0 is champion, and an ε pick shows v1 half the time, so exploring early shows the team the better ranking more often.
+
+### 10. Elo K
+
+Options: **32, then 16 after 30 matches** (04 §9, each policy's own count, live and replay alike), **24 flat**.
+
+Test: the same world without promotion: the share of seeds where Elo's order of the three is wrong after 30, 60 and 100 matches. Then a second world where all three policies have the same skill, so any promotion is luck: the share of seeds where any policy passes the guard within 200 matches.
+
+Rule: an option that promotes in more than 5% of the same-skill seeds is out. Of the rest, the one with the lower wrong-order share, averaged over 30, 60 and 100 matches. Within 1 percentage point of each other: 04's 32 then 16 stays.
+
+Result (run Nov 7; 2 s for 2,000 seeds):
+
+| K | Wrong order after 30 matches | after 60 | after 100 | Mean | Same skill: seeds with a promotion |
+|---|---|---|---|---|---|
+| 32, then 16 | 9.3% | 2.2% | 0.3% | 4.0% | 87.0% |
+| 24 flat | 8.6% | 3.0% | 1.4% | 4.3% | 89.7% |
+
+Seeds 1–20 alone: a mean of 3.3% for both, and 85% and 80% promoted.
+
+Picked: **32, then 16** (04's), but not the way the rule meant. Both options fail the luck check: a policy no better than v0 gets promoted in 87% and 90% of the seeds. The rule didn't say what happens when every option is out. No option won, so 04's K stays. On wrong order alone, 04's K is 0.3 points better, within the 1-point line, so the pick doesn't hang on that gap.
+
+That both fail says the problem is the promotion guard, not K.
+
+#### The promotion guard lets luck through (found by decision 10, not decided here)
+
+04 §9's guard (30 live matches, +50 Elo, a winning live record against v0) is checked after every run. Under it, a policy with the same skill as v0 gets promoted in 87% of 201-match runs and 96% of 600-match runs (2,000 seeds). Two things add up:
+- **Ratings swing more than 50 by chance.** A match moves a rating by up to 32, so after 30 matches two equal policies are often 50 apart.
+- **One lucky check is enough.** The guard is checked after every run, so a challenger needs to look 50 ahead only once.
+
+A bigger margin or more matches helps less than you'd expect:
+
+| Guard: live matches, Elo margin | Same skill, promoted by luck: 201 / 600 matches | 200 Elo better: promoted at match (median) |
+|---|---|---|
+| 30, +50 (04) | 87% / 96% | 45 |
+| 30, +100 | 64% / 89% | 45 |
+| 60, +100 | 51% / 86% | 90 |
+| 90, +150 | 8% / 39% | 135 |
+
+The better policy is always found, and the worst one is never promoted. The problem is promotion by luck. Fixing it needs a guard that tests the head-to-head record against chance, allowing for being checked every run (a sequential test). That changes 04 §9 and the promotion row of PASS-BARS.md §3, so it's for the team, not this decision. Nothing can be promoted in phase 2 anyway: there are no live matches without users.
+
+### 11. Replay weight
+
+Options: **half K** (04 §9), **full K**, **no replay**.
+
+Test: the same world. Before any live match, 100 replay matches from past stalls. A replay verdict is weaker than a live one, so 30% of them are wrong, and a wrong verdict makes each of its matches a coin flip. Then live matches, whose verdicts are right. Measured: the share of seeds where Elo's order is wrong after 30 and 60 live matches. Also run with 0% and 50% wrong, which don't decide.
+
+Rule: the option with the lower wrong-order share, averaged over 30 and 60 live matches, at 30% wrong. Within 1 percentage point of half K: half K stays (04).
+
+Result (run Nov 7; 3 s for 2,000 seeds):
+
+| Wrong replay verdicts | Replay | Wrong order after 30 live matches | after 60 | Mean |
+|---|---|---|---|---|
+| **30%, decides** | half K | 1.5% | 0.3% | 0.9% |
+| | full K | 1.6% | 0.2% | 0.9% |
+| | no replay | 8.5% | 1.5% | 5.0% |
+| 0% | half K | 0.3% | 0.2% | 0.3% |
+| | full K | 0.1% | 0.2% | 0.2% |
+| | no replay | 10.4% | 1.9% | 6.2% |
+| 50% | half K | 1.7% | 0.7% | 1.2% |
+| | full K | 1.8% | 0.6% | 1.2% |
+| | no replay | 7.3% | 1.8% | 4.6% |
+
+Picked: **half K** (04's). Replay matters: without it, Elo's order is wrong in 5.0% of seeds over the first 60 live matches; with replay at either weight, 0.9%. Half and full K are within 1 point at every noise level, so 04's half K stays. It also keeps wrong replay verdicts from steering as much: they move ratings half as far.
+
+The three runs are in MLflow, `meridian-auditor`, tagged `decision=rochan-9`, `-10` and `-11`.
