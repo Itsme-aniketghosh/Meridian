@@ -1,0 +1,43 @@
+{
+  "kind": "forest",
+  "params": {
+    "n_estimators": 200,
+    "min_samples_leaf": 5,
+    "max_features": "sqrt",
+    "max_depth": 8
+  },
+  "scores_file": "tuned_val_scores.csv",
+  "column": "forest",
+  "seed": 1,
+  "tag": "tuned",
+  "decision": "rachna-1",
+  "rule": "highest val PR-AUC; a simpler model tied with it (paired bootstrap interval contains 0) wins",
+  "best_by_pr_auc": "lgbm",
+  "val_n": 4113,
+  "val_positives": 486,
+  "bootstrap_reps": 2000,
+  "compared": {
+    "logreg": {
+      "pr_auc": 0.3823213420748834,
+      "best_minus_this": 0.030665498628280385,
+      "interval": [
+        0.006114612003006757,
+        0.05200972532258016
+      ],
+      "tied_with_best": false
+    },
+    "forest": {
+      "pr_auc": 0.40581963724622855,
+      "best_minus_this": 0.007167203456935223,
+      "interval": [
+        -0.004829569649970371,
+        0.018880057576005742
+      ],
+      "tied_with_best": true
+    },
+    "lgbm": {
+      "pr_auc": 0.41298684070316377,
+      "tied_with_best": true
+    }
+  }
+}

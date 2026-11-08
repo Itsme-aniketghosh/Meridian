@@ -1,0 +1,24 @@
+{
+  "kind": "forest",
+  "params": {
+    "n_estimators": 50,
+    "min_samples_leaf": 10
+  },
+  "scores_file": "val_scores.csv",
+  "column": "forest",
+  "seed": 1,
+  "tag": "example",
+  "decision": "rachna-1",
+  "rule": "highest val PR-AUC; a simpler model tied with it (paired bootstrap interval contains 0) wins",
+  "best_by_pr_auc": "forest",
+  "val_n": 145,
+  "val_positives": 42,
+  "bootstrap_reps": 200,
+  "compared": {
+    "forest": {
+      "pr_auc": 0.3395219576441576,
+      "tied_with_best": true
+    }
+  },
+  "example_of": "tests/fake_table.py fake_table(n=1500, seed=21)"
+}
