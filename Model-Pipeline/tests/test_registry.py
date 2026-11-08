@@ -161,6 +161,37 @@ class ChampionExample(unittest.TestCase):
                          {"split": metrics["split"], "features_md5": metrics["features_md5"], **block})
 
 
+class ExampleConsumer:
+    """registry.py as a consumer of one example in tests/contracts/ (packets/README.md, Integration tests): the
+    example reads, and a copy without any key registry.py reads fails. One class per example below."""
+
+    def test_the_example_reads(self):
+        self.READ(CONTRACTS / self.NAME)
+
+    def test_a_missing_key_fails(self):
+        data = json.loads((CONTRACTS / self.NAME).read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as d:
+            for key in self.KEYS:
+                with self.subTest(key), self.assertRaisesRegex(reg.ContractError, f"no {key}"):
+                    self.READ(write(d, self.NAME, without(data, key)))
+
+
+class MetricsExampleConsumer(ExampleConsumer, unittest.TestCase):
+    READ, NAME, KEYS = staticmethod(reg.read_metrics), "metrics.json", reg.METRICS_KEYS  # Rochan's
+
+
+@unittest.skipUnless((CONTRACTS / "bias_report.json").exists(),
+                     "waiting for Chaitali's tests/contracts/bias_report.json (packets/README.md, Nov 8)")
+class BiasExampleConsumer(ExampleConsumer, unittest.TestCase):
+    READ, NAME, KEYS = staticmethod(reg.read_bias), "bias_report.json", reg.BIAS_KEYS
+
+
+@unittest.skipUnless((CONTRACTS / "seed_noise.json").exists(),
+                     "waiting for Rachna's tests/contracts/seed_noise.json (packets/README.md, Nov 8)")
+class SeedNoiseExampleConsumer(ExampleConsumer, unittest.TestCase):
+    READ, NAME, KEYS = staticmethod(reg.read_seed_noise), "seed_noise.json", reg.SEED_NOISE_KEYS
+
+
 class Command(unittest.TestCase):
     def test_says_what_isnt_built_yet_and_fails(self):
         with self.assertRaises(SystemExit) as e:

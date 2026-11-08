@@ -385,6 +385,43 @@ class MetricsExample(unittest.TestCase):
                                      f"{name}.{key}")
 
 
+@unittest.skipUnless((CONTRACTS / "candidate.json").exists() and (CONTRACTS / "val_scores.csv").exists(),
+                     "waiting for Rachna's tests/contracts/candidate.json and val_scores.csv "
+                     "(packets/README.md, Nov 8)")
+class RachnaExamples(unittest.TestCase):
+    """evaluate.py reads Rachna's candidate.json and val scores (Contract 4), and fails on a missing key or column.
+    load_scores checks the scores against the feature table's val rows; here those rows are the example's own."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.candidate = ev.read_candidate(CONTRACTS / "candidate.json")
+        cls.scores = pd.read_csv(cls.candidate["scores_file"])
+        cls.table = pd.DataFrame({"sha": cls.scores["sha"], "label": cls.scores["label"], "split": "val"})
+
+    def test_the_examples_read(self):
+        rows, scores = ev.load_scores(self.table, self.candidate["scores_file"], "val", self.candidate["column"])
+        self.assertEqual(len(rows), len(self.scores))
+        self.assertIn(self.candidate["column"], scores)
+        self.assertIn(ev.REFERENCE, scores)
+
+    def test_a_missing_key_fails(self):
+        data = json.loads((CONTRACTS / "candidate.json").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "candidate.json"
+            for key in ("scores_file", "column"):
+                path.write_text(json.dumps({k: v for k, v in data.items() if k != key}), encoding="utf-8")
+                with self.subTest(key), self.assertRaisesRegex(ev.ScoresError, key):
+                    ev.read_candidate(path)
+
+    def test_a_missing_column_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "val_scores.csv"
+            for column in ("sha", "label", self.candidate["column"], ev.REFERENCE):
+                self.scores.drop(columns=column).to_csv(path, index=False)
+                with self.subTest(column), self.assertRaisesRegex(ev.ScoresError, f"no '{column}' column"):
+                    ev.load_scores(self.table, path, "val", self.candidate["column"])
+
+
 class Paths(unittest.TestCase):
     def test_paths_in_metrics_are_posix_and_never_a_home_folder(self):
         self.assertEqual(ev._rel(ev.HERE / "reports" / "x.csv"), "reports/x.csv")
