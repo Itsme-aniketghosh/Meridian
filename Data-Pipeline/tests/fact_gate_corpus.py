@@ -187,9 +187,9 @@ def _values(facts):
     return nums, paths, words
 
 
-def build():
+def build(seed=SEED):
     """(clean, injected): lists of dicts with text, facts, task, and kind for the injected ones."""
-    rng = random.Random(SEED)
+    rng = random.Random(seed)
     clean, seen = [], set()
     i = 0
     while len(clean) < 200:
@@ -295,15 +295,15 @@ def score(clean, injected, **kw):
 def main():
     clean, injected = build()
     print(f"{len(clean)} clean, {len(injected)} injected (seed {SEED})\n")
-    print("Decision 1: kinds (numbers = round)")
+    print("Decision 1: kinds (numbers = round, team_rule = strict, as recorded)")
     for kinds in KIND_SETS:
-        r = score(clean, injected, kinds=kinds, numbers="round")
+        r = score(clean, injected, kinds=kinds, numbers="round", team_rule="strict")
         per = ", ".join(f"{k} {v}/40" for k, v in r["by_kind"].items())
         print(f"  {kinds:8} caught {r['caught']}/{r['injected']}  false rejects {r['false_rejects']}/{r['clean']}"
               f"  [{per}]")
-    print("\nDecision 2: numbers (kinds = teams)")
+    print("\nDecision 2: numbers (kinds = teams, team_rule = strict, as recorded)")
     for mode in NUMBER_MODES:
-        r = score(clean, injected, kinds="teams", numbers=mode)
+        r = score(clean, injected, kinds="teams", numbers=mode, team_rule="strict")
         print(f"  {mode:8} caught {r['caught']}/{r['injected']}  false rejects {r['false_rejects']}/{r['clean']}")
     r = score(clean, injected)
     if r["rejected"]:
@@ -312,5 +312,29 @@ def main():
             print("  -", t["text"])
 
 
+def sweep(seeds=range(10)):
+    """Decision 11: each team rule over seeds 0-9 (N = 2,000 + 2,000), kinds = teams, numbers = round."""
+    from meridian.fact_gate import TEAM_RULES
+    rows = {}
+    for seed in seeds:
+        clean, injected = build(seed)
+        for rule in TEAM_RULES:
+            r = score(clean, injected, team_rule=rule)
+            rows.setdefault(rule, []).append((seed, r["caught"], r["false_rejects"], r["by_kind"]))
+    print(f"Decision 11: team_rule, seeds {seeds[0]}-{seeds[-1]}, each 200 clean + 200 injected\n")
+    print("| Rule | Caught per seed | False rejects per seed | Caught | False rejects (mean) | Worst seed |")
+    print("|---|---|---|---|---|---|")
+    for rule, rs in rows.items():
+        caught, fr = [r[1] for r in rs], [r[2] for r in rs]
+        print(f"| {rule} | {' '.join(map(str, caught))} | {' '.join(map(str, fr))} | {sum(caught)} / {200 * len(rs)} "
+              f"| {sum(fr)} / {200 * len(rs)} ({100 * sum(fr) / (200 * len(rs)):.2f}%) | {max(fr)} / 200 |")
+    for rule, rs in rows.items():
+        short = {k: sum(40 - r[3][k] for r in rs) for k in KINDS}
+        if any(short.values()):
+            shown = ", ".join(f"{k} {v}" for k, v in short.items() if v)
+            print(f"\n{rule} misses (injected, summed over seeds): {shown}")
+    return rows
+
+
 if __name__ == "__main__":
-    main()
+    sweep() if "--sweep" in sys.argv else main()

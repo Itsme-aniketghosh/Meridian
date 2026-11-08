@@ -61,6 +61,21 @@ Test: `python -m tests.fact_gate_corpus --sweep` from Data-Pipeline/: seeds 0–
 
 Rule, written before the run: an option passes if it catches 200 / 200 on every seed, its mean false-reject rate is at most 2.5%, and no seed is over 5% (10 / 200). Of the options that pass, pick the one with the lowest mean false-reject rate; on a tie, the stricter one (strict > article > ownership). If none passes, keep strict and the writer's prompt fix below.
 
+Result (Nov 7, `python -m tests.fact_gate_corpus --sweep`, seeds 0–9, N = 2,000 + 2,000, kinds = teams, numbers = round):
+
+| Option | Caught per seed | False rejects per seed | Caught | False rejects | Worst seed | Passes |
+|---|---|---|---|---|---|---|
+| strict | 200 200 198 200 200 200 200 200 199 200 | 7 10 9 14 8 10 9 9 12 11 | 1,997 / 2,000 | 99 / 2,000 (4.95%) | 14 / 200 | no |
+| article | 200 on every seed | 0 on every seed | **2,000 / 2,000** | **0 / 2,000 (0.00%)** | 0 / 200 | **yes** |
+| ownership | 163–170 | 0 on every seed | 1,649 / 2,000 | 0 / 2,000 (0.00%) | 0 / 200 | no: 351 swapped teams pass |
+
+Picked **article**, the only option that passes, now `DEFAULT_TEAM_RULE` in `fact_gate.py`. `test_fact_gate.py` (`TeamRule`) checks the bar on all 10 seeds in CI.
+
+- strict's 3 short catches aren't the gate missing anything: the swapped team was `platform` in a text whose clean version already has the `platform` filler, so the scorer (which counts only new flags) sees nothing new.
+- ownership reads "Ask payments to review." and "Done: platform, 2 of 2." as words, so most swapped teams get through.
+- 0% is on our own 400 texts per seed, where the only team-as-word sentence is the `platform` filler. Real LLM output is measured in decision 5.
+- Known limit: a team name after an article in other words, "ask the payments folks", reads as a word and passes. A test pins it down (`test_known_limit_article_hides_a_swapped_team_in_other_words`). Decision 5 shows how often the writer does this.
+
 ## To do when building the writer
 
 From decision 1: all 10 false rejects are a team name (`platform`) used as a plain word. Loosening the gate to allow that let a swapped team through ("Done: platform, 2 of 2." for search), so the fix goes in the writer, not the gate.
@@ -89,7 +104,7 @@ Process note: the rules and results for decisions 1 and 2 landed in one commit (
 
 ## Known limits, written before the run
 
-- A team name that's also a plain word ("search", "platform") is flagged wherever it appears in the text. Decision 1 measures what that costs.
+- A team name that's also a plain word ("search", "platform") is flagged wherever it appears in the text. Decision 1 measures what that costs. (Decision 11 changed this: right after an article it's read as a word.)
 - A 0 or 1 flag in the facts (`in_except`) also lets "0" and "1" pass as numbers. Found while testing; a flag should reach the gate as a bool, which the gate skips.
 - A line number counts only next to its path, never as a count (found by the tests: "214 bug fixes" passed before).
 - The 200 + 200 texts are written by us from the fixture, not by an LLM. The false-reject rate on real LLM output is measured again once the writer runs (decision 5).

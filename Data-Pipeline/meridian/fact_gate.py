@@ -15,9 +15,10 @@ numbers, strings, or lists and dicts of them (block rows). A dict that has both 
 "path:line". Strings inside the facts are read with the same extractors as the text, so "billing/invoice.py:12, ..."
 from a group_concat gives its paths and lines.
 
-Settings (decisions 1 and 2 in Model-Pipeline/packets/vishwa-agents/decisions.md):
+Settings (decisions 1, 2 and 11 in Model-Pipeline/packets/vishwa-agents/decisions.md):
 - kinds: which token kinds are checked. "numbers" < "ids" < "teams" (each adds to the one before).
 - numbers: "exact", "format" or "round".
+- team_rule: "strict", "article" or "ownership" (decision 11): when a team name is read as an ordinary word.
 """
 import re
 from dataclasses import dataclass
@@ -31,6 +32,10 @@ KIND_SETS = {
 NUMBER_MODES = ("exact", "format", "round")
 DEFAULT_KINDS = "teams"
 DEFAULT_NUMBERS = "round"
+TEAM_RULES = ("strict", "article", "ownership")
+DEFAULT_TEAM_RULE = "article"  # decision 11
+_ARTICLE = re.compile(r"\b(?:the|a|an|this|that|our|your)\s+$", re.IGNORECASE)
+_OWNS_AFTER = re.compile(r"^(?:'s\b|\s+(?:team|teams|owns|own)\b)", re.IGNORECASE)
 
 _EXT = (r"(?:py|pyi|rb|erb|rake|js|jsx|mjs|cjs|ts|tsx|vue|java|kt|kts|scala|go|rs|c|h|cc|cpp|hpp|cs|php|swift|"
         r"proto|toml|cfg|ini|txt|md|rst|sql|yml|yaml|json|html|css|sh|ipynb)")
@@ -175,7 +180,8 @@ def _words(names):
     return re.compile(r"(?<![\w\-])(" + "|".join(re.escape(n) for n in names) + r")(?![\w\-])", re.IGNORECASE)
 
 
-def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NUMBERS):
+def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NUMBERS,
+          team_rule=DEFAULT_TEAM_RULE):
     """Every fact-like token in `text` must be in `facts`. `teams` and `people` are the known names from the block
     (team_map.team, person.name): a team in the text must be a fact, a person never may be. Both are required:
     left out, the gate couldn't see a swapped team or a name. A fact that names a person raises ValueError."""
@@ -183,6 +189,8 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
         raise ValueError(f"kinds must be one of {sorted(KIND_SETS)}, not {kinds!r}")
     if numbers not in NUMBER_MODES:
         raise ValueError(f"numbers must be one of {NUMBER_MODES}, not {numbers!r}")
+    if team_rule not in TEAM_RULES:
+        raise ValueError(f"team_rule must be one of {TEAM_RULES}, not {team_rule!r}")
     on = KIND_SETS[kinds]
     known = _Facts(facts, teams, people)
     misses, checked = [], 0
@@ -263,7 +271,10 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
             variant.setdefault(v, t)
     team_re = _words(variant)
     if team_re:
-        for m in team_re.finditer(text):
+        hits = list(team_re.finditer(text))
+        for m in hits:
+            if not _names_a_team(text, m, hits, team_rule):
+                continue  # decision 11: read as an ordinary word, not a team
             if take(m) and "team" in on:
                 checked += 1
                 if variant[m.group(1).lower()] not in known.strings:
@@ -283,6 +294,20 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
 
     misses.sort(key=lambda x: x.at)
     return Result(not misses, tuple(misses), checked)
+
+
+def _names_a_team(text, m, hits, rule):
+    """Decision 11: whether a team-name match is used as a team. strict: always. article: not right after
+    the/a/an/this/that/our/your, unless "team", "'s", "owns" or "own" follows. ownership: only next to one of
+    those, or in a list with another team name."""
+    if rule == "strict":
+        return True
+    owns = bool(_OWNS_AFTER.match(text[m.end():]))
+    if rule == "article":
+        return owns or not _ARTICLE.search(text[:m.start()])
+    between = (text[min(m.end(), o.end()):max(m.start(), o.start())] for o in hits if o is not m)
+    listed = any(re.fullmatch(r"\s*(?:,|and|or|&|/|,\s*and)\s*", b) for b in between)
+    return owns or listed
 
 
 def gate(text, facts, template, *, teams, people, **kw):

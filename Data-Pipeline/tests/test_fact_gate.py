@@ -171,6 +171,39 @@ class Numbers(unittest.TestCase):
         self.assertFalse(ok("0 calls", self.F, numbers="round"))
 
 
+class TeamRule(unittest.TestCase):
+    """Decision 11: a team name right after an article is a word, unless team, 's, owns or own follows."""
+
+    def test_a_team_name_after_an_article_is_a_word(self):
+        for text in ("Keep the same error handling across the platform.", "Run a search first.",
+                     "Use this checkout flow."):
+            self.assertTrue(ok(text), text)
+
+    def test_still_a_team_when_it_names_one(self):
+        for text in ("Ask the payments team.", "the platform's client", "the search team owns it",
+                     "Done: platform, 2 of 2.", "Ask payments to review.", "payments and billing",
+                     "Platform owns it."):
+            self.assertFalse(ok(text), text)
+
+    def test_strict_checks_every_team_name(self):
+        self.assertFalse(ok("across the platform", team_rule="strict"))
+
+    def test_known_limit_article_hides_a_swapped_team_in_other_words(self):
+        # written down in decisions.md: "ask the payments folks" names a team but reads as a word
+        self.assertTrue(ok("Ask the payments folks."))
+
+    def test_every_seed_meets_decision_11s_bar(self):
+        # 100% caught on every seed 0-9, mean false rejects at most 2.5%, no seed over 5%
+        rejects = []
+        for seed in range(10):
+            clean, injected = corpus.build(seed)
+            s = corpus.score(clean, injected)
+            self.assertEqual(s["caught"], 200, (seed, s["by_kind"]))
+            self.assertLessEqual(s["false_rejects"], 10, seed)
+            rejects.append(s["false_rejects"])
+        self.assertLessEqual(sum(rejects), 50, rejects)
+
+
 class Gate(unittest.TestCase):
     def test_a_pass_ships_the_llm_text(self):
         text, source, result = gate("CHK-311: 4 bug fixes.", CHK_311, "TEMPLATE", teams=TEAMS, people=corpus.PEOPLE)
@@ -204,6 +237,8 @@ class Gate(unittest.TestCase):
             check("x", {}, teams=(), people=(), kinds="everything")
         with self.assertRaises(ValueError):
             check("x", {}, teams=(), people=(), numbers="fuzzy")
+        with self.assertRaises(ValueError):
+            check("x", {}, teams=(), people=(), team_rule="loose")
 
 
 if __name__ == "__main__":
