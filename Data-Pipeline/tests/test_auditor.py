@@ -107,6 +107,17 @@ class PolicyV0(unittest.TestCase):
                                              5: [("S_c2", "cart/pricing.py", 231)], 7: [("cart.pricing",)],
                                              8: [(4, 2.0)]})
 
+    def test_facts_at_an_earlier_moment_never_read_a_later_ticket(self):
+        """billing has no ticket, so 2 Never notified fires. A ticket made on Sep 20 is known at R2, not at R1."""
+        db = K.build()
+        db.execute("INSERT INTO ticket (run_id, key, tracker, type, effective_type, status, created_at, bulk_closed, "
+                   "desc_empty, summary) VALUES ('R2', 'BIL-9', 'jira', 'Task', 'Task', 'Open', "
+                   "'2026-09-20T00:00:00Z', 0, 0, 'fixture')")
+        site = db.execute("SELECT call_site_id FROM call_site WHERE owner_team = 'billing'").fetchone()[0]
+        db.execute("INSERT INTO ticket_map VALUES ('R2', 'BIL-9', 'call_site', ?, 'symbol')", (site,))
+        teams = {at: {s.team: sorted(s.facts) for s in A.block_stalls(db, CFG, at, "R2")} for at in (K.R1[1], K.R2[1])}
+        self.assertEqual((teams[K.R1[1]]["billing"], teams[K.R2[1]]["billing"]), ([2, 7], [7]))
+
     def test_evidence_never_reorders_v0_and_there_are_no_probabilities(self):
         s = self.stalls["billing"]._replace(facts={7: [("a",), ("b",), ("c",)], 2: [(1,)]})
         self.assertEqual(A.stall_v0(s), [2, 7])  # reason numbers only, by number
@@ -364,6 +375,14 @@ class StallJob(unittest.TestCase):
         job = self.run_job()
         [o] = [o for o in job.outcomes if o.stall.team == "checkout"]
         self.assertEqual((sorted(o.fired), o.reason, o.matches, job.matches), ([2, 4], None, [], []))
+
+    def test_a_ticket_made_during_the_stall_is_scored_against_the_ranking_served(self):
+        """search was served with 2 Never notified first. A ticket made after R1 and before it resumed is the
+        verdict; reading it into search's R1 facts would have turned 2 off and made every match a draw."""
+        add_ticket(self.db, "SRCH-1", "2026-09-05T00:00:00Z", "S_s2")  # search's site left at R1
+        [o] = [o for o in self.run_job().outcomes if o.stall.team == "search"]
+        self.assertEqual((o.reason, sorted(o.stall.facts)), (2, [2, 7]))
+        self.assertIn(("stall-v0", "stall-v8", "a"), [(m["policy_a"], m["policy_b"], m["result"]) for m in o.matches])
 
     def test_a_task_is_decided_once(self):
         first = self.run_job()
