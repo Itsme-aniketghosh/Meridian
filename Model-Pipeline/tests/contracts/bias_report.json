@@ -1,0 +1,665 @@
+{
+  "split": "val",
+  "candidate": "model",
+  "n": 2031,
+  "positives": 549,
+  "threshold": {
+    "value": 0.735187,
+    "rule": "alert_rate",
+    "why": "[eval] threshold = 'alert_rate'",
+    "alerts": 407,
+    "alert_rate": 0.200394
+  },
+  "settings": {
+    "slices": [
+      "module",
+      "component",
+      "exp_bucket",
+      "size_bucket"
+    ],
+    "min_n": 30,
+    "max_gap": 0.1,
+    "power_gap": 0.15,
+    "pool_below": 30,
+    "baseline": "lines_x_files",
+    "accepted": [],
+    "bootstrap_reps": 200,
+    "interval": 0.95,
+    "seed": 1
+  },
+  "overall": {
+    "recall": 0.493625,
+    "fpr": 0.091768,
+    "pr_auc": 0.673297
+  },
+  "slices": {
+    "module": {
+      "core": {
+        "n": 654,
+        "positives": 171,
+        "recall": {
+          "value": 0.245614,
+          "n": 171,
+          "ci": [
+            0.187155,
+            0.315252
+          ],
+          "judged": true,
+          "flagged": true,
+          "power": 0.247846,
+          "bonferroni_flagged": true
+        },
+        "fpr": {
+          "value": 0.281573,
+          "n": 483,
+          "ci": [
+            0.243308,
+            0.323286
+          ],
+          "judged": true,
+          "flagged": true,
+          "power": 0.779145,
+          "bonferroni_flagged": true
+        },
+        "pr_auc": {
+          "value": 0.246883,
+          "n": 171,
+          "ci": [
+            0.211533,
+            0.293473
+          ],
+          "judged": true,
+          "flagged": true,
+          "power": null,
+          "bonferroni_flagged": true
+        }
+      },
+      "python": {
+        "n": 674,
+        "positives": 194,
+        "recall": {
+          "value": 0.592784,
+          "n": 194,
+          "ci": [
+            0.522496,
+            0.659468
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.31849,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.0,
+          "n": 480,
+          "ci": [
+            0.0,
+            0.007939
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.788569,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.971283,
+          "n": 194,
+          "ci": [
+            0.959597,
+            0.982676
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      },
+      "sql": {
+        "n": 703,
+        "positives": 184,
+        "recall": {
+          "value": 0.619565,
+          "n": 184,
+          "ci": [
+            0.547649,
+            0.686591
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.283342,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.0,
+          "n": 519,
+          "ci": [
+            0.0,
+            0.007347
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.792446,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.982406,
+          "n": 184,
+          "ci": [
+            0.972122,
+            0.990577
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      }
+    },
+    "component": {
+      "SQL": {
+        "n": 680,
+        "positives": 184,
+        "recall": {
+          "value": 0.494565,
+          "n": 184,
+          "ci": [
+            0.423178,
+            0.566175
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.283342,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.090726,
+          "n": 496,
+          "ci": [
+            0.068496,
+            0.119246
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.780601,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.682425,
+          "n": 184,
+          "ci": [
+            0.625069,
+            0.752726
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      },
+      "Spark Core": {
+        "n": 709,
+        "positives": 186,
+        "recall": {
+          "value": 0.483871,
+          "n": 186,
+          "ci": [
+            0.413109,
+            0.555286
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.301146,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.089866,
+          "n": 523,
+          "ci": [
+            0.068253,
+            0.11746
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.81914,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.651758,
+          "n": 186,
+          "ci": [
+            0.588074,
+            0.713355
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      },
+      "none": {
+        "n": 642,
+        "positives": 179,
+        "recall": {
+          "value": 0.502793,
+          "n": 179,
+          "ci": [
+            0.430262,
+            0.575207
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.265731,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.095032,
+          "n": 463,
+          "ci": [
+            0.071555,
+            0.125175
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.756167,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.688261,
+          "n": 179,
+          "ci": [
+            0.61939,
+            0.749651
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      }
+    },
+    "exp_bucket": {
+      "0": {
+        "n": 506,
+        "positives": 143,
+        "recall": {
+          "value": 0.454545,
+          "n": 143,
+          "ci": [
+            0.375189,
+            0.53628
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.207959,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.07989,
+          "n": 363,
+          "ci": [
+            0.056198,
+            0.11238
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.65205,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.702508,
+          "n": 143,
+          "ci": [
+            0.636015,
+            0.771041
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      },
+      "1": {
+        "n": 517,
+        "positives": 148,
+        "recall": {
+          "value": 0.439189,
+          "n": 148,
+          "ci": [
+            0.361775,
+            0.519681
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.226646,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.067751,
+          "n": 369,
+          "ci": [
+            0.046308,
+            0.0981
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.671086,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.704128,
+          "n": 148,
+          "ci": [
+            0.626462,
+            0.765563
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      },
+      "2-10": {
+        "n": 511,
+        "positives": 124,
+        "recall": {
+          "value": 0.572581,
+          "n": 124,
+          "ci": [
+            0.484617,
+            0.656182
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.219777,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.111111,
+          "n": 387,
+          "ci": [
+            0.083543,
+            0.146324
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.68245,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.605861,
+          "n": 124,
+          "ci": [
+            0.523224,
+            0.693161
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      },
+      ">10": {
+        "n": 497,
+        "positives": 134,
+        "recall": {
+          "value": 0.522388,
+          "n": 134,
+          "ci": [
+            0.438376,
+            0.605152
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.205051,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.107438,
+          "n": 363,
+          "ci": [
+            0.079594,
+            0.143503
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.65205,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.684758,
+          "n": 134,
+          "ci": [
+            0.603921,
+            0.75523
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      }
+    },
+    "size_bucket": {
+      "Q1": {
+        "n": 583,
+        "positives": 147,
+        "recall": {
+          "value": 0.496599,
+          "n": 147,
+          "ci": [
+            0.416895,
+            0.576475
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.244461,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.098624,
+          "n": 436,
+          "ci": [
+            0.074046,
+            0.130213
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.743976,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.671029,
+          "n": 147,
+          "ci": [
+            0.597306,
+            0.738817
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      },
+      "Q2": {
+        "n": 507,
+        "positives": 127,
+        "recall": {
+          "value": 0.574803,
+          "n": 127,
+          "ci": [
+            0.487869,
+            0.657345
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.220805,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.092105,
+          "n": 380,
+          "ci": [
+            0.066972,
+            0.125403
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.697142,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.704981,
+          "n": 127,
+          "ci": [
+            0.622465,
+            0.792883
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      },
+      "Q3": {
+        "n": 459,
+        "positives": 119,
+        "recall": {
+          "value": 0.512605,
+          "n": 119,
+          "ci": [
+            0.423819,
+            0.600603
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.199152,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.085294,
+          "n": 340,
+          "ci": [
+            0.060042,
+            0.119812
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.6302,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.664451,
+          "n": 119,
+          "ci": [
+            0.574902,
+            0.751846
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      },
+      "Q4": {
+        "n": 482,
+        "positives": 156,
+        "recall": {
+          "value": 0.410256,
+          "n": 156,
+          "ci": [
+            0.336129,
+            0.488698
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.245938,
+          "bonferroni_flagged": false
+        },
+        "fpr": {
+          "value": 0.088957,
+          "n": 326,
+          "ci": [
+            0.062651,
+            0.124837
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": 0.613854,
+          "bonferroni_flagged": false
+        },
+        "pr_auc": {
+          "value": 0.664326,
+          "n": 156,
+          "ci": [
+            0.601297,
+            0.735855
+          ],
+          "judged": true,
+          "flagged": false,
+          "power": null,
+          "bonferroni_flagged": false
+        }
+      }
+    }
+  },
+  "tests": 42,
+  "bonferroni_level": 0.99881,
+  "flags": [
+    {
+      "slice": "module=core",
+      "metric": "recall",
+      "value": 0.245614,
+      "n": 171,
+      "ci": [
+        0.187155,
+        0.315252
+      ],
+      "overall": 0.493625,
+      "gap": 0.248011,
+      "bonferroni": true
+    },
+    {
+      "slice": "module=core",
+      "metric": "fpr",
+      "value": 0.281573,
+      "n": 483,
+      "ci": [
+        0.243308,
+        0.323286
+      ],
+      "overall": 0.091768,
+      "gap": 0.189806,
+      "bonferroni": true
+    },
+    {
+      "slice": "module=core",
+      "metric": "pr_auc",
+      "value": 0.246883,
+      "n": 171,
+      "ci": [
+        0.211533,
+        0.293473
+      ],
+      "overall": 0.673297,
+      "gap": 0.426414,
+      "bonferroni": true
+    }
+  ],
+  "newcomers": {
+    "group": "exp_bucket=0",
+    "n": 506,
+    "positives": 143,
+    "model": {
+      "recall": 0.454545,
+      "caught": 65
+    },
+    "lines_x_files": {
+      "recall": 0.265734,
+      "caught": 38
+    },
+    "judged": true
+  },
+  "accepted": [],
+  "open_flags": 3,
+  "pass": false
+}

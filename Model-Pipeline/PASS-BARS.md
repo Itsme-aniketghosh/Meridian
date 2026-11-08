@@ -183,7 +183,7 @@ Written Nov 7, before any bias, gate or CI run. Like Rochan's, every bar was che
 
 | What | Bar | Measured by |
 |---|---|---|
-| Mitigation rule (decision 5) | A mitigation is adopted when it closes at least half of the worst flagged gap for at most 0.01 `val` PR-AUC. All are scored on the same `val` rows. None qualifies: the model ships unmitigated, and the report says so with the numbers | `decisions.md` |
+| Mitigation rule (decision 5) | A mitigation is adopted when it closes at least half of the worst flagged gap for at most 0.01 `val` PR-AUC and at most 0.02 overall precision at the alert budget. All are scored on the same `val` rows. None qualifies: the model ships unmitigated, and the report says so with the numbers. **The precision limit was added on Nov 8, after the first results:** a per-group threshold leaves PR-AUC unchanged by construction, so the 0.01 PR-AUC limit can't see its cost. Under the bar as first written, "equal recall by size" qualified (closes 97–104% of the gap at 0 PR-AUC cost) while cutting overall precision by 0.10–0.12 and recall from 0.50 to 0.33–0.37. The report says the limit came after the results | `decisions.md` |
 | Only what push time knows | A per-group threshold is used only on a slice known when the commit is pushed (`module`, `size_bucket`, `exp_bucket`; not `component`, which needs a ticket) | `decisions.md` |
 | Final pick | The best `val` PR-AUC model whose bias report passes. If the best fails and its mitigation costs more than 0.01 PR-AUC, the pick and its reason are written down | `decisions.md`, handed to Rochan |
 | Newcomers (decision 4) | Recall for `exp_bucket = 0`, from the model and from lines × files, both with N, in the report whatever they show | `bias_report.json` |
