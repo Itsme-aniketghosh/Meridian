@@ -48,6 +48,19 @@ Result (Nov 5, same run, kinds = c):
 
 Picked **round**: the only option within 5%. exact rejects "1,526" and "71%"; format still rejects "71%" and "86%" from 0.712 and 0.857. The 10 left are decision 1's `platform` filler, not numbers.
 
+## 11. A team name used as an ordinary word
+
+Why: the seed sweep (below, Review fixes) puts the gate at 7–14 false rejects per 200, mean 4.95%, over 5% in seeds 3, 8 and 9. Every one is the filler "Keep the same error handling across the platform.", where `platform` is a word, not the team. The lead asked for clearly under 5% (Nov 7).
+
+Options (`check(..., team_rule=...)`):
+- **strict**: today's gate. Every team name, singular or plural, must be a fact. The baseline.
+- **article**: a team name right after `the`, `a`, `an`, `this`, `that`, `our` or `your` is read as a word and not checked, unless the next word is `team`, `'s`, `owns` or `own`. "across the platform" passes; "the platform team" and "Done: platform, 2 of 2" are still checked.
+- **ownership**: a team name is checked only next to `team`, `'s`, `owns` or `own`, or in a list with another team name. Everything else is read as a word.
+
+Test: `python -m tests.fact_gate_corpus --sweep` from Data-Pipeline/: seeds 0–9, each 200 clean + 200 injected (N = 2,000 + 2,000), kinds = teams, numbers = round. For each option: caught per seed, false rejects per seed, mean.
+
+Rule, written before the run: an option passes if it catches 200 / 200 on every seed, its mean false-reject rate is at most 2.5%, and no seed is over 5% (10 / 200). Of the options that pass, pick the one with the lowest mean false-reject rate; on a tie, the stricter one (strict > article > ownership). If none passes, keep strict and the writer's prompt fix below.
+
 ## To do when building the writer
 
 From decision 1: all 10 false rejects are a team name (`platform`) used as a plain word. Loosening the gate to allow that let a swapped team through ("Done: platform, 2 of 2." for search), so the fix goes in the writer, not the gate.
