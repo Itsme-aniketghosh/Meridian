@@ -44,7 +44,6 @@ Settings: meridian.toml [auditor] when the section exists, else 04 §9's numbers
 """
 import argparse
 import itertools
-import json
 import random
 import sqlite3
 from collections import namedtuple
@@ -53,7 +52,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from meridian.common import CONFIG, h, handoff, load_config, log
+from meridian.common import CONFIG, h, handoff, load_config, log, write_jsonl
 from meridian.pushcheck import kb_queries
 
 # 04 §5's stall reasons by number, and the KNOWLEDGE-BASE.md query behind each. Each query's first column is the team
@@ -286,8 +285,7 @@ def write_tracking(out, at, policies, before, log, new):
                      key=lambda m: m["match_id"])
     out.mkdir(parents=True, exist_ok=True)
     for name, table in (("policy", kept), ("match", matches)):
-        text = "".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in table)
-        (out / f"{name}.jsonl").write_text(text, encoding="utf-8")
+        write_jsonl(out / f"{name}.jsonl", table)  # '\n' on every OS: write_text gave '\r\n' on Windows
     return len(kept), len(matches)
 
 

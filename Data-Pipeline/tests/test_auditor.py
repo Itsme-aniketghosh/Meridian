@@ -412,6 +412,7 @@ class StallJob(unittest.TestCase):
             self.assertEqual(A.write_tracking(Path(d), K.R2[1], self.policies, [], [], job.matches), (3, 3))
             rows = {t: [json.loads(line) for line in (Path(d) / f"{t}.jsonl").read_text().splitlines()]
                     for t in ("policy", "match")}
+            self.assertNotIn(b"\r", (Path(d) / "match.jsonl").read_bytes())  # the same bytes on Windows
         db = K.build()
         db.execute("PRAGMA foreign_keys = ON")
         for table, data in rows.items():
