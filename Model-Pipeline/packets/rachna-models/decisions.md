@@ -12,13 +12,13 @@ Common terms:
 
 | # | Decision | Options | Test | Rule that picks (written before the run) | Result (N) | Picked |
 |---|---|---|---|---|---|---|
-| 1 | Model family | LR, RF, LightGBM | `val` PR-AUC of each, tuned the same way; paired bootstrap of each against the best | Highest PR-AUC wins. If a simpler model is tied with it, the simplest tied model wins | | |
+| 1 | Model family | LR, RF, LightGBM | `val` PR-AUC of each, tuned the same way; paired bootstrap of each against the best | Highest PR-AUC wins. If a simpler model is tied with it, the simplest tied model wins | Tuned, `val` 2023, N = 4,113 (486 bug-inducing): LightGBM 0.413, forest 0.406, logistic regression 0.382. LightGBM − forest +0.007 [−0.005, +0.019]: tied. LightGBM − logistic regression +0.031 [+0.006, +0.052]: worse. Each against lines × files (0.319): `reports/tuned_val.json`. 2,000 resamples (Rochan's `[eval] bootstrap_reps`) | **Random forest**: tied with the best, and simpler. `reports/candidate.json` |
 | 2 | Real reason to beat lines × files? | — (a finding, not a choice) | The winner on (a) all features, (b) no size features (`la`, `ld`, `nf`, `nd`, `ns`, `entropy`), (c) size features only; each against lines × files, paired bootstrap | "Beats for a real reason" only if (b) beats lines × files (interval above 0). If (c) is tied with (a), the report says the model is mostly size | | |
 | 3 | Class imbalance | none, `class_weight="balanced"`, `scale_pos_weight` | `val` PR-AUC and Brier score of each | Among options tied with the best PR-AUC, the lowest Brier wins; if Brier differs by < 0.001, `none` | | |
 | 4 | Calibration | raw, isotonic, Platt (fitted on 2022 only) | Reliability curve and Brier on `val` | Lowest Brier wins; if within 0.001 of raw, raw. Calibration never changes the ranking, so PR-AUC must not move | | |
 | 5 | Training window | 2015–2022, 2019–2022 | `val` PR-AUC of each, paired bootstrap; fold-to-fold spread | The shorter window wins only if its interval is above 0. Tied: 2015–2022 (the plan's default, more data) | | |
-| 6 | Number of trials | 50, 100, 200 | Optuna best-so-far curve | Start at 50. Add 50 at a time, up to 200, while the last 30 trials improved the best by ≥ 0.002. Stop at the first batch that doesn't | | |
-| 7 | Seed noise | — | Chosen config, seeds 1–5 | Mean and standard deviation of `val` PR-AUC into `reports/seed_noise.json`. No choice; Rochan and Chaitali use the SD | | |
+| 6 | Number of trials | 50, 100, 200 | Optuna best-so-far curve | Start at 50. Add 50 at a time, up to 200, while the last 30 trials improved the best by ≥ 0.002. Stop at the first batch that doesn't | Logistic regression 50 trials, forest 100, LightGBM 100: each stopped `flat` (the last 30 trials added < 0.002). Best mean fold PR-AUC 0.315, 0.328, 0.328. Curves in `reports/tuning_<kind>.json` | 50, 100, 100: the rule stopped each one; none needed 200 |
+| 7 | Seed noise | — | Chosen config, seeds 1–5 | Mean and standard deviation of `val` PR-AUC into `reports/seed_noise.json`. No choice; Rochan and Chaitali use the SD | Forest, the candidate's config, seeds 1–5, `val` N = 4,113: mean 0.4044, SD 0.0021 (2 SD = 0.0042). `reports/seed_noise.json` | — |
 | 8 | Ticket features | keep `fix`, `ticket_type`, `has_ticket`; drop | `val` PR-AUC with and without, paired bootstrap | Drop unless keeping them is better with an interval above 0 (they can leak: ticket type is as of the pull) | | |
 | 9 | Determinism | — | Train twice in the image, once on a laptop; compare every `val` prediction | Pass if the max absolute difference is ≤ 1e-9. Otherwise set `deterministic=true`, fixed `num_threads`, and rerun until it passes | | |
 | 10 | SHAP sample size | all of `val`, 5,000, 2,000 | Spearman correlation of the top-10 feature ranking against all of `val` | The smallest sample with Spearman ≥ 0.9 | | |
@@ -39,6 +39,7 @@ Common terms:
 | Date | What | Handling |
 |---|---|---|
 | Nov 6 | `age` is below 0 on 8 of 41,163 rows of the c5118 table (train 6, val 1, test 1), min −1.94 days. Found by the first real `--untuned` run: `log1p` of the one value below −1 made a NaN, and logistic regression stopped | `feature_matrix` reads `age` below 0 as 0 for every model: "days since the files last changed" can't be negative, and under 2 days below 0 is author dates out of order (rebases, cherry-picks). `check_table` now refuses a negative count or flag, and `--check` reports the negative `age` rows. Told Utkarsh, who owns the table |
+| Nov 7 | Tuned logistic regression scored 0.382 on `val`, below untuned (0.390). Tuning maximises the mean over the folds inside train (2020–2022), not 2023 | Kept as measured, not re-tuned on `val` (that would leak it). A small sign that 2023 differs from earlier years: decision 5 (training window) tests it |
 
 ## Options considered and not run
 
