@@ -145,7 +145,7 @@ From [packets/rachna-models/pass-bars.md](packets/rachna-models/pass-bars.md), w
 
 ## 5. Vishwa: fact gate, writer, cache, views
 
-**Vishwa to confirm.** Taken from the tests in [packets/vishwa-agents/README.md](packets/vishwa-agents/README.md) and the team bars.
+Confirmed by Vishwa, Nov 7. Taken from the tests in [packets/vishwa-agents/README.md](packets/vishwa-agents/README.md) and the team bars.
 
 | What | Bar | Measured by |
 |---|---|---|
@@ -226,6 +226,6 @@ Each owner signs for their own rows and reads the rest. Aniket reviews. Changing
 | Utkarsh | §2 | |
 | Rochan | §3 | |
 | Rachna | §4 | |
-| Vishwa | §5 | |
+| Vishwa | §5 | Vishwa, Nov 7 |
 | Chaitali | §6 | |
 | Aniket | review | |
