@@ -76,6 +76,8 @@ Picked **article**, the only option that passes, now `DEFAULT_TEAM_RULE` in `fac
 - 0% is on our own 400 texts per seed, where the only team-as-word sentence is the `platform` filler. Real LLM output is measured in decision 5.
 - Known limit: a team name after an article in other words, "ask the payments folks", reads as a word and passes. A test pins it down (`test_known_limit_article_hides_a_swapped_team_in_other_words`). Decision 5 shows how often the writer does this.
 
+Review fix (Nov 8, PR #42): two swapped teams got past article: a curly apostrophe ("the platform’s client", as LLMs write it) and a team after an article in a list ("the payments and checkout teams"). Both are checked now and pinned in `TeamRule`; the sweep didn't move (article: 2,000 / 2,000 caught, 0 / 2,000 rejected). Still read as a word: "owned by the platform", "blocked by the platform", "the platform owners".
+
 ## To do when building the writer
 
 From decision 1: all 10 false rejects are a team name (`platform`) used as a plain word. Loosening the gate to allow that let a swapped team through ("Done: platform, 2 of 2." for search), so the fix goes in the writer, not the gate.

@@ -182,7 +182,7 @@ class TeamRule(unittest.TestCase):
     def test_still_a_team_when_it_names_one(self):
         for text in ("Ask the payments team.", "the platform's client", "the search team owns it",
                      "Done: platform, 2 of 2.", "Ask payments to review.", "payments and billing",
-                     "Platform owns it."):
+                     "Platform owns it.", "the platform’s client", "the payments and checkout teams"):
             self.assertFalse(ok(text), text)
 
     def test_strict_checks_every_team_name(self):

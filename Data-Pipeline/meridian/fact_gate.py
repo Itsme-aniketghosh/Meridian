@@ -35,7 +35,7 @@ DEFAULT_NUMBERS = "round"
 TEAM_RULES = ("strict", "article", "ownership")
 DEFAULT_TEAM_RULE = "article"  # decision 11
 _ARTICLE = re.compile(r"\b(?:the|a|an|this|that|our|your)\s+$", re.IGNORECASE)
-_OWNS_AFTER = re.compile(r"^(?:'s\b|\s+(?:team|teams|owns|own)\b)", re.IGNORECASE)
+_OWNS_AFTER = re.compile(r"^(?:['\u2019]s\b|\s+(?:team|teams|owns|own)\b)", re.IGNORECASE)
 
 _EXT = (r"(?:py|pyi|rb|erb|rake|js|jsx|mjs|cjs|ts|tsx|vue|java|kt|kts|scala|go|rs|c|h|cc|cpp|hpp|cs|php|swift|"
         r"proto|toml|cfg|ini|txt|md|rst|sql|yml|yaml|json|html|css|sh|ipynb)")
@@ -298,15 +298,15 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
 
 def _names_a_team(text, m, hits, rule):
     """Decision 11: whether a team-name match is used as a team. strict: always. article: not right after
-    the/a/an/this/that/our/your, unless "team", "'s", "owns" or "own" follows. ownership: only next to one of
-    those, or in a list with another team name."""
+    the/a/an/this/that/our/your, unless "team", "'s", "owns" or "own" follows or it's in a list with another team
+    name ("the payments and checkout teams"). ownership: only next to one of those, or in such a list."""
     if rule == "strict":
         return True
     owns = bool(_OWNS_AFTER.match(text[m.end():]))
-    if rule == "article":
-        return owns or not _ARTICLE.search(text[:m.start()])
     between = (text[min(m.end(), o.end()):max(m.start(), o.start())] for o in hits if o is not m)
     listed = any(re.fullmatch(r"\s*(?:,|and|or|&|/|,\s*and)\s*", b) for b in between)
+    if rule == "article":
+        return owns or listed or not _ARTICLE.search(text[:m.start()])
     return owns or listed
 
 
