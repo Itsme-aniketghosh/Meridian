@@ -48,6 +48,36 @@ Result (Nov 5, same run, kinds = c):
 
 Picked **round**: the only option within 5%. exact rejects "1,526" and "71%"; format still rejects "71%" and "86%" from 0.712 and 0.857. The 10 left are decision 1's `platform` filler, not numbers.
 
+## 11. A team name used as an ordinary word
+
+Why: the seed sweep (below, Review fixes) puts the gate at 7–14 false rejects per 200, mean 4.95%, over 5% in seeds 3, 8 and 9. Every one is the filler "Keep the same error handling across the platform.", where `platform` is a word, not the team. The lead asked for clearly under 5% (Nov 7).
+
+Options (`check(..., team_rule=...)`):
+- **strict**: today's gate. Every team name, singular or plural, must be a fact. The baseline.
+- **article**: a team name right after `the`, `a`, `an`, `this`, `that`, `our` or `your` is read as a word and not checked, unless the next word is `team`, `'s`, `owns` or `own`. "across the platform" passes; "the platform team" and "Done: platform, 2 of 2" are still checked.
+- **ownership**: a team name is checked only next to `team`, `'s`, `owns` or `own`, or in a list with another team name. Everything else is read as a word.
+
+Test: `python -m tests.fact_gate_corpus --sweep` from Data-Pipeline/: seeds 0–9, each 200 clean + 200 injected (N = 2,000 + 2,000), kinds = teams, numbers = round. For each option: caught per seed, false rejects per seed, mean.
+
+Rule, written before the run: an option passes if it catches 200 / 200 on every seed, its mean false-reject rate is at most 2.5%, and no seed is over 5% (10 / 200). Of the options that pass, pick the one with the lowest mean false-reject rate; on a tie, the stricter one (strict > article > ownership). If none passes, keep strict and the writer's prompt fix below.
+
+Result (Nov 7, `python -m tests.fact_gate_corpus --sweep`, seeds 0–9, N = 2,000 + 2,000, kinds = teams, numbers = round):
+
+| Option | Caught per seed | False rejects per seed | Caught | False rejects | Worst seed | Passes |
+|---|---|---|---|---|---|---|
+| strict | 200 200 198 200 200 200 200 200 199 200 | 7 10 9 14 8 10 9 9 12 11 | 1,997 / 2,000 | 99 / 2,000 (4.95%) | 14 / 200 | no |
+| article | 200 on every seed | 0 on every seed | **2,000 / 2,000** | **0 / 2,000 (0.00%)** | 0 / 200 | **yes** |
+| ownership | 163–170 | 0 on every seed | 1,649 / 2,000 | 0 / 2,000 (0.00%) | 0 / 200 | no: 351 swapped teams pass |
+
+Picked **article**, the only option that passes, now `DEFAULT_TEAM_RULE` in `fact_gate.py`. `test_fact_gate.py` (`TeamRule`) checks the bar on all 10 seeds in CI.
+
+- strict's 3 short catches aren't the gate missing anything: the swapped team was `platform` in a text whose clean version already has the `platform` filler, so the scorer (which counts only new flags) sees nothing new.
+- ownership reads "Ask payments to review." and "Done: platform, 2 of 2." as words, so most swapped teams get through.
+- 0% is on our own 400 texts per seed, where the only team-as-word sentence is the `platform` filler. Real LLM output is measured in decision 5.
+- Known limit: a team name after an article in other words, "ask the payments folks", reads as a word and passes. A test pins it down (`test_known_limit_article_hides_a_swapped_team_in_other_words`). Decision 5 shows how often the writer does this.
+
+Review fix (Nov 8, PR #42): two swapped teams got past article: a curly apostrophe ("the platform’s client", as LLMs write it) and a team after an article in a list ("the payments and checkout teams"). Both are checked now and pinned in `TeamRule`; the sweep didn't move (article: 2,000 / 2,000 caught, 0 / 2,000 rejected). Still read as a word: "owned by the platform", "blocked by the platform", "the platform owners".
+
 ## To do when building the writer
 
 From decision 1: all 10 false rejects are a team name (`platform`) used as a plain word. Loosening the gate to allow that let a swapped team through ("Done: platform, 2 of 2." for search), so the fix goes in the writer, not the gate.
@@ -76,7 +106,7 @@ Process note: the rules and results for decisions 1 and 2 landed in one commit (
 
 ## Known limits, written before the run
 
-- A team name that's also a plain word ("search", "platform") is flagged wherever it appears in the text. Decision 1 measures what that costs.
+- A team name that's also a plain word ("search", "platform") is flagged wherever it appears in the text. Decision 1 measures what that costs. (Decision 11 changed this: right after an article it's read as a word.)
 - A 0 or 1 flag in the facts (`in_except`) also lets "0" and "1" pass as numbers. Found while testing; a flag should reach the gate as a bool, which the gate skips.
 - A line number counts only next to its path, never as a count (found by the tests: "214 bug fixes" passed before).
 - The 200 + 200 texts are written by us from the fixture, not by an LLM. The false-reject rate on real LLM output is measured again once the writer runs (decision 5).
