@@ -9,9 +9,7 @@ checked by hand, and on simulated policies of known skill that all rank every st
 import contextlib
 import dataclasses
 import io
-import itertools
 import json
-import math
 import random
 import sqlite3
 import sys
@@ -22,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import tests.test_kb as K
 from meridian import auditor as A
+from meridian import auditor_sim as S
 from meridian.common import CONFIG, load_config
 
 CFG = load_config(CONFIG)
@@ -37,19 +36,11 @@ def match(i, a, b, result, mode="live", at="2026-10-01T00:00:00Z"):
 
 
 def shadow(skills, n, seed):
-    """The first n matches of simulated stalls in which every policy ranks every stall in shadow (04 §9). Each stall
-    draws one performance per policy, its skill plus Gumbel noise of scale 400 / ln 10. Then a policy beats another
-    1 / (1 + 10^(-gap / 400)) of the time, the curve Elo assumes, and one stall's results agree with each other."""
-    rng, scale, out = random.Random(seed), 400 / math.log(10), []
-    while len(out) < n:
-        perf = {p: s - scale * math.log(-math.log(rng.random() or 1e-12)) for p, s in sorted(skills.items())}
-        for a, b in itertools.combinations(sorted(skills), 2):
-            out.append(match(len(out), a, b, "a" if perf[a] > perf[b] else "b"))
-    return out[:n]
+    return S.shadow(skills, n, seed)
 
 
 def order(ratings):
-    return sorted(ratings, key=lambda p: -ratings[p])
+    return S.order(ratings)
 
 
 def r1_stalls(db):
@@ -426,6 +417,39 @@ class RanksRight(unittest.TestCase):
         wrong = [seed for seed in range(1, 21)
                  if order(A.elo(shadow(self.SKILLS, 200, seed))[0]) != ["stall-v1", "stall-v0", "stall-v2"]]
         self.assertEqual(wrong, [])
+
+
+class Simulations(unittest.TestCase):
+    """meridian/auditor_sim.py, the code behind decisions 9–11, on a few seeds (the decisions run 2,000)."""
+
+    def test_in_the_stall_job_eps_never_moves_promotion(self):
+        for seed in range(1, 21):
+            a = S.eps_run(seed, S.settings(**S.EPS["0.2 then 0.1"]))
+            b = S.eps_run(seed, S.settings(**S.EPS["0.1"]))
+            self.assertEqual(a[:2], b[:2], seed)
+
+    def test_v1_is_promoted_after_its_30th_live_match(self):
+        firsts = [S.eps_run(seed, S.settings())[0] for seed in range(1, 21)]
+        self.assertTrue(all(f is None or f >= 45 for f in firsts), firsts)  # 15 stalls give each policy 30
+        self.assertGreater(sum(f is not None for f in firsts), 10)
+
+    def test_replay_rows_come_first_and_a_wrong_verdict_is_a_coin_flip(self):
+        replay, live = S.replay_rows(1, 0.3)
+        self.assertEqual(([m["mode"] for m in replay], [m["mode"] for m in live]), (["replay"] * 100, ["live"] * 60))
+        flips = [m for seed in range(1, 41) for m in S.replay_rows(seed, 1.0)[0] if m["policy_a"] == "stall-v1"]
+        self.assertAlmostEqual(sum(m["result"] == "a" for m in flips) / len(flips), 0.5, delta=0.08)
+
+    def test_each_decision_runs_and_picks_one_of_its_options(self):
+        for n, options in ((9, S.EPS), (10, S.K), (11, S.REPLAY)):
+            decide, pick, _ = S.DECIDE[n]
+            self.assertIn(pick(decide(range(1, 6))), options, n)
+
+    def test_the_command_prints_each_decisions_table(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(S.main(["--decide", "9", "10", "--seeds", "3", "--no-log"]), 0)
+        self.assertIn("decision 9, seeds 1–3", out.getvalue())
+        self.assertIn("| 24 flat |", out.getvalue())
 
 
 class Command(unittest.TestCase):
