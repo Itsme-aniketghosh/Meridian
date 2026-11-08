@@ -14,6 +14,9 @@ import pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 from model import evaluate as ev
+from tests.contracts import make_rochan
+
+CONTRACTS = Path(__file__).resolve().parent / "contracts"
 
 # The 10-commit example, worked by hand (decision 2). Scores fall from the first commit to the last, no ties.
 Y = np.array([1, 0, 1, 1, 0, 0, 0, 1, 1, 0])
@@ -357,6 +360,29 @@ class Command(unittest.TestCase):
             self.assertEqual(run.data.tags["features_md5"], ev.file_md5(self.features))
             self.assertIn("val_pr_auc_lgbm", run.data.metrics)
             self.assertEqual([a.path for a in client.list_artifacts(run.info.run_id)], ["metrics.json"])
+
+
+class MetricsExample(unittest.TestCase):
+    """tests/contracts/metrics.json, the example gate.py and registry.py test against (packets/README.md, Integration
+    tests). Written by main() from a run on the fake table: python -m tests.contracts.make_rochan."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.committed = json.loads((CONTRACTS / "metrics.json").read_text(encoding="utf-8"))
+
+    def test_it_has_the_shape_main_writes(self):
+        self.assertEqual(make_rochan.shape(self.committed), make_rochan.shape(make_rochan.build()[0]),
+                         "metrics.json's shape changed: run python -m tests.contracts.make_rochan and announce it "
+                         "in the team chat (S10)")
+
+    def test_every_number_has_its_n(self):
+        m = self.committed
+        self.assertEqual(m["models"][m["candidate"]["column"]]["role"], "candidate")
+        for name, x in m["models"].items():
+            for key, block in x.items():
+                if isinstance(block, dict):
+                    self.assertEqual((block["n"], block["positive_rate"]), (m["n"], m["positive_rate"]),
+                                     f"{name}.{key}")
 
 
 class Paths(unittest.TestCase):

@@ -7,7 +7,9 @@ import unittest
 from pathlib import Path
 
 from model import registry as reg
+from tests.contracts import make_rochan
 
+CONTRACTS = Path(__file__).resolve().parent / "contracts"
 GOOD = {"run_id": "b" * 32, "version": "c" * 40, "model_file": "model.joblib", "model_md5": "d" * 32}
 BIAS = {"split": "val", "candidate": "lgbm", "n": 100, "pass": True}
 NOISE = {"kind": "lgbm", "split": "val", "n": 100, "mean": 0.4, "sd": 0.01}
@@ -136,6 +138,27 @@ class Readers(unittest.TestCase):
             for value in (-0.1, "0.1", True, None):
                 with self.subTest(value), self.assertRaisesRegex(reg.ContractError, "sd is"):
                     reg.read_seed_noise(write(d, "s.json", {**NOISE, "sd": value}))
+
+
+class ChampionExample(unittest.TestCase):
+    """tests/contracts/champion.json, the example the gate and P9 test against (packets/README.md, Integration
+    tests). Built by champion_record from a run on the fake table: python -m tests.contracts.make_rochan."""
+
+    def test_the_example_reads(self):
+        reg.read_champion(CONTRACTS / "champion.json")
+
+    def test_it_has_the_shape_registry_writes(self):
+        committed = json.loads((CONTRACTS / "champion.json").read_text(encoding="utf-8"))
+        self.assertEqual(make_rochan.shape(committed), make_rochan.shape(make_rochan.build()[1]),
+                         "champion.json's shape changed: run python -m tests.contracts.make_rochan and announce it "
+                         "in the team chat (S10)")
+
+    def test_it_comes_from_the_metrics_example(self):
+        champion = json.loads((CONTRACTS / "champion.json").read_text(encoding="utf-8"))
+        metrics = json.loads((CONTRACTS / "metrics.json").read_text(encoding="utf-8"))
+        block = metrics["models"][metrics["candidate"]["column"]]
+        self.assertEqual(champion["metrics"],
+                         {"split": metrics["split"], "features_md5": metrics["features_md5"], **block})
 
 
 class Command(unittest.TestCase):
