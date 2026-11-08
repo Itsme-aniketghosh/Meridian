@@ -52,8 +52,10 @@ def build():
     with tempfile.TemporaryDirectory() as d, contextlib.redirect_stdout(io.StringIO()):
         d = Path(d)
         table = fake_table(n=ROWS, seed=TABLE_SEED)
-        table.to_csv(d / "features.csv", index=False)
+        table.to_csv(d / "features.csv", index=False, lineterminator="\n")  # LF: the same md5s on Windows
         train.evaluate(table, SEED, d, {KIND: PARAMS}, "fake", reps=200)  # writes fake_val_scores.csv
+        scores = d / "fake_val_scores.csv"
+        scores.write_bytes(scores.read_bytes().replace(b"\r\n", b"\n"))  # pandas writes CRLF on Windows
         (d / "candidate.json").write_text(json.dumps({"kind": KIND, "params": PARAMS, "scores_file":
                                                       "fake_val_scores.csv", "column": KIND, "seed": SEED}))
         evaluate.main(["--config", str(example_config(d / "model.toml")), "--features", str(d / "features.csv"),
