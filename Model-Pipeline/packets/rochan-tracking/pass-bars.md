@@ -80,3 +80,22 @@ On Rachna's untuned LightGBM (her `candidate.json` isn't written yet), `val` N =
 | Fast | ✅ 1.4 s for every model and baseline, 2,000 resamples and three charts (bar: 60 s). 5 s with Python's start and the MLflow run |
 | 2024, once | ✅ for the refusal: `--split test` is refused without `test_allowed = true`, and on uncommitted code (tested). That the choices were committed first is checked on Nov 12, from the run's `git_sha` |
 | Threshold | ✅ Fixed on `val` by decision 3 (precision 0.80 on at least 30 alerts). The test run reuses `val`'s number (tested). `metrics.json` holds its alerts, alert rate and precision, with N |
+
+### Auditor, Nov 7 (policy v0 and Elo)
+
+Only the rows today's code can meet. Seeded ε and the promotion guard come with the stall job (Nov 8), and no look-ahead with replay (Nov 10).
+
+| Bar | Result |
+|---|---|
+| Ranks right | ✅ 20 of 20 seeds, `test_auditor.py`. Each stall draws one performance per policy, so a stall's three results agree with each other, and the better policy won 76.2% of 20,000 simulated head-to-heads (76.0% expected). Smallest gap between neighbours in the 20 seeds: 83 Elo, median 168. Over 2,000 seeds, 1,998 came out right. The Nov 5 estimate (2,000 of 2,000) simulated independent matches. So a different set of 20 seeds would fail about 2% of the time; seeds 1–20 are fixed, so the test always gives the same answer |
+| Recompute | ✅ A 700-match log (600 live, 100 replay) gives the same ratings twice, and in shuffled order: equal to the last bit |
+| Runs | Half done. Policy v0 and Elo run on the fixture and on the v1 block (70dd1dabfed544b8: 68 stalls in 25 repo and symbol pairs, 76 s), and say there are no live matches. Replay comes Nov 10 |
+
+### Auditor, Nov 8 items (stall job), run Nov 7
+
+| Bar | Result |
+|---|---|
+| Seeded ε | ✅ Over 10,000 seeded draws the challenger share is 19.36% at ε = 0.2 and 9.88% at ε = 0.1, within ±2 points (`test_auditor.py`, `Epsilon`) |
+| Promotion guard | ✅ for what it checks (`test_auditor.py`, `Promotion`). It blocks at 29 live matches and at +49.9 Elo. 100 replay wins plus 29 live ones are still blocked, and the 30th live win passes. An LLM's policy is blocked until a person approves it. But the guard as 04 writes it promotes a policy no better than v0 by luck in 87% of simulated runs: decisions.md 10, raised for the team. This row stays as written until the team changes the guard |
+| Runs | Fixture: the stall job runs. Three stalls ended between R1 and R2, and no rule fires for them, so each waits for a person. With a verdict added, the policies play live matches. v1 block (70dd1dabfed544b8): 68 stalls served, 60 with v0's ranking and 8 with v1's, in 80 s. That block holds one run, so no stall can have ended. Replay comes Nov 10 |
+| No look-ahead | Comes with replay, Nov 10 |

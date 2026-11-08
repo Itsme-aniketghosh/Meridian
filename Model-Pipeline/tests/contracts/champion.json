@@ -1,0 +1,64 @@
+{
+  "version": "0000000000000000000000000000000000000000",
+  "run_id": "00000000000000000000000000000000",
+  "model_file": "model.joblib",
+  "model_md5": "1c6b8dd78642d21740009cb86516196b",
+  "metrics": {
+    "split": "val",
+    "features_md5": "ee17ce07abdbc001e536250ce588cec5",
+    "role": "candidate",
+    "pr_auc": {
+      "value": 0.41116124648935287,
+      "interval": [
+        0.31614171612166864,
+        0.5164937777646007
+      ],
+      "n": 275,
+      "positive_rate": 0.28363636363636363
+    },
+    "roc_auc": {
+      "value": 0.6414811922426135,
+      "n": 275,
+      "positive_rate": 0.28363636363636363
+    },
+    "at_threshold": {
+      "threshold": 0.3507154456215882,
+      "alerts": 43,
+      "alert_rate": 0.15636363636363637,
+      "median_alerts_per_push": 0.0,
+      "precision": 0.4186046511627907,
+      "recall": 0.23076923076923078,
+      "f1": 0.2975206611570248,
+      "tp": 18,
+      "fp": 25,
+      "fn": 60,
+      "tn": 172,
+      "rule": "alert_rate",
+      "chosen_on": "val",
+      "n": 275,
+      "positive_rate": 0.28363636363636363
+    },
+    "recall_at_effort": {
+      "value": 0.2742720556279879,
+      "found": 21.393220338983056,
+      "bugs": 78,
+      "lines_budget": 3024.2000000000003,
+      "commits_read_whole": 58,
+      "effort": 0.2,
+      "ranking": "risk_per_line",
+      "n": 275,
+      "positive_rate": 0.28363636363636363
+    },
+    "vs_lines_x_files": {
+      "pr_auc_difference": 0.014621713112484558,
+      "paired": true,
+      "interval": [
+        -0.05946212736060112,
+        0.097074373106571
+      ],
+      "n": 275,
+      "positive_rate": 0.28363636363636363
+    }
+  },
+  "previous": null
+}

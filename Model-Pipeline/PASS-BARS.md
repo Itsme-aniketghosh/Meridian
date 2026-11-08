@@ -145,11 +145,11 @@ From [packets/rachna-models/pass-bars.md](packets/rachna-models/pass-bars.md), w
 
 ## 5. Vishwa: fact gate, writer, cache, views
 
-**Vishwa to confirm.** Taken from the tests in [packets/vishwa-agents/README.md](packets/vishwa-agents/README.md) and the team bars.
+Confirmed by Vishwa, Nov 7. Taken from the tests in [packets/vishwa-agents/README.md](packets/vishwa-agents/README.md) and the team bars.
 
 | What | Bar | Measured by |
 |---|---|---|
-| Gate | 200 injected errors: 100% caught. 200 clean texts: at most 5% rejected. A miss gives the template, never a stripped text | `test_fact_gate.py` |
+| Gate | On every seed 0–9 (each 200 injected + 200 clean): 100% of injected errors caught, at most 5% of clean texts rejected. A miss gives the template, never a stripped text | `test_fact_gate.py` (`TeamRule`, decision 11) |
 | No person in facts | 0 emails or person names in any fact, prompt or cache entry | a scan of every cache entry |
 | LLM off | With no key, every task returns a template and the run completes; every page renders with the `suggestion` table empty | `test_agents.py`, `test_views.py` |
 | Warm cache | 0 LLM calls on a second run | `test_agents.py` |
@@ -224,8 +224,8 @@ Each owner signs for their own rows and reads the rest. Aniket reviews. Changing
 | Who | Rows | Signed |
 |---|---|---|
 | Utkarsh | §2 | |
-| Rochan | §3 | |
+| Rochan | §3 | Nov 7 |
 | Rachna | §4 | Rachna, Nov 7 |
-| Vishwa | §5 | |
+| Vishwa | §5 | Vishwa, Nov 7 |
 | Chaitali | §6 | |
 | Aniket | review | |

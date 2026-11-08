@@ -214,7 +214,7 @@ with tracking.start_run("writer", owner="vishwa", experiment="meridian-agents", 
 | `reports/<tag>_val_scores.csv` | `train.py` (Rachna) | `evaluate.py`, `bias.py`, `gate.py` | `sha`, `label`, then one score column per model and baseline (`lines_x_files`, `logreg`, ...), one row per `val` row in the feature table's order. Never refit to get these (S6) |
 | `reports/candidate.json` | `train.py` (Rachna) | `evaluate.py`, `bias.py`, `gate.py` | the candidate: `kind`, `params`, `scores_file`, `column` (which column of the scores file is it), `seed` |
 | `reports/seed_noise.json` | `train.py` (Rachna) | `gate.py`, `registry.py` | val PR-AUC of the chosen config over 5 seeds: mean, standard deviation |
-| `registry/champion.json` | `registry.py` (Rochan) | `gate.py`, `registry.py`, the P9 hook | the champion's run id, Artifact Registry version, metrics, model md5 |
+| `registry/champion.json` | `registry.py` (Rochan) | `gate.py`, `registry.py`, the P9 hook | the champion's run id (`run_id`), Artifact Registry version (`version`, its git sha), metrics (`metrics`: its block from `metrics.json` with `split` and `features_md5`; P9's threshold is `metrics.at_threshold.threshold`), the model's file name and md5 (`model_file`, `model_md5`), and `previous` (the champion before it, for `--rollback`; null for the first). Example: `tests/contracts/champion.json` |
 
 `gate.py` (Chaitali) reads them and exits non-zero on a fail. A model reaches the registry only after the gate passes.
 
