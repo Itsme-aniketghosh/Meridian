@@ -74,8 +74,19 @@ def point(db, at, repo=None, symbol=None, run_id=None, q=None):
     db.execute("DELETE FROM asof")
     db.execute("INSERT INTO asof VALUES (?, ?, ?, ?)", (run_id, at, repo, symbol))
     if not db.execute("SELECT 1 FROM sqlite_temp_master WHERE type = 'view' AND name = 'site_now'").fetchone():
-        db.executescript(q["setup"])
+        db.executescript(q["setup"] + AS_OF)
     return db
+
+
+# Temp views shadow the block's ticket tables (SQLite reads temp first), so the queries never see a ticket created,
+# mapped or changed after asof.at: at an earlier moment than the snapshot, they'd say "never notified" was false.
+# shortcut: file_owner, blocked_by, git_commit and ticket.status are still as of the snapshot; known_at work, Nov 10
+AS_OF = """
+CREATE TEMP VIEW ticket AS SELECT t.* FROM main.ticket t, asof WHERE t.created_at <= asof.at;
+CREATE TEMP VIEW ticket_map AS SELECT m.* FROM main.ticket_map m, asof
+WHERE NOT EXISTS (SELECT 1 FROM main.ticket t WHERE t.key = m.key AND t.created_at > asof.at);
+CREATE TEMP VIEW ticket_event AS SELECT e.* FROM main.ticket_event e, asof WHERE e.at <= asof.at;
+"""
 
 
 def _key(row):
