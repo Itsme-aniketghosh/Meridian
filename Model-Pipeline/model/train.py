@@ -4,6 +4,7 @@ Reads the feature table of Contract 1 (Model-Pipeline/packets/README.md). Every 
 which only ever returns `train` rows, and `rows` refuses `test` outright: nobody looks at 2024 until Nov 12.
 """
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -456,6 +457,57 @@ def print_pick(c):
         print(f"  {k:8}{r['pr_auc']:8.3f}{extra}")
 
 
+# ---------- the model file (registry, P9) ----------
+MODEL_FILE = "model.joblib"
+SAME_MODEL = 1e-9   # decision 9's bar: a refit is the same model only if every val prediction is within this
+
+
+def file_md5(path):
+    return hashlib.md5(Path(path).read_bytes()).hexdigest()
+
+
+def save_model(df, candidate_path):
+    """Refit the candidate on train (its kind, params and seed), check that its val predictions equal the ones in its
+    scores file (S6 and decision 9: within 1e-9, so it's the model that was judged), then save it with joblib next to
+    candidate.json and record model_file and model_md5 in candidate.json. The registry pushes this file; P9 loads it."""
+    candidate_path = Path(candidate_path)
+    c = json.loads(candidate_path.read_text())
+    model, s, scored = fit_and_score(df, c["kind"], int(c["seed"]), c["params"] or None)
+    scores = pd.read_csv(candidate_path.parent / c["scores_file"])
+    if len(scores) != len(scored) or not (scores["sha"].to_numpy() == scored["sha"].to_numpy()).all():
+        raise ValueError(f"{c['scores_file']} isn't one row per val row of this table, in order (Contract 4)")
+    diff = float(np.max(np.abs(scores[c["column"]].to_numpy(dtype=float) - s)))
+    if diff > SAME_MODEL:
+        raise ValueError(f"the refit {c['kind']} differs from {c['scores_file']} by up to {diff:.2e} "
+                         f"(bar {SAME_MODEL}): not the model that was judged. Same table, config and code as that run?")
+    import joblib
+    path = candidate_path.parent / MODEL_FILE
+    joblib.dump(model, path)
+    c.update(model_file=MODEL_FILE, model_md5=file_md5(path), refit_max_diff=diff)
+    candidate_path.write_text(json.dumps(c, indent=2) + "\n")
+    return path, c
+
+
+def input_columns(model):
+    """The columns a saved model was fitted on, in order (scikit-learn and LightGBM both record them)."""
+    cols = getattr(model, "feature_names_in_", None)
+    if cols is None:
+        raise ValueError("this model doesn't record its input columns; was it fitted on a DataFrame?")
+    return [str(c) for c in cols]
+
+
+def score_with(model, df):
+    """Risk scores for df's rows from a saved model: the same feature_matrix it was fitted with. Ticket categories come
+    from the model's own columns, so a type it never saw scores as all zeros, as in training."""
+    cols = input_columns(model)
+    cats = [c.split("=", 1)[1] for c in cols if c.startswith("ticket_type=")]
+    X = feature_matrix(df, cats, ticket_features=any(c in TICKET for c in cols))
+    missing = [c for c in cols if c not in X.columns]
+    if missing:
+        raise ValueError(f"the model needs column(s) the rows don't give: {', '.join(missing)}")
+    return model.predict_proba(X[cols])[:, 1]
+
+
 def bootstrap_reps(cfg, default):
     """Rochan's model.toml [eval] bootstrap_reps (his decision 4) when set, so the pick and evaluate.py agree."""
     return int(cfg.get("eval", {}).get("bootstrap_reps", default))
@@ -573,9 +625,11 @@ def main(argv=None):
     p.add_argument("--check", action="store_true", help="only check the feature table against Contract 1")
     p.add_argument("--pick", metavar="TAG", help="write reports/candidate.json from <TAG>_val.json and its scores "
                    "(decision 1; --tune does this itself on the tuned run)")
+    p.add_argument("--save-model", action="store_true", help="refit reports/candidate.json's model, check it's the "
+                   "judged one, save reports/model.joblib (--tune and --pick do this themselves)")
     a = p.parse_args(argv)
-    if not (a.untuned or a.tune or a.seed_noise or a.check or a.pick):
-        p.error("nothing to do: pass --check, --untuned, --tune, --pick or --seed-noise")
+    if not (a.untuned or a.tune or a.seed_noise or a.check or a.pick or a.save_model):
+        p.error("nothing to do: pass --check, --untuned, --tune, --pick, --save-model or --seed-noise")
     cfg = load_config(a.config)
     try:
         df = load_features(a.features)
@@ -618,6 +672,10 @@ def main(argv=None):
     if a.pick:
         print_pick(pick_candidate(out, a.pick, seed, bootstrap_reps(cfg, a.reps)))
         print(f"wrote {out / 'candidate.json'}")
+    if a.tune or a.pick or a.save_model:
+        path, c = save_model(df, out / "candidate.json")
+        print(f"saved {path} ({path.stat().st_size / 1e6:.1f} MB, md5 {c['model_md5']}); the refit matches the judged "
+              f"scores to {c['refit_max_diff']:.1e}")
     if a.seed_noise:
         kind, params = read_params(a.seed_noise)
         r = seed_noise(df, kind, params, out, tuple(a.seeds))

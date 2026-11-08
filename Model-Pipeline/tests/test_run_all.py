@@ -1,4 +1,4 @@
-"""model/run_all.py: order, stopping at the first failure, missing steps, --until, the candidate."""
+"""model/run_all.py: order, stopping at the first failure, missing steps, --until, --fake."""
 import contextlib
 import io
 import tempfile
@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from model.run_all import candidate_kind, main, run, steps
+from model.run_all import FAKE_LATER, main, run, steps
 
 
 def fake_plan(n=4):
@@ -19,7 +19,7 @@ class Runner:
     def __init__(self, fail=()):
         self.ran, self.fail = [], set(fail)
 
-    def __call__(self, cmd, cwd=None):
+    def __call__(self, cmd, cwd=None, env=None):
         module = cmd[2]
         self.ran.append(module)
         return SimpleNamespace(returncode=3 if module in self.fail else 0)
@@ -67,28 +67,44 @@ class Run(unittest.TestCase):
 
 class Plan(unittest.TestCase):
     def test_order_follows_the_guideline(self):
-        self.assertEqual([s[0] for s in steps("lgbm")],
+        self.assertEqual([s[0] for s in steps()],
                          ["data", "train", "seed noise", "evaluate", "bias", "gate", "registry"])
 
-    def test_seed_noise_uses_the_candidates_study(self):
-        args = dict((s[0], s[3]) for s in steps("forest"))["seed noise"]
-        self.assertEqual(args, ["--seed-noise", "reports/tuning_forest.json"])
-
-    def test_candidate_from_model_toml(self):
-        with tempfile.TemporaryDirectory() as d:
-            p = Path(d) / "model.toml"
-            p.write_text('[candidate]\nkind = "lgbm"\n')
-            self.assertEqual(candidate_kind(p), "lgbm")
-            self.assertIsNone(candidate_kind(Path(d) / "none.toml"))
-
-    def test_no_candidate_is_refused(self):
-        with self.assertRaises(SystemExit):
-            quiet(main, ["--config", "/nonexistent/model.toml"])
+    def test_seed_noise_reads_the_picked_candidate(self):
+        args = dict((s[0], s[3]) for s in steps())["seed noise"]
+        self.assertEqual(args, ["--seed-noise", "reports/candidate.json"])
 
     def test_dry_run_lists_every_step_and_runs_none(self):
-        code, out = quiet(main, ["--dry-run", "--candidate", "lgbm"])
+        code, out = quiet(main, ["--dry-run"])
         self.assertEqual(code, 0)
         self.assertEqual(out.count("python -m"), 7)
+
+
+class Fake(unittest.TestCase):
+    def test_every_step_reads_and_writes_only_the_temp_folder(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name, _, _, args in steps(d):
+                with self.subTest(step=name):
+                    self.assertIn(str(Path(d) / "features.parquet"), args)
+                    self.assertIn(str(Path(d) / "reports"), args)
+
+    def test_order_and_what_waits(self):
+        with tempfile.TemporaryDirectory() as d:
+            names = [s[0] for s in steps(d)]
+        self.assertEqual(names, ["data", "train", "seed noise", "evaluate", "bias"])
+        self.assertEqual(set(FAKE_LATER), {"gate", "registry"})
+
+    def test_evaluate_and_bias_log_nothing(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name, _, _, args in steps(d):
+                if name in ("evaluate", "bias"):
+                    self.assertIn("--no-mlflow", args)
+
+    def test_fake_dry_run(self):
+        code, out = quiet(main, ["--fake", "--dry-run"])
+        self.assertEqual(code, 0)
+        self.assertEqual(out.count("python -m"), 5)
+        self.assertIn("meridian-fake-", out)
 
 
 class Check(unittest.TestCase):
