@@ -384,6 +384,11 @@ class StallJob(unittest.TestCase):
         self.assertEqual((o.reason, sorted(o.stall.facts)), (2, [2, 7]))
         self.assertIn(("stall-v0", "stall-v8", "a"), [(m["policy_a"], m["policy_b"], m["result"]) for m in o.matches])
 
+    def test_eps_drops_to_01_at_the_jobs_30th_live_match(self):
+        for n, eps in ((29, 0.2), (30, 0.1)):
+            job = self.run_job(log=[match(i, "stall-v0", "stall-v1", "draw", at=K.R1[1]) for i in range(n)])
+            self.assertEqual((job.live, job.eps), (n, eps))
+
     def test_a_task_is_decided_once(self):
         first = self.run_job()
         again = self.run_job(log=first.matches)
