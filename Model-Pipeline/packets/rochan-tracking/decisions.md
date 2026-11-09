@@ -164,6 +164,26 @@ Result (Nov 6, `val` N = 4,113; 2,000 resamples, seed 1): LightGBM − lines × 
 
 Picked: **paired**, 41% narrower. Both scores rank the same commits, so a resample with many easy commits lifts both, and that shared part cancels in the difference. Either way the candidate beats lines × files on `val`: both intervals sit above 0.
 
+## Registry: decisions 6–7 (Nov 9)
+
+Written before either ran. Each runs with `python -m model.registry --decide <n>` and logs a run tagged `decision=rochan-<n>`.
+
+### 6. Promotion rule
+
+Options: **any gain** in `val` PR-AUC over the champion, **a gain above 2 standard deviations of seed noise** (`seed_noise.json`: Rachna's tuned forest refitted with seeds 1–5).
+
+Test: feed the registry those 5 same-config seeds one after another, as if each were a new candidate. The first is the first model, so it's promoted. Each next one is compared with the champion. Count how often `champion` moves. The seeds come in seed order, the packet's test and PASS-BARS §3.3's bar ("champion moves 0 times"). One order can be lucky, so the count over all 120 orders is reported too, but it doesn't decide.
+
+Rule: the option under which `champion` moves 0 times in seed order. If both do, the noise rule, because any gain would still move on a luckier seed.
+
+### 7. What to compare on
+
+Options: **the champion's stored metrics** (the PR-AUC in its `champion.json`, from the table it was judged on), **re-scoring it on today's `val`** (load the champion's model and score today's table).
+
+Test: build the feature table twice with Utkarsh's `data.py`, from the one full block on this laptop (v1, 70dd1dabfed544b8; c5118's isn't here). Once as configured, and once with his decision 1 changed: `window_days` 365 → 180. The label window moves labels on `val` rows. A change that only touches train rows, such as `start_year`, would leave `val` as it was and couldn't show anything. Fit Rachna's tuned forest (seed 1) on the first table's train rows: that's the champion, with its stored `val` PR-AUC from the first table. Then re-score it on the second table's `val` rows. Measured: the gap between its stored and re-scored PR-AUC.
+
+Rule: if the gap is larger than decision 6's margin (2 standard deviations of seed noise), the registry re-scores the champion whenever the table changed (its `features_md5` isn't today's). It uses the stored number only on the same table, where the two are equal. If the gap is within the margin: stored metrics, which need no model loading.
+
 ## 8. MLflow store
 
 Options: **file store** (`mlruns/`), **SQLite** (`sqlite:///mlflow.db`).
