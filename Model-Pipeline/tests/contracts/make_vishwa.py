@@ -22,16 +22,23 @@ HERE = Path(__file__).resolve().parent  # tests/contracts/
 DATA = HERE.parents[2] / "Data-Pipeline"
 
 
-def build():
-    """(facts by kind, the run's new suggestion rows), from the fixture with the LLM off."""
-    sys.path.insert(0, str(DATA))
+def fixture():
+    """(test_kb, agents, meridian.toml): Data-Pipeline's fixture builder and writer, importable from here."""
+    if str(DATA) not in sys.path:
+        sys.path.insert(0, str(DATA))
     # Data-Pipeline/tests/test_kb.py by its path: both pipelines have a package named tests
     spec = importlib.util.spec_from_file_location("data_test_kb", DATA / "tests" / "test_kb.py")
     K = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(K)
     from meridian import agents
     from meridian.common import CONFIG, load_config
-    written, rows = agents.run(K.build(), load_config(CONFIG), "R2", K.R2[1])
+    return K, agents, load_config(CONFIG)
+
+
+def build():
+    """(facts by kind, the run's new suggestion rows), from the fixture with the LLM off."""
+    K, agents, cfg = fixture()
+    written, rows = agents.run(K.build(), cfg, "R2", K.R2[1])
     facts = {}
     for w in written:
         facts.setdefault(w.task.kind, w.task.facts)

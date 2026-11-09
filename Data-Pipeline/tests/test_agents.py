@@ -5,6 +5,7 @@
 No test calls a real LLM: `Fake` plays one, so bad JSON, gate misses, retries and the cache are all checked offline.
 The hand-off test (packets/README.md, Nov 9) runs the writer with the LLM off through model.tracking.log_llm_call.
 """
+import importlib.util
 import json
 import os
 import re
@@ -230,14 +231,15 @@ class Logging(unittest.TestCase):
         self.assertTrue(all(c["gate_pass"] is None and c["source"] is None for c in first))  # bad JSON: not gated
 
 
-try:
+# tracking imports mlflow only when a run starts, so look for mlflow itself. Data-Pipeline's CI job has no mlflow:
+# there the model job runs this same test (Model-Pipeline/tests/test_handoff_writer.py)
+tracking = None
+if importlib.util.find_spec("mlflow"):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "Model-Pipeline"))
     from model import tracking
-except ImportError:  # mlflow isn't in this environment
-    tracking = None
 
 
-@unittest.skipIf(tracking is None, "model.tracking needs mlflow (Model-Pipeline/requirements.txt)")
+@unittest.skipIf(tracking is None, "needs mlflow (Model-Pipeline/requirements.txt); CI's model job runs it")
 class HandOff(unittest.TestCase):
     """packets/README.md, Nov 9: the writer calls fact_gate.check and tracking.log_llm_call(..., facts_hash=) on the
     fixture, with the LLM off."""
