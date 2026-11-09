@@ -1,0 +1,384 @@
+"""The writer agent (04-architecture §6, Contract 5): text from a block's facts. Rules decide the facts; it only writes.
+
+    python -m meridian.agents --run-id <run_id>                   # LLM off: every text is its template
+    python -m meridian.agents --run-id R2 --db /tmp/fixture.sqlite --write --track
+
+Four tasks, each one facts object per target, from KNOWLEDGE-BASE.md's queries:
+    rewrite        a vague ticket (staff_vague), rewritten from manager_facts            suggestion kind rewrite
+    ticket_draft   one draft per team for its untracked call sites (maker_drafts)        suggestion kind ticket_draft
+    stall_reason   a stalled team's reasons, in the order the auditor's served policy ranks them
+                                                                                         suggestion kind stall_reason
+    consumer       the consumer view's text for a team with sites left (consumer_*)      no suggestion row: schema.sql
+                                                                                         has no kind for it yet
+
+Every task has a template, filled only from its facts, that passes the fact gate by construction (a template that
+doesn't is a bug, and stops the run). With an LLM, each answer is:
+    cache or call -> JSON {"text", "used"} -> fact_gate.check -> ship it
+and bad JSON or a gate miss moves one model up the ladder (small, then mid), then ships the template. The writer never
+strips a bad part out. With no LLM (no key, as in CI), the cache still answers; on a miss the template ships, or with
+strict_cache the run stops (PASS-BARS §5: a cache miss in CI fails the job).
+
+Settings (vishwa-agents decisions, the writer, Nov 9):
+- The ladder is LADDER, constants here, not meridian.toml [llm]: a new section there would change every block's
+  config hash and run_id. Fixed rules pick the model (route 'rules') until Jev routes (Rachna).
+- The cache keeps the raw reply and gates it again every run (llm_cache.py).
+- A prompt's version is a hash of its text, so an edited prompt never reads an old answer.
+
+Every answer, and every template that ships, goes through `log` (model.tracking.log_llm_call when run with --track):
+counts and labels only, never the prompt or the text. A template is logged with model 'template' and 0 tokens.
+No person is ever a fact: the gate raises on one (Contract 5), and a stall's evidence rows, which can name a file's
+top author, are reduced to counts.
+"""
+import argparse
+import hashlib
+import json
+import sqlite3
+import sys
+import time
+from collections import defaultdict
+from contextlib import closing, nullcontext
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from meridian import auditor as A
+from meridian.common import CONFIG, h, handoff, load_config, log as say, write_jsonl
+from meridian.fact_gate import check
+from meridian.llm_cache import Cache, canonical, key
+from meridian.pushcheck import kb_queries
+
+AGENT = "writer"
+SMALL, MID = "claude-haiku-5-5", "claude-sonnet-5-5"
+LADDER = (SMALL, MID)  # rachna-models README: the writer's small -> mid; the large model is never the writer's
+ROUTE = "rules"        # who picked the model: the fixed ladder, until Jev
+TEMPLATE_MODEL = "template"
+KINDS = ("rewrite", "ticket_draft", "stall_reason", "consumer")
+ROW_KIND = {"rewrite": "rewrite", "ticket_draft": "ticket_draft", "stall_reason": "stall_reason", "consumer": None}
+
+SYSTEM = """You write one short text for a tool that tracks a code migration across teams.
+Use only the facts below. Every number, file path, line, ticket key and team name you write must be one of the facts,
+written the same way. Never name or address a person. Use team names only to name teams, never as ordinary words
+(write "across the codebase", not "across the platform"). Don't add priority, intent, deadlines or anything the facts
+don't say. Reply with JSON only, no other text: {"text": "<the text>", "used": ["<fact name>", ...]}"""
+
+PROMPTS = {
+    "rewrite": "Rewrite the ticket so its owner knows what to change and when it's done. Keep the ticket key. List "
+               "the call sites, name the owning team, end with a done condition, and ask about any call inside an "
+               "except block.",
+    "ticket_draft": "Draft a new ticket for the team's call sites that no ticket covers: what to migrate, where, and "
+                    "when it's done.",
+    "stall_reason": "Say that the team's migration is stalled, for how long and how much is left, then list the "
+                    "possible reasons in the order given, each with how much evidence it has. Don't pick one.",
+    "consumer": "Tell the team what it still has to migrate: how many call sites, where, how many bug fixes each file "
+                "had (with their ticket keys), what blocks them and whom they block.",
+}
+
+
+def prompt_version(kind):
+    """12 hex of sha256 over the system prompt and the task's prompt: any edit is a new version."""
+    return hashlib.sha256((SYSTEM + "\n" + PROMPTS[kind]).encode("utf-8")).hexdigest()[:12]
+
+
+def prompt(task):
+    facts = json.dumps(task.facts["facts"], sort_keys=True, indent=1, ensure_ascii=False)
+    return f"{SYSTEM}\n\nTask: {PROMPTS[task.kind]}\n\nFacts:\n{facts}"
+
+
+def facts_hash(facts):
+    """16 hex of sha256 over the facts (sorted keys): the suggestion row's facts_hash, all the text could say."""
+    return hashlib.sha256(canonical(facts["facts"]).encode("utf-8")).hexdigest()[:16]
+
+
+@dataclass(frozen=True)
+class Task:
+    kind: str
+    target_kind: str   # suggestion.target_kind
+    target: str
+    owner_team: str
+    repo: str
+    facts: dict        # Contract 5: {"facts": {...}, "source": {...}}
+    template: str
+    policy_id: str = None
+
+
+@dataclass
+class Written:
+    task: Task
+    text: str
+    source: str        # 'llm' or 'template'
+    model: str         # None for a template
+    facts_hash: str
+    attempts: list = field(default_factory=list)  # (model, cache_hit, outcome): 'ok', 'bad_json', 'gate_miss'
+
+
+def _n(count, word, plural=None):
+    return f"{count} {word if count == 1 else plural or word + 's'}"
+
+
+def _sites(sites):
+    """'cart/pricing.py:214, :231, cart/totals.py:57': a path once, then its other lines (02-product)."""
+    out, last = [], None
+    for s in sites:
+        out.append(f":{s['line']}" if s["path"] == last else f"{s['path']}:{s['line']}")
+        last = s["path"]
+    return ", ".join(out)
+
+
+# ---- the four tasks: facts and template ----
+
+def rewrite_tasks(db, q, repo, symbol):
+    out = []
+    for k, problem in db.execute(q["staff_vague"]).fetchall():
+        rows = db.execute(q["manager_facts"], {"key": k}).fetchall()
+        if not rows:
+            continue
+        sites = [{"path": p, "line": ln, "in_except": bool(exc)} for p, ln, _, _, exc in rows]
+        team = rows[0][2]
+        n, exc = len(sites), sum(s["in_except"] for s in sites)
+        area = sites[0]["path"].split("/")[0]
+        facts = {"key": k, "problem": problem, "team": team, "symbol": symbol, "sites": sites, "sites_n": n,
+                 "in_except_n": exc}
+        lines = [f"{k}: Migrate {area}/ off {symbol}", f"- {_sites(sites)} · owner {team}",
+                 f"- Done when no site above calls {symbol}"]
+        if exc:
+            lines.append("- Question: the call sits inside an except block. Keep the same handling?" if n == 1 else
+                         f"- Question: {exc} of the {n} calls {'sits' if exc == 1 else 'sit'} inside an except block. "
+                         "Keep the same handling?")
+        source = {"key": f"ticket:{k}", "sites": f"manager_facts:{k}"}
+        out.append(Task("rewrite", "ticket", k, team, repo, {"facts": facts, "source": source}, "\n".join(lines)))
+    return out
+
+
+def draft_tasks(db, q, repo, symbol):
+    out = []
+    for team, count, sites in db.execute(q["maker_drafts"]).fetchall():
+        facts = {"team": team, "symbol": symbol, "count": count, "sites": sites}
+        text = "\n".join([f"Draft ticket for {team}: migrate {_n(count, 'untracked call site')} off {symbol}",
+                          f"- {sites}", f"- No ticket covers {'this site' if count == 1 else 'these sites'} yet",
+                          f"- Done when {'it no longer calls' if count == 1 else 'none of them calls'} {symbol}"])
+        out.append(Task("ticket_draft", "team", team, team, repo,
+                        {"facts": facts, "source": {"sites": f"maker_drafts:{team}"}}, text))
+    return out
+
+
+def stall_tasks(db, cfg, run_id, at):
+    """The stall job's open stalls, each in the order of the policy it serves (auditor.stall_job), as counts."""
+    s = A.settings(cfg)
+    job = A.stall_job(db, cfg, s, run_id, at, None, A.match_log(db, at))
+    known = {r["policy_id"] for r in A.policy_log(db)}
+    policies = {p: x for p, x in A.POLICIES.items() if x.job == "stall"}
+    out = []
+    for x in job.open:
+        pid = job.served[x.task_id]
+        ranked = policies[pid].rank(x) if pid in policies else sorted(x.facts)
+        reasons = [{"reason": A.REASONS[n][0], "evidence": len(x.facts[n])} for n in ranked]
+        facts = {"team": x.team, "days": x.days, "left": x.left, "reasons": reasons}
+        lines = [f"{x.team.title()} has been stalled for {_n(x.days, 'day')}, with {_n(x.left, 'call site')} left."]
+        if reasons:
+            lines.append("Possible reasons, most likely first:")
+            lines += [f"- {r['reason']} ({_n(r['evidence'], 'piece', 'pieces')} of evidence)" for r in reasons]
+        else:
+            lines.append("No stall reason fires.")
+        out.append(Task("stall_reason", "team", x.team, x.team, x.repo or "",
+                        {"facts": facts, "source": {"stall": f"stall:{x.task_id}", "policy": pid}},
+                        "\n".join(lines), pid if pid in known else None))
+    return out
+
+
+def consumer_tasks(db, q, repo, symbol):
+    out = []
+    for team, left, *_ in db.execute(q["owner_teams"]).fetchall():
+        if not left:
+            continue
+        files = []
+        for path, n, bug in db.execute(q["consumer_files"], {"team": team}).fetchall():
+            keys = db.execute("SELECT fix_keys FROM file_bug_fixes WHERE repo = ? AND path = ? "
+                              "ORDER BY window_end DESC LIMIT 1", (repo, path)).fetchone()
+            files.append({"path": path, "sites": n, "bug_fixes": bug,
+                          "fix_keys": sorted(json.loads(keys[0])) if keys and bug else []})
+        blocked = defaultdict(int)
+        for _, _, by_team, by_path in db.execute(q["consumer_blocked"], {"team": team}).fetchall():
+            blocked[(by_team, by_path)] += 1
+        blocked_by = [{"team": t, "path": p, "sites": n} for (t, p), n in sorted(blocked.items())]
+        blocking = [{"team": t, "sites": n} for t, n in db.execute(q["consumer_blocking"], {"team": team})]
+        facts = {"team": team, "left": left, "symbol": symbol, "files": files, "blocked_by": blocked_by,
+                 "blocking": blocking}
+        lines = [f"{team.title()}, {_n(left, 'call site')} remaining."]
+        for f in files:
+            fixes = (f", {_n(f['bug_fixes'], 'bug fix', 'bug fixes')} in the last year ({', '.join(f['fix_keys'])})"
+                     if f["bug_fixes"] else "")
+            lines.append(f"- {f['sites']} in {f['path']}{fixes}")
+        lines += [f"- {b['sites']} blocked by {b['path']}, which {b['team']} hasn't migrated" for b in blocked_by]
+        lines += [f"- You are blocking {b['team']} ({_n(b['sites'], 'call site')})" for b in blocking]
+        out.append(Task("consumer", "team", team, team, repo,
+                        {"facts": facts, "source": {"files": f"consumer_files:{team}"}}, "\n".join(lines)))
+    return out
+
+
+def tasks(db, cfg, run_id, at, q=None):
+    """Every writer task in the block as of `at`, per (repo, symbol) as the views show them, in a fixed order."""
+    q = q or kb_queries()
+    out = stall_tasks(db, cfg, run_id, at)  # first: the stall job moves asof itself
+    for repo, symbol in db.execute("SELECT DISTINCT repo, symbol FROM call_site ORDER BY repo, symbol").fetchall():
+        A.point(db, at, repo, symbol, run_id, q)
+        out += rewrite_tasks(db, q, repo, symbol) + draft_tasks(db, q, repo, symbol)
+        out += consumer_tasks(db, q, repo, symbol)
+    order = {k: i for i, k in enumerate(KINDS)}
+    return sorted(out, key=lambda t: (order[t.kind], t.repo, t.target))
+
+
+def names(db):
+    """(teams, people): the gate's known names from the block (team_map.team and every owner_team; person names)."""
+    teams = {r[0] for r in db.execute("SELECT team FROM team_map UNION SELECT owner_team FROM call_site") if r[0]}
+    people = {r[0] for r in db.execute("SELECT name FROM person UNION SELECT name FROM person_alias") if r[0]}
+    return sorted(teams), sorted(people)
+
+
+# ---- writing one task ----
+
+class CacheMiss(RuntimeError):
+    pass
+
+
+def parse(reply, facts):
+    """The text of a reply that is {"text": str, "used": [fact names]}, else None (bad JSON)."""
+    try:
+        obj = json.loads(reply)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(obj, dict) or not isinstance(obj.get("text"), str) or not obj["text"].strip():
+        return None
+    used = obj.get("used")
+    if not isinstance(used, list) or not all(isinstance(u, str) and u in facts["facts"] for u in used):
+        return None
+    return obj["text"].strip()
+
+
+def write(task, *, teams, people, llm=None, cache=None, log=None, strict_cache=False):
+    """One task's text. llm(model, prompt) -> {"reply", "tokens_in", "tokens_out", "cost_usd"}, or None for off."""
+    fh = facts_hash(task.facts)
+    if not check(task.template, task.facts, teams=teams, people=people):
+        raise ValueError(f"the {task.kind} template for {task.target} fails its own gate: "
+                         f"{check(task.template, task.facts, teams=teams, people=people).misses}")
+    pv = prompt_version(task.kind)
+    done = Written(task, task.template, "template", None, fh)
+    for model in LADDER if (llm or cache) else ():
+        k = key(model, pv, task.facts["facts"])
+        entry = cache.get(k) if cache else None
+        hit, t0 = entry is not None, time.perf_counter()
+        if not hit:
+            if llm is None:
+                if strict_cache:
+                    raise CacheMiss(f"no llm_cache entry for {task.kind} {task.target} on {model} ({k})")
+                break
+            r = llm(model, prompt(task))
+            entry = {"model": model, "prompt_version": pv, "facts_hash": fh, "reply": r["reply"],
+                     "tokens_in": int(r.get("tokens_in", 0)), "tokens_out": int(r.get("tokens_out", 0)),
+                     "cost_usd": float(r.get("cost_usd", 0.0))}
+            if cache:
+                cache.put(k, entry)
+        text = parse(entry["reply"], task.facts)
+        passed = text is not None and check(text, task.facts, teams=teams, people=people).passed
+        outcome = "ok" if passed else "bad_json" if text is None else "gate_miss"
+        done.attempts.append((model, hit, outcome))
+        _log(log, task, fh, model, pv, entry, hit, None if text is None else passed,  # bad JSON: never gated
+             "llm" if passed else None, (time.perf_counter() - t0) * 1000)
+        if passed:
+            done.text, done.source, done.model = text, "llm", model
+            return done
+    _log(log, task, fh, TEMPLATE_MODEL, pv, None, False, True, "template", 0.0)
+    return done
+
+
+def _log(log, task, fh, model, pv, entry, hit, gate_pass, source, latency_ms):
+    if log is None:
+        return
+    paid = entry is not None and not hit
+    log(agent=AGENT, model=model, prompt_version=pv, tokens_in=entry["tokens_in"] if paid else 0,
+        tokens_out=entry["tokens_out"] if paid else 0, cost_usd=entry["cost_usd"] if paid else 0.0,
+        cache_hit=hit, gate_pass=gate_pass, route=ROUTE, source=source, task=task.kind, repo=task.repo or None,
+        team=task.owner_team, latency_ms=round(latency_ms, 3), facts_hash=fh)
+
+
+def suggestion_row(w, run_id, at):
+    """The suggestion row for a written task (Contract 5), or None for a kind schema.sql has no row for."""
+    kind = ROW_KIND[w.task.kind]
+    if kind is None:
+        return None
+    t = w.task
+    return {"run_id": run_id, "suggestion_id": h(kind, t.target, w.facts_hash), "kind": kind,
+            "target_kind": t.target_kind, "target": t.target, "owner_team": t.owner_team, "source": w.source,
+            "body": w.text, "facts_hash": w.facts_hash, "offered_at": at, "agent": AGENT, "model": w.model,
+            "route": ROUTE, "policy_id": t.policy_id}
+
+
+def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False):
+    """Every task written. Returns (written, rows): rows are the block's suggestion rows so far plus the new ones
+    (offered once: a suggestion_id already in the block isn't offered again), for out/<run_id>/suggestion.jsonl."""
+    teams, people = names(db)
+    written = [write(t, teams=teams, people=people, llm=llm, cache=cache, log=log, strict_cache=strict_cache)
+               for t in tasks(db, cfg, run_id, at)]
+    cols = [r[1] for r in db.execute("PRAGMA table_info(suggestion)")]
+    before = [dict(zip(cols, r)) for r in db.execute("SELECT * FROM suggestion")]
+    seen = {r["suggestion_id"] for r in before}
+    rows = list(before)
+    for w in written:
+        row = suggestion_row(w, run_id, at)
+        if row and row["suggestion_id"] not in seen:
+            seen.add(row["suggestion_id"])
+            rows.append(row)
+    return written, sorted(rows, key=lambda r: (r["run_id"], r["suggestion_id"]))
+
+
+def fallback_counts(written):
+    """{kind: (templates, texts)}: the fallback rate per task, for the run's output (04 §7)."""
+    out = defaultdict(lambda: [0, 0])
+    for w in written:
+        out[w.task.kind][0] += w.source == "template"
+        out[w.task.kind][1] += 1
+    return {k: tuple(v) for k, v in sorted(out.items())}
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--run-id", required=True, help="the block to read: out/<run_id>/meridian.sqlite")
+    ap.add_argument("--config", type=Path, default=CONFIG, help="meridian.toml")
+    ap.add_argument("--db", type=Path, help="read this SQLite file instead of the run's block")
+    ap.add_argument("--at", help="as of this time (default: the run's snapshot_at)")
+    ap.add_argument("--write", action="store_true", help="write suggestion.jsonl for the writer")
+    ap.add_argument("--out", type=Path, help="where --write puts it (default: out/<run_id>/)")
+    ap.add_argument("--cache-dir", type=Path, help="the LLM cache (default: Data-Pipeline/llm_cache/)")
+    ap.add_argument("--strict-cache", action="store_true", help="a cache miss stops the run (CI)")
+    ap.add_argument("--track", action="store_true", help="log every answer to MLflow meridian-agents")
+    a = ap.parse_args(argv)
+    cfg = load_config(a.config)
+    path = Path(a.db or handoff(cfg, a.run_id) / "meridian.sqlite")
+    if not path.exists():
+        raise SystemExit(f"no block at {path}: run the writer first, or pass --db")
+    cache = Cache(a.cache_dir) if a.cache_dir else Cache()
+    tracked, log = nullcontext(), None
+    if a.track:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "Model-Pipeline"))
+        from model import tracking
+        tracked = tracking.start_run(AGENT, owner="vishwa", experiment=tracking.AGENTS, block_run_id=a.run_id)
+        log = tracking.log_llm_call
+    with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as db, tracked:
+        run_row = db.execute("SELECT snapshot_at FROM run WHERE run_id = ?", (a.run_id,)).fetchone()
+        if not (run_row or a.at):
+            raise SystemExit(f"{path} has no run {a.run_id}: pass --at")
+        at = a.at or run_row[0]
+        # no LLM client yet: the LLM is off, and the cache answers what it has
+        written, rows = run(db, cfg, a.run_id, at, cache=cache, log=log, strict_cache=a.strict_cache)
+    for kind, (fell, n) in fallback_counts(written).items():
+        say(f"{kind}: {n} texts, {fell} templates")
+    for w in written:
+        say(f"\n[{w.task.kind} · {w.task.target} · {w.source}]\n{w.text}")
+    if a.write:
+        out = a.out or handoff(cfg, a.run_id)
+        out.mkdir(parents=True, exist_ok=True)
+        write_jsonl(out / "suggestion.jsonl", rows, key=("run_id", "suggestion_id"))
+        say(f"\nwrote {len(rows)} suggestion rows to {out / 'suggestion.jsonl'}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

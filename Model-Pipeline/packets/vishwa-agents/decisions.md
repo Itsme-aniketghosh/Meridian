@@ -82,8 +82,23 @@ Review fix (Nov 8, PR #42): two swapped teams got past article: a curly apostrop
 
 From decision 1: all 10 false rejects are a team name (`platform`) used as a plain word. Loosening the gate to allow that let a swapped team through ("Done: platform, 2 of 2." for search), so the fix goes in the writer, not the gate.
 
-- [ ] The writer's prompt tells the LLM: "Use team names only to name teams. Don't use them as ordinary words." So it writes "across the codebase", not "across the platform".
+- [x] The writer's prompt tells the LLM: "Use team names only to name teams. Don't use them as ordinary words." So it writes "across the codebase", not "across the platform". (`agents.SYSTEM`, Nov 9)
 - [ ] Measure the gate's false-reject rate on real LLM output (decision 5). At or under 5%: done. Over 5%: revisit the team rule then, with real data, not our own test sentence.
+
+## The writer, Nov 9: settings, not tests
+
+These are design choices for `meridian/agents.py` and `llm_cache.py`, made Nov 9 before any LLM ran. None of them is a measured decision: decisions 3–6, 9 and 10 still measure the model, the prompt format, the templates and the cache once there's a key.
+
+- **Tasks:** rewrite, ticket_draft, stall_reason, consumer. The first three write a `suggestion` row of their kind. **consumer has no row**: schema.sql's `suggestion.kind` has no value for it, and a new one is a contract change (S10), asked in the team chat first. Until then its text goes only to the views.
+- **Cache:** an entry keeps the raw reply, and the writer gates it again on every run. A stricter gate then re-checks every cached answer, instead of serving text that passed an older gate.
+- **Prompt version:** 12 hex of sha256 over the system and task prompt. An edited prompt is a new version on its own, so the cache can't serve an answer written for an old prompt.
+- **Ladder:** `claude-haiku-5-5`, then `claude-sonnet-5-5`, then the template (route `rules` until Jev routes). Bad JSON or a gate miss moves one model up. The writer never uses the large model. The ladder is a constant in `agents.py`, not `meridian.toml [llm]`: a new section there changes every block's config hash, and with it its run_id.
+- **No LLM client yet:** `llm` is a function the caller passes. With none (no key, as in CI), the cache answers what it has and every miss ships the template, or stops the run with `--strict-cache` (PASS-BARS §5). The Anthropic client comes with a key.
+- **Logging:** every answer and every template that ships goes through `log` (`tracking.log_llm_call` with `--track`). A template is logged as model `template` with 0 tokens and gate_pass true; bad JSON as gate_pass null (never gated).
+- **No person:** a stall's evidence rows can name a file's top author (#4 Orphaned owner), so stall facts carry only the reason names and their evidence counts.
+- **Fragility ships with ticket IDs** (02-product rules): the consumer text names a file's bug-fix keys with its count.
+
+Result on the fixture, LLM off (`python -m unittest tests.test_agents`, N = 14 tasks): 14 of 14 ship their template, every template passes its own gate, 9 suggestion rows (2 rewrite, 3 ticket_draft, 4 stall_reason), 0 persons in any fact or prompt, each untracked site in exactly one draft. With a fake LLM: a warm cache makes 0 of 14 calls with identical rows; bad JSON and gate misses go small → mid → template, never the large model.
 
 ## Review fixes, Nov 6 (PR #28)
 

@@ -1,0 +1,80 @@
+{
+ "consumer": {
+  "facts": {
+   "blocked_by": [],
+   "blocking": [],
+   "files": [
+    {
+     "bug_fixes": 0,
+     "fix_keys": [],
+     "path": "billing/invoice.py",
+     "sites": 1
+    }
+   ],
+   "left": 1,
+   "symbol": "verify_token",
+   "team": "billing"
+  },
+  "source": {
+   "files": "consumer_files:billing"
+  }
+ },
+ "rewrite": {
+  "facts": {
+   "in_except_n": 1,
+   "key": "CHK-311",
+   "problem": "no description",
+   "sites": [
+    {
+     "in_except": false,
+     "line": 214,
+     "path": "cart/pricing.py"
+    },
+    {
+     "in_except": true,
+     "line": 231,
+     "path": "cart/pricing.py"
+    }
+   ],
+   "sites_n": 2,
+   "symbol": "verify_token",
+   "team": "checkout"
+  },
+  "source": {
+   "key": "ticket:CHK-311",
+   "sites": "manager_facts:CHK-311"
+  }
+ },
+ "stall_reason": {
+  "facts": {
+   "days": 264,
+   "left": 1,
+   "reasons": [
+    {
+     "evidence": 1,
+     "reason": "Never notified"
+    },
+    {
+     "evidence": 1,
+     "reason": "Test gap"
+    }
+   ],
+   "team": "billing"
+  },
+  "source": {
+   "policy": "stall-v0",
+   "stall": "stall:e43bdcb872efb606"
+  }
+ },
+ "ticket_draft": {
+  "facts": {
+   "count": 1,
+   "sites": "billing/invoice.py:12",
+   "symbol": "verify_token",
+   "team": "billing"
+  },
+  "source": {
+   "sites": "maker_drafts:billing"
+  }
+ }
+}
