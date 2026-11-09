@@ -313,6 +313,24 @@ class Promotion(Store):
             self.register(self.files(value, sd=SEEDS["sd"]))
         self.assertEqual(self.aliases(), {"champion": 1, "previous": None})
 
+    def test_the_same_model_on_the_same_table_isnt_registered_twice(self):
+        first = self.register(self.files(0.40, bias_pass=False, model_bytes=b"one model"))
+        again = self.register(self.files(0.40, bias_pass=False, model_bytes=b"one model"), push=True)
+        self.assertEqual((first["version"], again["version"]), (1, 1))
+        self.assertIn("isn't registered again: its bias report didn't pass", self.said[-2])
+        self.assertEqual(self.said[-1], "--push: nothing to upload, nothing was promoted")
+
+    def test_the_champion_sent_again_is_left_alone(self):
+        self.register(self.files(0.40, model_bytes=b"one model"))
+        again = self.register(self.files(0.40, model_bytes=b"one model"))
+        self.assertEqual((again["version"], again["reason"], self.aliases()),
+                         (1, "it's the champion", {"champion": 1, "previous": None}))
+
+    def test_once_its_bias_report_passes_the_same_model_is_promoted(self):
+        self.register(self.files(0.40, bias_pass=False, model_bytes=b"one model"))
+        tags = self.register(self.files(0.40, model_bytes=b"one model"))
+        self.assertEqual((tags["promoted"], self.aliases()["champion"]), ("true", 2))
+
     def test_the_model_must_be_the_one_train_py_judged(self):
         paths = self.files(0.40)
         (Path(paths["candidate"]).parent / "model.joblib").write_bytes(b"something else")

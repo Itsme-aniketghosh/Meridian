@@ -6,7 +6,8 @@
     python -m model.registry --decide 6 7          # decisions.md 6 and 7
 
 Register. The candidate's model file (candidate.json's model_file, next to it, with the md5 train.py recorded) becomes
-a new version of [registry] name (`defect-risk`) in the local MLflow registry. Its run holds the model, metrics.json,
+a new version of [registry] name (`defect-risk`) in the local MLflow registry. The same model on the same table isn't
+registered twice, unless it would now be promoted. Its run holds the model, metrics.json,
 the bias report, seed noise, candidate.json and the champion record the version would get, with Contract 3's tags.
 
 Promote (decision 6). The version takes `champion` only if bias_report.json passes and its val PR-AUC beats the
@@ -297,6 +298,16 @@ def register(paths, s, config, features, champion_path=CHAMPION, push=False, run
     against, how = (None, "no champion yet") if champion is None else champion_pr_auc(
         champion, s, metrics["features_md5"], features)
     promote, reason = verdict(block["pr_auc"]["value"], against, bias["pass"], need)
+    same = next((v for v in client.search_model_versions(f"name = '{name}'")
+                 if v.tags.get("model_md5") == cand["model_md5"] and v.tags.get("features_md5") == metrics[
+                     "features_md5"]), None)
+    is_champion = same is not None and champion is not None and same.version == champion.version
+    if same is not None and (is_champion or not promote):
+        why = "it's the champion" if is_champion else reason
+        say(f"{name} version {same.version} is this model on this table already, so it isn't registered again: {why}")
+        if push:
+            say("--push: nothing to upload, nothing was promoted")
+        return {**same.tags, "version": same.version, "promoted": "false", "reason": why}
     sha, dirty = tracking.git_state()
     previous = stored_record(client, champion) if champion else None
 
@@ -317,6 +328,8 @@ def register(paths, s, config, features, champion_path=CHAMPION, push=False, run
         f"{block['pr_auc']['value']:.4f}, N = {block['pr_auc']['n']:,}). Champion: {how}")
     if not promote:
         say(f"not promoted: {reason}")
+        if push:
+            say("--push: nothing to upload, nothing was promoted")
         return {**tags, "version": version.version}
     if champion is not None:
         client.set_registered_model_alias(name, "previous", champion.version)
