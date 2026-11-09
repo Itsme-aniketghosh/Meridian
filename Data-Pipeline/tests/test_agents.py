@@ -3,12 +3,17 @@
     python -m unittest tests.test_agents -v      # from Data-Pipeline/
 
 No test calls a real LLM: `Fake` plays one, so bad JSON, gate misses, retries and the cache are all checked offline.
+`Ugly` puts the real block's awkward names into the fixture (review of PR #48): a placeholder person named test, teams
+named test, tests and Bug, a symbol named url, a non-.py file, a ticket across two symbols and two owners.
 The hand-off test (packets/README.md, Nov 9) runs the writer with the LLM off through model.tracking.log_llm_call.
 """
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import re
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -18,9 +23,10 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import tests.test_kb as K
 from meridian import agents as G
+from meridian import auditor as A
 from meridian.common import CONFIG, load_config
 from meridian.fact_gate import check
-from meridian.llm_cache import Cache, key
+from meridian.llm_cache import ROOT as COMMITTED_CACHE, Cache, key
 
 CFG = load_config(CONFIG)
 AT = K.R2[1]
@@ -40,14 +46,38 @@ class Fake:
 
 
 def good(model, facts):
-    """A reply that only says facts: the team, plus the ticket key when there is one."""
-    said = f"{facts.get('key', 'Work')} for {facts['team']}."
-    return json.dumps({"text": said, "used": ["team"] + (["key"] if "key" in facts else [])})
+    """A reply that only says facts: the team (or the ticket key, for a rewrite)."""
+    said, used = (f"{facts['key']} needs a done condition.", ["key"]) if "key" in facts else \
+        (f"Work for {facts['team']}.", ["team"])
+    return json.dumps({"text": said, "used": used})
 
 
-def run(**kw):
-    db = K.build()
+def run(db=None, **kw):
+    db = db or K.build()
     return G.run(db, CFG, "R2", AT, **kw), db
+
+
+def person(db, pid, name, email, generic=0, bot=0):
+    db.execute("INSERT INTO person (run_id, person_id, name, is_bot) VALUES ('R2', ?, ?, ?)", (pid, name, bot))
+    db.execute("INSERT INTO person_alias (run_id, email, person_id, name, generic, source) "
+               "VALUES ('R2', ?, ?, ?, ?, 'single')", (email, pid, name, generic))
+
+
+def team(db, name):
+    db.execute("INSERT INTO team_map (run_id, dataset, subject_kind, subject, team, rule) "
+               "VALUES ('R2', 'shop', 'label', ?, ?, 'test')", (name, name))
+
+
+def ugly():
+    """The fixture with the real block's awkward names in it."""
+    db = K.build()
+    person(db, "p_test", "test", "joseph@example.invalid", generic=1)  # a placeholder alias, as in the real block
+    for t in ("test", "tests", "Bug", "urls"):
+        team(db, t)
+    db.execute("UPDATE call_site SET symbol = 'url'")                    # a symbol whose plural is a team
+    db.execute("UPDATE call_site SET path = 'cart/pricing.sample' WHERE path = 'cart/pricing.py'")  # not .py
+    db.execute("UPDATE file_bug_fixes SET path = 'cart/pricing.sample' WHERE path = 'cart/pricing.py'")
+    return db
 
 
 class Templates(unittest.TestCase):
@@ -65,8 +95,8 @@ class Templates(unittest.TestCase):
         self.assertEqual(G.fallback_counts(self.written),
                          {"consumer": (5, 5), "rewrite": (2, 2), "stall_reason": (4, 4), "ticket_draft": (3, 3)})
         for w in self.written:
-            self.assertEqual((w.source, w.model, w.attempts), ("template", None, []))
-            self.assertTrue(check(w.text, w.task.facts, teams=self.teams, people=self.people), w.text)
+            self.assertEqual((w.source, w.model, w.attempts, w.template_misses), ("template", None, [], ()))
+            self.assertTrue(check(w.text, w.task.facts, teams=self.teams, people=self.people, vocab=G.VOCAB), w.text)
 
     def test_the_rewrite_is_02_products_after(self):
         text = self.by("rewrite", "CHK-311").text
@@ -80,17 +110,14 @@ class Templates(unittest.TestCase):
                       self.by("consumer", "fulfillment").text)
         self.assertIn("You are blocking fulfillment", self.by("consumer", "platform").text)
 
-    def test_stall_reasons_follow_the_served_policy(self):
+    def test_a_stall_text_names_its_symbol_and_start_and_claims_no_likelihood(self):
         w = self.by("stall_reason", "checkout")
-        self.assertEqual([r["reason"] for r in w.task.facts["facts"]["reasons"]],
-                         ["Orphaned owner", "Semantics unclear", "Test gap", "Competing load"])  # v0: by number
-        self.assertEqual(w.task.facts["source"]["policy"], "stall-v0")
-        self.assertIsNone(w.task.policy_id)  # the fixture block has no policy rows to reference
+        self.assertEqual(sorted(w.task.facts["facts"]), ["left", "reasons", "since", "symbol", "team"])  # no age
+        self.assertIn("verify_token call sites since", w.text)
+        self.assertNotIn("likely", w.text)  # 06-dead-ideas: no probabilities on stall reasons
 
     def test_maker_each_untracked_site_in_exactly_one_draft(self):
-        db = K.build()
-        from meridian import auditor as A
-        A.point(db, AT, K.REPO, K.SYMBOL, "R2")
+        db = A.point(K.build(), AT, K.REPO, K.SYMBOL, "R2")
         untracked = {f"{p}:{ln}" for p, ln in db.execute(
             "SELECT path, line FROM site_now WHERE status = 'present' AND call_site_id NOT IN "
             "(SELECT target FROM ticket_map WHERE target_kind = 'call_site')")}
@@ -107,11 +134,83 @@ class Templates(unittest.TestCase):
                     self.assertNotRegex(text, rf"(?i)\b{re.escape(name)}\b")
                 self.assertNotIn("p_", json.dumps(w.task.facts["facts"]))  # no person_id from the stall evidence
 
-    def test_a_template_that_fails_its_own_gate_stops_the_run(self):
-        t = self.by("ticket_draft", "billing").task
+
+class RealBlockNames(unittest.TestCase):
+    """Review of PR #48, finding 1: on the real block the run died on its first template."""
+
+    def test_awkward_names_neither_stop_the_run_nor_fail_a_template(self):
+        result, db = run(ugly())
+        self.assertEqual(result.skipped, [])  # the placeholder person 'test' isn't a person: "Test gap" is fine
+        self.assertEqual({w.task.kind: [] for w in result.written},
+                         {w.task.kind: [m for x in result.written if x.task.kind == w.task.kind
+                                        for m in x.template_misses] for w in result.written})
+        texts = "\n".join(w.text for w in result.written)
+        self.assertIn("cart/pricing.sample:214, :231", texts)
+        self.assertIn("bug fixes", texts)  # a team named Bug doesn't make "bug fixes" a team
+
+    def test_a_task_whose_facts_name_a_person_is_skipped_and_counted_not_fatal(self):
+        db = K.build()
+        person(db, "p_gap", "Gap", "gap@example.invalid")  # a real person named like a stall reason's word
+        result, _ = run(db)
+        self.assertTrue(result.skipped)
+        self.assertTrue(all(kind == "stall_reason" for kind, _, _ in result.skipped))
+        self.assertEqual(G.report(result)["stall_reason"]["skipped_person"], len(result.skipped))
+        self.assertEqual(len(result.written) + len(result.skipped), 14)
+
+    def test_a_template_the_gate_flags_still_ships_and_is_counted(self):
+        t = next(w.task for w in run()[0].written if w.task.kind == "ticket_draft")
         bad = G.Task(t.kind, t.target_kind, t.target, t.owner_team, t.repo, t.facts, t.template + " 99 more.")
-        with self.assertRaises(ValueError):
-            G.write(bad, teams=self.teams, people=self.people)
+        w = G.write(bad, teams=["billing"], people=[])
+        self.assertEqual((w.source, w.text, [m.token for m in w.template_misses]), ("template", bad.template, ["99"]))
+
+    def test_a_block_with_no_suggestion_table(self):
+        db = K.build()
+        db.executescript("DROP TABLE outcome; DROP TABLE suggestion;")  # a block from before schema v1.3
+        result, _ = run(db)
+        self.assertEqual(len(result.rows), 9)
+
+
+class Rewrites(unittest.TestCase):
+    """Findings 6 and 7: one rewrite per ticket, naming every symbol and every owner."""
+
+    def test_a_ticket_across_two_symbols_gets_one_rewrite_naming_both(self):
+        db = K.build()
+        db.execute("UPDATE call_site SET symbol = 'other_sym' WHERE path = 'cart/pricing.py' AND line = 231")
+        rewrites = [w for w in run(db)[0].written if w.task.kind == "rewrite" and w.task.target == "CHK-311"]
+        self.assertEqual(len(rewrites), 1)
+        self.assertIn("off other_sym and verify_token", rewrites[0].text)
+        self.assertIn("Done when no site above calls other_sym and verify_token", rewrites[0].text)
+
+    def test_a_cross_team_ticket_names_each_owner(self):
+        db = K.build()
+        db.execute("UPDATE call_site SET owner_team = 'billing' WHERE path = 'cart/pricing.py' AND line = 231")
+        w = next(w for w in run(db)[0].written if w.task.target == "CHK-311")
+        self.assertIn("cart/pricing.py:214 · owner checkout", w.text)
+        self.assertIn("cart/pricing.py:231 · owner billing", w.text)
+
+    def test_no_shared_directory_means_no_area(self):
+        self.assertEqual((G._area(["cart/a.py", "cart/b.py"]), G._area(["pricing.py"]), G._area(["a/x.py", "b/y.py"])),
+                         ("cart/", "", ""))
+
+
+class Stalls(unittest.TestCase):
+    """Findings 9 and 10: the served policy's order, and a row that stays the same while the stall lasts."""
+
+    def test_the_served_policy_orders_the_reasons(self):
+        backwards = A.Policy("stall-v9", "stall", 9, "t", lambda x: sorted(x.facts, reverse=True),
+                             "2026-01-01T00:00:00Z")
+        with mock.patch.dict(A.POLICIES, {"stall-v9": backwards}), \
+                mock.patch.object(A, "serve", lambda *a: "stall-v9"):
+            w = next(w for w in run()[0].written if w.task.kind == "stall_reason" and w.task.target == "checkout")
+        self.assertEqual([r["reason"] for r in w.task.facts["facts"]["reasons"]],
+                         ["Competing load", "Test gap", "Semantics unclear", "Orphaned owner"])
+        self.assertEqual(w.task.facts["source"]["policy"], "stall-v9")
+
+    def test_the_same_stall_a_week_later_is_the_same_suggestion(self):
+        now = {w.task.target: w.facts_hash for w in run()[0].written if w.task.kind == "stall_reason"}
+        later = G.run(K.build(), CFG, "R2", "2026-10-08T00:00:00Z")
+        later = {w.task.target: w.facts_hash for w in later.written if w.task.kind == "stall_reason"}
+        self.assertEqual(now, later)
 
 
 class Rows(unittest.TestCase):
@@ -167,24 +266,30 @@ class WithLLM(unittest.TestCase):
         again = Fake(good)
         (second, rows2), _ = run(llm=again, cache=self.cache)
         self.assertEqual(again.calls, [])  # PASS-BARS §5: warm cache, 0 LLM calls
-        self.assertEqual(rows1, rows2)     # and the same rows, byte for byte
+        self.assertEqual(json.dumps(rows1, sort_keys=True), json.dumps(rows2, sort_keys=True))  # byte for byte
         (off, _), _ = run(cache=self.cache)  # no LLM at all: the cache still answers
         self.assertTrue(all(w.source == "llm" for w in off))
 
-    def test_bad_json_retries_one_model_up_then_ships_the_template(self):
+    def test_bad_json_climbs_the_ladder_then_ships_the_template(self):
         llm = Fake(lambda m, f: "not json" if m == G.SMALL else good(m, f))
         (written, _), _ = run(llm=llm)
         self.assertTrue(all(w.model == G.MID and w.attempts[0][2] == "bad_json" for w in written))
         never = Fake(lambda m, f: '{"text": "x"}')  # no "used"
         (written, _), _ = run(llm=never)
-        self.assertEqual(never.calls, [G.SMALL, G.MID] * 14)  # never the large model
+        self.assertEqual(never.calls, [G.SMALL, G.MID, G.LARGE] * 14)  # 04 §6: small, mid, large
         self.assertTrue(all(w.source == "template" for w in written))
 
-    def test_a_gate_miss_retries_then_ships_the_whole_template(self):
-        llm = Fake(lambda m, f: json.dumps({"text": f"{f['team']} has 977 sites.", "used": ["team"]}))
+    def test_a_fenced_json_reply_is_read(self):
+        llm = Fake(lambda m, f: "```json\n" + good(m, f) + "\n```")
+        (written, _), _ = run(llm=llm)
+        self.assertTrue(all(w.source == "llm" for w in written))
+
+    def test_a_gate_miss_climbs_then_ships_the_whole_template(self):
+        llm = Fake(lambda m, f: json.dumps({"text": f"{f.get('team', f.get('key'))} has 977 sites.",
+                                            "used": ["team"] if "team" in f else ["key"]}))
         (written, _), _ = run(llm=llm)
         for w in written:
-            self.assertEqual([a[2] for a in w.attempts], ["gate_miss", "gate_miss"])
+            self.assertEqual([a[2] for a in w.attempts], ["gate_miss"] * 3)
             self.assertEqual(w.text, w.task.template)  # never the bad text with the number cut out
 
     def test_a_cached_reply_is_gated_again_on_every_run(self):
@@ -199,36 +304,103 @@ class WithLLM(unittest.TestCase):
 
     def test_a_miss_with_strict_cache_stops_the_run(self):
         with self.assertRaises(G.CacheMiss):
-            run(cache=self.cache, strict_cache=True)  # PASS-BARS §5: a cache miss in CI fails the job
+            run(cache=self.cache, strict_cache=True)  # PASS-BARS §6.5: a cache miss in CI fails the job
 
-    def test_an_edited_prompt_is_a_new_version(self):
+    def test_any_change_to_the_prompt_is_a_new_version(self):
         v = G.prompt_version("rewrite")
-        with mock.patch.dict(G.PROMPTS, {"rewrite": G.PROMPTS["rewrite"] + " Be brief."}):
-            self.assertNotEqual(G.prompt_version("rewrite"), v)
+        for patch in (mock.patch.dict(G.PROMPTS, {"rewrite": G.PROMPTS["rewrite"] + " Be brief."}),
+                      mock.patch.object(G, "FRAME", G.FRAME.replace("Facts:", "Facts as JSON:")),
+                      mock.patch.object(G, "FACTS_FORMAT", "bullets"),
+                      mock.patch.object(G, "SYSTEM", G.SYSTEM + " ")):
+            with patch:
+                self.assertNotEqual(G.prompt_version("rewrite"), v)
         self.assertEqual(G.prompt_version("rewrite"), v)
+
+    def test_a_reply_naming_a_person_never_reaches_the_cache(self):
+        llm = Fake(lambda m, f: json.dumps({"text": "Ask Ann at ann@acme.com.", "used": []}))
+        (written, _), _ = run(llm=llm, cache=self.cache)
+        self.assertTrue(all(w.source == "template" for w in written))
+        for k, e in self.cache.entries().items():
+            body = json.dumps(e)
+            self.assertIsNone(EMAIL.search(body), k)
+            self.assertNotRegex(body, r"\bAnn\b", k)
+            self.assertEqual(e["redacted"], "a person")
+        again = Fake(good)
+        run(llm=again, cache=self.cache)
+        self.assertEqual(again.calls, [])  # the redacted entry still answers: 0 calls on a rerun
 
     def test_no_person_in_any_cache_entry(self):
         run(llm=Fake(good), cache=self.cache)
         _, people = G.names(K.build())
-        for k, e in self.cache.entries().items():
-            body = json.dumps(e)
-            self.assertIsNone(EMAIL.search(body), k)
-            for name in people:
-                self.assertNotRegex(body, rf"(?i)\b{re.escape(name)}\b", k)
+        for root in (self.tmp.name, COMMITTED_CACHE):  # this run's cache, and the committed llm_cache/
+            for k, e in Cache(root).entries().items():
+                body = json.dumps(e)
+                self.assertIsNone(EMAIL.search(body), k)
+                for name in people:
+                    self.assertNotRegex(body, rf"(?i)\b{re.escape(name)}\b", k)
 
 
 class Logging(unittest.TestCase):
-    def test_every_answer_and_template_is_logged_with_its_facts_hash(self):
+    """Finding 3: only LLM answers are logged, so MLflow's api_calls and gate rates are the LLM's."""
+
+    def test_a_template_with_no_llm_attempt_is_not_a_call(self):
         calls = []
-        (written, _), _ = run(log=lambda **kw: calls.append(kw))
-        self.assertEqual(len(calls), 14)
-        self.assertEqual({c["facts_hash"] for c in calls}, {w.facts_hash for w in written})
-        self.assertTrue(all(c["model"] == G.TEMPLATE_MODEL and c["source"] == "template" and c["tokens_in"] == 0
-                            and c["gate_pass"] is True and c["route"] == "rules" for c in calls))
+        run(log=lambda **kw: calls.append(kw))
+        self.assertEqual(calls, [])
+
+    def test_every_answer_is_logged_once_with_what_shipped(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        cache, calls = Cache(tmp.name), []
+        run(llm=Fake(lambda m, f: "nope" if m == G.SMALL else good(m, f)), cache=cache,
+            log=lambda **kw: calls.append(kw))
+        self.assertEqual(len(calls), 28)
+        small = [c for c in calls if c["model"] == G.SMALL]
+        self.assertTrue(all(c["gate_pass"] is None and c["source"] is None and not c["cache_hit"] for c in small))
+        mid = [c for c in calls if c["model"] == G.MID]
+        self.assertTrue(all(c["gate_pass"] is True and c["source"] == "llm" for c in mid))
         calls.clear()
-        run(llm=Fake(lambda m, f: "nope" if m == G.SMALL else good(m, f)), log=lambda **kw: calls.append(kw))
-        first = [c for c in calls if c["model"] == G.SMALL]
-        self.assertTrue(all(c["gate_pass"] is None and c["source"] is None for c in first))  # bad JSON: not gated
+        run(cache=cache, log=lambda **kw: calls.append(kw))  # LLM off, warm cache: every answer is a hit
+        self.assertTrue(calls and all(c["cache_hit"] and c["tokens_in"] == 0 and c["cost_usd"] == 0 for c in calls))
+
+    def test_the_last_failed_attempt_says_the_template_shipped(self):
+        calls = []
+        run(llm=Fake(lambda m, f: "nope"), log=lambda **kw: calls.append(kw))
+        self.assertEqual({c["source"] for c in calls if c["model"] == G.LARGE}, {"template"})
+        self.assertEqual({c["source"] for c in calls if c["model"] != G.LARGE}, {None})
+
+
+class Command(unittest.TestCase):
+    """python -m meridian.agents on a fixture file."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = Path(self.tmp.name) / "fixture.sqlite"
+        src = K.build()
+        src.commit()  # K.build leaves its inserts open: backup() would wait on them forever
+        dst = sqlite3.connect(self.db)
+        src.backup(dst)
+        dst.close()
+
+    def main(self, *args):
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = G.main(["--run-id", "R2", "--db", str(self.db), "--cache-dir", str(Path(self.tmp.name) / "c"),
+                           "--quiet", *args])
+        return code, out.getvalue()
+
+    def test_write_puts_the_rows_and_the_report_next_to_the_block(self):
+        out = Path(self.tmp.name) / "out"
+        code, said = self.main("--write", "--out", str(out))
+        self.assertEqual(code, 0)
+        rows = [json.loads(x) for x in (out / "suggestion.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(sum(r["run_id"] == "R2" for r in rows), 9)
+        self.assertEqual(json.loads((out / "writer_report.json").read_text())["consumer"]["texts"], 5)
+        self.assertIn("rewrite: 2 texts, 2 templates", said)
+
+    def test_write_refuses_an_at_that_isnt_the_snapshot(self):
+        with self.assertRaises(SystemExit):
+            self.main("--write", "--at", "2026-10-08T00:00:00Z")
 
 
 # tracking imports mlflow only when a run starts, so look for mlflow itself. Data-Pipeline's CI job has no mlflow:
@@ -242,18 +414,21 @@ if importlib.util.find_spec("mlflow"):
 @unittest.skipIf(tracking is None, "needs mlflow (Model-Pipeline/requirements.txt); CI's model job runs it")
 class HandOff(unittest.TestCase):
     """packets/README.md, Nov 9: the writer calls fact_gate.check and tracking.log_llm_call(..., facts_hash=) on the
-    fixture, with the LLM off."""
+    fixture, with the LLM off: the answers come from a warm cache, so they're calls with 0 cost."""
 
     def test_the_writer_logs_to_meridian_agents_with_the_llm_off(self):
         tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)  # Windows: SQLAlchemy keeps mlflow.db open
         self.addCleanup(tmp.cleanup)
+        cache = Cache(Path(tmp.name) / "cache")
+        run(llm=Fake(good), cache=cache)  # warm it, logging nothing
         with mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{tmp.name}/mlflow.db"}):
             with tracking.start_run(G.AGENT, owner="vishwa", experiment=tracking.AGENTS, block_run_id="R2") as r:
-                (written, _), _ = run(log=tracking.log_llm_call)
+                (written, _), _ = run(cache=cache, log=tracking.log_llm_call)
             table = tracking.load_llm_calls([r.info.run_id])
         self.assertEqual(len(table), 14)
         self.assertEqual(set(table["facts_hash"]), {w.facts_hash for w in written})
-        self.assertEqual(set(table["source"]), {"template"})
+        self.assertTrue(table["cache_hit"].all())
+        self.assertEqual(set(table["source"]), {"llm"})
 
 
 if __name__ == "__main__":

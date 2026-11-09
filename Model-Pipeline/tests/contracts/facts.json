@@ -16,29 +16,38 @@
    "team": "billing"
   },
   "source": {
-   "files": "consumer_files:billing"
+   "files": "consumer_files:billing:verify_token"
   }
  },
  "rewrite": {
   "facts": {
+   "area": "cart/",
    "in_except_n": 1,
    "key": "CHK-311",
+   "owners": [
+    "checkout"
+   ],
    "problem": "no description",
    "sites": [
     {
      "in_except": false,
      "line": 214,
-     "path": "cart/pricing.py"
+     "owner_team": "checkout",
+     "path": "cart/pricing.py",
+     "symbol": "verify_token"
     },
     {
      "in_except": true,
      "line": 231,
-     "path": "cart/pricing.py"
+     "owner_team": "checkout",
+     "path": "cart/pricing.py",
+     "symbol": "verify_token"
     }
    ],
    "sites_n": 2,
-   "symbol": "verify_token",
-   "team": "checkout"
+   "symbols": [
+    "verify_token"
+   ]
   },
   "source": {
    "key": "ticket:CHK-311",
@@ -47,7 +56,6 @@
  },
  "stall_reason": {
   "facts": {
-   "days": 264,
    "left": 1,
    "reasons": [
     {
@@ -59,6 +67,8 @@
      "reason": "Test gap"
     }
    ],
+   "since": "2026-01-10T00:00:00Z",
+   "symbol": "verify_token",
    "team": "billing"
   },
   "source": {
@@ -74,7 +84,7 @@
    "team": "billing"
   },
   "source": {
-   "sites": "maker_drafts:billing"
+   "sites": "maker_drafts:billing:verify_token"
   }
  }
 }

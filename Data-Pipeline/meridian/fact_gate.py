@@ -42,6 +42,9 @@ _EXT = (r"(?:py|pyi|rb|erb|rake|js|jsx|mjs|cjs|ts|tsx|vue|java|kt|kts|scala|go|r
 _PATH = re.compile(rf"(?<![\w/.\-])((?:\./|/)?(?:[\w.\-]+/)*[\w\-][\w.\-]*\.{_EXT})(?::(\d+))?(?![\w/])")
 _LINE_ONLY = re.compile(r"(?<![\w:/.])(:\d+)(?!\w)")  # ":231" after a path, as in "cart/pricing.py:214 and :231"
 _TICKET = re.compile(r"(?<![\w\-])([A-Z][A-Z0-9_]*-\d+)(?![\w\-])")
+# a path in a fact, whatever its extension: at least one '/' and a dot in the last part, or name.ext:line
+_ANY_PATH = re.compile(r"(?<![\w/.\-])((?:[\w.\-]+/)+[\w\-][\w.\-]*\.\w+|[\w\-][\w.\-]*\.\w+(?=:\d))"
+                       r"(?::(\d+))?(?![\w/])")
 _SHA = re.compile(r"(?<![\w])([0-9a-fA-F]{7,40})(?![\w])")
 _EMAIL = re.compile(r"[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+")
 _HANDLE = re.compile(r"(?<![\w@.])@([A-Za-z0-9_][A-Za-z0-9_.\-]*[A-Za-z0-9_]|[A-Za-z0-9_])")
@@ -126,6 +129,10 @@ class _Facts:
         if _EMAIL.search(s) or (self._people and self._people.search(s)):
             raise ValueError(f"a fact names a person ({s[:40]!r}): no person is ever a fact (Contract 5)")
         self.strings.add(s.strip().lower())
+        for m in _ANY_PATH.finditer(s):  # a fact path with any extension: tests/code.sample:4
+            self.paths.add(m.group(1))
+            if m.group(2):
+                self.path_lines.add((m.group(1), int(m.group(2))))
         for m in _PATH.finditer(s):
             self.paths.add(m.group(1))
             if m.group(2):
@@ -181,10 +188,12 @@ def _words(names):
 
 
 def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NUMBERS,
-          team_rule=DEFAULT_TEAM_RULE):
+          team_rule=DEFAULT_TEAM_RULE, vocab=()):
     """Every fact-like token in `text` must be in `facts`. `teams` and `people` are the known names from the block
     (team_map.team, person.name): a team in the text must be a fact, a person never may be. Both are required:
-    left out, the gate couldn't see a swapped team or a name. A fact that names a person raises ValueError."""
+    left out, the gate couldn't see a swapped team or a name. A fact that names a person raises ValueError.
+    `vocab`: the caller's fixed product phrases ("bug fixes"), read as words even when a team shares a word with one
+    (a team named Bug). "the Bug team" is still a team: only the whole phrase is read as a word."""
     if kinds not in KIND_SETS:
         raise ValueError(f"kinds must be one of {sorted(KIND_SETS)}, not {kinds!r}")
     if numbers not in NUMBER_MODES:
@@ -222,7 +231,12 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
                 checked += 1
                 miss("person", m.group(0), m.start())
 
-    for m in _PATH.finditer(text):
+    known_paths = sorted({p for p, _ in known.path_lines} | known.paths, key=len, reverse=True)
+    path_re = _PATH
+    if known_paths:  # a fact path is a path in the text too, whatever its extension
+        path_re = re.compile(r"(?<![\w/.\-])(" + "|".join(re.escape(p) for p in known_paths)
+                             + r"|(?:\./|/)?(?:[\w.\-]+/)*[\w\-][\w.\-]*\." + _EXT + r")(?::(\d+))?(?![\w/])")
+    for m in path_re.finditer(text):
         if not take(m):
             continue
         path, line = m.group(1), int(m.group(2)) if m.group(2) else None
@@ -233,7 +247,7 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
     for m in _LINE_ONLY.finditer(text):
         # a bare ":231" belongs to the path written last before it
         prev = None
-        for p in _PATH.finditer(text, 0, m.start()):
+        for p in path_re.finditer(text, 0, m.start()):
             prev = p.group(1)
         if prev is None or not take(m):
             continue
@@ -265,9 +279,15 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
             if not known.date_known(year, _MONTHS.index(m.group(1).lower()) + 1, int(m.group(2))):
                 miss("date", m.group(0), m.start())
 
-    variant = {}  # "payment" and "payments" both name the team payments
-    for t in sorted(known.teams):
-        for v in (t, t[:-1] if t.endswith("s") else t + "s", t + "es"):
+    # text that quotes a fact word for word says nothing new: "Test gap" (a reason), the symbol url, checkout.verify
+    quoted = _words([x for x in known.strings if len(x) >= 3 and any(c.isalpha() for c in x)] + list(vocab))
+    if quoted:
+        for m in quoted.finditer(text):
+            take(m)
+
+    variant = {t: t for t in known.teams}  # exact names first: team "tests" is "tests", never test's plural
+    for t in sorted(known.teams):  # then "payment" and "payments" both name the team payments
+        for v in (t[:-1] if t.endswith("s") else t + "s", t + "es"):
             variant.setdefault(v, t)
     team_re = _words(variant)
     if team_re:
