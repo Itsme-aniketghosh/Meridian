@@ -470,7 +470,7 @@ def main(argv=None):
     cache = Cache(a.cache_dir) if a.cache_dir else Cache()
     tracked, log = nullcontext(), None
     if a.track:
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "Model-Pipeline"))
+        sys.path.append(str(Path(__file__).resolve().parents[2] / "Model-Pipeline"))  # last: both have tests
         from model import tracking
         tracked = tracking.start_run(AGENT, owner="vishwa", experiment=tracking.AGENTS, block_run_id=a.run_id)
         log = tracking.log_llm_call

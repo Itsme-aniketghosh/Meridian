@@ -407,7 +407,7 @@ class Command(unittest.TestCase):
 # there the model job runs this same test (Model-Pipeline/tests/test_handoff_writer.py)
 tracking = None
 if importlib.util.find_spec("mlflow"):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "Model-Pipeline"))
+    sys.path.append(str(Path(__file__).resolve().parents[2] / "Model-Pipeline"))  # last: both have a package tests
     from model import tracking
 
 

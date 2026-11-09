@@ -24,12 +24,13 @@ DATA = HERE.parents[2] / "Data-Pipeline"
 
 def fixture():
     """(test_kb, agents, meridian.toml): Data-Pipeline's fixture builder and writer, importable from here."""
-    if str(DATA) not in sys.path:
-        sys.path.insert(0, str(DATA))
-    # Data-Pipeline/tests/test_kb.py by its path: both pipelines have a package named tests
+    # Data-Pipeline goes last on the path, and stays there: both pipelines have a package named tests, and a worker
+    # process (spawned, on Windows and macOS) re-imports this one's tests from its copy of sys.path
+    before = list(sys.path)
     spec = importlib.util.spec_from_file_location("data_test_kb", DATA / "tests" / "test_kb.py")
     K = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(K)
+    spec.loader.exec_module(K)  # test_kb puts Data-Pipeline first on the path: undo that
+    sys.path[:] = before + ([str(DATA)] if str(DATA) not in before else [])
     from meridian import agents
     from meridian.common import CONFIG, load_config
     return K, agents, load_config(CONFIG)
