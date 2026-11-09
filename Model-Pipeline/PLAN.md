@@ -121,7 +121,7 @@ Not in phase 2: intake (no collect source, gap G5), ticket comments (G2), a whol
 |---|---|---|
 | A ✓ | Run the data pipeline | Rebuild `c5118b019d642a9b`. collect prints that run_id; `test_golden` passes 24 of 24 |
 | B ✓ | Load the data | `data.py` builds one row per Spark commit, no names |
-| C | Train and select | Baselines: lines × files, `bug_fixes`, churn. Models: logistic regression, random forest, LightGBM. Optuna on time-ordered folds. Best by PR-AUC on 2023 |
+| C ✓ | Train and select | Baselines: lines × files, `bug_fixes`, churn. Models: logistic regression, random forest, LightGBM. Optuna on time-ordered folds. Best by PR-AUC on 2023 |
 | D | Validate | On 2024 once: PR-AUC, ROC-AUC, F1, recall at 20% of changed lines |
 | E | Sensitivity | SHAP for features, Optuna's parameter importance for hyperparameters |
 | F | Bias | Fairlearn slices by module, component, author experience, commit size. Phase 1's flag rule. Bias charts. Mitigation by re-weighting, re-sampling or per-group thresholds |
@@ -328,15 +328,15 @@ Never cut: anything in the course guideline, the gate, the LLM-off fallback, det
 
 Work starts Thu Nov 5 (day 1). Wed Nov 4 is an optional head start: anyone who starts then has a day of slack. The deadline is Sun Nov 15, and the report takes Nov 13–15, so all work and every report section are due Thu Nov 12.
 
-✓ = merged in main as of Nov 7.
+✓ = merged in main as of Nov 9.
 
 | Date | Utkarsh | Rachna | Rochan | Chaitali | Vishwa |
 |---|---|---|---|---|---|
 | Wed Nov 4, optional | Packets read. Aniket adds the team to the GCP project | | | | |
 | Thu Nov 5, day 1 | v1 feature table in git ✓ | pass-bar rows ✓ | `tracking.py` merged ✓ | pass-bars file drafted ✓ | fact gate started ✓ |
 | Fri Nov 6, day 2 | label window settled ✓, c5118 rebuild running ✓ | baselines ✓, first candidate ✓ | `evaluate.py` on val ✓ | pass bars merged ✓ | fact gate ✓ |
-| Sat Nov 7, day 3 | c5118 table ✓, tracking tables ✓ | tuning ✓ | auditor: policy v0, Elo | bias code on the first candidate | fact gate passes 200 + 200 |
-| Sun Nov 8, day 4 | second real run ✓ | tuned candidate, seed noise ✓, image ✓ | auditor stall job, simulation | bias on the tuned candidate | writer agent and cache |
+| Sat Nov 7, day 3 | c5118 table ✓, tracking tables ✓ | tuning ✓ | auditor: policy v0, Elo ✓ | bias code on the first candidate ✓ | fact gate passes 200 + 200 ✓ |
+| Sun Nov 8, day 4 | second real run ✓ | tuned candidate ✓, seed noise ✓, image ✓ | auditor stall job ✓, simulation ✓ | bias on the tuned candidate | writer agent and cache |
 | Mon Nov 9, day 5 | diff drafter: codemod | SHAP and sensitivity, Jev started | registry, GCP push, rollback | final pick, `gate.py`, alerts | views and API |
 | Tue Nov 10, day 6 | diff drafter: LLM path, the 90% test | Jev, P9 hook | auditor explore job, replay | all CI, LLM bias | views and API. Code freeze for everyone at the end of the day |
 
