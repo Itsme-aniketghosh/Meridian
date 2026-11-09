@@ -81,6 +81,18 @@ On Rachna's untuned LightGBM (her `candidate.json` isn't written yet), `val` N =
 | 2024, once | ✅ for the refusal: `--split test` is refused without `test_allowed = true`, and on uncommitted code (tested). That the choices were committed first is checked on Nov 12, from the run's `git_sha` |
 | Threshold | ✅ Fixed on `val` by decision 3 (precision 0.80 on at least 30 alerts). The test run reuses `val`'s number (tested). `metrics.json` holds its alerts, alert rate and precision, with N |
 
+### Registry, Nov 9
+
+| Bar | Result |
+|---|---|
+| Noise never promotes | ✅ Rachna's 5 seeds in a row, in seed order: `champion` moves 0 times (`test_registry.py`, N = 5). In 24 of the 120 orders it would move once (decisions.md 6) |
+| Real gains promote | ✅ +0.05 over the champion, with a margin of 0.02, takes `champion`, and `previous` points at the old one |
+| What blocks | ✅ A gain within the margin, a worse model and a failed bias report are each registered, not promoted, with the reason as a tag |
+| First model | ✅ Promoted when its bias report passes. A failed one blocks even the first |
+| The pushed file is the model | Not yet: the drill needs the GCP repo |
+| Rollback | ✅ in the store: `champion` back on `previous`, `previous` a step back, `champion.json` the restored record. The drill on GCP: not yet |
+| No credentials | ✅ With no project, no gcloud or no signed-in account, `--push` skips and says so. Uncommitted code is refused |
+
 ### Auditor, Nov 7 (policy v0 and Elo)
 
 Only the rows today's code can meet. Seeded ε and the promotion guard come with the stall job (Nov 8), and no look-ahead with replay (Nov 10).
