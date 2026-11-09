@@ -75,3 +75,6 @@ mlruns/
 mlartifacts/
 !Model-Pipeline/tests/contracts/*.csv
 !Model-Pipeline/reports/*_val_scores.csv
+
+# The saved model: the registry pushes it to Artifact Registry; too big for git
+Model-Pipeline/reports/*.joblib

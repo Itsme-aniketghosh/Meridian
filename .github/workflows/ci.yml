@@ -75,6 +75,8 @@ jobs:
         working-directory: .
       - run: python -m flake8 --config ../Data-Pipeline/setup.cfg model tests  # the same rules as Data-Pipeline
       - run: python -m unittest discover -s tests -t .
+      # Every model step for real on tests/fake_table.py in a temp folder, in under 2 minutes (Rachna, Nov 9)
+      - run: python -m model.run_all --fake
 
   gx:  # tests.test_gx in the GX audit's own environment (requirements-gx.txt), as the weekly rebuild runs it
     runs-on: ubuntu-latest

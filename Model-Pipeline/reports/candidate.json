@@ -39,5 +39,8 @@
       "pr_auc": 0.41298684070316377,
       "tied_with_best": true
     }
-  }
+  },
+  "model_file": "model.joblib",
+  "model_md5": "a817afba812250e1f3bb29b30963cf57",
+  "refit_max_diff": 2.220446049250313e-16
 }
