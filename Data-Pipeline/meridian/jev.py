@@ -207,4 +207,3 @@ class Router:
                  cost_usd=entry["cost_usd"] if paid else 0.0, cache_hit=hit, gate_pass=gate_pass, route=route,
                  source=None, task=task.kind, repo=task.repo or None, team=task.owner_team,
                  latency_ms=round(latency_ms, 3), facts_hash=agents.facts_hash(task.facts))
-
