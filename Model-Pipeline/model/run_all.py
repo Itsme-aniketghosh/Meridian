@@ -24,8 +24,7 @@ MODEL_TOML = HERE / "model.toml"
 FAKE_TABLE = {"n": 4000, "seed": 31}
 FAKE_SEARCH = ["--start", "4", "--step", "2", "--max-trials", "4", "--reps", "200"]
 # Steps --fake can't run yet, with why. Remove a line when its module takes --features and --out (or its fake args).
-FAKE_LATER = {"gate": "gate.py's fake arguments (Chaitali, when gate.py lands)",
-              "registry": "nothing to register from a fake table"}
+FAKE_LATER = {"registry": "nothing to register from a fake table"}
 
 
 def steps(fake=None):
@@ -50,7 +49,10 @@ def steps(fake=None):
         ("seed noise", "Rachna", "model.train", ["--seed-noise", str(out / "candidate.json"), *io]),
         ("evaluate", "Rochan", "model.evaluate", [*io, *candidate, "--no-mlflow", "--no-charts"]),
         ("bias", "Chaitali", "model.bias", [*io, *candidate, "--no-mlflow", "--no-charts"]),
-        ("gate", "Chaitali", "model.gate", []),
+        # no champion in the temp folder, so the gate judges a first model: inputs, bar and bias
+        ("gate", "Chaitali", "model.gate", ["--reports", str(out), "--champion",
+                                            str(fake / "registry" / "champion.json"), "--config", str(MODEL_TOML),
+                                            "--features", str(table)]),
         ("registry", "Rochan", "model.registry", []),
     ]
     return [s for s in plan if s[0] not in FAKE_LATER]

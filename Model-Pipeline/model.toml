@@ -38,4 +38,14 @@ max_gap = 0.10                     # flagged when the whole interval is more tha
 power_gap = 0.15                   # each slice reports its chance of flagging a true gap this big (decision 3)
 pool_below = 30                    # decision 1: groups under this many rows merge into "(other)" (0: never)
 baseline = "lines_x_files"         # decision 4: compared with the candidate at the same alert rate
-accepted = []                      # flagged slices with a mitigation tried and written down: "module=core:recall"
+# Flagged slices with a mitigation tried and written down ("<slice>:<metric>"). These five: the forest, the final pick,
+# decision 5 on Nov 9 (packets/chaitali-bias/decisions.md): no option closes half the gap within the rule's costs
+accepted = ["size_bucket=Q2:recall", "size_bucket=Q2:pr_auc", "size_bucket=Q3:recall", "size_bucket=Q3:pr_auc",
+            "size_bucket=Q4:fpr"]
+
+# Chaitali's keys: gate.py (packets/chaitali-bias/decisions.md, decision 6). Every number the gate uses
+[gate]
+split = "val"                      # CI never reads 2024
+reference = "lines_x_files"        # the bar: the candidate's PR-AUC beats this baseline's ...
+min_lift = 0.0                     # ... by more than this
+noise_sds = 2.83                   # decision 6: below the champion by more than 2√2 seed-noise sd fails (2 sd of a difference)
