@@ -272,3 +272,28 @@ Result (run Nov 7; 3 s for 2,000 seeds):
 Picked: **half K** (04's). Replay matters: without it, Elo's order is wrong in 5.0% of seeds over the first 60 live matches; with replay at either weight, 0.9%. Half and full K are within 1 point at every noise level, so 04's half K stays. It also keeps wrong replay verdicts from steering as much: they move ratings half as far.
 
 The three runs are in MLflow, `meridian-auditor`, tagged `decision=rochan-9`, `-10` and `-11`.
+
+## Auditor: replay and explore (Nov 9)
+
+No options to pick here, so no numbered decision: these are the rules the code follows, with the tests that hold it to them (`test_auditor.py`, `KnownAt`, `Replay`, `Explore`).
+
+**What's known at a moment.** 04 §9 says replay reads "rows with `known_at` ≤ stall time only". Only `call_site` has a `known_at` column, so here is the rule for every table the stall reasons and verdict rules read:
+- a call site: its newest version known by then (KNOWLEDGE-BASE.md's `site_now`, as before);
+- tickets: created by then, with the status and resolution they had then, rebuilt from `ticket_event`. A ticket resolved later with no status change on record has no known status then, so it's not done;
+- commits: authored by then, with their files;
+- the tables a run derives from the whole repo (`blocked_by`, `file_owner`, `person_alias`, `team_map`, `module_import`, `resolution`, `deprecation`, `call_edge`): known from that run's snapshot on. A block keeps only its own run's (join carries `call_site` over, nothing else), so as of an earlier run they're unknown, and so is each reason that reads one: 1, 4, 7 and 8. Unknown isn't false: an empty `module_import` would make 7 Test gap fire for every team.
+
+Kept as pulled: a ticket's summary, description, assignee and components. No stall reason reads them.
+
+**Replay.** Every pair of consecutive runs in the block, oldest first. The stalls open at the first run and not at the second get verdicts as of the second, and every policy in the code plays every other on each, whenever it was written: that's how a new policy is tried on the past. A pair plays a stall once, so replay skips a pair that played it live or in an earlier replay. A verdict on a reason that was unknown when the stall was served makes no match: no policy could rank it, and a draw would only be noise.
+
+**Explore v0.** KNOWLEDGE-BASE.md's `radar_deprecated_with_callers`, one repo at a time, the most called first, at most `explore_budget` (200, 04 §9) per repo and run. Unfiled means no present call site resolves to it: a deprecated symbol Meridian already tracks is filed. With a challenger, the two lists are team-draft interleaved (Radlinski, Kurup and Joachims, 2008), and the side whose picks get more accepts within `reply_days` (14) wins. No reply is no match.
+
+### Results
+
+- **No look-ahead.** On the fixture, one row of each kind the queries read was planted after R1, each one that would change R1's facts if it were read. R1's facts don't change; on Sep 20, once those rows are known, they do. Every table the queries read holds 0 rows from after the moment, while the block under it holds some. Each of four views broken on purpose (commits not cut, status as pulled, derived tables from every run, tickets not cut) fails at least one test.
+- **What the old views let through, as of R1 on the fixture:** Bob's four late-September commits (8 Competing load counted 6 recent commits, not 2), PAY-10's close on Sep 15 (3 Ticket mismatch fired for payments), and R2's owners, imports and blocks.
+- **Replay on the fixture.** 3 stalls ended between R1 and R2, and no rule fires for them as built. With checkout resumed by someone new (4 Orphaned owner), v0 and v1, written in November, play 1 replay match: a draw, since both rank 4 first. In the plain fixture, reasons 1, 4, 7 and 8 are unknown as of R1, so that verdict makes no match; with R1's own derived tables, it does.
+- **Real block** 70dd1dabfed544b8. It holds one run, so there's nothing to replay, and the output says so. 68 stalls; 60 are served v0's ranking and 8 v1's, the same as Nov 8. 84 s, against 76–80 s on Nov 7: the views cost about 5–10%. A first version joined `known_run` inside the views, and SQLite stopped indexing `person_alias`: `stall_competing_load` took 4.9 s instead of 3.2 s for each of the 25 repo and symbol pairs, 121 s in all. Written as `IN`, it's back to 3.2 s.
+- **Explore on the real block.** 52 deprecation-marked functions, none with a caller in `call_edge`, which holds only the tracked symbols' call graph (gap G3). So v0 nominates nothing until G3 is closed. On the fixture, the radar's only row is `verify_token` itself, which is tracked, so it's filed.
+- **No live matches anywhere.** Every block's snapshots are older than the policies (Nov 7), and nobody has replied to anything yet.
