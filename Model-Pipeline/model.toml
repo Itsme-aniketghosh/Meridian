@@ -39,3 +39,15 @@ power_gap = 0.15                   # each slice reports its chance of flagging a
 pool_below = 30                    # decision 1: groups under this many rows merge into "(other)" (0: never)
 baseline = "lines_x_files"         # decision 4: compared with the candidate at the same alert rate
 accepted = []                      # flagged slices with a mitigation tried and written down: "module=core:recall"
+
+# Rochan's keys: registry.py (packets/rochan-tracking, section G)
+[registry]
+name = "defect-risk"               # the MLflow registered model
+rule = "noise"                     # decision 6: promote on a gain above noise_sds sds of seed noise ("any": any gain)
+noise_sds = 2.0
+compare = "rescore"                # decision 7: re-score a champion judged on another table ("stored": never)
+project = ""                       # the GCP project with the Artifact Registry repo; empty: --push skips, says so
+location = "us-east1"
+repository = "meridian-models"
+package = "defect-risk"            # model.joblib and champion.json, version <git sha>
+pointer = "champion"               # its newest version holds the champion.json in force

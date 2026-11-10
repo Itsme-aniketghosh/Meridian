@@ -56,11 +56,11 @@ The GCP repo, once, on the trial project (no Terraform until phase 3):
 
 `python -m model.registry --run <id>`, called by CI after the gate:
 
-- [ ] Registers the model as a new version of `defect-risk` in the local MLflow registry
-- [ ] Moves `champion` only if it wins by the rule (decision 6) and `bias_report.json` passes. Otherwise it stays registered with the reason as a tag
-- [ ] On promotion: uploads the model and `champion.json` to the Artifact Registry repo `meridian-models` as version `<git sha>` (`gcloud artifacts generic upload`), then writes `registry/champion.json`
-- [ ] Keeps `previous` on the old champion. `--rollback` moves `champion` back and uploads a `champion.json` pointing at the previous version
-- [ ] `--push` is skipped without credentials, and says so. Local work never needs GCP
+- [x] Registers the model as a new version of `defect-risk` in the local MLflow registry
+- [x] Moves `champion` only if it wins by the rule (decision 6) and `bias_report.json` passes. Otherwise it stays registered with the reason as a tag
+- [x] On promotion: uploads the model and `champion.json` to the Artifact Registry repo `meridian-models` as version `<git sha>` (`gcloud artifacts generic upload`), then writes `registry/champion.json`
+- [x] Keeps `previous` on the old champion. `--rollback` moves `champion` back and uploads a `champion.json` pointing at the previous version
+- [x] `--push` is skipped without credentials, and says so. Local work never needs GCP
 
 ## P. Auditor learning
 
@@ -96,7 +96,7 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 ## Tests
 
 - [x] `test_evaluate.py`: PR-AUC, F1 and recall at 20% match a hand calculation. Same seed, same interval. Every number in `metrics.json` has an N. A perfect score gives 1.0, a random one about the positive rate. `--split test` refuses unless allowed
-- [ ] `test_registry.py`, against a temp local store: a better model takes `champion` and `previous` points at the old one; a worse one is registered, not promoted; one better only within seed noise isn't promoted; a failed bias report blocks promotion; `--rollback` restores; the first model ever is promoted if it passes; `--push` without credentials skips and says so
+- [x] `test_registry.py`, against a temp local store: a better model takes `champion` and `previous` points at the old one; a worse one is registered, not promoted; one better only within seed noise isn't promoted; a failed bias report blocks promotion; `--rollback` restores; the first model ever is promoted if it passes; `--push` without credentials skips and says so
 - [ ] `test_auditor.py`, the 05-test Auditor bars: the Elo simulation with known skill ranks right; recomputing from the log twice gives the same ratings; seeded ε within ±2% over 1,000 draws; a replay never reads a row with `known_at` after the stall; the promotion guard blocks at 29 matches and at +49 Elo
 - [ ] Once on the real repo: push, roll back, and check the versions in Artifact Registry
 
@@ -106,5 +106,5 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 - [ ] `metrics.json` on `val`, then on `test` once on Nov 12
 - [ ] `registry.py` in CI on main, with a real push and a rollback tried
 - [ ] The auditor passes its simulation tests and runs on the fixture
-- [ ] Decisions 1–11 written down with their numbers
+- [x] Decisions 1–11 written down with their numbers
 - [ ] Your report section: tracking, metrics, results, registry and rollback, auditor
