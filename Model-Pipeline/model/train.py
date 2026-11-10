@@ -496,16 +496,21 @@ def input_columns(model):
     return [str(c) for c in cols]
 
 
-def score_with(model, df):
-    """Risk scores for df's rows from a saved model: the same feature_matrix it was fitted with. Ticket categories come
-    from the model's own columns, so a type it never saw scores as all zeros, as in training."""
+def inputs_for(model, df):
+    """The exact input matrix a saved model was fitted on, for df's rows. Ticket categories come from the model's own
+    columns, so a type it never saw is all zeros, as in training."""
     cols = input_columns(model)
     cats = [c.split("=", 1)[1] for c in cols if c.startswith("ticket_type=")]
     X = feature_matrix(df, cats, ticket_features=any(c in TICKET for c in cols))
     missing = [c for c in cols if c not in X.columns]
     if missing:
         raise ValueError(f"the model needs column(s) the rows don't give: {', '.join(missing)}")
-    return model.predict_proba(X[cols])[:, 1]
+    return X[cols]
+
+
+def score_with(model, df):
+    """Risk scores for df's rows from a saved model (P9's loader)."""
+    return model.predict_proba(inputs_for(model, df))[:, 1]
 
 
 def bootstrap_reps(cfg, default):
