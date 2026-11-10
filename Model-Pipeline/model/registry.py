@@ -18,8 +18,9 @@ candidate a first model.
 Promote (decision 6). The version takes `champion` only if bias_report.json passes and its val PR-AUC beats the
 champion's by more than the margin: [registry] noise_sds standard deviations of seed noise (rule "noise"), or any
 gain (rule "any"). The first model only needs the bias report. A version that isn't promoted stays registered, with a
-`reason` tag that says why. On promotion, `previous` moves to the old champion and registry/champion.json is
-written. CI calls this only after gate.py passes.
+`reason` tag that says why. On promotion, `previous` moves to the old champion, and registry/champion.json is
+written with the champion's model file next to it: what P9 loads, when its md5 is champion.json's. CI calls this
+only after gate.py passes.
 
 What the champion's PR-AUC is (decision 7): [registry] compare "rescore" re-scores the champion's own model on today's
 val rows when the table changed (its features_md5 isn't today's), since a stored number describes other rows. Its
@@ -37,8 +38,9 @@ isn't uploaded, because the version has to name the code, and neither is one reg
 can't tell. Local work never needs GCP.
 
 Rollback. `champion` goes back to `previous`, `previous` to the champion before that, and registry/champion.json is
-the restored version's record again. With --push, the restored version is uploaded too if it never was, then its
-record as the new pointer. A store that doesn't hold the previous version (a new one, as on CI) can't roll back.
+the restored version's record again, with its model file next to it. With --push, the restored version is uploaded
+too if it never was, then its record as the new pointer. A store that doesn't hold the previous version (a new one,
+as on CI) can't roll back.
 
 registry/champion.json (Contract 4) is written only by registry.py. Each key, and who reads it:
 
@@ -360,6 +362,20 @@ def write_champion(record, path):
     os.replace(tmp, path)
 
 
+def place_model(model, record, champion_path):
+    """The champion's model file next to champion.json, where P9 loads it (it checks the md5 champion.json records).
+    Copied, then renamed into place; left alone when it's that file already."""
+    from model.evaluate import file_md5
+    dest = Path(champion_path).parent / record["model_file"]
+    if dest.exists() and file_md5(dest) == record["model_md5"]:
+        return dest
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.name + ".tmp")
+    shutil.copyfile(model, tmp)
+    os.replace(tmp, dest)
+    return dest
+
+
 def register(paths, s, config, features, champion_path=CHAMPION, push=False, runner=subprocess.run, say=print):
     """Register reports/'s candidate and promote it if it wins. With push, Artifact Registry then holds the champion
     in force, whether or not this run promoted it. Returns the version's tags."""
@@ -378,6 +394,7 @@ def register(paths, s, config, features, champion_path=CHAMPION, push=False, run
     if record is not None and (record["model_md5"], record["metrics"]["features_md5"]) == (cand["model_md5"], table):
         held = f"version {champion.version}" if champion else f"champion.json, {record['version'][:12]}"
         say(f"this model on this table is {name}'s champion already ({held}), so it isn't registered again")
+        place_model(model, record, champion_path)  # say champion.json came from git and the model from train.py
         if push:
             pushed(record, s, runner, say, model, champion.tags.get("git_dirty", "unknown") if champion else None)
         return {**(champion.tags if champion else {}), "version": champion.version if champion else None,
@@ -419,10 +436,12 @@ def register(paths, s, config, features, champion_path=CHAMPION, push=False, run
     elif alias(client, name, "previous") is not None:
         client.delete_registered_model_alias(name, "previous")  # the champion it replaces isn't in this store
     client.set_registered_model_alias(name, "champion", version.version)
+    place_model(model, new, champion_path)
     write_champion(new, champion_path)
     before = (champion.version if champion else f"{record['version'][:12]} (champion.json's; not in this store)"
               if record else "none")
-    say(f"promoted to champion: {reason}. previous = {before}; wrote {champion_path}")
+    say(f"promoted to champion: {reason}. previous = {before}; wrote {champion_path} and {new['model_file']} next "
+        "to it")
     if push:
         pushed(new, s, runner, say, model, dirty)
     return {**tags, "version": version.version}
@@ -451,23 +470,27 @@ def rollback(s, champion_path=CHAMPION, push=False, runner=subprocess.run, say=p
                              "store doesn't hold it: roll back where it was registered")
         raise SystemExit(f"{name} has no previous version to roll back to")
     record = stored_record(client, previous)
-    client.set_registered_model_alias(name, "champion", previous.version)
-    before = record["previous"] and client.search_model_versions(
-        f"name = '{name}' and run_id = '{record['previous']['run_id']}'")
-    if before:
-        client.set_registered_model_alias(name, "previous", before[0].version)
-    else:
-        client.delete_registered_model_alias(name, "previous")
-    if champion is not None:
-        client.set_model_version_tag(name, champion.version, "rolled_back",
-                                     f"champion went back to version {previous.version}")
-    write_champion(record, champion_path)
-    say(f"rolled back: champion = version {previous.version} ({record['version'][:12]}), previous = "
-        f"{before[0].version if before else 'none'}; wrote {champion_path}")
-    if push:
-        with tempfile.TemporaryDirectory() as d:
-            pushed(record, s, runner, say, champion_model(record, previous, champion_path, d),
-                   previous.tags.get("git_dirty", "unknown"))
+    with tempfile.TemporaryDirectory() as d:
+        model = champion_model(record, previous, champion_path, d)
+        if model is None:
+            raise SystemExit(f"{name} version {previous.version}'s {record['model_file']} isn't in its run with the "
+                             "md5 its record has, so it can't be restored: nothing changed")
+        client.set_registered_model_alias(name, "champion", previous.version)
+        before = record["previous"] and client.search_model_versions(
+            f"name = '{name}' and run_id = '{record['previous']['run_id']}'")
+        if before:
+            client.set_registered_model_alias(name, "previous", before[0].version)
+        else:
+            client.delete_registered_model_alias(name, "previous")
+        if champion is not None:
+            client.set_model_version_tag(name, champion.version, "rolled_back",
+                                         f"champion went back to version {previous.version}")
+        place_model(model, record, champion_path)
+        write_champion(record, champion_path)
+        say(f"rolled back: champion = version {previous.version} ({record['version'][:12]}), previous = "
+            f"{before[0].version if before else 'none'}; wrote {champion_path} and {record['model_file']} next to it")
+        if push:
+            pushed(record, s, runner, say, model, previous.tags.get("git_dirty", "unknown"))
     return record
 
 
