@@ -234,7 +234,7 @@ class Store(unittest.TestCase):
     """A temp MLflow store and reports folder. Each registration writes a new model file and its files."""
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
+        self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)  # Windows: SQLAlchemy keeps mlflow.db open
         self.dir = Path(self.tmp.name)
         env = mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{self.dir / 'mlflow.db'}"})
         env.start()
@@ -423,11 +423,15 @@ class Push(Store):
         with mock.patch("model.registry.shutil.which", return_value="/bin/gcloud"):
             self.register(self.files(0.40), push=True, runner=self.gcloud(calls))
         uploads = [c for c in calls if c[:4] == ["gcloud", "artifacts", "generic", "upload"]]
-        self.assertEqual([(a[8], a[9].rsplit("/", 1)[1]) for a in uploads[:2]],
+
+        def name(arg):  # --source=<path>: the file's name, whichever slash the path has (Windows: \)
+            return Path(arg.split("=", 1)[1]).name
+
+        self.assertEqual([(a[8], name(a[9])) for a in uploads[:2]],
                          [("--version=" + "e" * 40, "model.joblib"), ("--version=" + "e" * 40, "champion.json")])
         self.assertEqual(uploads[0][4:8], ["--project=p", "--location=us-east1", "--repository=meridian-models",
                                            "--package=defect-risk"])
-        self.assertEqual((uploads[2][7], uploads[2][9].rsplit("/", 1)[1]), ("--package=champion", "champion.json"))
+        self.assertEqual((uploads[2][7], name(uploads[2][9])), ("--package=champion", "champion.json"))
         self.assertRegex(uploads[2][8], r"^--version=\d{8}t\d{6}z$")
 
     def test_uncommitted_code_isnt_pushed(self):
