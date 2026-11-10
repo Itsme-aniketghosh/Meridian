@@ -89,8 +89,8 @@ On Rachna's untuned LightGBM (her `candidate.json` isn't written yet), `val` N =
 | Real gains promote | ✅ +0.05 over the champion, with a margin of 0.02, takes `champion`, and `previous` points at the old one |
 | What blocks | ✅ A gain within the margin, a worse model and a failed bias report are each registered, not promoted, with the reason as a tag |
 | First model | ✅ Promoted when its bias report passes. A failed one blocks even the first |
-| The pushed file is the model | Not yet: the drill needs the GCP repo |
-| Rollback | ✅ in the store: `champion` back on `previous`, `previous` a step back, `champion.json` the restored record. The drill on GCP: not yet |
+| The pushed file is the model | ✅ The drill (Nov 9) on the real repo, `meridian-models` in us-east1: two throwaway models promoted with `--push`, under the packages `drill-model` and `drill-champion`. Each `model.joblib` downloaded back from Artifact Registry has the md5 its pushed `champion.json` records, 2 of 2 |
+| Rollback | ✅ in the store: `champion` back on `previous`, `previous` a step back, `champion.json` the restored record. On GCP, in the same drill: one `--rollback --push` adds a pointer version whose `champion.json` names the first model again, the same as the local one, N = 1 |
 | No credentials | ✅ With no project, no gcloud or no signed-in account, `--push` skips and says so. Uncommitted code is refused |
 
 ### Auditor, Nov 7 (policy v0 and Elo)
