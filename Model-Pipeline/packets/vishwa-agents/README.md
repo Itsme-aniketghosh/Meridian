@@ -89,7 +89,7 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 - [ ] `test_views.py`: every number on every page traces to a row (05-test: 100%), by parsing the page and looking each one up
 - [ ] With the `suggestion` table empty (the LLM off), every page renders with templates
 - [ ] `run_id`, `snapshot_at` and coverage on every page and JSON response
-- [ ] The fixture `acme/shop` renders 02-product's examples: "31 of 52 done", Checkout "STALLED", Fulfillment "blocked"
+- [ ] The fixture `acme/shop` renders 02-product's examples in its own numbers: "5 of 13 done" (the mock-up says "31 of 52"), Checkout "STALLED", Fulfillment "blocked"
 
 ## Done when
 
