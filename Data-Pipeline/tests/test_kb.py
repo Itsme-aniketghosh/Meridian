@@ -286,7 +286,7 @@ class KnowledgeBase(unittest.TestCase):
                 ("owner_eta", f"julianday(asof.at) - {r['eta_window_days']}) AS removed"),
                 ("stall_orphaned_owner", f">= {cfg['ownership']['orphan_silent_days']};"),
                 ("stall_competing_load", f"julianday(asof.at) - {r['stall_days']}) AS recent"),
-                ("stall_competing_load", f"julianday(asof.at) - {r['stall_days']} AND EXISTS"),
+                ("stall_competing_load", f"julianday(asof.at) - {r['stall_days']} AND c.sha IN"),
                 ("stall_competing_load",                                    # the usual window, per stall_days
                  f"- {r['competing_load_usual_days'] + r['stall_days']} AND julianday(asof.at) - {r['stall_days']}) "
                  f"/ {r['competing_load_usual_days'] / r['stall_days']} AS usual"),
@@ -326,6 +326,60 @@ class KnowledgeBase(unittest.TestCase):
         got = [i for (i,) in db.execute(q["order_of_work"])]
         present = [i for (i,) in db.execute("SELECT call_site_id FROM site_now WHERE status = 'present'")]
         self.assertEqual(sorted(got), sorted(present))
+
+
+# stall_competing_load before Nov 10, as the doc had it: the same rows, but an EXISTS per commit on commit_file
+NEW_ON_SITES = """c.sha IN (
+                      SELECT f.sha FROM commit_file f
+                      WHERE (f.repo, f.path) IN (SELECT s.repo, s.path FROM site_now s WHERE s.status = 'present')))"""
+OLD_ON_SITES = """EXISTS (
+                      SELECT 1 FROM commit_file f JOIN site_now s ON s.repo = f.repo AND s.path = f.path """ \
+               """AND s.status = 'present'
+                      WHERE f.sha = c.sha))"""
+
+
+class CompetingLoad(unittest.TestCase):
+    def test_it_keeps_the_same_rows_and_counts_at_every_moment(self):
+        """Every team's recent, usual and on_sites counts, and the rows, on each day from R2's snapshot (Oct 1: the
+        teams and aliases are known from then) for two weeks, for the fixture's (repo, symbol) and for every repo. Two
+        more commits by checkout touch files with no present site left."""
+        from meridian import auditor as A
+        from meridian.pushcheck import kb_queries
+        q, db = kb_queries(), build()
+
+        def ins(db, table, rows):
+            cols = list(rows[0])
+            db.executemany(f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+                           [tuple(r[c] for c in cols) for r in rows])
+        ins(db, "git_commit", [dict(run_id="R2", repo=REPO, sha=sha, parent_sha=None, seq=20 + i, first_parent=1,
+                                    is_merge=0, authored_at=at, author_email="bob@acme.test",
+                                    committer_email="bob@acme.test", subject="change " + sha)
+                               for i, (sha, at) in enumerate([("z1", "2026-09-29T10:00:00Z"),
+                                                              ("z2", "2026-09-30T10:00:00Z")])])
+        ins(db, "commit_file", [dict(run_id="R2", repo=REPO, sha="z1", path="search/q.py", old_path=None, added=1,
+                                     deleted=0),
+                                dict(run_id="R2", repo=REPO, sha="z2", path="pay/refund.py", old_path=None, added=1,
+                                     deleted=0)])
+        new = q["stall_competing_load"]
+        self.assertEqual(new.count(NEW_ON_SITES), 1)
+        old = new.replace(NEW_ON_SITES, OLD_ON_SITES)
+
+        def counts(sql):  # the w step: each team's recent, usual and on_sites
+            return sql.split("SELECT team, recent, usual FROM w")[0] + "SELECT * FROM w ORDER BY team"
+
+        seen = set()
+        for day in range(1, 15):
+            for repo, symbol in ((REPO, SYMBOL), (None, None)):
+                at = f"2026-10-{day:02d}T00:00:00Z"
+                A.point(db, at, repo, symbol, "R2", q)
+                now, before = db.execute(counts(new)).fetchall(), db.execute(counts(old)).fetchall()
+                self.assertEqual(now, before, (at, repo))
+                self.assertEqual(sorted(db.execute(new).fetchall()), sorted(db.execute(old).fetchall()),
+                                 (at, repo))
+                seen |= {(r[1] > 0, r[3] > 0) for r in now}
+        A.point(db, R2[1], REPO, SYMBOL, "R2", q)
+        self.assertEqual(db.execute(new).fetchall(), db.execute(old).fetchall())
+        self.assertEqual(seen, {(False, False), (True, False), (True, True)})  # not vacuous: each case occurs
 
 
 if __name__ == "__main__":

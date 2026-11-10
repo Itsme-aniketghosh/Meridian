@@ -413,7 +413,7 @@ WHERE s.status = 'present' AND (s.repo, s.path) NOT IN (SELECT repo, imported FR
 ORDER BY s.owner_team;
 ```
 
-Usual load = the team's commits in the 56 days before the last 14, per 14 days. Only teams that still own a call site: a busy team with none isn't stalled.
+Usual load = the team's commits in the 56 days before the last 14, per 14 days. Only teams that still own a call site: a busy team with none isn't stalled. The commits that touch a present site are listed once (`c.sha IN`), not looked up per commit: a correlated `EXISTS` on `commit_file` made SQLite build an index over all of it on every call, 1.4 s per (repo, symbol) on the real block's 849k rows and 35 of the writer's 46 s (`tests/test_kb.py`, `CompetingLoad`, checks the two give the same rows).
 
 ```sql
 -- name: stall_competing_load
@@ -423,9 +423,9 @@ WITH c AS (SELECT DISTINCT g.sha, g.authored_at, t.team FROM git_commit g
      w AS (SELECT c.team,
                   sum(julianday(c.authored_at) > julianday(asof.at) - 14) AS recent,
                   sum(julianday(c.authored_at) BETWEEN julianday(asof.at) - 70 AND julianday(asof.at) - 14) / 4.0 AS usual,
-                  sum(julianday(c.authored_at) > julianday(asof.at) - 14 AND EXISTS (
-                      SELECT 1 FROM commit_file f JOIN site_now s ON s.repo = f.repo AND s.path = f.path AND s.status = 'present'
-                      WHERE f.sha = c.sha)) AS on_sites
+                  sum(julianday(c.authored_at) > julianday(asof.at) - 14 AND c.sha IN (
+                      SELECT f.sha FROM commit_file f
+                      WHERE (f.repo, f.path) IN (SELECT s.repo, s.path FROM site_now s WHERE s.status = 'present'))) AS on_sites
            FROM c, asof GROUP BY c.team)
 SELECT team, recent, usual FROM w WHERE on_sites = 0 AND usual > 0 AND recent >= 0.75 * usual
   AND team IN (SELECT owner_team FROM site_now WHERE status = 'present');
