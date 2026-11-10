@@ -498,6 +498,16 @@ class Push(Store):
         self.assertRegex(uploads[2][8], r"^--version=\d{8}t\d{6}z$")
         self.assertEqual(self.gcp.pointer(), reg.read_champion(self.champion))
 
+    def test_champion_json_is_the_same_bytes_on_every_os(self):
+        """'\n' line ends, never Windows' '\r\n': else the md5 of one record differs between machines, and a push
+        from Windows would find "another champion.json" where a Mac or CI pushed the same one."""
+        self.on_gcp()
+        self.register(self.files(0.40), push=True, runner=self.gcp)
+        record = reg.read_champion(self.champion)
+        expect = (json.dumps(record, indent=2) + "\n").encode("utf-8")
+        self.assertEqual((self.champion.read_bytes(), self.gcp.held["defect-risk", "e" * 40]["champion.json"]),
+                         (expect, expect))
+
     def test_gcloud_is_started_by_its_full_path(self):
         """Windows: gcloud is gcloud.cmd, which subprocess can't find by its bare name."""
         self.on_gcp()

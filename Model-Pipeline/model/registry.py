@@ -346,11 +346,17 @@ def git_version():
     return sha, dirty
 
 
+def champion_bytes(record):
+    """champion.json as bytes, the same on every OS: write_text would end lines '\r\n' on Windows, so the md5 --push
+    compares with Artifact Registry's would differ for the same record."""
+    return (json.dumps(record, indent=2) + "\n").encode("utf-8")
+
+
 def write_champion(record, path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    tmp.write_bytes(champion_bytes(record))
     os.replace(tmp, path)
 
 
@@ -575,7 +581,7 @@ def pushed(record, s, runner, say, model=None, dirty="false"):
     there = gcp_files(s, package, version, runner)
     with tempfile.TemporaryDirectory() as d:
         champion = Path(d) / "champion.json"
-        champion.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        champion.write_bytes(champion_bytes(record))
         send = []
         for name, md5, path in ((record["model_file"], record["model_md5"], model),
                                 ("champion.json", file_md5(champion), champion)):
