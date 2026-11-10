@@ -123,6 +123,31 @@ An independent review ran the writer on the real block and found 11 problems; ea
 
 Still open: the suggestion kind for consumer text, and the ladder's home (`meridian.toml [llm]`), both contract changes for the team chat. `suggestion.jsonl` holds every row so far, so once the diff drafter writes it too, the two must agree who writes the file (Utkarsh).
 
+## The views, Nov 10: review fixes before the lead's review
+
+An independent review of `views.py` against Contract 6 and section O found these. Each fix has a test in `tests/test_views.py`, and each test was checked by undoing its fix: all 13 undone fixes fail a test.
+
+- **One request at a time.** Every request aims the block's temp tables at one (repo, symbol) with `A.point()`, and every server thread shares one connection. In the review, 9 parallel clients got 27 wrong answers and 54 errors out of 120. The server now holds a lock per request (`Server.test_parallel_requests_...`).
+- **`--fixture --serve` works.** The fixture's in-memory block is copied into a connection the server's threads may use (`FixtureServer`).
+- **A failure is a 500**, with the traceback in the log, never a dropped connection. Without `--serve`, an unknown page exits with its message.
+- **As of the snapshot, everywhere** (`AsOf`): the default (repo, symbol) and the team check count `site_now`, not every row of `call_site`. A team or symbol first known later is a 404. Suggestion rows count only when offered by the snapshot. A push shows only if its base run is known by then, and an outcome decided after the snapshot shows as `open`.
+- **Diffs are shown.** The consumer view lists the team's `diff` rows for call sites still present, and the staff view lists `legacy` rows (the radar), both exactly as stored.
+- **The committed cache is read.** With the LLM off, a text is the cached reply if it passes the gate again, else the template. Nothing is written.
+- **Stall reasons only for STALLED teams.** A blocked team doesn't get a reason. `/staff` is served like `/api/staff`, and `/api/staff/owner/x` is a 404.
+- **Tests that could barely fail were tightened.** Every number must sit in its own row's cell, not just anywhere on the page. A test plants a number in the wrong cell to show the check catches it. The no-writes test is now an SQLite authorizer on a writable connection that refuses any write to the block's own tables. The real-block test also checks every page for emails and people's names.
+
+**The fixture bar, in the fixture's numbers.** PASS-BARS §5 quoted 02-product's mock-up: "31 of 52 done", Checkout "STALLED", Fulfillment "blocked". `acme/shop` has 13 call sites, so its owner page reads **"5 of 13 done"**, Checkout STALLED and Fulfillment blocked. The test checks that rendered text. The bar's wording now says this. The bar itself is the same.
+
+**02-product's layout, now built.** The staff view has Collisions (`derive_collides`), Duplicates (`derive_duplicates`), Teams not connected (`stall_never_notified`) and the legacy radar (`radar_deprecated_with_callers`, plus any stored `legacy` rows). The owner view's Per team table says who a blocked team is waiting on (`stall_upstream`): Fulfillment, waiting on Platform.
+
+**Decision 8, built as written: real where its tables have rows, fixture otherwise.** The measure is the rows each view's tables return on its default page, logged on every start. On the real block (run `70dd1dabfed544b8`) those are: staff 251, owner 3, consumer 28, tickets 1, **push 0**. So the push page comes from the fixture: the block predates `push_alert`. The banner says it's the fixture, and why. A link from a real page into a fixture view opens the fixture's own default page. `--real-only` turns this off, and `--fixture` shows every view from the fixture.
+
+**A stall's repo is never empty.** Stalls come only from `auditor.block_stalls`, which points at each (repo, symbol). So `x.repo or ""` in `agents.stall_tasks` never fires, and the owner view finds each text. There's a test.
+
+**Startup.** The writer runs once at start, about 46 s on the real block, and 35 s of that is one query, `stall_competing_load`. Its `EXISTS` on `commit_file` makes SQLite build a temporary index over all 849k rows on every call, 25 times a run. Collecting the commits that touch a present site once gives the same rows four times faster. That's KNOWLEDGE-BASE.md, so it's a separate PR for its owner, like #49 for the auditor.
+
+**Run 2: not measured yet.** The views are tested on two runs (the fixture's R1 and R2, the `AsOf` tests), and on a block only `call_site` and `run` keep earlier runs' rows (`join.py`). But there's no real run 2 yet: `out/c5118b019d642a9b` has run 1's snapshot time and is a partial rebuild of run 1. Running the views on run 2 waits on a second Collect.
+
 ## Review fixes, Nov 6 (PR #28)
 
 The lead's review probed the gate and found these passing when they shouldn't. Each is now a test in `tests/test_fact_gate.py` (`Bypasses`), and the corpus result above didn't move (seed 5: 200 / 200 caught, 10 / 200 false rejects).

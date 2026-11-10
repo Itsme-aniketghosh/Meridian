@@ -156,7 +156,7 @@ Confirmed by Vishwa, Nov 7. Taken from the tests in [packets/vishwa-agents/READM
 | Bad JSON | Retries, then falls back to the template | `test_agents.py` |
 | Maker | Each untracked site in exactly one draft | `test_agents.py` |
 | Views | Every number on every page traces to a row, 100%. `run_id`, `snapshot_at` and coverage on every page and JSON response | `test_views.py` |
-| Fixture | `acme/shop` renders 02-product's examples: "31 of 52 done", Checkout "STALLED", Fulfillment "blocked" | `test_views.py` |
+| Fixture | `acme/shop` renders 02-product's examples in its own numbers: "5 of 13 done" (the mock-up's "31 of 52"; the fixture has 13 call sites), Checkout "STALLED", Fulfillment "blocked" (wording fixed Nov 10, the bar unchanged) | `test_views.py` |
 
 ## 6. Chaitali: bias, final pick, gate, CI
 
