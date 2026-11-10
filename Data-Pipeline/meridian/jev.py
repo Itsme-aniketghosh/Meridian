@@ -22,8 +22,8 @@ rows say route "rules".
 
 Settings, constants here and not meridian.toml [llm], for the reason agents.py gives (a new section there changes every
 block's config hash and run_id): the router's model (decision 14: the small one), Jev's spend cap per run and the
-top-model budget per run. The coding ladder is the diff drafter's own (Utkarsh), read from meridian.diff_drafter once
-it's in; until then the diff drafter has no LLM rung and Jev routes nothing to it.
+top-model budget per run. The coding ladder is the diff drafter's own (Utkarsh), read from meridian.diffs; without
+it the diff drafter has no LLM rung and Jev routes nothing to it.
 """
 import hashlib
 import json
@@ -44,7 +44,7 @@ TOP_BUDGET = 10                # picks of an agent's largest model, per run, by 
 def _coding_ladder():
     """The diff drafter's ladder (coding small -> mid -> large), from its module once Utkarsh's drafter is in."""
     try:
-        from meridian import diff_drafter
+        from meridian import diffs as diff_drafter   # the drafter is meridian/diffs.py (packets/README.md)
         return tuple(diff_drafter.LADDER)
     except (ImportError, AttributeError):
         return ()

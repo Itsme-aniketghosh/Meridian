@@ -4,7 +4,7 @@ Each decision lists the test and the rule that picks an option, followed by the 
 
 | # | Decision | Pick | Status |
 |---|---|---|---|
-| 1 | Label window | 365 days | **The rule can't be met as written.** Needs Aniket's OK |
+| 1 | Label window | 365 days | **The rule can't be met as written.** Aniket's OK, Nov 9 |
 | 2 | Start year | 2015, for now | Waiting on the hand check below |
 | 3 | Author identity | merged person | settled |
 | 4 | `[MINOR]` commits | keep, with `is_minor` | settled |
@@ -48,7 +48,7 @@ Positive share by year:
 
 The slide by year appears under every window. It follows the number of fix commits per year (1,309 with blame in 2015, 340 in 2022), not the window. A shorter window doesn't flatten it.
 
-**Pick: 365**, the longest listed option that leaves a full 2024. It catches 59% of blames on fully observed years, against 43% at 180. That gives 283 positives in 2024 (7.5%) and 486 in 2023. Since the written rule can't be met, the packet's fallback applies ("pick the simpler option and say so"), and Aniket should confirm. The largest window that would still be allowed is 638 days, which catches 71%, but it isn't one of the listed options.
+**Pick: 365**, the longest listed option that leaves a full 2024. It catches 59% of blames on fully observed years, against 43% at 180. That gives 283 positives in 2024 (7.5%) and 486 in 2023. Since the written rule can't be met, the packet's fallback applies ("pick the simpler option and say so"). Aniket confirmed it on Nov 9. The largest window that would still be allowed is 638 days, which catches 71%, but it isn't one of the listed options.
 
 ## 2. Start year
 
