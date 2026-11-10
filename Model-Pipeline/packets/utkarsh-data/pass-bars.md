@@ -43,7 +43,7 @@ docs/05-test.md says bars are fixed before the run and changing one needs a comm
 | Packages | Removed lines per repo equal the answer key | `test_run2` | ✅ 1,205 of 1,236. ⚠️ The key before the run was 1,160 (edited lines). The 45 extra are autocomplete-light calls that stop resolving after an aliased import. The key was changed after the run, for that reason |
 | `known_at` | Every removed row is known at run 2's snapshot, 100% | `test_run2` | ✅ 1,491 of 1,491 |
 | Validate | 0 errors | `meridian.validate --prev-run` | ✅ 0 errors, 8 expected drift warnings |
-| Owner numbers | `owner_done` and `owner_eta` both non-NULL on run 2 | KB queries on the block | `owner_done` ✅ 1,491 of 1,530; `owner_eta` ❌ NULL (its 28-day window over 2017–2022 removals). Needs a query change, Aniket's call |
+| Owner numbers | `owner_done` and `owner_eta` both non-NULL on run 2 | KB queries on the block | `owner_done` ✅ 1,491 of 1,530; `owner_eta` ❌ NULL at first (its 28-day window over 2017–2022 removals). ✅ after Aniket's Nov 10 query change (removed recently = `known_at` in the window, KNOWLEDGE-BASE.md `owner_eta`): Django `ugettext` 2 left, ETA 2026-10-09 |
 
 ## 5. Diff drafter: written before any draft exists
 

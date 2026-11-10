@@ -134,7 +134,7 @@ Not in phase 2: intake (no collect source, gap G5), ticket comments (G2), a whol
 | N ✓ | Gate | The fact check on every LLM output |
 | O ✓ | Views and API | The four views and the ticket tools, read-only, served locally |
 | P ✓ | Auditor learning | Stall job, explore job, Elo, ε-greedy, replay, promotion guard |
-| Q | P9 hook | The champion model in the push check |
+| Q ✓ | P9 hook | The champion model in the push check |
 
 ### Pass bars, written before the run
 
@@ -338,7 +338,7 @@ Work starts Thu Nov 5 (day 1). Wed Nov 4 is an optional head start: anyone who s
 | Sat Nov 7, day 3 | c5118 table ✓, tracking tables ✓ | tuning ✓ | auditor: policy v0, Elo ✓ | bias code on the first candidate ✓ | fact gate passes 200 + 200 ✓ |
 | Sun Nov 8, day 4 | second real run ✓ | tuned candidate ✓, seed noise ✓, image ✓ | auditor stall job ✓, simulation ✓ | bias on the tuned candidate ✓ | writer agent and cache ✓ |
 | Mon Nov 9, day 5 | diff drafter: codemod ✓ | SHAP and sensitivity ✓, Jev started ✓ | registry, GCP push, rollback ✓ | final pick ✓, `gate.py` ✓, alerts ✓ | views and API ✓ |
-| Tue Nov 10, day 6 | diff drafter: LLM path ✓, the 90% test ✓ | Jev ✓, P9 hook | auditor explore job ✓, replay ✓ | all CI, LLM bias | views and API ✓. Code freeze for everyone at the end of the day |
+| Tue Nov 10, day 6 | diff drafter: LLM path ✓, the 90% test ✓ | Jev ✓, P9 hook ✓ | auditor explore job ✓, replay ✓ | all CI, LLM bias | views and API ✓. Code freeze for everyone at the end of the day |
 
 | Date | Aniket |
 |---|---|
