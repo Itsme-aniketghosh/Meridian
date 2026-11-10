@@ -172,30 +172,54 @@ class KnownAt(unittest.TestCase):
         r1 = {x.team: x.facts for x in A.block_stalls(db, CFG, K.R1[1], "R2")}
         self.assertEqual(r1["checkout"][8], [(2, 1.75)])
 
-    def test_rows_known_after_the_moment_change_nothing_then(self):
-        """One row of each kind the stall reasons read, known after R1, each one that would change R1's facts if it
-        were read: R1's facts are the same with and without them. On Sep 20, after they're known, they do differ."""
-        clean, later = build(), build()
+    @staticmethod
+    def planted():
+        """build(), with one row of each kind the stall reasons read known after R1, each one that would change R1's
+        facts if it were read."""
+        db = build()
         r1b = ("R1b", "2026-09-15T00:00:00Z")
-        add_run(later, r1b)
-        remove_site(later, "S_b1", "2026-09-14T00:00:00Z", r1b)  # billing's only site: billing would be done
-        add_ticket(later, "SRCH-9", "2026-09-05T00:00:00Z", "S_s2")  # search would be notified: no 2
-        later.execute("UPDATE ticket SET status = 'Done' WHERE key = 'CHK-298'")  # checkout's: 3 would fire
-        later.execute("INSERT INTO ticket_event VALUES ('R2', 'CHK-298', '2026-09-05T00:00:00Z', 'status', "
-                      "'In Progress', 'Done', 'bob@acme.test', 0)")
-        later.execute("INSERT INTO git_commit VALUES ('R2', 'acme/shop', 'f1', NULL, 99, 1, 0, '2026-09-10T00:00:00Z',"
-                      " 'ann@acme.test', 'ann@acme.test', 'back')")  # Ann is back: no 4
-        later.execute("INSERT INTO commit_file VALUES ('R2', 'acme/shop', 'f1', 'cart/pricing.py', NULL, 1, 1)")
-        later.executemany("INSERT INTO module_import VALUES ('R1b', 'acme/shop', 'tests/test_all.py', ?, ?, '', 1)",
-                          enumerate(["billing.invoice", "cart.pricing", "pay.charge", "search.q", "shared.client"]))
-        later.execute("INSERT INTO blocked_by VALUES ('R1b', 'S_c1', 'S_shared', 'acme/shop:shared/client.py:f', 1, "
-                      "'resolved')")  # checkout would be blocked: 1
+        add_run(db, r1b)
+        remove_site(db, "S_b1", "2026-09-14T00:00:00Z", r1b)  # billing's only site: billing would be done
+        add_ticket(db, "SRCH-9", "2026-09-05T00:00:00Z", "S_s2")  # search would be notified: no 2
+        db.execute("UPDATE ticket SET status = 'Done' WHERE key = 'CHK-298'")  # checkout's: 3 would fire
+        db.execute("INSERT INTO ticket_event VALUES ('R2', 'CHK-298', '2026-09-05T00:00:00Z', 'status', "
+                   "'In Progress', 'Done', 'bob@acme.test', 0)")
+        db.execute("INSERT INTO git_commit VALUES ('R2', 'acme/shop', 'f1', NULL, 99, 1, 0, '2026-09-10T00:00:00Z', "
+                   "'ann@acme.test', 'ann@acme.test', 'back')")  # Ann is back: no 4
+        db.execute("INSERT INTO commit_file VALUES ('R2', 'acme/shop', 'f1', 'cart/pricing.py', NULL, 1, 1)")
+        db.executemany("INSERT INTO module_import VALUES ('R1b', 'acme/shop', 'tests/test_all.py', ?, ?, '', 1)",
+                       enumerate(["billing.invoice", "cart.pricing", "pay.charge", "search.q", "shared.client"]))
+        db.execute("INSERT INTO blocked_by VALUES ('R1b', 'S_c1', 'S_shared', 'acme/shop:shared/client.py:f', 1, "
+                   "'resolved')")  # checkout would be blocked: 1
+        return db
+
+    def test_rows_known_after_the_moment_change_nothing_then(self):
+        """R1's facts are the same with and without the planted rows. On Sep 20, after they're known, they differ."""
+        clean, later = build(), self.planted()
 
         def facts(db, at):
             return {x.team: (x.since, x.facts) for x in A.block_stalls(db, CFG, at, "R2")}
 
         self.assertEqual(facts(later, K.R1[1]), facts(clean, K.R1[1]))
         self.assertNotEqual(facts(later, "2026-09-20T00:00:00Z"), facts(clean, "2026-09-20T00:00:00Z"))
+
+    def test_no_table_the_queries_read_holds_a_row_known_after_the_moment(self):
+        """The bar as written: 0 rows known after the stall, in every table the queries read, while the block under
+        them holds such rows of each kind. A derived row's moment is its run's snapshot."""
+        db = A.point(self.planted(), K.R1[1])
+        at = "(SELECT at FROM asof)"
+        later_run = f"run_id NOT IN (SELECT run_id FROM main.run WHERE snapshot_at <= {at})"
+        checks = {"call_site": ("site_now", f"known_at > {at}"),
+                  "ticket": ("ticket", f"created_at > {at}"),
+                  "ticket_event": ("ticket_event", f"at > {at}"),
+                  "ticket_map": ("ticket_map", f"key IN (SELECT key FROM main.ticket WHERE created_at > {at})"),
+                  "git_commit": ("git_commit", f"authored_at > {at}"),
+                  "commit_file": ("commit_file", f"sha IN (SELECT sha FROM main.git_commit WHERE authored_at > {at})"),
+                  **{t: (t, later_run) for t in A.DERIVED}}
+        for table, (view, later) in checks.items():
+            with self.subTest(table):
+                self.assertGreater(db.execute(f"SELECT count(*) FROM main.{table} WHERE {later}").fetchone()[0], 0)
+                self.assertEqual(db.execute(f"SELECT count(*) FROM {view} WHERE {later}").fetchone()[0], 0)
 
 
 class PolicyV0(unittest.TestCase):
