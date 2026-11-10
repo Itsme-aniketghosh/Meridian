@@ -19,7 +19,9 @@ KNOWLEDGE-BASE.md, which tests/test_kb.py proves on its fixture) run twice, as o
     P6 Mismatch         stall_ticket_mismatch as of the push minus as of the base: re-adds a site of a Done ticket
     P7 Risky edit       p7_risky_edit on every file where a call site changed
     P8 Bad key          Python, as the KB says (SQLite has no regex): a commit key that isn't a ticket in the block
-    P9 Defect risk      p9_defect_risk on the PR's diff, above [push_check] defect_risk_threshold
+    P9 Defect risk      the champion model's risk over its threshold (meridian/p9.py), when [push_check] champion
+                        names a champion.json whose model loads; else p9_defect_risk on the PR's diff, above
+                        [push_check] defect_risk_threshold, and the line says why the model wasn't used
 Scope (04 §10): the changed files plus every non-test file that imports one (module_import, read in reverse). Over
 [push_check] max_scope_files: skipped, said in one line. At most [push_check] max_lines findings are listed.
 """
@@ -33,6 +35,7 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 
+from meridian import p9
 from meridian.common import CONFIG, HERE, git, load_config, load_settings
 from meridian.join import normalized, parse_diff, site_id, with_occurrence
 from meridian.scan import PY, module_of, scan_repo, scope, tracked
@@ -44,6 +47,12 @@ PUSH_SHA = "0" * 40  # ... and their effective_sha: the commit is the PR itself,
 MARKER = "<!-- meridian-push-check -->"  # the workflow finds its own comment by this line
 NAMES = {"P1": "Drift", "P2": "Legacy use", "P3": "Collision", "P4": "New block", "P5": "Ticket can move",
          "P6": "Mismatch", "P7": "Risky edit", "P8": "Bad key", "P9": "Defect risk"}
+
+
+def champion_path(settings):
+    """[push_check] champion, relative to the repo root, or None: no champion configured, lines × files."""
+    name = settings.get("champion")
+    return (HERE.parent / name) if name else None
 
 
 def kb_queries():
@@ -252,10 +261,13 @@ def push_check(base, repo, checkout, changed, cfg, settings, rng=None):
                 found += [("P8", k, f"commit {sha[:10]} names {k}, not a ticket in the snapshot")
                           for k in sorted((set(rx.findall(subject)) or set(rx.findall(body))) - known)]
         if numstat:  # shortcut: a path list has no diff, so no P9 (or P8); the workflow always passes a range
+            # the champion model when one shipped and loads (meridian/p9.py), else lines × files, saying why
             lines, files, risk = at(PUSH_AT, "p9_defect_risk", {"sha": "push"})[0]
-            if risk is not None and risk > settings["defect_risk_threshold"]:
-                found.append(("P9", "push",
-                              f"{lines} lines × {files} files = {risk}, over {settings['defect_risk_threshold']}"))
+            key_rx = ds.get("key_regex") or cfg.get("tickets", {}).get("key_regex_generic", r"[A-Z][A-Z0-9]+-\d+")
+            v = p9.verdict(db, repo, base_run, base_at, numstat, messages, author, key_rx, (lines, files, risk),
+                           settings["defect_risk_threshold"], champion_path(settings))
+            if v.alert:
+                found.append(("P9", "push", v.text))
     finally:
         db.close()
     if not found:
