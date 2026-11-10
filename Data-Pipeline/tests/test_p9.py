@@ -28,9 +28,9 @@ def block(path):
     """A small Spark history: three first-parent commits on two files, two people, one Bug ticket."""
     db = sqlite3.connect(path)
     db.executescript(SCHEMA.read_text(encoding="utf-8"))
+    c2_files = [("core/a.py", 2, 1), ("sql/b.py", 5, 0)]
     commits = [("c1", "2024-01-01T00:00:00Z", "ann@x.org", "SPARK-1 start", [("core/a.py", 10, 0)]),
-               ("c2", "2024-02-01T00:00:00Z", "bob@x.org", "SPARK-1 fix it", [("core/a.py", 2, 1),
-                                                                                 ("sql/b.py", 5, 0)]),
+               ("c2", "2024-02-01T00:00:00Z", "bob@x.org", "SPARK-1 fix it", c2_files),
                ("c3", "2024-03-01T00:00:00Z", "ann@x.org", "[MINOR] tidy", [("sql/b.py", 1, 1)])]
     for seq, (sha, at, email, subject, files) in enumerate(commits):
         db.execute("INSERT INTO git_commit (run_id, repo, sha, parent_sha, seq, first_parent, is_merge, authored_at, "
@@ -61,6 +61,22 @@ MESSAGES = [("abc", "SPARK-1 more", "")]
 LXF = (9, 3, 27)
 
 
+_FOREST = []
+
+
+def small_forest():
+    """A small forest on Model-Pipeline's fake table, trained once for all the tests: the champion's shape (Contract 1
+    inputs)."""
+    if not _FOREST:
+        _, train = p9._model_modules()          # first: the fake table imports model
+        path = p9.MODEL_PIPELINE / "tests" / "fake_table.py"
+        spec = importlib.util.spec_from_file_location("mp_fake_table", path)   # by file: both pipelines have tests
+        fake = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fake)
+        _FOREST.append(train.fit_and_score(fake.fake_table(n=1500, seed=2), "forest", 1, {"n_estimators": 30})[0])
+    return _FOREST[0]
+
+
 @unittest.skipUnless(HAS_MODEL_PACKAGES, "needs pandas, scikit-learn, joblib, pyarrow (Model-Pipeline's packages)")
 class WithModel(unittest.TestCase):
     @classmethod
@@ -88,17 +104,7 @@ class WithModel(unittest.TestCase):
         return folder / "champion.json"
 
     def forest(self):
-        """A small forest on Model-Pipeline's fake table: the champion's shape (Contract 1 inputs)."""
-        if not hasattr(type(self), "_forest"):
-            # by file: both pipelines have a package named tests
-            path = p9.MODEL_PIPELINE / "tests" / "fake_table.py"
-            spec = importlib.util.spec_from_file_location("mp_fake_table", path)
-            fake = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(fake)
-            _, train = p9._model_modules()
-            table = fake.fake_table(n=1500, seed=2)
-            type(self)._forest = train.fit_and_score(table, "forest", 1, {"n_estimators": 30})[0]
-        return type(self)._forest
+        return small_forest()
 
     def run_p9(self, champion, repo=SPARK, threshold=10):
         return p9.verdict(self.db, repo, RUN, AT, NUMSTAT, MESSAGES, "ann@x.org", KEY, LXF, threshold, champion)
@@ -228,15 +234,13 @@ class EndToEnd(unittest.TestCase):
         T.commit(cls.co, T.BASE, "ann", "start")
         T.block(cls.base, cls.co)
         T.commit(cls.co, T.HEAD, "pia", "PAY-99 add refund, see CHK-1")
-        # the model scores only the repo it was trained on: here, the test's repo
-        cls.patch = mock.patch.object(p9, "model_repo", return_value=(T.REPO, 365))
-        cls.patch.start()
-        cls.forest = WithModel.forest(WithModel)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.patch.stop()
-        cls.tmp.cleanup()
+        cls.addClassCleanup(cls.tmp.cleanup)
+        cls.forest = small_forest()
+        # the model scores only the repo it was trained on: here, the test's repo. Undone even if a test fails,
+        # so it can't leak into the other classes
+        patch = mock.patch.object(p9, "model_repo", return_value=(T.REPO, 365))
+        patch.start()
+        cls.addClassCleanup(patch.stop)
 
     def check(self, champion):
         import meridian.pushcheck as P
@@ -255,7 +259,7 @@ class EndToEnd(unittest.TestCase):
         return folder / "champion.json"
 
     def test_the_p9_line_comes_from_the_champion(self):
-        lines = self.check(self.write_champion(0.0))
+        lines = self.check(self.write_champion(-1.0))      # any risk is over it: the line must come from the model
         p9_lines = [line for line in lines if line.startswith("- **P9 ")]
         self.assertEqual(len(p9_lines), 1)
         self.assertIn("from the champion model (RandomForestClassifier", p9_lines[0])
