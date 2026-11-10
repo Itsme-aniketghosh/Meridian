@@ -1,0 +1,341 @@
+{
+  "candidate": "forest",
+  "params": {
+    "n_estimators": 200,
+    "min_samples_leaf": 5,
+    "max_features": "sqrt",
+    "max_depth": 8
+  },
+  "model_md5": "a817afba812250e1f3bb29b30963cf57",
+  "split": "val",
+  "n": 4113,
+  "positives": 486,
+  "shap": {
+    "units": "probability",
+    "base": 0.19370748560460657,
+    "additivity_max_error": 1.887379141862766e-15,
+    "mean_abs": {
+      "la": 0.04915461267208403,
+      "nf": 0.024274202408989403,
+      "prior_bug_fixes": 0.02349621304709402,
+      "nd": 0.02253944273462884,
+      "ld": 0.020415062777686992,
+      "entropy": 0.01651802774525551,
+      "age": 0.01184313722375652,
+      "fix": 0.010145344740714211,
+      "ticket_type=Bug": 0.008224670562374591,
+      "ndev": 0.0069460747044059095,
+      "nuc": 0.0038710804038347237,
+      "exp": 0.0037092062409785948,
+      "sexp": 0.0021513229761237007,
+      "ns": 0.0020183165252135662,
+      "ticket_type=Test": 0.002014877085351692,
+      "ticket_type=Umbrella": 0.0013833306628475033,
+      "ticket_type=New Feature": 0.0010838573437408705,
+      "has_ticket": 0.0010426727208672068,
+      "ticket_type=none": 0.0008211615514016977,
+      "is_minor": 0.000657807448991349,
+      "ticket_type=Documentation": 0.000572196753178707,
+      "ticket_type=Improvement": 0.0005544399747254115,
+      "ticket_type=Story": 0.00019067454932007304,
+      "ticket_type=Task": 8.230388883012899e-05,
+      "ticket_type=Epic": 1.5886790375556148e-05,
+      "ticket_type=Dependency upgrade": 1.0510384091113211e-05,
+      "ticket_type=Brainstorming": 2.5788036480988965e-06,
+      "ticket_type=New JIRA Project": 0.0,
+      "ticket_type=Planned Work": 0.0,
+      "ticket_type=Question": 0.0,
+      "ticket_type=Wish": 0.0,
+      "ticket_type=Github Integration": 0.0
+    },
+    "size_share": 0.6312355575455116,
+    "sample": {
+      "all": 4113,
+      "top": [
+        "la",
+        "nf",
+        "prior_bug_fixes",
+        "nd",
+        "ld",
+        "entropy",
+        "age",
+        "fix",
+        "ticket_type=Bug",
+        "ndev"
+      ],
+      "spearman": {
+        "2000": 0.9999999999999999,
+        "1000": 0.9999999999999999,
+        "500": 0.9878787878787878
+      },
+      "bar": 0.9,
+      "smallest_stable": 500
+    },
+    "slices": {
+      "size_bucket=Q2": {
+        "n": 986,
+        "top": {
+          "la": 0.03342300558384803,
+          "prior_bug_fixes": 0.01993411901130976,
+          "nd": 0.015806913713234703,
+          "nf": 0.014746424376039098,
+          "ld": 0.012914142673862341
+        },
+        "overall_same_features": {
+          "la": 0.04915461267208403,
+          "prior_bug_fixes": 0.02349621304709402,
+          "nd": 0.02253944273462884,
+          "nf": 0.024274202408989403,
+          "ld": 0.020415062777686992
+        }
+      },
+      "size_bucket=Q3": {
+        "n": 917,
+        "top": {
+          "la": 0.02955618283943147,
+          "prior_bug_fixes": 0.024368575904570318,
+          "ld": 0.019468264911435915,
+          "nd": 0.019178026555941523,
+          "nf": 0.018587343528303282
+        },
+        "overall_same_features": {
+          "la": 0.04915461267208403,
+          "prior_bug_fixes": 0.02349621304709402,
+          "ld": 0.020415062777686992,
+          "nd": 0.02253944273462884,
+          "nf": 0.024274202408989403
+        }
+      },
+      "size_bucket=Q4": {
+        "n": 1031,
+        "top": {
+          "la": 0.08336579531794207,
+          "nf": 0.04274308025891962,
+          "nd": 0.03460399671835164,
+          "ld": 0.03354820543838615,
+          "prior_bug_fixes": 0.032993178268059684
+        },
+        "overall_same_features": {
+          "la": 0.04915461267208403,
+          "nf": 0.024274202408989403,
+          "nd": 0.02253944273462884,
+          "ld": 0.020415062777686992,
+          "prior_bug_fixes": 0.02349621304709402
+        }
+      }
+    }
+  },
+  "permutation": {
+    "base_pr_auc": 0.40581963724622855,
+    "repeats": 5,
+    "drop": {
+      "lines (la+ld)": {
+        "mean": 0.13535575345222695,
+        "sd": 0.006804510592984736
+      },
+      "spread (nf+nd+ns)": {
+        "mean": 0.06992747221342681,
+        "sd": 0.011162289102088175
+      },
+      "ticket_type": {
+        "mean": 0.010722393779271134,
+        "sd": 0.003562678811098766
+      },
+      "entropy": {
+        "mean": 0.01042284782802727,
+        "sd": 0.0033925305960355325
+      },
+      "ndev": {
+        "mean": 0.007020247243980882,
+        "sd": 0.0039568019177105285
+      },
+      "age": {
+        "mean": 0.0232341675965952,
+        "sd": 0.0035223551995658534
+      },
+      "nuc": {
+        "mean": 0.005288425983425604,
+        "sd": 0.0043182346827643926
+      },
+      "exp": {
+        "mean": 0.0006682392636283452,
+        "sd": 0.0004144894253755457
+      },
+      "sexp": {
+        "mean": 0.0031443870782909113,
+        "sd": 0.0015904585633038026
+      },
+      "prior_bug_fixes": {
+        "mean": 0.0018293502506171455,
+        "sd": 0.00695044953434478
+      },
+      "fix": {
+        "mean": 0.002426567077709718,
+        "sd": 0.0011564658593998516
+      },
+      "has_ticket": {
+        "mean": 6.772455472022764e-05,
+        "sd": 0.0012113794517049485
+      },
+      "is_minor": {
+        "mean": -2.148167498168263e-05,
+        "sd": 0.0013877498006776216
+      }
+    },
+    "vs_shap": {
+      "permutation_top": [
+        "lines (la+ld)",
+        "spread (nf+nd+ns)",
+        "age"
+      ],
+      "shap_top": [
+        "lines (la+ld)",
+        "spread (nf+nd+ns)",
+        "prior_bug_fixes"
+      ],
+      "spearman": 0.7747252747252747,
+      "groups_shap_underrates": []
+    }
+  },
+  "hparams": {
+    "evaluator": "fANOVA",
+    "trials": 100,
+    "importance": {
+      "max_features": 0.911969775912755,
+      "max_depth": 0.06932436029324436,
+      "min_samples_leaf": 0.013911474271132512,
+      "n_estimators": 0.004794389522868239
+    }
+  },
+  "sweep": {
+    "params": [
+      "min_samples_leaf",
+      "n_estimators"
+    ],
+    "choices": [
+      "max_features",
+      "max_depth"
+    ],
+    "seed_noise_sd": 0.0021273296719516873,
+    "points": {
+      "min_samples_leaf": [
+        {
+          "label": "tuned",
+          "value": 5,
+          "pr_auc": 0.40581963724622855
+        },
+        {
+          "label": "+25%",
+          "value": 6,
+          "pr_auc": 0.40600725831311235
+        },
+        {
+          "label": "+50%",
+          "value": 8,
+          "pr_auc": 0.40862934335104795
+        },
+        {
+          "label": "high",
+          "value": 200,
+          "pr_auc": 0.393156954981273
+        }
+      ],
+      "n_estimators": [
+        {
+          "label": "tuned",
+          "value": 200,
+          "pr_auc": 0.40581963724622855
+        },
+        {
+          "label": "-50%",
+          "value": 100,
+          "pr_auc": 0.4007786267680308
+        },
+        {
+          "label": "-25%",
+          "value": 150,
+          "pr_auc": 0.40241108944990733
+        },
+        {
+          "label": "+25%",
+          "value": 250,
+          "pr_auc": 0.40739544791368437
+        },
+        {
+          "label": "+50%",
+          "value": 300,
+          "pr_auc": 0.4076766126660315
+        },
+        {
+          "label": "high",
+          "value": 600,
+          "pr_auc": 0.40653429677491737
+        }
+      ],
+      "max_features": [
+        {
+          "label": "tuned",
+          "value": "sqrt",
+          "pr_auc": 0.40581963724622855
+        },
+        {
+          "label": "choice",
+          "value": 0.3,
+          "pr_auc": 0.40435331809905983
+        },
+        {
+          "label": "choice",
+          "value": 0.5,
+          "pr_auc": 0.3992834445065618
+        }
+      ],
+      "max_depth": [
+        {
+          "label": "choice",
+          "value": null,
+          "pr_auc": 0.4093693863276745
+        },
+        {
+          "label": "tuned",
+          "value": 8,
+          "pr_auc": 0.40581963724622855
+        },
+        {
+          "label": "choice",
+          "value": 16,
+          "pr_auc": 0.40459831890669146
+        }
+      ]
+    },
+    "verdict": {
+      "min_samples_leaf": {
+        "spread_25": 0.00018762106688380298,
+        "spread_50": 0.0028097061048193983,
+        "spread_full": 0.015472388369774936,
+        "bar": 0.004254659343903375,
+        "safe_to_retrain": true
+      },
+      "n_estimators": {
+        "spread_25": 0.004984358463777039,
+        "spread_50": 0.006897985898000725,
+        "spread_full": 0.006897985898000725,
+        "bar": 0.004254659343903375,
+        "safe_to_retrain": false
+      },
+      "max_features": {
+        "spread_25": null,
+        "spread_50": null,
+        "spread_full": 0.0065361927396667685,
+        "bar": 0.004254659343903375,
+        "safe_to_retrain": null
+      },
+      "max_depth": {
+        "spread_25": null,
+        "spread_50": null,
+        "spread_full": 0.004771067420983044,
+        "bar": 0.004254659343903375,
+        "safe_to_retrain": null
+      }
+    }
+  }
+}
