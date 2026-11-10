@@ -6,9 +6,14 @@
     python -m model.registry --decide 6 7          # decisions.md 6 and 7
 
 Register. The candidate's model file (candidate.json's model_file, next to it, with the md5 train.py recorded) becomes
-a new version of [registry] name (`defect-risk`) in the local MLflow registry. The same model on the same table isn't
-registered twice, unless it would now be promoted. Its run holds the model, metrics.json,
+a new version of [registry] name (`defect-risk`) in the local MLflow registry, filed under the git sha of the code
+(outside git, a Docker image: its GIT_SHA build arg; with neither, nothing is registered). The same model on the same
+table isn't registered twice, unless it would now be promoted. Its run holds the model, metrics.json,
 the bias report, seed noise, candidate.json and the champion record the version would get, with Contract 3's tags.
+
+The champion it's judged against is registry/champion.json's when that file is there, else the `champion` alias's.
+The file is in git (PLAN §8), so a new MLflow store, as on CI, still knows the champion instead of judging every
+candidate a first model.
 
 Promote (decision 6). The version takes `champion` only if bias_report.json passes and its val PR-AUC beats the
 champion's by more than the margin: [registry] noise_sds standard deviations of seed noise (rule "noise"), or any
@@ -17,17 +22,23 @@ gain (rule "any"). The first model only needs the bias report. A version that is
 written. CI calls this only after gate.py passes.
 
 What the champion's PR-AUC is (decision 7): [registry] compare "rescore" re-scores the champion's own model on today's
-val rows when the table changed (its features_md5 isn't today's), since a stored number describes other rows. On the
-same table, and always with "stored", it's the number stored when the champion was registered.
+val rows when the table changed (its features_md5 isn't today's), since a stored number describes other rows. Its
+model comes from its run in this store, else next to champion.json, else Artifact Registry. On the same table, and
+always with "stored", it's the number stored when the champion was registered.
 
-Push. On promotion, the model file and champion.json go to Artifact Registry ([registry] project, location,
-repository), package [registry] package, version <git sha> (`gcloud artifacts generic upload`). The newest version of
-package [registry] pointer holds the champion.json in force: every promotion and rollback uploads one there. Without
-[registry] project, gcloud or a signed-in account, --push skips and says so. Uncommitted code is refused, because the
-version has to name the code. Local work never needs GCP.
+Push. --push makes Artifact Registry ([registry] project, location, repository) hold the champion in force, whether
+this run promoted it or an earlier one did without --push: its model file and champion.json in package [registry]
+package, version <git sha> (`gcloud artifacts generic upload`), then a version of package [registry] pointer holding
+its champion.json. The pointer's newest version is the champion in force: every promotion and rollback adds one.
+Only what isn't there yet is sent, so a retry, or a rerun on the same commit, finishes an earlier push or sends
+nothing. A file there that differs from this one stops it before anything is sent: a version is one model. Without
+[registry] project, gcloud or a signed-in account, --push skips and says so. A model registered from uncommitted code
+isn't uploaded, because the version has to name the code, and neither is one registered in a Docker image, where git
+can't tell. Local work never needs GCP.
 
 Rollback. `champion` goes back to `previous`, `previous` to the champion before that, and registry/champion.json is
-the restored version's record again. With --push, that record is uploaded as the new pointer.
+the restored version's record again. With --push, the restored version is uploaded too if it never was, then its
+record as the new pointer. A store that doesn't hold the previous version (a new one, as on CI) can't roll back.
 
 registry/champion.json (Contract 4) is written only by registry.py. Each key, and who reads it:
 
@@ -43,6 +54,7 @@ registry/champion.json (Contract 4) is written only by registry.py. Each key, an
 tests/contracts/champion.json is an example built by champion_record from a run on tests/fake_table.py.
 """
 import argparse
+import calendar
 import itertools
 import json
 import os
@@ -238,12 +250,16 @@ def _client():
 
 
 def alias(client, name, which="champion"):
-    """The model version an alias points at, or None."""
+    """The model version an alias points at, or None when the model or the alias doesn't exist. Any other error, a
+    store that can't be read, stops the run: taken as "no champion", it would promote a first model."""
     from mlflow.exceptions import MlflowException
     try:
         return client.get_model_version_by_alias(name, which)
-    except MlflowException:
-        return None
+    except MlflowException as e:
+        if e.error_code == "RESOURCE_DOES_NOT_EXIST" or (e.error_code == "INVALID_PARAMETER_VALUE"
+                                                         and "not found" in str(e)):
+            return None
+        raise
 
 
 def stored_record(client, version):
@@ -254,25 +270,80 @@ def stored_record(client, version):
         return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def rescore(version, features):
-    """Decision 7: a version's own model scored on today's val rows. (PR-AUC, N)."""
+def local_version(client, name, run_id):
+    """The version of `name` this store registered from MLflow run `run_id`, or None."""
+    found = client.search_model_versions(f"name = '{name}' and run_id = '{run_id}'")
+    return found[0] if found else None
+
+
+def champion_now(client, name, champion_path):
+    """The champion in force: (its champion.json record, its version in this store or None). registry/champion.json
+    when it's there: it's in git (PLAN §8), so a new store, as on CI, still knows the champion. Else the `champion`
+    alias's record. (None, None): there's no champion yet."""
+    version = alias(client, name)
+    if Path(champion_path).exists():
+        record = read_champion(champion_path)
+        if version is None or version.run_id != record["run_id"]:
+            version = local_version(client, name, record["run_id"])
+        return record, version
+    if version is None:
+        return None, None
+    return stored_record(client, version), version
+
+
+def champion_model(record, version, champion_path, dest):
+    """The champion's model file, checked against its md5: from its run in this store (into `dest`), else the one
+    next to champion.json. None when neither has it."""
+    from model.evaluate import file_md5
+    places = [Path(champion_path).parent / record["model_file"]]
+    if version is not None:
+        import mlflow
+        places.insert(0, Path(mlflow.artifacts.download_artifacts(
+            run_id=version.run_id, artifact_path=f"model/{record['model_file']}", dst_path=str(dest))))
+    return next((p for p in places if p.exists() and file_md5(p) == record["model_md5"]), None)
+
+
+def rescore(model_path, features):
+    """Decision 7: a model file scored on today's val rows. (PR-AUC, N)."""
     import joblib
-    import mlflow
     from model import train
-    with tempfile.TemporaryDirectory() as d:
-        path = mlflow.artifacts.download_artifacts(run_id=version.run_id,
-                                                   artifact_path=f"model/{version.tags['model_file']}", dst_path=d)
-        model = joblib.load(path)
+    model = joblib.load(model_path)
     val = train.rows(train.load_features(features), "val")
     return float(train.pr_auc(val["label"].to_numpy(), train.score_with(model, val))), len(val)
 
 
-def champion_pr_auc(champion, s, features_md5, features):
-    """The champion's val PR-AUC to beat, and how it was got (decision 7)."""
-    if s["compare"] == "stored" or champion.tags.get("features_md5") == features_md5:
-        return float(champion.tags["pr_auc"]), "stored: same table" if s["compare"] == "rescore" else "stored"
-    value, n = rescore(champion, features)
+def champion_pr_auc(record, version, s, features_md5, features, champion_path, runner=subprocess.run):
+    """The champion's val PR-AUC to beat, and how it was got (decision 7). Re-scoring needs the champion's model: from
+    its run in this store, next to champion.json, or Artifact Registry. It stops when none has it."""
+    stored = float(record["metrics"]["pr_auc"]["value"])
+    if s["compare"] == "stored":
+        return stored, "stored"
+    if record["metrics"]["features_md5"] == features_md5:
+        return stored, "stored: same table"
+    with tempfile.TemporaryDirectory() as d:
+        model = champion_model(record, version, champion_path, d)
+        if model is None and gcp_missing(s, runner) is None:
+            model = download(s, s["package"], record["version"], record["model_file"], Path(d) / "gcp", runner,
+                             record["model_md5"])
+        if model is None:
+            raise SystemExit(f"model.registry: the champion ({record['version'][:12]}) was judged on another table, "
+                             f"so decision 7 re-scores its model on today's val, and its {record['model_file']} "
+                             f"isn't in this MLflow store, next to {champion_path} or on Artifact Registry")
+        value, n = rescore(model, features)
     return value, f"re-scored on today's val (N = {n:,}): the table changed"
+
+
+def git_version():
+    """(sha, dirty) a version is filed under: Contract 4's version is the git sha of the code that made the model.
+    Outside git (a Docker image) tracking reads $MERIDIAN_GIT_SHA, the image's GIT_SHA build arg. Without a sha it
+    stops, before anything is registered."""
+    from model import tracking
+    sha, dirty = tracking.git_state()
+    if not re.fullmatch("[0-9a-f]{40}", sha or ""):
+        raise SystemExit(f"model.registry: a version is the git sha of the code that made the model, and here it's "
+                         f"{sha!r}: register from a git checkout, or build the image with "
+                         "--build-arg GIT_SHA=$(git rev-parse HEAD)")
+    return sha, dirty
 
 
 def write_champion(record, path):
@@ -284,71 +355,94 @@ def write_champion(record, path):
 
 
 def register(paths, s, config, features, champion_path=CHAMPION, push=False, runner=subprocess.run, say=print):
-    """Register reports/'s candidate and promote it if it wins. Returns the version's tags."""
+    """Register reports/'s candidate and promote it if it wins. With push, Artifact Registry then holds the champion
+    in force, whether or not this run promoted it. Returns the version's tags."""
     import mlflow
     from model import tracking
     cand, model, metrics, bias, noise = read_inputs(paths)
     block = candidate_block(metrics)
     need = margin(s, noise["sd"])
+    sha, dirty = git_version()
     _, client = _client()
     name = s["name"]
     if not client.search_registered_models(filter_string=f"name = '{name}'"):
         client.create_registered_model(name)
-    champion = alias(client, name)
-    against, how = (None, "no champion yet") if champion is None else champion_pr_auc(
-        champion, s, metrics["features_md5"], features)
+    record, champion = champion_now(client, name, champion_path)
+    table = metrics["features_md5"]
+    if record is not None and (record["model_md5"], record["metrics"]["features_md5"]) == (cand["model_md5"], table):
+        held = f"version {champion.version}" if champion else f"champion.json, {record['version'][:12]}"
+        say(f"this model on this table is {name}'s champion already ({held}), so it isn't registered again")
+        if push:
+            pushed(record, s, runner, say, model, champion.tags.get("git_dirty", "unknown") if champion else None)
+        return {**(champion.tags if champion else {}), "version": champion.version if champion else None,
+                "promoted": "false", "reason": "it's the champion"}
+    against, how = (None, "no champion yet") if record is None else champion_pr_auc(
+        record, champion, s, table, features, champion_path, runner)
     promote, reason = verdict(block["pr_auc"]["value"], against, bias["pass"], need)
     same = next((v for v in client.search_model_versions(f"name = '{name}'")
-                 if v.tags.get("model_md5") == cand["model_md5"] and v.tags.get("features_md5") == metrics[
-                     "features_md5"]), None)
-    is_champion = same is not None and champion is not None and same.version == champion.version
-    if same is not None and (is_champion or not promote):
-        why = "it's the champion" if is_champion else reason
-        say(f"{name} version {same.version} is this model on this table already, so it isn't registered again: {why}")
+                 if v.tags.get("model_md5") == cand["model_md5"] and v.tags.get("features_md5") == table), None)
+    if same is not None and not promote:
+        say(f"{name} version {same.version} is this model on this table already, so it isn't registered again: "
+            f"{reason}")
         if push:
-            say("--push: nothing to upload, nothing was promoted")
-        return {**same.tags, "version": same.version, "promoted": "false", "reason": why}
-    sha, dirty = tracking.git_state()
-    previous = stored_record(client, champion) if champion else None
+            keep(record, champion, s, champion_path, runner, say)
+        return {**same.tags, "version": same.version, "promoted": "false", "reason": reason}
 
     with tracking.start_run(f"registry-{cand['column']}", owner="rochan", config=config, features=features) as run:
         mlflow.log_artifact(str(model), artifact_path="model")
         for key in ("metrics", "bias", "noise", "candidate"):
             mlflow.log_artifact(str(paths[key]))
-        record = champion_record(metrics, run.info.run_id, sha, cand["model_file"], cand["model_md5"], previous)
-        mlflow.log_dict(record, "champion.json")
+        new = champion_record(metrics, run.info.run_id, sha, cand["model_file"], cand["model_md5"], record)
+        mlflow.log_dict(new, "champion.json")
         mlflow.log_metrics({"val_pr_auc": block["pr_auc"]["value"], "margin": need})
         artifacts = run.info.artifact_uri
-    tags = {"pr_auc": repr(block["pr_auc"]["value"]), "features_md5": metrics["features_md5"],
+    tags = {"pr_auc": repr(block["pr_auc"]["value"]), "features_md5": table,
             "model_md5": cand["model_md5"], "model_file": cand["model_file"], "git_sha": sha, "git_dirty": dirty,
             "promoted": str(promote).lower(), "reason": reason, "compared": how,
             "champion_pr_auc": "" if against is None else repr(against)}
-    version = client.create_model_version(name, source=f"{artifacts}/model", run_id=record["run_id"], tags=tags)
+    version = client.create_model_version(name, source=f"{artifacts}/model", run_id=new["run_id"], tags=tags)
     say(f"registered {name} version {version.version} ({cand['kind']} {cand['column']}, val PR-AUC "
         f"{block['pr_auc']['value']:.4f}, N = {block['pr_auc']['n']:,}). Champion: {how}")
     if not promote:
         say(f"not promoted: {reason}")
         if push:
-            say("--push: nothing to upload, nothing was promoted")
+            keep(record, champion, s, champion_path, runner, say)
         return {**tags, "version": version.version}
     if champion is not None:
         client.set_registered_model_alias(name, "previous", champion.version)
+    elif alias(client, name, "previous") is not None:
+        client.delete_registered_model_alias(name, "previous")  # the champion it replaces isn't in this store
     client.set_registered_model_alias(name, "champion", version.version)
-    write_champion(record, champion_path)
-    say(f"promoted to champion: {reason}. previous = "
-        f"{champion.version if champion else 'none'}; wrote {champion_path}")
+    write_champion(new, champion_path)
+    before = (champion.version if champion else f"{record['version'][:12]} (champion.json's; not in this store)"
+              if record else "none")
+    say(f"promoted to champion: {reason}. previous = {before}; wrote {champion_path}")
     if push:
-        pushed(record, s, dirty, runner, say, model)
+        pushed(new, s, runner, say, model, dirty)
     return {**tags, "version": version.version}
+
+
+def keep(record, version, s, champion_path, runner, say):
+    """--push when this run promoted nothing: Artifact Registry still gets the champion in force if it doesn't hold it
+    yet, as when an earlier run promoted it without --push."""
+    if record is None:
+        say("--push: there's no champion yet, so nothing to upload")
+        return False
+    with tempfile.TemporaryDirectory() as d:
+        model = champion_model(record, version, champion_path, d)
+        return pushed(record, s, runner, say, model, version.tags.get("git_dirty", "unknown") if version else None)
 
 
 def rollback(s, champion_path=CHAMPION, push=False, runner=subprocess.run, say=print):
     """`champion` back on `previous`, `previous` on the one before that, champion.json the restored record."""
-    from model import tracking
     _, client = _client()
     name = s["name"]
     champion, previous = alias(client, name), alias(client, name, "previous")
     if previous is None:
+        now = read_champion(champion_path) if Path(champion_path).exists() else None
+        if now and now["previous"]:
+            raise SystemExit(f"{name}: champion.json's previous is {now['previous']['version'][:12]}, and this MLflow "
+                             "store doesn't hold it: roll back where it was registered")
         raise SystemExit(f"{name} has no previous version to roll back to")
     record = stored_record(client, previous)
     client.set_registered_model_alias(name, "champion", previous.version)
@@ -365,11 +459,22 @@ def rollback(s, champion_path=CHAMPION, push=False, runner=subprocess.run, say=p
     say(f"rolled back: champion = version {previous.version} ({record['version'][:12]}), previous = "
         f"{before[0].version if before else 'none'}; wrote {champion_path}")
     if push:
-        pushed(record, s, tracking.git_state()[1], runner, say)
+        with tempfile.TemporaryDirectory() as d:
+            pushed(record, s, runner, say, champion_model(record, previous, champion_path, d),
+                   previous.tags.get("git_dirty", "unknown"))
     return record
 
 
 # The Artifact Registry push
+
+
+def gcloud(runner, *args):
+    """gcloud by the path shutil.which finds: on Windows that's gcloud.cmd, which Python can't start by bare name."""
+    return runner([shutil.which("gcloud") or "gcloud", *args], capture_output=True, text=True)
+
+
+def repo_args(s):
+    return [f"--project={s['project']}", f"--location={s['location']}", f"--repository={s['repository']}"]
 
 
 def gcp_missing(s, runner=subprocess.run):
@@ -378,8 +483,7 @@ def gcp_missing(s, runner=subprocess.run):
         return "model.toml [registry] project isn't set"
     if not shutil.which("gcloud"):
         return "gcloud isn't installed"
-    r = runner(["gcloud", "auth", "list", "--filter=status:ACTIVE", "--format=value(account)"],
-               capture_output=True, text=True)
+    r = gcloud(runner, "auth", "list", "--filter=status:ACTIVE", "--format=value(account)")
     if r.returncode or not r.stdout.strip():
         return "no gcloud account is signed in"
     return None
@@ -388,37 +492,119 @@ def gcp_missing(s, runner=subprocess.run):
 def upload(s, package, version, files, runner=subprocess.run):
     """One `gcloud artifacts generic upload` per file. Stops on the first failure, with gcloud's message."""
     for f in files:
-        cmd = ["gcloud", "artifacts", "generic", "upload", f"--project={s['project']}", f"--location={s['location']}",
-               f"--repository={s['repository']}", f"--package={package}", f"--version={version}", f"--source={f}"]
-        r = runner(cmd, capture_output=True, text=True)
+        args = ["artifacts", "generic", "upload", *repo_args(s), f"--package={package}", f"--version={version}",
+                f"--source={f}"]
+        r = gcloud(runner, *args)
         if r.returncode:
-            raise SystemExit(f"upload failed: {' '.join(cmd)}\n{(r.stderr or r.stdout).strip()}")
+            raise SystemExit(f"upload failed: gcloud {' '.join(args)}\n{(r.stderr or r.stdout).strip()}")
 
 
-def pointer_version():
-    """The pointer package's versions sort by time: the newest is the champion in force."""
-    return time.strftime("%Y%m%dt%H%M%Sz", time.gmtime())
+def gcp_files(s, package, version, runner=subprocess.run):
+    """{file name: md5} of one Artifact Registry version: empty when it isn't there (a package with no such version,
+    or no such package, lists nothing)."""
+    r = gcloud(runner, "artifacts", "files", "list", *repo_args(s), f"--package={package}", f"--version={version}",
+               "--format=json")
+    if r.returncode:
+        raise SystemExit(f"--push stopped: listing {package} {version[:12]} failed\n{(r.stderr or r.stdout).strip()}")
+    files = {}
+    for f in json.loads(r.stdout or "[]"):  # name: projects/.../files/<package>:<version>:<file>
+        md5 = [h["value"].lower() for h in f.get("hashes", []) if h.get("type") == "MD5"]
+        files[f["name"].rsplit(":", 1)[-1]] = md5[0] if md5 else None
+    return files
 
 
-def pushed(record, s, dirty, runner, say, model=None):
-    """Upload on promotion (model and champion.json) or rollback (champion.json). False if it was skipped."""
+def download(s, package, version, name, dest, runner=subprocess.run, md5=None):
+    """One file of an Artifact Registry version into `dest`: its path, or None when it isn't there (or, given md5,
+    isn't that file)."""
+    from model.evaluate import file_md5
+    dest = Path(dest)
+    dest.mkdir(parents=True, exist_ok=True)
+    r = gcloud(runner, "artifacts", "generic", "download", *repo_args(s), f"--package={package}",
+               f"--version={version}", f"--destination={dest}", f"--name={name}")
+    path = dest / name
+    if r.returncode or not path.exists() or (md5 and file_md5(path) != md5):
+        return None
+    return path
+
+
+def newest_pointer(s, runner, dest):
+    """(version, record): the pointer package's newest version and the champion.json it holds, the champion in force
+    on Artifact Registry. (None, None) before the first push."""
+    r = gcloud(runner, "artifacts", "versions", "list", *repo_args(s), f"--package={s['pointer']}",
+               "--format=value(name.basename())")
+    if r.returncode:
+        if "NOT_FOUND" in r.stderr or "does not exist" in r.stderr:
+            return None, None
+        raise SystemExit(f"--push stopped: listing {s['pointer']}'s versions failed\n{(r.stderr or r.stdout).strip()}")
+    versions = sorted(r.stdout.split())
+    if not versions:
+        return None, None
+    path = download(s, s["pointer"], versions[-1], "champion.json", dest, runner)
+    if path is None:
+        raise SystemExit(f"--push stopped: {s['pointer']} {versions[-1]} has no champion.json to read")
+    return versions[-1], json.loads(path.read_text(encoding="utf-8"))
+
+
+POINTER = "%Y%m%dt%H%M%Sz"
+
+
+def pointer_version(after=None):
+    """The pointer package's versions sort by time: the newest is the champion in force. Always later than `after`,
+    the newest there now, even within the same second or from a machine whose clock is behind."""
+    stamp = time.strftime(POINTER, time.gmtime())
+    if after and stamp <= after:
+        try:
+            stamp = time.strftime(POINTER, time.gmtime(calendar.timegm(time.strptime(after, POINTER)) + 1))
+        except ValueError:  # a version name not made here: the clock's is fine
+            pass
+    return stamp
+
+
+def pushed(record, s, runner, say, model=None, dirty="false"):
+    """Make Artifact Registry hold `record`: its version's model file and champion.json, then the pointer's newest
+    version naming it. Only what isn't there yet is sent, and everything is checked before anything is sent. model:
+    the champion's model file here, or None. dirty: git_dirty when the model was registered, None when another store
+    registered it. False if it skipped."""
     why = gcp_missing(s, runner)
     if why:
         say(f"--push skipped: {why}. The registry and champion.json here are done; nothing went to GCP")
         return False
-    if dirty != "false":
-        raise SystemExit("--push needs committed code: the Artifact Registry version is the git sha, and uncommitted "
-                         "changes aren't in it")
+    from model.evaluate import file_md5
+    package, version = s["package"], record["version"]
+    where = f"{s['location']}/{s['repository']} in {s['project']}"
+    there = gcp_files(s, package, version, runner)
     with tempfile.TemporaryDirectory() as d:
         champion = Path(d) / "champion.json"
         champion.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
-        if model is not None:
-            upload(s, s["package"], record["version"], [model, champion], runner)
-        stamp = pointer_version()
-        upload(s, s["pointer"], stamp, [champion], runner)
-    where = f"{s['location']}/{s['repository']} in {s['project']}"
-    say(f"pushed to {where}: " + (f"{s['package']} {record['version'][:12]} (model and champion.json), " if model
-                                  else "") + f"{s['pointer']} {stamp}")
+        send = []
+        for name, md5, path in ((record["model_file"], record["model_md5"], model),
+                                ("champion.json", file_md5(champion), champion)):
+            if name in there:
+                if there[name] != md5:
+                    raise SystemExit(f"--push stopped: {package} {version[:12]} on {where} has another {name} (md5 "
+                                     f"{there[name]}; this one's is {md5}). A version is one model and its record, so "
+                                     "nothing was uploaded")
+            elif path is None:
+                raise SystemExit(f"--push stopped: {package} {version[:12]} isn't on {where}, and its {name} isn't "
+                                 "on this machine: push from the one that registered it")
+            else:
+                send.append(path)
+        if record["model_file"] not in there and dirty != "false":
+            raise SystemExit("--push needs committed code: the Artifact Registry version is the git sha, and " + {
+                "true": "this model was registered with uncommitted changes, which aren't in it",
+                None: "another MLflow store registered this model, so this one can't tell whether its code was "
+                      "committed: push from the machine that registered it"}.get(
+                dirty, "git couldn't tell whether the code that made this model was committed (a Docker image has "
+                       "no .git): register and push from a git checkout"))
+        upload(s, package, version, send, runner)
+        newest, current = newest_pointer(s, runner, Path(d) / "pointer")
+        stamp = None if current == record else pointer_version(newest)
+        if stamp:
+            upload(s, s["pointer"], stamp, [champion], runner)
+    sent = (f"{package} {version[:12]} ({' and '.join(p.name for p in send)})" if send
+            else f"{package} {version[:12]} was there already")
+    tail = f"{s['pointer']} {stamp}" if stamp else f"and {s['pointer']} {newest} names it already: nothing new to send"
+    say(f"pushed to {where}: {sent}, {tail}")
     return True
 
 
