@@ -72,6 +72,12 @@ class Rules(unittest.TestCase):
             self.assertIn(p.model, J.TABLE[p.agent]["ladder"])
             self.assertEqual(p.agent, J.TASK_AGENT[t.kind])
 
+    def test_the_diff_drafter_ladder_is_read_from_diffs(self):
+        """jev reads it in a try/except, so a wrong module name gave () with every test passing (#54)."""
+        from meridian import diffs
+        self.assertEqual(J.TABLE["diff_drafter"]["ladder"], tuple(diffs.LADDER))
+        self.assertTrue(diffs.LADDER)
+
     def test_an_agent_with_no_ladder_gets_no_model(self):
         """Until the diff drafter's ladder is in, Jev routes nothing to it: no model, so the codemod or no diff."""
         with mock.patch.dict(J.TABLE, {"diff_drafter": {"ladder": (), "retry_on": ("no_apply",)}}):
