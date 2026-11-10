@@ -81,6 +81,18 @@ On Rachna's untuned LightGBM (her `candidate.json` isn't written yet), `val` N =
 | 2024, once | ✅ for the refusal: `--split test` is refused without `test_allowed = true`, and on uncommitted code (tested). That the choices were committed first is checked on Nov 12, from the run's `git_sha` |
 | Threshold | ✅ Fixed on `val` by decision 3 (precision 0.80 on at least 30 alerts). The test run reuses `val`'s number (tested). `metrics.json` holds its alerts, alert rate and precision, with N |
 
+### Registry, Nov 9
+
+| Bar | Result |
+|---|---|
+| Noise never promotes | ✅ Rachna's 5 seeds in a row, in seed order: `champion` moves 0 times (`test_registry.py`, N = 5). In 24 of the 120 orders it would move once (decisions.md 6) |
+| Real gains promote | ✅ +0.05 over the champion, with a margin of 0.02, takes `champion`, and `previous` points at the old one |
+| What blocks | ✅ A gain within the margin, a worse model and a failed bias report are each registered, not promoted, with the reason as a tag |
+| First model | ✅ Promoted when its bias report passes. A failed one blocks even the first |
+| The pushed file is the model | Not yet: the drill needs the GCP repo |
+| Rollback | ✅ in the store: `champion` back on `previous`, `previous` a step back, `champion.json` the restored record. The drill on GCP: not yet |
+| No credentials | ✅ With no project, no gcloud or no signed-in account, `--push` skips and says so. Uncommitted code is refused |
+
 ### Auditor, Nov 7 (policy v0 and Elo)
 
 Only the rows today's code can meet. Seeded ε and the promotion guard come with the stall job (Nov 8), and no look-ahead with replay (Nov 10).
@@ -99,3 +111,10 @@ Only the rows today's code can meet. Seeded ε and the promotion guard come with
 | Promotion guard | ✅ for what it checks (`test_auditor.py`, `Promotion`). It blocks at 29 live matches and at +49.9 Elo. 100 replay wins plus 29 live ones are still blocked, and the 30th live win passes. An LLM's policy is blocked until a person approves it. But the guard as 04 writes it promotes a policy no better than v0 by luck in 87% of simulated runs: decisions.md 10, raised for the team. This row stays as written until the team changes the guard |
 | Runs | Fixture: the stall job runs. Three stalls ended between R1 and R2, and no rule fires for them, so each waits for a person. With a verdict added, the policies play live matches. v1 block (70dd1dabfed544b8): 68 stalls served, 60 with v0's ranking and 8 with v1's, in 80 s. That block holds one run, so no stall can have ended. Replay comes Nov 10 |
 | No look-ahead | Comes with replay, Nov 10 |
+
+### Auditor, Nov 10 items (replay, explore), run Nov 9
+
+| Bar | Result |
+|---|---|
+| No look-ahead | ✅ 0 rows known after the stall, in every table the queries read: call sites, tickets, ticket events and maps, commits and their files, and the 8 tables a run derives (`test_auditor.py`, `KnownAt`, on the fixture with a row of each kind planted after R1). Those rows change nothing at R1 either, and four views broken on purpose are each caught (decisions.md, replay and explore) |
+| Runs | ✅ Fixture: replay over R1 → R2, 3 stalls ended. With a verdict added, policies written in November play replay matches, at half K and never toward promotion. v1 block (70dd1dabfed544b8): one run, so nothing to replay, and the output says so; 68 stalls in 84 s. No live matches anywhere, since every snapshot is older than the policies, and the output says so |

@@ -82,8 +82,45 @@ Review fix (Nov 8, PR #42): two swapped teams got past article: a curly apostrop
 
 From decision 1: all 10 false rejects are a team name (`platform`) used as a plain word. Loosening the gate to allow that let a swapped team through ("Done: platform, 2 of 2." for search), so the fix goes in the writer, not the gate.
 
-- [ ] The writer's prompt tells the LLM: "Use team names only to name teams. Don't use them as ordinary words." So it writes "across the codebase", not "across the platform".
+- [x] The writer's prompt tells the LLM: "Use team names only to name teams. Don't use them as ordinary words." So it writes "across the codebase", not "across the platform". (`agents.SYSTEM`, Nov 9)
 - [ ] Measure the gate's false-reject rate on real LLM output (decision 5). At or under 5%: done. Over 5%: revisit the team rule then, with real data, not our own test sentence.
+
+## The writer, Nov 9: settings, not tests
+
+These are design choices for `meridian/agents.py` and `llm_cache.py`, made Nov 9 before any LLM ran. None of them is a measured decision: decisions 3–6, 9 and 10 still measure the model, the prompt format, the templates and the cache once there's a key.
+
+- **Tasks:** rewrite (one per ticket, across every symbol its sites call, naming each owning team), ticket_draft and consumer (per team and symbol), stall_reason (per stall). The first three write a `suggestion` row of their kind. **consumer has no row**: schema.sql's `suggestion.kind` has no value for it, and a new one is a contract change (S10), asked in the team chat first. Until then its text goes only to the views.
+- **Cache:** an entry keeps the raw reply, and the writer gates it again on every run. A reply that names a person is never written: the entry keeps a redacted marker, so a rerun still makes 0 calls and the committed cache never holds a name.
+- **Prompt version:** 12 hex of sha256 over the system prompt, the task prompt, the frame and the facts format. Any edit is a new version, including decision 4's switch from JSON to bullets.
+- **Ladder:** `claude-haiku-5-5` → `claude-sonnet-5-5` → `claude-opus-5-5` → the template (04 §6), route `rules` until Jev routes. Bad JSON or a gate miss moves one model up. The ladder is a constant in `agents.py`, not `meridian.toml [llm]` as 04 §6 says: a new section there changes every block's config hash, and with it its run_id. That's a contract change to agree in the team chat.
+- **No LLM client yet:** `llm` is a function the caller passes. With none (no key, as in CI), the cache answers what it has and every miss ships the template, or stops the run with `--strict-cache` (PASS-BARS §6.5).
+- **Logging:** only LLM answers go through `log` (`tracking.log_llm_call` with `--track`), cached or called. A template that ships with no LLM attempt isn't a call. When the last attempt fails, its row says `source = template`; bad JSON says `gate_pass = null` (never gated). So MLflow's `api_calls` and gate rates are the LLM's alone. The fallback counts go in `writer_report.json`.
+- **No person:** a stall's evidence rows can name a file's top author (#4 Orphaned owner), so stall facts carry only the reason names and their evidence counts. The gate's people are persons who aren't bots and have at least one alias that isn't generic: the real block's placeholder `test` isn't anyone's name. A task whose facts still name a person is skipped and counted, never written.
+- **Stalls:** the facts hold the stall's start (`since`) and its symbol, never its age, so a stall's text and row stay the same while it lasts. The text lists the reasons "in the auditor's order", never "most likely first" (06-dead-ideas: no probabilities).
+- **Fragility ships with ticket IDs** (02-product rules): the consumer text names a file's bug-fix keys with its count. "bug fix(es)" is the writer's `VOCAB`, read as words by the gate even though the real block has a team named Bug.
+- **A template the gate flags still ships** (it can only say facts) and is counted in the report: on a real block a fixed word can be a team's name.
+
+Result on the fixture, LLM off (`python -m unittest tests.test_agents`, 33 tests, N = 14 tasks): 14 of 14 ship their template, 0 template gate misses, 9 suggestion rows (2 rewrite, 3 ticket_draft, 4 stall_reason), 0 persons in any fact, prompt or cache entry, each untracked site in exactly one draft. With a fake LLM: a warm cache makes 0 of 14 calls with identical rows; bad JSON and gate misses go small → mid → large → template.
+
+Result on the real block `70dd1dabfed544b8` (LLM off, `python -m meridian.agents --quiet`, N = 204 tasks: 68 ticket_draft, 68 stall_reason, 68 consumer, 0 rewrites: staff_vague returns no ticket on it): 0 template gate misses, 0 skipped. Before the review fixes the run stopped on its first ticket_draft. Checked against all 76 of its team names on the fixture's texts: the one collision was "bug fixes" with the team Bug, now `VOCAB`.
+
+## Review fixes, Nov 9 (PR #48, before review by the lead)
+
+An independent review ran the writer on the real block and found 11 problems; each now has a test in `tests/test_agents.py` or `tests/test_fact_gate.py` (`RealBlockNames`).
+
+- The run stopped on the real block: a template failing its own gate raised. Gate fixes: an exact team name wins over another team's plural (`tests` vs `test`); text quoting a fact word for word is known (the symbol `url`, the reason "Test gap", `checkout.verify`); a fact path is a path whatever its extension (`code.sample:4`); `vocab=` for the caller's fixed phrases. Writer: placeholder persons aren't people; a person in the facts skips the task instead of stopping the run.
+- A block from before schema v1.3 has no `suggestion` table: rows so far are then none.
+- Templates were logged as LLM calls, inflating `api_calls` and the gate pass rate. Now only answers are.
+- A reply naming a person reached the committed cache. Now redacted; the test scans the committed `llm_cache/` too.
+- The ladder dropped the large model, against 04 §6. Added back.
+- A ticket across two symbols got two partial rewrites, and a cross-team ticket named one owner. Now one rewrite per ticket, an owner per line.
+- The prompt version missed the frame and the facts format. Now covered.
+- The stall-policy test couldn't see which policy was served. Now it serves a planted backwards policy.
+- Stall texts carried their age, so each run offered a new row. Now their start date and symbol.
+- "most likely first" claimed a likelihood. Now "in the auditor's order".
+- Smaller: a fenced ```json reply is read; `--write` refuses an `--at` that isn't the snapshot (schema.sql: `offered_at = snapshot_at`); an area only when every site shares a directory; the fallback counts are published in `writer_report.json`.
+
+Still open: the suggestion kind for consumer text, and the ladder's home (`meridian.toml [llm]`), both contract changes for the team chat. `suggestion.jsonl` holds every row so far, so once the diff drafter writes it too, the two must agree who writes the file (Utkarsh).
 
 ## Review fixes, Nov 6 (PR #28)
 

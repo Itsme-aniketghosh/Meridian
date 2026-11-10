@@ -49,3 +49,15 @@ split = "val"                      # CI never reads 2024
 reference = "lines_x_files"        # the bar: the candidate's PR-AUC beats this baseline's ...
 min_lift = 0.0                     # ... by more than this
 noise_sds = 2.83                   # decision 6: below the champion by more than 2√2 seed-noise sd fails (2 sd of a difference)
+
+# Rochan's keys: registry.py (packets/rochan-tracking, section G)
+[registry]
+name = "defect-risk"               # the MLflow registered model
+rule = "noise"                     # decision 6: promote on a gain above noise_sds sds of seed noise ("any": any gain)
+noise_sds = 2.0
+compare = "rescore"                # decision 7: re-score a champion judged on another table ("stored": never)
+project = ""                       # the GCP project with the Artifact Registry repo; empty: --push skips, says so
+location = "us-east1"
+repository = "meridian-models"
+package = "defect-risk"            # model.joblib and champion.json, version <git sha>
+pointer = "champion"               # its newest version holds the champion.json in force

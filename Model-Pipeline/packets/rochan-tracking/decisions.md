@@ -164,6 +164,64 @@ Result (Nov 6, `val` N = 4,113; 2,000 resamples, seed 1): LightGBM − lines × 
 
 Picked: **paired**, 41% narrower. Both scores rank the same commits, so a resample with many easy commits lifts both, and that shared part cancels in the difference. Either way the candidate beats lines × files on `val`: both intervals sit above 0.
 
+### Decisions 1–5 again, on the tuned candidate (Nov 9)
+
+Rachna's tuned candidate landed on Nov 7: a random forest (`candidate.json`, 200 trees, depth 8, seed 1), tied with LightGBM, so the simpler model wins (her decision 1). I ran the same five rules on it, with `python -m model.evaluate --decide 1 2 3 4 5`, on `val` (N = 4,113, 486 bug-inducing). The runs are tagged `decision=rochan-1` to `rochan-5`.
+
+| Decision | Nov 6, untuned LightGBM | Nov 9, tuned forest | The same pick? |
+|---|---|---|---|
+| 1. Main metric | PR-AUC (z 4.9 against 2.2) | PR-AUC (z 6.5 against 6.9, within 10%, so PR-AUC) | yes, by the tie rule now |
+| 2. Effort-aware ranking | by risk per line | by risk per line: 62.1% of bugs at 20% of lines, against 19.8% by risk | yes |
+| 3. Threshold | fixed precision, at the edge (24 of 30) | fixed precision, but **no threshold reaches 0.80 on 30 alerts**: the forest's best is 0.70 (21 of 30) | the rule's fallback |
+| 4. Bootstrap resamples | 2,000 (1,000 passed 90% of triples) | **1,000**: 95.4% of triples pass (2,000: 100%) | no, see below |
+| 5. Paired or unpaired | paired, 41% narrower | paired: [+0.059, +0.112], 53% narrower than unpaired [+0.030, +0.141] | yes |
+
+**Decision 3: the push check keeps lines × files.** The rule's fallback says so when no threshold meets the bar: `metrics.json` says no threshold reached it, and P9 keeps lines × files. On the tuned forest, the top 30 commits are 70% bug-inducing, and no larger set does better. LightGBM's best is 0.67. The untuned LightGBM met the bar only at the edge on Nov 6. `champion.json`'s threshold (`metrics.at_threshold.threshold`) is null for this candidate, so P9 has to treat null as "no model threshold".
+
+**Decision 4: the rule now picks 1,000, and it isn't applied yet.** The tuned forest's intervals are steadier: at 1,000 resamples, 95.4% of the 1,140 seed triples pass, just over the rule's 95%. Seeds 1–3 move the ends 0.0017 and 0.0027, under the bar's 0.005. But `model.toml [eval] bootstrap_reps` is also what Rachna's `train.py` pick and Chaitali's bias intervals read. Her committed `candidate.json` was picked at 2,000. Changing it two days before the freeze changes their inputs, to save 0.15 s a bootstrap. So 2,000 stays until the team agrees, and the rule's pick is written down here.
+
+## Registry: decisions 6–7 (Nov 9)
+
+Written before either ran. Each runs with `python -m model.registry --decide <n>` and logs a run tagged `decision=rochan-<n>`.
+
+### 6. Promotion rule
+
+Options: **any gain** in `val` PR-AUC over the champion, **a gain above 2 standard deviations of seed noise** (`seed_noise.json`: Rachna's tuned forest refitted with seeds 1–5).
+
+Test: feed the registry those 5 same-config seeds one after another, as if each were a new candidate. The first is the first model, so it's promoted. Each next one is compared with the champion. Count how often `champion` moves. The seeds come in seed order, the packet's test and PASS-BARS §3.3's bar ("champion moves 0 times"). One order can be lucky, so the count over all 120 orders is reported too, but it doesn't decide.
+
+Rule: the option under which `champion` moves 0 times in seed order. If both do, the noise rule, because any gain would still move on a luckier seed.
+
+Result (Nov 9, `python -m model.registry --decide 6`; `seed_noise.json`: 5 seeds, val PR-AUC 0.4018 to 0.4067, sd 0.0021):
+
+| Rule | Margin | Moves in seed order | Orders where champion moves, of 120 | Moves per order, on average |
+|---|---|---|---|---|
+| any gain | 0 | 1 | 96 | 1.28 |
+| above 2 sd of seed noise | 0.0043 | **0** | 24 | 0.20 |
+
+Picked: **above 2 sd of seed noise** (`model.toml [registry] rule = "noise"`). In seed order, seed 2 beats seed 1 by 0.0009, and any gain promotes it.
+
+What it doesn't guarantee: in 24 of the 120 orders, the noise rule still promotes once. The 5 seeds span 0.0049, more than 2 sd (0.0043). So when the lowest seed comes first and the highest later, the noise rule promotes on noise. A margin of 3 sd (0.0064) would hold in all 120 orders here. That's for the team, because Chaitali's gate uses the same 2 sd.
+
+### 7. What to compare on
+
+Options: **the champion's stored metrics** (the PR-AUC in its `champion.json`, from the table it was judged on), **re-scoring it on today's `val`** (load the champion's model and score today's table).
+
+Test: build the feature table twice with Utkarsh's `data.py`, from the one full block on this laptop (v1, 70dd1dabfed544b8; c5118's isn't here). Once as configured, and once with his decision 1 changed: `window_days` 365 → 180. The label window moves labels on `val` rows. A change that only touches train rows, such as `start_year`, would leave `val` as it was and couldn't show anything. Fit Rachna's tuned forest (seed 1) on the first table's train rows: that's the champion, with its stored `val` PR-AUC from the first table. Then re-score it on the second table's `val` rows. Measured: the gap between its stored and re-scored PR-AUC.
+
+Rule: if the gap is larger than decision 6's margin (2 standard deviations of seed noise), the registry re-scores the champion whenever the table changed (its `features_md5` isn't today's). It uses the stored number only on the same table, where the two are equal. If the gap is within the margin: stored metrics, which need no model loading.
+
+Result (Nov 9, `python -m model.registry --decide 7`; both tables built in 10.6 s):
+
+| The champion's val PR-AUC | Table | val N | Bug-inducing |
+|---|---|---|---|
+| stored, the table it was judged on | v1 block, `window_days` 365 | 4,113 | 497 |
+| re-scored | the same block, `window_days` 180 | 4,113 | 352 |
+
+Stored 0.4022, re-scored 0.3141: a gap of 0.0882, 21 times the margin (0.0043).
+
+Picked: **re-score when the table changed** (`model.toml [registry] compare = "rescore"`). A shorter label window turns 145 of the 497 bug-inducing `val` commits into clean ones, so the stored number describes other rows. Compared with it, a new candidate would look 0.09 better than it is. On the same table, the registry still uses the stored number, which the re-score would equal.
+
 ## 8. MLflow store
 
 Options: **file store** (`mlruns/`), **SQLite** (`sqlite:///mlflow.db`).
@@ -272,3 +330,28 @@ Result (run Nov 7; 3 s for 2,000 seeds):
 Picked: **half K** (04's). Replay matters: without it, Elo's order is wrong in 5.0% of seeds over the first 60 live matches; with replay at either weight, 0.9%. Half and full K are within 1 point at every noise level, so 04's half K stays. It also keeps wrong replay verdicts from steering as much: they move ratings half as far.
 
 The three runs are in MLflow, `meridian-auditor`, tagged `decision=rochan-9`, `-10` and `-11`.
+
+## Auditor: replay and explore (Nov 9)
+
+No options to pick here, so no numbered decision: these are the rules the code follows, with the tests that hold it to them (`test_auditor.py`, `KnownAt`, `Replay`, `Explore`).
+
+**What's known at a moment.** 04 §9 says replay reads "rows with `known_at` ≤ stall time only". Only `call_site` has a `known_at` column, so here is the rule for every table the stall reasons and verdict rules read:
+- a call site: its newest version known by then (KNOWLEDGE-BASE.md's `site_now`, as before);
+- tickets: created by then, with the status and resolution they had then, rebuilt from `ticket_event`. A ticket resolved later with no status change on record has no known status then, so it's not done;
+- commits: authored by then, with their files;
+- the tables a run derives from the whole repo (`blocked_by`, `file_owner`, `person_alias`, `team_map`, `module_import`, `resolution`, `deprecation`, `call_edge`): known from that run's snapshot on. A block keeps only its own run's (join carries `call_site` over, nothing else), so as of an earlier run they're unknown, and so is each reason that reads one: 1, 4, 7 and 8. Unknown isn't false: an empty `module_import` would make 7 Test gap fire for every team.
+
+Kept as pulled: a ticket's summary, description, assignee and components. No stall reason reads them.
+
+**Replay.** Every pair of consecutive runs in the block, oldest first. The stalls open at the first run and not at the second get verdicts as of the second, and every policy in the code plays every other on each, whenever it was written: that's how a new policy is tried on the past. A pair plays a stall once, so replay skips a pair that played it live or in an earlier replay. A verdict on a reason that was unknown when the stall was served makes no match: no policy could rank it, and a draw would only be noise.
+
+**Explore v0.** KNOWLEDGE-BASE.md's `radar_deprecated_with_callers`, one repo at a time, the most called first, at most `explore_budget` (200, 04 §9) per repo and run. Unfiled means no present call site resolves to it: a deprecated symbol Meridian already tracks is filed. With a challenger, the two lists are team-draft interleaved (Radlinski, Kurup and Joachims, 2008), and the side whose picks get more accepts within `reply_days` (14) wins. No reply is no match.
+
+### Results
+
+- **No look-ahead.** On the fixture, one row of each kind the queries read was planted after R1, each one that would change R1's facts if it were read. R1's facts don't change; on Sep 20, once those rows are known, they do. Every table the queries read holds 0 rows from after the moment, while the block under it holds some. Each of four views broken on purpose (commits not cut, status as pulled, derived tables from every run, tickets not cut) fails at least one test.
+- **What the old views let through, as of R1 on the fixture:** Bob's four late-September commits (8 Competing load counted 6 recent commits, not 2), PAY-10's close on Sep 15 (3 Ticket mismatch fired for payments), and R2's owners, imports and blocks.
+- **Replay on the fixture.** 3 stalls ended between R1 and R2, and no rule fires for them as built. With checkout resumed by someone new (4 Orphaned owner), v0 and v1, written in November, play 1 replay match: a draw, since both rank 4 first. In the plain fixture, reasons 1, 4, 7 and 8 are unknown as of R1, so that verdict makes no match; with R1's own derived tables, it does.
+- **Real block** 70dd1dabfed544b8. It holds one run, so there's nothing to replay, and the output says so. 68 stalls; 60 are served v0's ranking and 8 v1's, the same as Nov 8. 84 s, against 76–80 s on Nov 7: the views cost about 5–10%. A first version joined `known_run` inside the views, and SQLite stopped indexing `person_alias`: `stall_competing_load` took 4.9 s instead of 3.2 s for each of the 25 repo and symbol pairs, 121 s in all. Written as `IN`, it's back to 3.2 s.
+- **Explore on the real block.** 52 deprecation-marked functions, none with a caller in `call_edge`, which holds only the tracked symbols' call graph (gap G3). So v0 nominates nothing until G3 is closed. On the fixture, the radar's only row is `verify_token` itself, which is tracked, so it's filed.
+- **No live matches anywhere.** Every block's snapshots are older than the policies (Nov 7), and nobody has replied to anything yet.

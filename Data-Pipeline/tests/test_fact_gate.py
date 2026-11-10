@@ -204,6 +204,31 @@ class TeamRule(unittest.TestCase):
         self.assertLessEqual(sum(rejects), 50, rejects)
 
 
+class RealBlockNames(unittest.TestCase):
+    """Names from the real block (review of PR #48): teams that are words, symbols that look like teams."""
+    T = ["test", "tests", "urls", "checkout", "billing"]
+
+    def ok(self, text, facts):
+        return check(text, facts, teams=self.T, people=[]).passed
+
+    def test_an_exact_team_name_wins_over_another_teams_plural(self):
+        self.assertTrue(self.ok("Tests, 3 call sites remaining.", {"team": "tests", "left": 3}))
+
+    def test_text_quoting_a_fact_word_for_word_is_known(self):
+        self.assertTrue(self.ok("Migrate off url.", {"symbol": "url"}))
+        self.assertTrue(self.ok("- Test gap (1 piece of evidence)", {"reason": "Test gap", "n": 1}))
+        self.assertTrue(self.ok("billing migrates checkout.verify", {"team": "billing", "symbol": "checkout.verify"}))
+        self.assertFalse(self.ok("Ask checkout.", {"symbol": "checkout.verify"}))  # the bare team is still a team
+
+    def test_a_fact_path_with_any_extension_is_a_path(self):
+        f = {"sites": "tests/i18n/commands/code.sample:1, :4"}
+        self.assertTrue(self.ok("tests/i18n/commands/code.sample:1, :4", {"s": [
+            {"path": "tests/i18n/commands/code.sample", "line": 1},
+            {"path": "tests/i18n/commands/code.sample", "line": 4}]}))
+        self.assertTrue(self.ok("tests/i18n/commands/code.sample:1", f))
+        self.assertFalse(self.ok("tests/i18n/commands/code.sample:5", f))
+
+
 class Gate(unittest.TestCase):
     def test_a_pass_ships_the_llm_text(self):
         text, source, result = gate("CHK-311: 4 bug fixes.", CHK_311, "TEMPLATE", teams=TEAMS, people=corpus.PEOPLE)
