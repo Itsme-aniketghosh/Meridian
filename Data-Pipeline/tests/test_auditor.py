@@ -637,6 +637,23 @@ class Replay(unittest.TestCase):
                          [("billing", "2026-10-20T00:00:00Z")])
         self.assertEqual(len(rep.matches), 3)  # checkout's, from the first pair
 
+    def test_a_replay_match_is_dated_when_its_played(self):
+        """At R3, not at the first pair's R2: dated in the past, it would land before live matches decided since and
+        change the ratings and promotions they gave. It goes through --write like a live row."""
+        r3 = ("R3", "2026-11-10T00:00:00Z")  # after the policies were written, so --write keeps their rows
+        add_run(self.db, r3)
+        live = [match(1, "stall-v0", "stall-v1", "a", at=K.R2[1])]
+        rep = self.replay(live, at=r3[1], run_id="R3")
+        self.assertEqual((len(rep.matches), {m["decided_at"] for m in rep.matches}), (3, {r3[1]}))
+        history = [m for m in live + rep.matches if m["decided_at"] < r3[1]]
+        self.assertEqual(A.standings(history, self.S, self.policies).rating,
+                         A.standings(live, self.S, self.policies).rating)
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(A.write_tracking(Path(d), r3[1], self.policies, [], live, rep.matches), (4, 4))
+            rows = [json.loads(line) for line in (Path(d) / "match.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(sorted((m["mode"], m["decided_at"]) for m in rows),
+                         [("live", K.R2[1])] + [("replay", r3[1])] * 3)
+
 
 class Explore(unittest.TestCase):
     """The explore job (04 §9): v0 nominates unfiled legacy code; team-draft interleaving; more accepts wins."""
