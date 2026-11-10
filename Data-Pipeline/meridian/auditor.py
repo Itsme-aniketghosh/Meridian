@@ -148,10 +148,12 @@ def point(db, at, repo=None, symbol=None, run_id=None, q=None):
 # Temp views shadow the block's ticket tables (SQLite reads temp first), so the queries never see a ticket created,
 # mapped or changed after asof.at: at an earlier moment than the snapshot, they'd say "never notified" was false.
 # shortcut: file_owner, blocked_by, git_commit and ticket.status are still as of the snapshot; known_at work, Nov 10
+# ticket_map drops the maps of later tickets as one list, built once: per map row (NOT EXISTS on key) it scanned all of
+# ticket, since ticket's key is (run_id, key). Over 7 minutes on a real block's 246,428 maps, 0.3 s this way
 AS_OF = """
 CREATE TEMP VIEW ticket AS SELECT t.* FROM main.ticket t, asof WHERE t.created_at <= asof.at;
-CREATE TEMP VIEW ticket_map AS SELECT m.* FROM main.ticket_map m, asof
-WHERE NOT EXISTS (SELECT 1 FROM main.ticket t WHERE t.key = m.key AND t.created_at > asof.at);
+CREATE TEMP VIEW ticket_map AS SELECT m.* FROM main.ticket_map m
+WHERE m.key NOT IN (SELECT t.key FROM main.ticket t, asof a WHERE t.created_at > a.at);
 CREATE TEMP VIEW ticket_event AS SELECT e.* FROM main.ticket_event e, asof WHERE e.at <= asof.at;
 """
 
