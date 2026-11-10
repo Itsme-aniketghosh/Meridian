@@ -123,17 +123,17 @@ Not in phase 2: intake (no collect source, gap G5), ticket comments (G2), a whol
 | B ✓ | Load the data | `data.py` builds one row per Spark commit, no names |
 | C ✓ | Train and select | Baselines: lines × files, `bug_fixes`, churn. Models: logistic regression, random forest, LightGBM. Optuna on time-ordered folds. Best by PR-AUC on 2023 |
 | D | Validate | On 2024 once: PR-AUC, ROC-AUC, F1, recall at 20% of changed lines |
-| E | Sensitivity | SHAP for features, Optuna's parameter importance for hyperparameters |
-| F | Bias | Fairlearn slices by module, component, author experience, commit size. Phase 1's flag rule. Bias charts. Mitigation by re-weighting, re-sampling or per-group thresholds |
-| G | Registry and rollback | MLflow registry (`champion` alias) and the champion pushed to GCP Artifact Registry. Rollback |
+| E ✓ | Sensitivity | SHAP for features, Optuna's parameter importance for hyperparameters |
+| F ✓ | Bias | Fairlearn slices by module, component, author experience, commit size. Phase 1's flag rule. Bias charts. Mitigation by re-weighting, re-sampling or per-group thresholds |
+| G ✓ | Registry and rollback | MLflow registry (`champion` alias) and the champion pushed to GCP Artifact Registry. Rollback |
 | H | CI/CD and Docker | GitHub Actions: train, validate, bias, gate, push to the registry, Slack alerts on failure, completion and push. The whole model pipeline runs in one Docker image with one command |
 | J | Report | `Model-Pipeline/report/REPORT.md`, every number with its N |
 | K ✓ | Tracking tables | Into `schema.sql`, with writer and validate support |
 | L ✓ | Second real run | Real `removed` rows, real burndown |
 | M | LLM stage | The writer and cache (Vishwa), Jev (Rachna), the diff drafter (Utkarsh). The policy writer if time allows. Every call tracked in MLflow; validated and sliced for bias like the model (the guideline's rule for pretrained models) |
-| N | Gate | The fact check on every LLM output |
-| O | Views and API | The four views and the ticket tools, read-only, served locally |
-| P | Auditor learning | Stall job, explore job, Elo, ε-greedy, replay, promotion guard |
+| N ✓ | Gate | The fact check on every LLM output |
+| O ✓ | Views and API | The four views and the ticket tools, read-only, served locally |
+| P ✓ | Auditor learning | Stall job, explore job, Elo, ε-greedy, replay, promotion guard |
 | Q | P9 hook | The champion model in the push check |
 
 ### Pass bars, written before the run
@@ -328,7 +328,7 @@ Never cut: anything in the course guideline, the gate, the LLM-off fallback, det
 
 Work starts Thu Nov 5 (day 1). Wed Nov 4 is an optional head start: anyone who starts then has a day of slack. The deadline is Sun Nov 15, and the report takes Nov 13–15, so all work and every report section are due Thu Nov 12.
 
-✓ = merged in main as of Nov 9.
+✓ = merged in main as of Nov 10.
 
 | Date | Utkarsh | Rachna | Rochan | Chaitali | Vishwa |
 |---|---|---|---|---|---|
@@ -336,9 +336,9 @@ Work starts Thu Nov 5 (day 1). Wed Nov 4 is an optional head start: anyone who s
 | Thu Nov 5, day 1 | v1 feature table in git ✓ | pass-bar rows ✓ | `tracking.py` merged ✓ | pass-bars file drafted ✓ | fact gate started ✓ |
 | Fri Nov 6, day 2 | label window settled ✓, c5118 rebuild running ✓ | baselines ✓, first candidate ✓ | `evaluate.py` on val ✓ | pass bars merged ✓ | fact gate ✓ |
 | Sat Nov 7, day 3 | c5118 table ✓, tracking tables ✓ | tuning ✓ | auditor: policy v0, Elo ✓ | bias code on the first candidate ✓ | fact gate passes 200 + 200 ✓ |
-| Sun Nov 8, day 4 | second real run ✓ | tuned candidate ✓, seed noise ✓, image ✓ | auditor stall job ✓, simulation ✓ | bias on the tuned candidate | writer agent and cache |
-| Mon Nov 9, day 5 | diff drafter: codemod | SHAP and sensitivity, Jev started | registry, GCP push, rollback | final pick, `gate.py`, alerts | views and API |
-| Tue Nov 10, day 6 | diff drafter: LLM path, the 90% test | Jev, P9 hook | auditor explore job, replay | all CI, LLM bias | views and API. Code freeze for everyone at the end of the day |
+| Sun Nov 8, day 4 | second real run ✓ | tuned candidate ✓, seed noise ✓, image ✓ | auditor stall job ✓, simulation ✓ | bias on the tuned candidate ✓ | writer agent and cache ✓ |
+| Mon Nov 9, day 5 | diff drafter: codemod ✓ | SHAP and sensitivity ✓, Jev started ✓ | registry, GCP push, rollback ✓ | final pick ✓, `gate.py` ✓, alerts ✓ | views and API ✓ |
+| Tue Nov 10, day 6 | diff drafter: LLM path ✓, the 90% test ✓ | Jev ✓, P9 hook | auditor explore job ✓, replay ✓ | all CI, LLM bias | views and API ✓. Code freeze for everyone at the end of the day |
 
 | Date | Aniket |
 |---|---|
