@@ -5,8 +5,9 @@
     python -m meridian.auditor --run-id <run_id> --write     # also out/<run_id>/policy.jsonl and match.jsonl
 
 Two jobs (packets/rochan-tracking, step P). The stall job ranks why each stalled team stalled: policy v0 and a first
-challenger, ε-greedy, the verdict rules, live and replay matches, Elo and the promotion guard. The explore job comes
-next. It reads a block. With --write it also writes the policy and match rows the next writer run loads.
+challenger, ε-greedy, the verdict rules, live and replay matches, Elo and the promotion guard. The explore job
+nominates unfiled legacy code: policy v0. It reads a block. With --write it also writes the policy and match rows the
+next writer run loads.
 
 Facts come from KNOWLEDGE-BASE.md's queries, the text tests/test_kb.py proves on its fixture. `owner_teams` gives each
 team's sites left and the days since its last change. A team is stalled when it has sites left and nothing changed for
@@ -51,6 +52,14 @@ run and not at the next get verdicts as of the next, and every pair of policies 
 each, whenever the policies were written: that's how a new policy is tried on the past. A pair plays a stall once,
 so not in replay after a live match or an earlier replay.
 
+Explore (04 §9): policies nominate unfiled legacy code for the staff engineer's legacy radar (02-product). v0 reads
+KNOWLEDGE-BASE.md's radar_deprecated_with_callers, one repo at a time: deprecation-marked functions with callers, the
+most called first. Unfiled: no present call site resolves to it, so it isn't a symbol Meridian tracks already. The
+fan-in and twin signals wait for gaps G3 and G4. At most [auditor] explore_budget nominations per repo and run. With a
+challenger, the radar shows the champion's and a challenger's lists team-draft interleaved, and the side whose picks
+get more accepts wins; no reply in [auditor] reply_days is no match. Nothing records radar replies yet (no users), so
+there are no explore matches, and the output says so.
+
 Promotion (04 §9): a challenger replaces the champion when it has at least 30 live matches, at least 50 Elo over the
 champion and a winning live record against v0. A policy an LLM wrote also needs a person's approval. Replay matches
 never count toward the 30. Like Elo, the champion is replayed from the log: v0 to start, the guard checked after each
@@ -62,13 +71,13 @@ import argparse
 import itertools
 import random
 import sqlite3
-from collections import namedtuple
+from collections import Counter, namedtuple
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from meridian.common import CONFIG, h, handoff, load_config, log, write_jsonl
+from meridian.common import CONFIG, days_before, h, handoff, load_config, log, write_jsonl
 from meridian.pushcheck import kb_queries
 
 # 04 §5's stall reasons by number, and the KNOWLEDGE-BASE.md query behind each. Each query's first column is the team
@@ -87,7 +96,8 @@ RULE_NEEDS = {"block_removed": ("blocked_by",), "new_author": ("file_owner", "pe
 # 04 §9's numbers. meridian.toml [auditor] can set any of them
 DEFAULTS = {"elo_start": 1500, "k": 32, "k_after": 16, "k_after_matches": 30, "replay_k": 0.5,
             "eps": 0.2, "eps_after": 0.1, "eps_after_matches": 30, "promote_matches": 30, "promote_elo": 50,
-            "block_days": 7, "ticket_days": 14}
+            "block_days": 7, "ticket_days": 14, "explore_budget": 200, "reply_days": 14}
+TS = "%Y-%m-%dT%H:%M:%SZ"
 ELO = ("elo_start", "k", "k_after", "k_after_matches", "replay_k")
 SCORE = {"a": 1.0, "b": 0.0, "draw": 0.5}  # policy_a's score. policy_b's is 1 minus it
 MODES = ("live", "replay")
@@ -144,19 +154,29 @@ def stall_v1(stall):
     return sorted(stall.facts, key=lambda n: (-len(stall.facts[n]), n))
 
 
+# One legacy-radar candidate as of one moment: a deprecation-marked function, and its calls in call_edge
+Nomination = namedtuple("Nomination", "repo path scope qualname marker callers")
+
+
+def explore_v0(found):
+    """04 §9's first explore signal: deprecation-marked functions with callers, the most called first."""
+    return sorted(found, key=lambda x: (-x.callers, x.repo, x.path, x.scope))
+
+
 @dataclass(frozen=True)
 class Policy:
     policy_id: str    # '<job>-v<version>', the policy table's key
     job: str          # 'stall' or 'explore'
     version: int
     author: str       # a person's initials, or 'llm:<model>': never promoted without a person (04 §9)
-    rank: Callable    # stall job: a Stall -> its reason numbers, most likely first
+    rank: Callable    # stall job: a Stall -> its reason numbers, most likely first. explore: Nominations, best first
     created_at: str   # when it was written. A block from before then has no row for it, and it has no matches
     approved_by: str = ""  # a person's initials: what an 'llm:' policy needs before it can be promoted
 
 
 POLICIES = {p.policy_id: p for p in [Policy("stall-v0", "stall", 0, "rh", stall_v0, "2026-11-07T00:00:00Z"),
-                                     Policy("stall-v1", "stall", 1, "rh", stall_v1, "2026-11-07T00:00:00Z")]}
+                                     Policy("stall-v1", "stall", 1, "rh", stall_v1, "2026-11-07T00:00:00Z"),
+                                     Policy("explore-v0", "explore", 0, "rh", explore_v0, "2026-11-09T00:00:00Z")]}
 
 
 def point(db, at, repo=None, symbol=None, run_id=None, q=None):
@@ -418,6 +438,99 @@ def replay_job(db, cfg, s, run_id, at, log, policies=None, q=None, cache=None):
     return Replay(pairs, outcomes, new)
 
 
+# What Meridian tracks already: what its present call sites resolve to, the name deprecation.qualname gives a function
+TRACKED = """SELECT DISTINCT r.resolved_to FROM site_now s JOIN resolution r
+  ON r.repo = s.repo AND r.path = s.path AND r.line = s.line AND r.col = s.col
+WHERE s.status = 'present' AND r.resolved_to IS NOT NULL"""
+
+
+def nominations(db, at, run_id=None, q=None):
+    """Unfiled legacy code as of `at`: KNOWLEDGE-BASE.md's radar_deprecated_with_callers, one repo at a time, less
+    what a present call site resolves to. (nominations, filed): filed counts the radar's rows Meridian tracks."""
+    q = q or kb_queries()
+    point(db, at, None, None, run_id, q)
+    tracked = {r for (r,) in db.execute(TRACKED)}
+    found, filed = [], 0
+    for (repo,) in db.execute("SELECT DISTINCT repo FROM deprecation ORDER BY repo").fetchall():
+        point(db, at, repo, None, run_id, q)
+        names = {(p, sc): qn for p, sc, qn in db.execute(
+            "SELECT path, scope, qualname FROM deprecation WHERE repo = ?", (repo,))}
+        for path, scope, marker, callers in db.execute(q["radar_deprecated_with_callers"]).fetchall():
+            if names[path, scope] in tracked:
+                filed += 1
+            else:
+                found.append(Nomination(repo, path, scope, names[path, scope], marker, callers))
+    return found, filed
+
+
+def team_draft(seed, lists, n):
+    """Team-draft interleaving (Radlinski, Kurup and Joachims, 2008) of two rankings, {policy_id: items best first}:
+    the side with fewer picks so far, or a seeded coin when they're even, adds its best item not shown yet. Returns
+    [(item, the policy credited)], at most n: an item both rank is credited to the side that picked it."""
+    rng = random.Random(int(seed, 16))
+    (a, la), (b, lb) = sorted(lists.items())
+    shown, picks, out = set(), {a: 0, b: 0}, []
+    while len(out) < n:
+        rest = {p: [x for x in items if x not in shown] for p, items in ((a, la), (b, lb))}
+        if not (rest[a] or rest[b]):
+            break
+        first, second = (a, b) if picks[a] < picks[b] or (picks[a] == picks[b] and rng.random() < 0.5) else (b, a)
+        p = first if rest[first] else second
+        shown.add(rest[p][0])
+        picks[p] += 1
+        out.append((rest[p][0], p))
+    return out
+
+
+# One radar list. shown: the policies whose picks it holds. served: [(Nomination, policy_id credited)], best first
+ExploreTask = namedtuple("ExploreTask", "task_id repo shown served")
+Explore = namedtuple("Explore", "league found filed deprecated tasks")
+
+
+def explore_job(db, cfg, s, run_id, at, log, policies=None, q=None):
+    """One run of the explore job (04 §9) as of `at`: per repo, the champion's nominations, at most explore_budget,
+    team-draft interleaved with a challenger's when there is one (picked at random, seeded by run and task)."""
+    q = q or kb_queries()
+    policies = {p: x for p, x in (POLICIES if policies is None else policies).items() if x.job == "explore"}
+    league = standings(log, s, policies, "explore")
+    found, filed = nominations(db, at, run_id, q)
+    deprecated = db.execute("SELECT count(*) FROM (SELECT DISTINCT repo, path, scope FROM deprecation)").fetchone()[0]
+    tasks, n = [], s["explore_budget"]
+    for repo, rows in itertools.groupby(sorted(found, key=lambda x: x.repo), key=lambda x: x.repo):
+        rows = list(rows)
+        task_id = h("explore", repo, at)
+        lists = {league.champion: list(policies[league.champion].rank(rows))[:n]}
+        if rivals := sorted(p for p in policies if p != league.champion):
+            rival = random.Random(int(h(run_id, task_id, "rival"), 16)).choice(rivals)
+            lists[rival] = list(policies[rival].rank(rows))[:n]
+            served = team_draft(h(run_id, task_id), lists, n)
+        else:
+            served = [(x, league.champion) for x in lists[league.champion]]
+        tasks.append(ExploreTask(task_id, repo, sorted(lists), served))
+    return Explore(league, found, filed, deprecated, tasks)
+
+
+def explore_match(task, replies, offered_at, s):
+    """04 §9's explore verdict on one interleaved radar list: the side whose picks got more accepts wins, the same
+    number is a draw. replies: {(repo, path, scope): ('accept' or 'reject', at)}. Only replies to its items within
+    [auditor] reply_days of the offer count; none is no match (None). Decided when that window closes."""
+    if len(task.shown) < 2:
+        return None
+    end = days_before(offered_at, -s["reply_days"], TS)
+    heard = {}
+    for x, _ in task.served:
+        answer, at = replies.get((x.repo, x.path, x.scope), (None, None))
+        if answer and offered_at <= at <= end:
+            heard[x.repo, x.path, x.scope] = answer
+    if not heard:
+        return None
+    accepts = Counter(p for x, p in task.served if heard.get((x.repo, x.path, x.scope)) == "accept")
+    a, b = task.shown
+    return {"match_id": h(task.task_id, "live", a, b, end), "task_id": task.task_id, "policy_a": a, "policy_b": b,
+            "result": "a" if accepts[a] > accepts[b] else "b" if accepts[b] > accepts[a] else "draw",
+            "mode": "live", "verdict_source": "rule", "decided_by": "more_accepts", "decided_at": end}
+
+
 def policy_log(db):
     """The block's policy rows as dicts. A block written before schema v1.3 has none."""
     if not db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'policy'").fetchone():
@@ -670,6 +783,8 @@ def report(db, cfg, s, run_id, at, path, prev_at=None, out=None):
         if p != league.champion:
             log(f"  {p} stays a challenger: {'; '.join(league.guard(p))}")
 
+    report_explore(explore_job(db, cfg, s, run_id, at, matches, q=q), at)
+
     if out:
         n_policies, n_matches = write_tracking(out, at, POLICIES, policy_log(db), matches, new)
         newer = sorted(p for p, x in POLICIES.items() if x.created_at > at)
@@ -684,6 +799,22 @@ def say_unknown(db, at, q=None):
         names = ", ".join(f"{n} {REASONS[n][0]}" for n in reasons)
         log(f"  as of {at}, reasons {names} are unknown: no run by then wrote {', '.join(tables)} (a block keeps "
             f"only its own run's), so no policy ranked them then")
+
+
+def report_explore(ex, at):
+    shown = sum(len(t.served) for t in ex.tasks)
+    log(f"explore job: champion {ex.league.champion}, {len(ex.found)} unfiled legacy candidate(s) as of {at} "
+        f"(deprecation-marked, with callers), {ex.filed} more already tracked, so filed; {shown} shown")
+    if not (ex.found or ex.filed):
+        log(f"  {ex.deprecated} deprecation-marked function(s) in the block, none with a caller in call_edge: it holds "
+            f"only the tracked symbols' call graph (gap G3)")
+    for t in ex.tasks:
+        how = (f"{' and '.join(t.shown)} team-draft interleaved" if len(t.shown) > 1
+               else f"{t.shown[0]} only: no challenger")
+        log(f"  {t.repo}: {len(t.served)} shown, {how}")
+        for x, p in t.served[:5]:
+            log(f"    {x.path} {x.scope} · {x.marker} · {x.callers} call(s) · picked by {p}")
+    log("explore matches need accept or reject replies on the radar, and nothing records them yet (no users): none")
 
 
 if __name__ == "__main__":

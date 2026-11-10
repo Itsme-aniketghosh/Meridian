@@ -15,6 +15,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -309,7 +310,7 @@ class Elo(unittest.TestCase):
         self.assertEqual(A.settings({}), {"elo_start": 1500, "k": 32, "k_after": 16, "k_after_matches": 30,
                                           "replay_k": 0.5, "eps": 0.2, "eps_after": 0.1, "eps_after_matches": 30,
                                           "promote_matches": 30, "promote_elo": 50, "block_days": 7,
-                                          "ticket_days": 14})
+                                          "ticket_days": 14, "explore_budget": 200, "reply_days": 14})
         self.assertEqual(A.settings({"auditor": {"k": 24}})["k"], 24)
         with self.assertRaises(SystemExit):
             A.settings({"auditor": {"K": 24}})
@@ -613,6 +614,90 @@ class Replay(unittest.TestCase):
         self.assertEqual(len(rep.matches), 3)  # checkout's, from the first pair
 
 
+class Explore(unittest.TestCase):
+    """The explore job (04 §9): v0 nominates unfiled legacy code; team-draft interleaving; more accepts wins."""
+    S = A.settings({})
+
+    def legacy(self):
+        """The fixture with two more deprecated functions in its call graph: cart/totals.py total, called 3 times,
+        and cart/pricing.py price, once."""
+        db = K.build()
+        db.executemany("INSERT INTO deprecation VALUES ('R2', 'acme/shop', ?, ?, ?, ?, 'DeprecationWarning')",
+                       [("cart/totals.py", 50, "total", "cart.totals.total"),
+                        ("cart/pricing.py", 200, "price", "cart.pricing.price")])
+        db.executemany("INSERT INTO call_edge VALUES ('R2', 'acme/shop', 'web/report.py', 'summary', ?, 4, "
+                       "'cart/totals.py', 'acme/shop', 'total', ?)", [(4, "e" * 40), (9, "e" * 40)])
+        return db
+
+    def test_the_symbol_meridian_tracks_is_filed_so_v0_nominates_nothing_on_the_fixture(self):
+        """KNOWLEDGE-BASE.md's radar finds verify_token itself, and its call sites resolve to it: it's tracked."""
+        self.assertEqual(A.nominations(K.build(), K.R2[1]), ([], 1))
+
+    def test_v0_nominates_deprecated_functions_with_callers_the_most_called_first(self):
+        job = A.explore_job(self.legacy(), CFG, self.S, "R2", K.R2[1], [])
+        [task] = job.tasks
+        self.assertEqual((task.task_id, task.repo, task.shown, job.filed),
+                         (A.h("explore", K.REPO, K.R2[1]), K.REPO, ["explore-v0"], 1))
+        self.assertEqual([(x.qualname, x.callers, p) for x, p in task.served],
+                         [("cart.totals.total", 3, "explore-v0"), ("cart.pricing.price", 1, "explore-v0")])
+
+    def test_at_most_explore_budget_a_repo_and_run(self):
+        job = A.explore_job(self.legacy(), CFG, {**self.S, "explore_budget": 1}, "R2", K.R2[1], [])
+        self.assertEqual([x.scope for x, _ in job.tasks[0].served], ["total"])
+
+    def test_a_deprecation_known_later_isnt_nominated_earlier(self):
+        """The radar's tables are R2's: as of R1 nothing of them is known."""
+        self.assertEqual(A.nominations(self.legacy(), K.R1[1]), ([], 0))
+
+    def test_with_a_challenger_the_radar_interleaves_both_lists(self):
+        least = A.Policy("explore-v1", "explore", 1, "rh", lambda found: sorted(found, key=lambda x: x.callers),
+                         "2026-11-09T00:00:00Z")
+        job = A.explore_job(self.legacy(), CFG, self.S, "R2", K.R2[1], [], {**A.POLICIES, "explore-v1": least})
+        [task] = job.tasks
+        self.assertEqual(task.shown, ["explore-v0", "explore-v1"])
+        self.assertEqual({x.scope: p for x, p in task.served}, {"total": "explore-v0", "price": "explore-v1"})
+
+    def test_team_draft_credits_each_pick_keeps_each_order_and_stays_even(self):
+        a, b = list("ABCDEFGH"), list("CAHBGDFE")
+        starts = set()
+        for i in range(200):
+            seed = A.h("R2", f"t{i}")
+            shown = A.team_draft(seed, {"explore-v0": a, "explore-v1": b}, 8)
+            self.assertEqual(shown, A.team_draft(seed, {"explore-v1": b, "explore-v0": a}, 8))  # seeded
+            self.assertEqual(sorted(x for x, _ in shown), a)  # each item once
+            for p, ranking in (("explore-v0", a), ("explore-v1", b)):
+                mine = [x for x, q in shown if q == p]
+                self.assertEqual(mine, sorted(mine, key=ranking.index))  # each side picks in its own order
+            for k in range(1, len(shown) + 1):
+                n = Counter(q for _, q in shown[:k])
+                self.assertLessEqual(abs(n["explore-v0"] - n["explore-v1"]), 1)
+            starts.add(shown[0][1])
+        self.assertEqual(starts, {"explore-v0", "explore-v1"})  # the coin picks who starts
+        self.assertEqual(len(A.team_draft(A.h("x"), {"explore-v0": a, "explore-v1": b}, 3)), 3)
+
+    def test_more_accepts_wins_and_no_reply_within_14_days_is_no_match(self):
+        def nom(scope):
+            return A.Nomination(K.REPO, f"{scope}.py", scope, scope, "DeprecationWarning", 1)
+
+        def replies(*rows):
+            return {(K.REPO, f"{scope}.py", scope): (answer, at) for scope, answer, at in rows}
+
+        task = A.ExploreTask("t1", K.REPO, ["explore-v0", "explore-v1"],
+                             [(nom("a"), "explore-v0"), (nom("b"), "explore-v1"), (nom("c"), "explore-v0")])
+        offered, soon, late = K.R2[1], "2026-10-03T00:00:00Z", "2026-10-16T00:00:00Z"
+        m = A.explore_match(task, replies(("a", "accept", soon), ("b", "accept", soon),
+                                          ("c", "accept", "2026-10-15T00:00:00Z")), offered, self.S)
+        self.assertEqual((m["policy_a"], m["policy_b"], m["result"], m["mode"], m["decided_at"]),
+                         ("explore-v0", "explore-v1", "a", "live", "2026-10-15T00:00:00Z"))
+        self.assertEqual(m["match_id"], A.h("t1", "live", "explore-v0", "explore-v1", "2026-10-15T00:00:00Z"))
+        self.assertEqual(A.explore_match(task, replies(("b", "accept", soon)), offered, self.S)["result"], "b")
+        self.assertEqual(A.explore_match(task, replies(("a", "reject", soon)), offered, self.S)["result"], "draw")
+        self.assertIsNone(A.explore_match(task, {}, offered, self.S))
+        self.assertIsNone(A.explore_match(task, replies(("a", "accept", late)), offered, self.S))  # day 15
+        self.assertIsNone(A.explore_match(task._replace(shown=["explore-v0"]), replies(("a", "accept", soon)),
+                                          offered, self.S))
+
+
 class RanksRight(unittest.TestCase):
     """pass-bars.md §4 'Ranks right': 3 stall policies 200 Elo apart (the better one wins 76% of head-to-heads), all
     ranking every stall in shadow, K 32 then 16. After 200 matches, Elo orders all three right in 20 of 20 seeds."""
@@ -694,13 +779,17 @@ class Command(unittest.TestCase):
         self.assertIn("checkout, stalled since 2026-01-10T00:00:00Z: resumed 2026-09-12T00:00:00Z · no rule fired: "
                       "a person picks", out)
 
-    def test_unknown_reasons_and_replay_are_said(self):
+    def test_unknown_reasons_replay_and_explore_are_said(self):
         _, out = self.run_on()
         self.assertIn("as of 2026-09-01T00:00:00Z, reasons 1 Upstream block, 4 Orphaned owner, 7 Test gap, "
                       "8 Competing load are unknown: no run by then wrote blocked_by, file_owner, module_import, "
                       "person_alias, team_map", out)
         self.assertIn("replay over 1 pair(s) of runs, every policy in the code: 3 stall(s) ended, 0 new replay "
                       "match(es), each at half K and never toward promotion", out)
+        self.assertIn("explore job: champion explore-v0, 0 unfiled legacy candidate(s) as of 2026-10-01T00:00:00Z "
+                      "(deprecation-marked, with callers), 1 more already tracked, so filed; 0 shown", out)
+        self.assertIn("explore matches need accept or reject replies on the radar, and nothing records them yet "
+                      "(no users): none", out)
 
     def test_a_replay_match_is_reported_and_rated(self):
         db = build()
@@ -717,8 +806,8 @@ class Command(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             _, out = self.run_on("--write", "--out", d)
             self.assertEqual([(Path(d) / f).read_text() for f in ("policy.jsonl", "match.jsonl")], ["", ""])
-        self.assertIn("policy.jsonl (0 row(s)) and match.jsonl (0): stall-v0, stall-v1 came after this block's "
-                      "snapshot, so they're left out", out)
+        self.assertIn("policy.jsonl (0 row(s)) and match.jsonl (0): explore-v0, stall-v0, stall-v1 came after this "
+                      "block's snapshot, so they're left out", out)
 
     def test_elo_reads_only_matches_decided_by_then(self):
         log = [match(0, "stall-v0", "stall-v1", "a", at="2026-09-20T00:00:00Z"),
