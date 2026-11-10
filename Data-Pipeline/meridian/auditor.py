@@ -4,9 +4,9 @@
     python -m meridian.auditor --run-id R2 --db /tmp/fixture.sqlite --at 2026-10-01T00:00:00Z
     python -m meridian.auditor --run-id <run_id> --write     # also out/<run_id>/policy.jsonl and match.jsonl
 
-Built so far (packets/rochan-tracking): the stall job, with policy v0 and a first challenger, ε-greedy, the verdict
-rules, live matches, Elo and the promotion guard. It reads a block. With --write it also writes the policy and match
-rows the next writer run loads. Next: the explore job and replay (Nov 10).
+Two jobs (packets/rochan-tracking, step P). The stall job ranks why each stalled team stalled: policy v0 and a first
+challenger, ε-greedy, the verdict rules, live and replay matches, Elo and the promotion guard. The explore job comes
+next. It reads a block. With --write it also writes the policy and match rows the next writer run loads.
 
 Facts come from KNOWLEDGE-BASE.md's queries, the text tests/test_kb.py proves on its fixture. `owner_teams` gives each
 team's sites left and the days since its last change. A team is stalled when it has sites left and nothing changed for
@@ -23,6 +23,16 @@ Elo (04 §9): every policy starts at 1500. The match log is replayed oldest firs
 ratings are a function of the log alone: recomputed every run, never stored. A policy's K is 32 for its first 30
 matches, then 16, and a replay match moves half as far.
 
+As of a moment (04 §9: "rows with known_at ≤ stall time only", 05-test's known_at bar): point() aims the queries at
+one moment through temp views over the block's tables (SQLite reads temp first), so nothing known later is read. A call
+site is its newest version known by then (KNOWLEDGE-BASE.md's site_now). Tickets are those created by then, with the
+status and resolution they had then, rebuilt from ticket_event, and only their maps and the events up to then. Commits
+are those authored by then, with their files. A table a run derives from the whole repo (DERIVED) is known from that
+run's snapshot on: the rows of the newest run at or before the moment. A block keeps only its own run's (join carries
+call_site's history over, nothing else), so at an earlier run they're unknown, and so is every stall reason or verdict
+rule that reads one (NEEDS, RULE_NEEDS). It doesn't fire, and the output says so: an empty module_import would make
+7 Test gap fire everywhere. Kept as pulled: a ticket's summary, description, assignee and components.
+
 Verdicts (04 §9): a stall open at the last run that isn't now has ended. If the team changed its code (it resumed),
 what happened just before says why it stalled. Each rule names one reason:
     block_removed    1 Upstream block    a site blocking one of theirs was removed at most [auditor] block_days before
@@ -31,9 +41,15 @@ what happened just before says why it stalled. Each rule names one reason:
     new_author       4 Orphaned owner    the change's author isn't the top author of the file it touched
 Tickets reach sites the way "Never notified" does: ticket_map rows of kind call_site. If one reason fires, every pair
 of policies plays a live match on it: the one that ranked it higher wins, the same place is a draw. If none fires, or
-two fire, a person picks, and there's no match until then: a tie broken by number would favor v0. Live matches are
-only between policies that existed when the stall was served, the last run's snapshot. A task is decided once.
-Facts at the last run are read from this block as of then: the known_at check on every table comes with replay.
+two fire, a person picks, and there's no match until then: a tie broken by number would favor v0. So does a rule
+that can't be checked at the verdict. Live matches are only between policies that existed when the stall was served,
+the last run's snapshot. A task is decided live once. A verdict on a reason unknown when the stall was served makes
+no match: no policy could have ranked it.
+
+Replay (04 §9): every pair of consecutive runs in the block, oldest first, read the same way. The stalls open at one
+run and not at the next get verdicts as of the next, and every pair of policies in the code plays a replay match on
+each, whenever the policies were written: that's how a new policy is tried on the past. A pair plays a stall once,
+so not in replay after a live match or an earlier replay.
 
 Promotion (04 §9): a challenger replaces the champion when it has at least 30 live matches, at least 50 Elo over the
 champion and a winning live record against v0. A policy an LLM wrote also needs a person's approval. Replay matches
@@ -61,6 +77,13 @@ REASONS = {1: ("Upstream block", "stall_upstream"), 2: ("Never notified", "stall
            5: ("Semantics unclear", "stall_semantics_unclear"), 6: ("Fragility freeze", "stall_fragility_freeze"),
            7: ("Test gap", "stall_test_gap"), 8: ("Competing load", "stall_competing_load")}
 
+# The tables a run derives from the whole repo: known from that run's snapshot on (see point()). Then what reads them,
+# besides call sites, tickets and commits: the stall reasons by number, and the verdict rules
+DERIVED = ("blocked_by", "file_owner", "person_alias", "team_map", "module_import", "resolution", "deprecation",
+           "call_edge")
+NEEDS = {1: ("blocked_by",), 4: ("file_owner", "person_alias"), 7: ("module_import",), 8: ("person_alias", "team_map")}
+RULE_NEEDS = {"block_removed": ("blocked_by",), "new_author": ("file_owner", "person_alias")}
+
 # 04 §9's numbers. meridian.toml [auditor] can set any of them
 DEFAULTS = {"elo_start": 1500, "k": 32, "k_after": 16, "k_after_matches": 30, "replay_k": 0.5,
             "eps": 0.2, "eps_after": 0.1, "eps_after_matches": 30, "promote_matches": 30, "promote_elo": 50,
@@ -76,27 +99,30 @@ MATCH_COLUMNS = ("match_id", "task_id", "policy_a", "policy_b", "result", "mode"
 # new stall, with a new task
 Stall = namedtuple("Stall", "task_id repo symbol team since days left facts")
 
-# A stall open at the last run and not now. resumed: the team's first change since then (None: it ended with no change
-# by the team, say its sites moved to another owner). fired: {reason: (rule, evidence)}. reason and rule: the verdict,
-# when exactly one reason fired. matches: the live match rows it made
-Outcome = namedtuple("Outcome", "stall resumed fired reason rule matches")
+# A stall open at one run and not at the next. resumed: the team's first change since then (None: it ended with no
+# change by the team, say its sites moved to another owner). fired: {reason: (rule, evidence)}. reason and rule: the
+# verdict, when exactly one reason fired and every rule could be checked. matches: the match rows it made. unknown: the
+# reasons unknown when it was served, so no policy ranked them. unchecked: the rules that couldn't be checked
+Outcome = namedtuple("Outcome", "stall resumed fired reason rule matches unknown unchecked", defaults=((), ()))
 
-# Named parameters: the stall's repo, symbol, team and since; t2, when it resumed; at, the run's snapshot
+# Named parameters: the stall's repo, symbol, team and since; t2, when it resumed; at, the run's snapshot. The tables
+# are the as-of views, aimed at `at` (verdict()), and call_site's versions are read up to `at`
 RESUMED = """SELECT min(effective_date) FROM call_site
 WHERE repo = :repo AND symbol = :symbol AND owner_team = :team AND known_at <= :at
   AND julianday(effective_date) > julianday(:since)"""
 VERDICTS = (
     (1, "block_removed", """SELECT DISTINCT k.call_site_id, k.effective_date FROM blocked_by b
 JOIN call_site a ON a.call_site_id = b.call_site_id JOIN call_site k ON k.call_site_id = b.blocker_id
-WHERE a.repo = :repo AND a.symbol = :symbol AND a.owner_team = :team AND k.status = 'removed' AND k.known_at <= :at
+WHERE a.repo = :repo AND a.symbol = :symbol AND a.owner_team = :team AND a.known_at <= :at
+  AND k.status = 'removed' AND k.known_at <= :at
   AND julianday(:t2) - julianday(k.effective_date) BETWEEN 0 AND :block_days"""),
-    (2, "ticket_created", """SELECT DISTINCT t.key, t.created_at FROM main.ticket t
-JOIN main.ticket_map m ON m.key = t.key AND m.target_kind = 'call_site' JOIN call_site s ON s.call_site_id = m.target
-WHERE s.repo = :repo AND s.symbol = :symbol AND s.owner_team = :team
+    (2, "ticket_created", """SELECT DISTINCT t.key, t.created_at FROM ticket t
+JOIN ticket_map m ON m.key = t.key AND m.target_kind = 'call_site' JOIN call_site s ON s.call_site_id = m.target
+WHERE s.repo = :repo AND s.symbol = :symbol AND s.owner_team = :team AND s.known_at <= :at
   AND julianday(:t2) - julianday(t.created_at) BETWEEN 0 AND :ticket_days"""),
-    (3, "ticket_reopened", """SELECT DISTINCT e.key, e.at FROM main.ticket_event e
-JOIN main.ticket_map m ON m.key = e.key AND m.target_kind = 'call_site' JOIN call_site s ON s.call_site_id = m.target
-WHERE s.repo = :repo AND s.symbol = :symbol AND s.owner_team = :team AND e.field = 'status'
+    (3, "ticket_reopened", """SELECT DISTINCT e.key, e.at FROM ticket_event e
+JOIN ticket_map m ON m.key = e.key AND m.target_kind = 'call_site' JOIN call_site s ON s.call_site_id = m.target
+WHERE s.repo = :repo AND s.symbol = :symbol AND s.owner_team = :team AND s.known_at <= :at AND e.field = 'status'
   AND lower(coalesce(e.from_value, '')) IN ('done', 'closed', 'resolved')
   AND lower(coalesce(e.to_value, '')) NOT IN ('done', 'closed', 'resolved')
   AND julianday(e.at) > julianday(:since) AND julianday(e.at) <= julianday(:t2)"""),
@@ -135,27 +161,92 @@ POLICIES = {p.policy_id: p for p in [Policy("stall-v0", "stall", 0, "rh", stall_
 
 def point(db, at, repo=None, symbol=None, run_id=None, q=None):
     """Aim KNOWLEDGE-BASE.md's queries at one moment: the one-row asof table they read (repo or symbol None means
-    all), and the setup views over it, made once per connection. Temp objects only: a read-only block is fine."""
+    all), the run each derived table is known from then (known_run), and the setup and as-of views over them, made
+    once per connection. Temp objects only: a read-only block is fine."""
     q = q or kb_queries()
     db.execute("CREATE TEMP TABLE IF NOT EXISTS asof (run_id TEXT, at TEXT, repo TEXT, symbol TEXT)")
     db.execute("DELETE FROM asof")
     db.execute("INSERT INTO asof VALUES (?, ?, ?, ?)", (run_id, at, repo, symbol))
+    db.execute("CREATE TEMP TABLE IF NOT EXISTS known_run (tbl TEXT PRIMARY KEY, run_id TEXT NOT NULL)")
+    db.execute("DELETE FROM known_run")
+    db.executemany("INSERT INTO known_run VALUES (?, ?)", sorted(known_runs(db, at).items()))
     if not db.execute("SELECT 1 FROM sqlite_temp_master WHERE type = 'view' AND name = 'site_now'").fetchone():
         db.executescript(q["setup"] + AS_OF)
     return db
 
 
-# Temp views shadow the block's ticket tables (SQLite reads temp first), so the queries never see a ticket created,
-# mapped or changed after asof.at: at an earlier moment than the snapshot, they'd say "never notified" was false.
-# shortcut: file_owner, blocked_by, git_commit and ticket.status are still as of the snapshot; known_at work, Nov 10
+def run_snapshots(db):
+    """{run_id: snapshot_at} for every run the block has rows of: the run table, and call_site's known_at for one it
+    doesn't list."""
+    runs = dict(db.execute("SELECT run_id, snapshot_at FROM main.run"))
+    for run_id, at in db.execute("SELECT run_id, max(known_at) FROM main.call_site GROUP BY run_id"):
+        runs.setdefault(run_id, at)
+    return runs
+
+
+def known_runs(db, at):
+    """{table: run_id} for each DERIVED table a run at or before `at` wrote rows to: the newest such run."""
+    runs = sorted(((snap, r) for r, snap in run_snapshots(db).items() if snap <= at), reverse=True)
+    out = {}
+    for t in DERIVED:
+        for _, run_id in runs:
+            if db.execute(f"SELECT 1 FROM main.{t} WHERE run_id = ? LIMIT 1", (run_id,)).fetchone():
+                out[t] = run_id
+                break
+    return out
+
+
+def unknown(db, needs):
+    """The keys of `needs` (reason numbers or rule names) that read a table no run had written where asof points."""
+    known = {t for (t,) in db.execute("SELECT tbl FROM known_run")}
+    return sorted(k for k, tables in needs.items() if not set(tables) <= known)
+
+
+def unknown_at(db, at, needs=NEEDS, q=None):
+    """(the keys of `needs` unknown at `at`, the tables behind them). Points the views at `at`, every repo."""
+    point(db, at, None, None, None, q)
+    keys = unknown(db, needs)
+    known = {t for (t,) in db.execute("SELECT tbl FROM known_run")}
+    return keys, sorted({t for k in keys for t in needs[k]} - known)
+
+
+def _as_then(field, pulled):
+    """SQL: a ticket's `field` at asof.at, from ticket_event. The newest change at or before then, else what the first
+    later change changed it from (NULL when that isn't on record), else `pulled`: a field with no change on record."""
+    ev = f"FROM main.ticket_event e WHERE e.run_id = t.run_id AND e.key = t.key AND e.field = '{field}'"
+    return (f"CASE WHEN EXISTS (SELECT 1 {ev} AND e.at <= a.at)\n"
+            f"       THEN (SELECT e.to_value {ev} AND e.at <= a.at ORDER BY e.at DESC, e.seq DESC LIMIT 1)\n"
+            f"     WHEN EXISTS (SELECT 1 {ev})\n"
+            f"       THEN (SELECT e.from_value {ev} AND e.at > a.at ORDER BY e.at, e.seq LIMIT 1)\n"
+            f"     ELSE {pulled} END")
+
+
+# Temp views shadow the block's tables (SQLite reads temp first), so the queries never read a row known after asof.at:
+# at an earlier moment than the snapshot, a later ticket would say "never notified" was false, a later commit that its
+# owner wasn't away, a later import that a test covered the module. A ticket's status, resolution and resolved_at are
+# as of the pull, so they're rebuilt; without a status change on record, a ticket resolved after then wasn't done then
+# (NULL: its status then isn't known). ticket_event's key is (run_id, key, at, seq), so each lookup uses it.
 # ticket_map drops the maps of later tickets as one list, built once: per map row (NOT EXISTS on key) it scanned all of
-# ticket, since ticket's key is (run_id, key). Over 7 minutes on a real block's 246,428 maps, 0.3 s this way
-AS_OF = """
-CREATE TEMP VIEW ticket AS SELECT t.* FROM main.ticket t, asof WHERE t.created_at <= asof.at;
+# ticket, since ticket's key is (run_id, key). Over 7 minutes on a real block's 246,428 maps, 0.3 s this way. So does
+# commit_file. Each DERIVED table keeps the rows of the run known_run names, and none when it names none. As IN, not
+# a join: on the real block a join kept SQLite from indexing person_alias, and stall_competing_load took 4.9 s a
+# (repo, symbol) pair instead of 3.2 s, the same as before these views
+AS_OF = f"""
+CREATE TEMP VIEW ticket AS
+SELECT t.run_id, t.key, t.tracker, t.type, t.effective_type, t.parent_key,
+       {_as_then("status", "CASE WHEN t.resolved_at > a.at THEN NULL ELSE t.status END")} AS status,
+       {_as_then("resolution", "CASE WHEN t.resolved_at > a.at THEN NULL ELSE t.resolution END")} AS resolution,
+       t.created_at, CASE WHEN t.resolved_at <= a.at THEN t.resolved_at END AS resolved_at, t.components, t.assignee,
+       t.reporter, t.bulk_closed, t.desc_empty, t.summary, t.description
+FROM main.ticket t, asof a WHERE t.created_at <= a.at;
 CREATE TEMP VIEW ticket_map AS SELECT m.* FROM main.ticket_map m
 WHERE m.key NOT IN (SELECT t.key FROM main.ticket t, asof a WHERE t.created_at > a.at);
 CREATE TEMP VIEW ticket_event AS SELECT e.* FROM main.ticket_event e, asof WHERE e.at <= asof.at;
-"""
+CREATE TEMP VIEW git_commit AS SELECT g.* FROM main.git_commit g, asof WHERE g.authored_at <= asof.at;
+CREATE TEMP VIEW commit_file AS SELECT f.* FROM main.commit_file f
+WHERE f.sha NOT IN (SELECT g.sha FROM main.git_commit g, asof a WHERE g.authored_at > a.at);
+""" + "".join(f"CREATE TEMP VIEW {t} AS SELECT x.* FROM main.{t} x "
+              f"WHERE x.run_id IN (SELECT k.run_id FROM known_run k WHERE k.tbl = '{t}');\n" for t in DERIVED)
 
 
 def _key(row):
@@ -164,14 +255,18 @@ def _key(row):
 
 
 def stalls(db, cfg, q=None):
-    """The stalled teams where asof points, by team, each with the reasons that fire and their evidence rows."""
+    """The stalled teams where asof points, by team, each with the reasons that fire and their evidence rows. A
+    reason that reads a table unknown then (NEEDS) is left out: unknown isn't true or false."""
     q = q or kb_queries()
     _, repo, symbol = db.execute("SELECT at, repo, symbol FROM asof").fetchone()
     stalled = {team: (left, days) for team, left, _, days, _ in db.execute(q["owner_teams"])
                if left and days is not None and days >= cfg["rules"]["stall_days"]}
     since = dict(db.execute("SELECT owner_team, max(effective_date) FROM site_now GROUP BY owner_team"))
     facts = {team: {} for team in stalled}
+    hidden = set(unknown(db, NEEDS))
     for n, (_, name) in REASONS.items():
+        if n in hidden:
+            continue
         for team, *evidence in db.execute(q[name]):
             if team in facts:
                 facts[team].setdefault(n, []).append(tuple(evidence))
@@ -190,6 +285,20 @@ def block_stalls(db, cfg, at, run_id=None, q=None):
     return out
 
 
+def stalls_at(db, cfg, at, run_id=None, q=None, cache=None):
+    """block_stalls(), read once per moment when `cache` (a dict) is given: live and replay share moments."""
+    if cache is None:
+        return block_stalls(db, cfg, at, run_id, q)
+    if at not in cache:
+        cache[at] = block_stalls(db, cfg, at, run_id, q)
+    return cache[at]
+
+
+def snapshots(db, at):
+    """Every run's snapshot in the block at or before `at`, oldest first: the moments replay walks."""
+    return sorted({snap for snap in run_snapshots(db).values() if snap <= at})
+
+
 def previous_snapshot(db, at):
     """The last run before `at` in this block: call_site keeps every run's rows, and each known_at is a run's
     snapshot. None when the block has one run."""
@@ -206,8 +315,10 @@ def resumed(db, stall, at):
     return db.execute(RESUMED, _args(stall, at, DEFAULTS)).fetchone()[0]
 
 
-def verdict(db, stall, t2, at, s):
-    """The verdict rules that fire for a stall that resumed at t2: {reason number: (rule, evidence rows)}."""
+def verdict(db, stall, t2, at, s, q=None):
+    """The verdict rules that fire for a stall that resumed at t2, from what the block knows by `at`: {reason number:
+    (rule, evidence rows)}. Points the views at `at`, where unknown(db, RULE_NEEDS) then says which couldn't fire."""
+    point(db, at, stall.repo, stall.symbol, None, q)
     fired = {}
     for n, rule, sql in VERDICTS:
         rows = db.execute(sql, _args(stall, at, s, t2)).fetchall()
@@ -229,14 +340,42 @@ def shadow_matches(stall, reason, policies, mode, source, decided_by, decided_at
             for a, b in itertools.combinations(sorted(place), 2)]
 
 
+def ended(db, cfg, s, run_id, before, after, players, mode, done=(), played=(), q=None, cache=None):
+    """The stalls open at `before` and not at `after` (they ended), each with its verdict as of `after`. When it's one
+    reason, known when the stall was served, every pair of `players` plays a `mode` match on it. done: tasks decided
+    already, left out. played: (task_id, policy_a, policy_b) decided already, no match again."""
+    q = q or kb_queries()
+    now = {x.task_id for x in stalls_at(db, cfg, after, run_id, q, cache)}
+    then = stalls_at(db, cfg, before, run_id, q, cache)
+    hidden = tuple(unknown_at(db, before, NEEDS, q)[0])
+    out = []
+    for x in then:
+        if x.task_id in now or x.task_id in done:
+            continue
+        t2 = resumed(db, x, after)
+        fired, unchecked = {}, ()
+        if t2:
+            fired = verdict(db, x, t2, after, s, q)
+            unchecked = tuple(unknown(db, RULE_NEEDS))
+        reason, rule, rows = None, None, []
+        if len(fired) == 1 and not unchecked:
+            [(reason, (rule, _))] = fired.items()
+            if reason not in hidden and len(players) > 1:
+                rows = [m for m in shadow_matches(x, reason, players, mode, "rule", rule, after)
+                        if (m["task_id"], m["policy_a"], m["policy_b"]) not in played]
+        out.append(Outcome(x, t2, fired, reason, rule, rows, hidden, unchecked))
+    return out
+
+
 Job = namedtuple("Job", "league eps live open served outcomes matches")
 
 
-def stall_job(db, cfg, s, run_id, at, prev_at, log, policies=None, q=None):
+def stall_job(db, cfg, s, run_id, at, prev_at, log, policies=None, q=None, cache=None):
     """One run of the stall job (04 §9), on a block as of `at`. `log`: the match rows decided so far.
 
     open: the stalls now, each served the champion's ranking or, ε of the time, a challenger's (served).
-    outcomes: the stalls open at `prev_at` that aren't now, with their verdicts. matches: the new live match rows.
+    outcomes: the stalls open at `prev_at` that aren't now, with their verdicts. matches: the new live match rows,
+    between the policies that existed at `prev_at`, when the stall was served.
     """
     q = q or kb_queries()
     policies = {p: x for p, x in (POLICIES if policies is None else policies).items() if x.job == "stall"}
@@ -244,25 +383,39 @@ def stall_job(db, cfg, s, run_id, at, prev_at, log, policies=None, q=None):
     live = sum(league.live.values()) // 2
     eps = epsilon(live, s)
     challengers = [p for p in sorted(policies) if p != league.champion]
-    found = block_stalls(db, cfg, at, run_id, q)
+    found = stalls_at(db, cfg, at, run_id, q, cache)
     served = {x.task_id: serve(run_id, x.task_id, league.champion, challengers, eps) for x in found}
     outcomes, new = [], []
     if prev_at:
-        now, done = {x.task_id for x in found}, {m["task_id"] for m in log}
         players = [policies[p] for p in sorted(policies) if policies[p].created_at <= prev_at]
-        for x in block_stalls(db, cfg, prev_at, run_id, q):
-            if x.task_id in now or x.task_id in done:
-                continue
-            t2 = resumed(db, x, at)
-            fired = verdict(db, x, t2, at, s) if t2 else {}
-            reason, rule, rows = None, None, []
-            if len(fired) == 1:
-                [(reason, (rule, _))] = fired.items()
-                if len(players) > 1:
-                    rows = shadow_matches(x, reason, players, "live", "rule", rule, at)
-            outcomes.append(Outcome(x, t2, fired, reason, rule, rows))
-            new += rows
+        outcomes = ended(db, cfg, s, run_id, prev_at, at, players, "live", {m["task_id"] for m in log}, (), q, cache)
+        new = [m for o in outcomes for m in o.matches]
     return Job(league, eps, live, found, served, outcomes, new)
+
+
+# pairs: (one run's snapshot, the next's), oldest first. outcomes: {pair: [Outcome]}. matches: the new replay rows
+Replay = namedtuple("Replay", "pairs outcomes matches")
+
+
+def replay_job(db, cfg, s, run_id, at, log, policies=None, q=None, cache=None):
+    """04 §9's replay over the block up to `at`: past stalls, rows known by then only, every policy in the code.
+
+    For each pair of consecutive runs, the stalls open at the first and not at the second, with verdicts as of the
+    second, and a replay match between every pair of policies on each one that pair hasn't played (`log`, live or
+    replay). A replay match moves Elo half as far and never counts toward promotion (League).
+    """
+    q = q or kb_queries()
+    players = [x for _, x in sorted((POLICIES if policies is None else policies).items()) if x.job == "stall"]
+    played = {(m["task_id"], m["policy_a"], m["policy_b"]) for m in log}
+    runs = snapshots(db, at)
+    pairs = list(zip(runs, runs[1:]))
+    outcomes, new = {}, []
+    for before, after in pairs:
+        outcomes[before, after] = ended(db, cfg, s, run_id, before, after, players, "replay", (), played, q, cache)
+        rows = [m for o in outcomes[before, after] for m in o.matches]
+        played |= {(m["task_id"], m["policy_a"], m["policy_b"]) for m in rows}
+        new += rows
+    return Replay(pairs, outcomes, new)
 
 
 def policy_log(db):
@@ -415,7 +568,7 @@ def match_log(db, at=None):
     return [dict(zip(MATCH_COLUMNS, r)) for r in db.execute(sql, (at,) if at else ())]
 
 
-def describe_outcome(o):
+def describe_outcome(o, no_match="fewer than two policies existed when it was served, so no match"):
     x = o.stall
     head = f"  {x.repo} {x.symbol} · {x.team}, stalled since {x.since}: "
     if not o.resumed:
@@ -423,8 +576,12 @@ def describe_outcome(o):
     head += f"resumed {o.resumed} · "
     if o.reason:
         said = f"{o.rule} → {o.reason} {REASONS[o.reason][0]}"
-        return head + said + (f": {len(o.matches)} match(es)" if o.matches
-                              else ": fewer than two policies existed when it was served, so no match")
+        if o.reason in o.unknown:
+            return head + said + ": unknown when it was served, so no policy ranked it: no match"
+        return head + said + (f": {len(o.matches)} match(es)" if o.matches else f": {no_match}")
+    if o.unchecked:
+        fired = ", ".join(f"{rule} → {n}" for n, (rule, _) in sorted(o.fired.items())) or "none"
+        return head + f"fired: {fired}, but {', '.join(o.unchecked)} couldn't be checked then: a person picks"
     if o.fired:
         rules = ", ".join(f"{rule} → {n}" for n, (rule, _) in sorted(o.fired.items()))
         return head + f"rules disagree ({rules}): a person picks"
@@ -468,7 +625,8 @@ def report(db, cfg, s, run_id, at, path, prev_at=None, out=None):
 
     matches = match_log(db, at)
     prev_at = prev_at or previous_snapshot(db, at)
-    job = stall_job(db, cfg, s, run_id, at, prev_at, matches)
+    q, cache = kb_queries(), {}
+    job = stall_job(db, cfg, s, run_id, at, prev_at, matches, q=q, cache=cache)
     pairs = len({(x.repo, x.symbol) for x in job.open})
     log(f"run {run_id} as of {at}: {len(job.open)} stalled team(s) in {pairs} tracked repo and symbol pair(s)")
     for stall in job.open:
@@ -477,16 +635,34 @@ def report(db, cfg, s, run_id, at, path, prev_at=None, out=None):
         f"the champion's ranking, or a challenger's ε of the time")
     if prev_at:
         log(f"since the last run ({prev_at}): {len(job.outcomes)} stall(s) ended, {len(job.matches)} new match(es)")
+        say_unknown(db, prev_at, q)
         for o in job.outcomes:
             log(describe_outcome(o))
     else:
         log("no earlier run in this block, so no stall can have ended yet")
 
-    league = standings(matches + job.matches, s)
+    rep = replay_job(db, cfg, s, run_id, at, matches + job.matches, q=q, cache=cache)
+    if not rep.pairs:
+        log("replay: the block holds one run, so there's no past stall to replay")
+    else:
+        n_ended = sum(len(v) for v in rep.outcomes.values())
+        log(f"replay over {len(rep.pairs)} pair(s) of runs, every policy in the code: {n_ended} stall(s) ended, "
+            f"{len(rep.matches)} new replay match(es), each at half K and never toward promotion")
+        for (before, after), outcomes in rep.outcomes.items():
+            log(f"  {before} → {after}: {len(outcomes)} ended, {sum(len(o.matches) for o in outcomes)} match(es)")
+            if (before, after) != (prev_at, at):  # the live part above said that pair's
+                say_unknown(db, before, q)
+            for o in outcomes:
+                if o.matches or (before, after) != (prev_at, at):
+                    log("  " + describe_outcome(o, "every pair of policies has played it already, so no new match"))
+
+    new = job.matches + rep.matches
+    league = standings(matches + new, s)
     live = sum(league.live.values()) // 2
-    log(f"Elo from {len(matches)} match(es) in the log" + (f" and {len(job.matches)} new" if job.matches else "")
+    log(f"Elo from {len(matches)} match(es) in the log" + (f" and {len(new)} new" if new else "")
         + f", {live} live" + ("" if live else ": no live verdicts yet (no users), so promotion can't happen"))
-    for pid in sorted(set(POLICIES) | set(league.rating), key=lambda p: (-league.rating.get(p, s["elo_start"]), p)):
+    stall_ids = {p for p, x in POLICIES.items() if x.job == "stall"}
+    for pid in sorted(stall_ids | set(league.rating), key=lambda p: (-league.rating.get(p, s["elo_start"]), p)):
         log(f"  {pid:<12} {league.rating.get(pid, s['elo_start']):7.1f}  {league.played.get(pid, 0)} match(es)")
     for at_, was, now in league.promotions:
         log(f"promoted at {at_}: {now} replaced {was}")
@@ -495,10 +671,19 @@ def report(db, cfg, s, run_id, at, path, prev_at=None, out=None):
             log(f"  {p} stays a challenger: {'; '.join(league.guard(p))}")
 
     if out:
-        n_policies, n_matches = write_tracking(out, at, POLICIES, policy_log(db), matches, job.matches)
+        n_policies, n_matches = write_tracking(out, at, POLICIES, policy_log(db), matches, new)
         newer = sorted(p for p, x in POLICIES.items() if x.created_at > at)
         log(f"wrote {out}/policy.jsonl ({n_policies} row(s)) and match.jsonl ({n_matches})"
             + (f": {', '.join(newer)} came after this block's snapshot, so they're left out" if newer else ""))
+
+
+def say_unknown(db, at, q=None):
+    """Log the stall reasons unknown at `at`, if any, and why."""
+    reasons, tables = unknown_at(db, at, NEEDS, q)
+    if reasons:
+        names = ", ".join(f"{n} {REASONS[n][0]}" for n in reasons)
+        log(f"  as of {at}, reasons {names} are unknown: no run by then wrote {', '.join(tables)} (a block keeps "
+            f"only its own run's), so no policy ranked them then")
 
 
 if __name__ == "__main__":

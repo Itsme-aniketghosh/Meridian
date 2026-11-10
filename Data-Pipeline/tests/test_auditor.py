@@ -30,6 +30,17 @@ def fixture(at=K.R2[1]):
     return A.point(K.build(), at, K.REPO, K.SYMBOL, "R2")
 
 
+def build():
+    """The fixture, with R1 having written the tables the stall reasons derive from too, the same as R2's: the
+    story's owners, imports and the platform block were all there by Sep 1. K.build() has them at R2 only, like a real
+    block, so as of R1 the reasons that read them are unknown there (KnownAt)."""
+    db = K.build()
+    for t in ("blocked_by", "file_owner", "person_alias", "team_map", "module_import"):
+        cols = ", ".join(r[1] for r in db.execute(f"PRAGMA table_info({t})") if r[1] != "run_id")
+        db.execute(f"INSERT INTO {t} (run_id, {cols}) SELECT 'R1', {cols} FROM {t} WHERE run_id = 'R2'")
+    return db
+
+
 def match(i, a, b, result, mode="live", at="2026-10-01T00:00:00Z"):
     return dict(match_id=f"m{i:05d}", task_id=f"t{i}", policy_a=a, policy_b=b, result=result, mode=mode,
                 verdict_source="rule", decided_by="fixture", decided_at=at)
@@ -54,12 +65,12 @@ def add_ticket(db, key, created_at, site):
     db.execute("INSERT INTO ticket_map VALUES ('R2', ?, 'call_site', ?, 'symbol')", (key, site))
 
 
-def remove_site(db, site, on):
-    """A new version of `site`: removed on `on`, known at R2."""
+def remove_site(db, site, on, run=K.R2):
+    """A new version of `site`: removed on `on`, known at `run`."""
     cols = [r[1] for r in db.execute("PRAGMA table_info(call_site)")]
     row = dict(zip(cols, db.execute("SELECT * FROM call_site WHERE call_site_id = ? ORDER BY known_at DESC",
                                     (site,)).fetchone()))
-    row.update(run_id="R2", status="removed", effective_date=on, known_at=K.R2[1])
+    row.update(run_id=run[0], status="removed", effective_date=on, known_at=run[1])
     db.execute(f"INSERT INTO call_site ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
                [row[c] for c in cols])
 
@@ -104,6 +115,88 @@ class AsOfTicketMap(unittest.TestCase):
                         db.execute("SELECT count(*) FROM main.ticket_map").fetchone()[0])
 
 
+def add_run(db, run):
+    db.execute("INSERT INTO run (run_id, snapshot_at, repo_shas, source_hashes, config_hash, image_digest, status) "
+               "VALUES (?, ?, '{}', '{}', 'x', 'x', 'complete')", run)
+
+
+class KnownAt(unittest.TestCase):
+    """05-test's Auditor bar 'known_at leak' (pass-bars.md §4): facts as of a moment read only the rows known by then.
+    Rows go in before point() puts its views over the tables."""
+
+    def test_a_table_a_run_derives_is_unknown_before_that_runs_snapshot(self):
+        """K.build() has R2's owners, imports and blocks only, like a real block. As of R1 the reasons that read them
+        are unknown and don't fire: an empty module_import would have made 7 Test gap fire for every team."""
+        db = K.build()
+        tables = ["blocked_by", "file_owner", "module_import", "person_alias", "team_map"]
+        self.assertEqual(A.unknown_at(db, K.R1[1]), ([1, 4, 7, 8], tables))
+        r1 = {x.team: sorted(x.facts) for x in A.block_stalls(db, CFG, K.R1[1], "R2")}
+        self.assertEqual(r1, {"billing": [2], "checkout": [5], "fulfillment": [], "payments": [], "platform": [],
+                              "search": [2]})
+        self.assertEqual(A.unknown_at(db, K.R2[1]), ([], []))
+        self.assertEqual(A.unknown_at(build(), K.R1[1]), ([], []))  # R1 wrote its own
+
+    def test_a_tickets_status_and_resolution_are_rebuilt_as_of_the_moment(self):
+        db = K.build()
+        db.executemany("INSERT INTO ticket_event VALUES ('R2', 'PAY-10', ?, ?, ?, ?, 'pia@acme.test', ?)", [
+            ("2026-08-10T00:00:00Z", "status", "Open", "In Progress", 0),
+            ("2026-09-15T00:00:00Z", "status", "In Progress", "Closed", 0),
+            ("2026-09-15T00:00:00Z", "resolution", None, "Fixed", 1)])
+
+        def then(at):
+            return A.point(db, at).execute("SELECT status, resolution, resolved_at FROM ticket WHERE key = 'PAY-10'"
+                                           ).fetchone()
+
+        self.assertEqual(then("2026-08-01T00:00:00Z"), ("Open", None, None))  # what its first change changed from
+        self.assertEqual(then(K.R1[1]), ("In Progress", None, None))
+        self.assertEqual(then(K.R2[1]), ("Closed", "Fixed", "2026-09-15T00:00:00Z"))
+        self.assertIsNone(then("2026-05-01T00:00:00Z"))  # created Jun 1
+
+    def test_with_no_change_on_record_a_ticket_resolved_later_wasnt_done_then(self):
+        """PAY-10 was closed on Sep 15 and its site is still there: 3 Ticket mismatch at R2, not at R1."""
+        db, q = build(), A.kb_queries()
+
+        def mismatch(at):
+            return A.point(db, at, K.REPO, K.SYMBOL).execute(q["stall_ticket_mismatch"]).fetchall()
+
+        self.assertEqual((mismatch(K.R1[1]), mismatch(K.R2[1])), ([], [("payments", "PAY-10", "S_p1")]))
+        A.point(db, K.R1[1])
+        self.assertIsNone(db.execute("SELECT status FROM ticket WHERE key = 'PAY-10'").fetchone()[0])
+
+    def test_commits_and_their_files_are_those_authored_by_then(self):
+        """So 8 Competing load at R1 counts Bob's 2 commits in the 14 days before, not his 4 from late September."""
+        db = A.point(build(), K.R1[1])
+        tables = ("git_commit", "commit_file", "main.git_commit", "main.commit_file")
+        self.assertEqual([db.execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in tables], [9, 9, 14, 15])
+        r1 = {x.team: x.facts for x in A.block_stalls(db, CFG, K.R1[1], "R2")}
+        self.assertEqual(r1["checkout"][8], [(2, 1.75)])
+
+    def test_rows_known_after_the_moment_change_nothing_then(self):
+        """One row of each kind the stall reasons read, known after R1, each one that would change R1's facts if it
+        were read: R1's facts are the same with and without them. On Sep 20, after they're known, they do differ."""
+        clean, later = build(), build()
+        r1b = ("R1b", "2026-09-15T00:00:00Z")
+        add_run(later, r1b)
+        remove_site(later, "S_b1", "2026-09-14T00:00:00Z", r1b)  # billing's only site: billing would be done
+        add_ticket(later, "SRCH-9", "2026-09-05T00:00:00Z", "S_s2")  # search would be notified: no 2
+        later.execute("UPDATE ticket SET status = 'Done' WHERE key = 'CHK-298'")  # checkout's: 3 would fire
+        later.execute("INSERT INTO ticket_event VALUES ('R2', 'CHK-298', '2026-09-05T00:00:00Z', 'status', "
+                      "'In Progress', 'Done', 'bob@acme.test', 0)")
+        later.execute("INSERT INTO git_commit VALUES ('R2', 'acme/shop', 'f1', NULL, 99, 1, 0, '2026-09-10T00:00:00Z',"
+                      " 'ann@acme.test', 'ann@acme.test', 'back')")  # Ann is back: no 4
+        later.execute("INSERT INTO commit_file VALUES ('R2', 'acme/shop', 'f1', 'cart/pricing.py', NULL, 1, 1)")
+        later.executemany("INSERT INTO module_import VALUES ('R1b', 'acme/shop', 'tests/test_all.py', ?, ?, '', 1)",
+                          enumerate(["billing.invoice", "cart.pricing", "pay.charge", "search.q", "shared.client"]))
+        later.execute("INSERT INTO blocked_by VALUES ('R1b', 'S_c1', 'S_shared', 'acme/shop:shared/client.py:f', 1, "
+                      "'resolved')")  # checkout would be blocked: 1
+
+        def facts(db, at):
+            return {x.team: (x.since, x.facts) for x in A.block_stalls(db, CFG, at, "R2")}
+
+        self.assertEqual(facts(later, K.R1[1]), facts(clean, K.R1[1]))
+        self.assertNotEqual(facts(later, "2026-09-20T00:00:00Z"), facts(clean, "2026-09-20T00:00:00Z"))
+
+
 class PolicyV0(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -131,7 +224,7 @@ class PolicyV0(unittest.TestCase):
 
     def test_facts_at_an_earlier_moment_never_read_a_later_ticket(self):
         """billing has no ticket, so 2 Never notified fires. A ticket made on Sep 20 is known at R2, not at R1."""
-        db = K.build()
+        db = build()
         db.execute("INSERT INTO ticket (run_id, key, tracker, type, effective_type, status, created_at, bulk_closed, "
                    "desc_empty, summary) VALUES ('R2', 'BIL-9', 'jira', 'Task', 'Task', 'Open', "
                    "'2026-09-20T00:00:00Z', 0, 0, 'fixture')")
@@ -365,7 +458,7 @@ class StallJob(unittest.TestCase):
     S = A.settings({})
 
     def setUp(self):
-        self.db = K.build()
+        self.db = build()
         resumed_by(self.db, "S_c4", "sam@acme.test")
         self.policies = {"stall-v0": early("stall-v0"), "stall-v1": early("stall-v1"),
                          "stall-v8": A.Policy("stall-v8", "stall", 8, "rh", stall_v8, "2026-01-01T00:00:00Z")}
@@ -450,6 +543,76 @@ class StallJob(unittest.TestCase):
             self.assertEqual(A.write_tracking(Path(d), K.R2[1], A.POLICIES, [], [], []), (0, 0))
 
 
+class Replay(unittest.TestCase):
+    """04 §9's replay: past stalls, rows known by then only, every policy in the code, half K, never toward
+    promotion. checkout's stall at R1 resumed on Sep 12 with someone new: 4 Orphaned owner."""
+    S = A.settings({})
+
+    def setUp(self):
+        self.db = build()
+        resumed_by(self.db, "S_c4", "sam@acme.test")
+        self.v8 = A.Policy("stall-v8", "stall", 8, "rh", stall_v8, "2026-11-08T00:00:00Z")
+        self.policies = {**A.POLICIES, "stall-v8": self.v8}
+
+    def replay(self, log=(), policies=None, at=K.R2[1], run_id="R2"):
+        return A.replay_job(self.db, CFG, self.S, run_id, at, list(log), policies or self.policies)
+
+    def test_policies_written_after_the_runs_are_tried_on_them(self):
+        """The policies date from November: no live match at R2, but replay matches on checkout's stall."""
+        self.assertEqual(A.stall_job(self.db, CFG, self.S, "R2", K.R2[1], K.R1[1], [], self.policies).matches, [])
+        rep = self.replay()
+        self.assertEqual(rep.pairs, [(K.R1[1], K.R2[1])])
+        self.assertEqual([(m["policy_a"], m["policy_b"], m["result"]) for m in rep.matches],
+                         [("stall-v0", "stall-v1", "draw"), ("stall-v0", "stall-v8", "a"),
+                          ("stall-v1", "stall-v8", "a")])  # v0 and v1 put 4 first, v8 last
+        [o] = [o for o in rep.outcomes[K.R1[1], K.R2[1]] if o.reason]
+        m = rep.matches[0]
+        self.assertEqual((m["mode"], m["verdict_source"], m["decided_by"], m["decided_at"], m["task_id"]),
+                         ("replay", "rule", "new_author", K.R2[1], o.stall.task_id))
+        self.assertEqual(m["match_id"], A.h(o.stall.task_id, "replay", "stall-v0", "stall-v1", K.R2[1]))
+
+    def test_a_replay_match_moves_elo_half_as_far_and_never_toward_promotion(self):
+        rep = self.replay()
+        self.assertEqual(A.elo(rep.matches), A.elo([dict(m, mode="live") for m in rep.matches], k=16, k_after=8))
+        league = A.standings(rep.matches, self.S, self.policies)
+        self.assertEqual((league.live, league.champion), ({}, "stall-v0"))
+        self.assertEqual(league.guard("stall-v1")[0], "0 live match(es), needs 30")
+
+    def test_a_pair_plays_a_stall_once(self):
+        """v0 and v1, written before R1, play checkout's stall live. v8, written later, plays each of them in replay,
+        and a second replay adds nothing."""
+        policies = {"stall-v0": early("stall-v0"), "stall-v1": early("stall-v1"), "stall-v8": self.v8}
+        live = A.stall_job(self.db, CFG, self.S, "R2", K.R2[1], K.R1[1], [], policies).matches
+        self.assertEqual([(m["policy_a"], m["policy_b"], m["mode"]) for m in live], [("stall-v0", "stall-v1", "live")])
+        rep = self.replay(live, policies)
+        self.assertEqual([(m["policy_a"], m["policy_b"], m["mode"]) for m in rep.matches],
+                         [("stall-v0", "stall-v8", "replay"), ("stall-v1", "stall-v8", "replay")])
+        self.assertEqual(self.replay(live + rep.matches, policies).matches, [])
+
+    def test_a_verdict_on_a_reason_unknown_when_it_was_served_makes_no_match(self):
+        """K.build()'s R1 has no file_owner: 4 Orphaned owner was unknown when checkout's stall was served, so no
+        policy ranked it, and a draw would only be noise."""
+        db = K.build()
+        resumed_by(db, "S_c4", "sam@acme.test")
+        rep = A.replay_job(db, CFG, self.S, "R2", K.R2[1], [], self.policies)
+        [o] = [o for o in rep.outcomes[K.R1[1], K.R2[1]] if o.reason]
+        self.assertEqual((o.reason, o.unknown, o.matches, rep.matches), (4, (1, 4, 7, 8), [], []))
+        self.assertIn("4 Orphaned owner: unknown when it was served, so no policy ranked it: no match",
+                      A.describe_outcome(o))
+
+    def test_every_pair_of_runs_is_replayed_oldest_first(self):
+        """A third run, R3 on Nov 1, knows billing removed its only site on Oct 20: billing's stall, open at R1 and
+        R2, ended between R2 and R3."""
+        r3 = ("R3", "2026-11-01T00:00:00Z")
+        add_run(self.db, r3)
+        remove_site(self.db, "S_b1", "2026-10-20T00:00:00Z", r3)
+        rep = self.replay(at=r3[1], run_id="R3")
+        self.assertEqual(rep.pairs, [(K.R1[1], K.R2[1]), (K.R2[1], r3[1])])
+        self.assertEqual([(o.stall.team, o.resumed) for o in rep.outcomes[K.R2[1], r3[1]]],
+                         [("billing", "2026-10-20T00:00:00Z")])
+        self.assertEqual(len(rep.matches), 3)  # checkout's, from the first pair
+
+
 class RanksRight(unittest.TestCase):
     """pass-bars.md §4 'Ranks right': 3 stall policies 200 Elo apart (the better one wins 76% of head-to-heads), all
     ranking every stall in shadow, K 32 then 16. After 200 matches, Elo orders all three right in 20 of 20 seeds."""
@@ -500,10 +663,10 @@ class Simulations(unittest.TestCase):
 
 
 class Command(unittest.TestCase):
-    def run_on(self, *argv, matches=()):
+    def run_on(self, *argv, matches=(), src=None):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "block.sqlite"
-            src, dst = K.build(), sqlite3.connect(path)
+            src, dst = src or K.build(), sqlite3.connect(path)
             src.executemany("INSERT INTO match VALUES (" + ", ".join("?" * 9) + ")",
                             [[m[c] for c in A.MATCH_COLUMNS] for m in matches])
             src.commit()
@@ -530,6 +693,25 @@ class Command(unittest.TestCase):
         self.assertIn("since the last run (2026-09-01T00:00:00Z): 3 stall(s) ended, 0 new match(es)", out)
         self.assertIn("checkout, stalled since 2026-01-10T00:00:00Z: resumed 2026-09-12T00:00:00Z · no rule fired: "
                       "a person picks", out)
+
+    def test_unknown_reasons_and_replay_are_said(self):
+        _, out = self.run_on()
+        self.assertIn("as of 2026-09-01T00:00:00Z, reasons 1 Upstream block, 4 Orphaned owner, 7 Test gap, "
+                      "8 Competing load are unknown: no run by then wrote blocked_by, file_owner, module_import, "
+                      "person_alias, team_map", out)
+        self.assertIn("replay over 1 pair(s) of runs, every policy in the code: 3 stall(s) ended, 0 new replay "
+                      "match(es), each at half K and never toward promotion", out)
+
+    def test_a_replay_match_is_reported_and_rated(self):
+        db = build()
+        resumed_by(db, "S_c4", "sam@acme.test")
+        _, out = self.run_on(src=db)
+        self.assertIn("since the last run (2026-09-01T00:00:00Z): 3 stall(s) ended, 0 new match(es)", out)
+        self.assertIn("1 new replay match(es)", out)
+        self.assertIn("checkout, stalled since 2026-01-10T00:00:00Z: resumed 2026-09-12T00:00:00Z · new_author → "
+                      "4 Orphaned owner: 1 match(es)", out)
+        self.assertIn("Elo from 0 match(es) in the log and 1 new, 0 live: no live verdicts yet", out)
+        self.assertRegex(out, r"stall-v0 +1500\.0  1 match\(es\)")
 
     def test_write_leaves_out_policies_newer_than_the_block(self):
         with tempfile.TemporaryDirectory() as d:
