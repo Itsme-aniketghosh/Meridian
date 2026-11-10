@@ -236,8 +236,10 @@ def owner(b, symbol, repo=None):
     repo, symbol = b.scope(repo, symbol)
     _, (done,) = b.rows("owner_done")
     sections = [table("Done", ["removed", "call sites"], [done], headline=f"{done[0]} of {done[1]} done")]
-    sections.append(table("ETA", ["left", "removed recently", "estimated done"], b.rows("owner_eta")[1],
-                          note="no ETA when too few call sites were removed recently (meridian.toml [rules])"))
+    eta = b.rows("owner_eta")[1]
+    sections.append(table("ETA", ["left", "removed recently", "estimated done"], eta,
+                          note="" if eta and eta[0][2] else
+                          "no ETA when too few call sites were removed recently (meridian.toml [rules])"))
     teams = b.rows("owner_teams")[1]
     stalled = [t[0] for t in teams if t[4] == "stalled"]
     waiting = {}

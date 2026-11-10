@@ -227,13 +227,15 @@ SELECT sum(status = 'removed'), count(*) FROM site_now;
 
 ```sql
 -- name: owner_eta
+-- removed recently = seen removed in the last 28 days (known_at), not the commit's date: the same on nightly runs,
+-- and right when old commits land late or a replay pins historical ones (run 2: removals dated 2017-2022)
 -- expect: [[8, 4, "2026-11-26"]]
 SELECT left_, removed, CASE WHEN removed < 3 THEN NULL
                             ELSE date(at, '+' || CAST(round(left_ * 28.0 / removed) AS INTEGER) || ' days') END
 FROM (SELECT asof.at,
              (SELECT count(*) FROM site_now WHERE status = 'present') AS left_,
              (SELECT count(*) FROM site_now WHERE status = 'removed'
-                AND julianday(effective_date) > julianday(asof.at) - 28) AS removed
+                AND julianday(known_at) > julianday(asof.at) - 28) AS removed
       FROM asof);
 ```
 
