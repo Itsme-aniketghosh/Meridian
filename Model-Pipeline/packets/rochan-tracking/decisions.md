@@ -355,3 +355,33 @@ Kept as pulled: a ticket's summary, description, assignee and components. No sta
 - **Real block** 70dd1dabfed544b8. It holds one run, so there's nothing to replay, and the output says so. 68 stalls; 60 are served v0's ranking and 8 v1's, the same as Nov 8. 84 s, against 76–80 s on Nov 7: the views cost about 5–10%. A first version joined `known_run` inside the views, and SQLite stopped indexing `person_alias`: `stall_competing_load` took 4.9 s instead of 3.2 s for each of the 25 repo and symbol pairs, 121 s in all. Written as `IN`, it's back to 3.2 s.
 - **Explore on the real block.** 52 deprecation-marked functions, none with a caller in `call_edge`, which holds only the tracked symbols' call graph (gap G3). So v0 nominates nothing until G3 is closed. On the fixture, the radar's only row is `verify_token` itself, which is tracked, so it's filed.
 - **No live matches anywhere.** Every block's snapshots are older than the policies (Nov 7), and nobody has replied to anything yet.
+
+## Second look at the registry and the auditor, after they merged (Nov 10)
+
+A review of #50 (registry) and #51 (replay, explore) once both were on main. What it found, what changed, and what's written down instead.
+
+**Fixed.**
+- **A champion promoted without `--push` could never be pushed.** `run_all` calls the registry without `--push`. A later `--push` found the same model on the same table already registered, said "nothing to upload" and stopped, so Artifact Registry would never have got the champion: Nov 12's push would have failed. Now `--push` makes Artifact Registry hold the champion in force, whichever run promoted it. It sends only what isn't there yet, so a retry, or a rerun on the same commit, finishes an earlier push or sends nothing, and a different file under the same version stops it before anything is sent. A rollback to a version never pushed uploads that version first, so the pointer never names a model that isn't there.
+- **A new MLflow store judged every candidate a first model.** The champion came only from the local store's `champion` alias, and CI's store is new every run: there, any model that passed bias would have been promoted and pushed over a better champion. Now `registry/champion.json`, which PLAN §8 puts in git, is the champion when it's there, and the alias only when it isn't. Decision 7's re-score takes the champion's model from its run in this store, next to `champion.json`, or from Artifact Registry, and stops when none has it. A rollback needs the store that registered the previous version, and says so.
+- **Smaller ones.** No git sha (a Docker image built without `GIT_SHA`) stops before anything is registered, and says what to do, instead of failing inside an MLflow run. gcloud is started by its full path: on Windows it's `gcloud.cmd`, which Python can't start by its bare name. An MLflow error other than "no such alias" stops the run instead of reading as "no champion". A new pointer version always sorts after the newest, even within the same second.
+- **Replay matches were dated in the past.** A replay match took the past pair's snapshot as `decided_at`. A policy tried on old stalls would have put its matches before live matches already decided, and changed the ratings and promotions those gave. Now it's dated when it's played: the run's snapshot.
+
+**Checked.** 70 registry tests (31 new) and 79 auditor tests (1 new; it fails with the old dating). A second drill on the real repo, in two new throwaway packages, `drill2-model` and `drill2-champion`:
+1. A model registered without `--push` leaves nothing on GCP.
+2. The same model with `--push` is uploaded, with the first pointer: the package didn't exist yet, as `champion` won't on Nov 12.
+3. `--push` again sends nothing.
+4. A better model under the next commit is uploaded.
+5. `--rollback --push` adds only a pointer.
+6. Both models come back from GCP byte for byte, and the newest pointer is the local `champion.json`.
+7. CI's case, a new store with only `champion.json`, sends nothing and registers nothing.
+8. Another model under a version already there is stopped, and nothing is sent.
+
+**Written down, not changed.**
+- **Ticket maps aren't cut per run, so the Nov 9 "no look-ahead" result overstated it.** `ticket_map` rows are cut only by their ticket's creation date. But a run makes its maps from the call sites present at its snapshot and the ticket text as pulled then, just like the 8 derived tables. So as of an earlier run, a map to a site gone by the block's run is missing, and one made from newer text is read early. The planted-row test planted a later ticket, never a later run's map of an earlier ticket, which is why it passed. Effect today: none. The v1 block's 246,428 maps go to paths (208,551) or nowhere (37,877), none to a call site, and it holds one run. The fix is to make `ticket_map` a derived table (`known_run`), with reasons 2 and 3 and the rules `ticket_created` and `ticket_reopened` unknown before its run. Not done at the code freeze: it changes Vishwa's as-of `ticket_map` test and what her open views PR reads at earlier moments.
+- **Verdicts 1 and 4 can't make matches on a real block yet.** They read derived tables, which a block keeps only for its own run. The fix is upstream: the writer carrying each run's derived tables forward.
+- **Commits are cut by `authored_at`**, not by when they reached main: one authored before the moment and merged after it counts early.
+- **Live matches re-rank each stall** with the policies' code at the verdict, not the ranking logged when it was served. These are the same while a policy's code doesn't change: a changed policy is a new version.
+- **A Docker image can't `--push`**: git can't say there whether the code was committed. CI should push from the checkout, not from the image.
+- **The bias report and seed noise name the candidate by column**, not by model md5, so a stale report for the same column isn't caught.
+- **`radar_deprecated_with_callers` counts calls, not distinct callers**, and counts each call once per deprecation marker on the function. Nothing is nominated on the real block yet (gap G3), so it changes nothing today.
+- **Decision 6 tries every order of the seeds**: 120 at Rachna's 5, too slow past about 9.

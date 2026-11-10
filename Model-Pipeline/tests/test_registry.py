@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -262,8 +263,19 @@ class Store(unittest.TestCase):
                 "bias": write(folder, "bias_report.json", {**BIAS, "candidate": "forest", "pass": bias_pass}),
                 "noise": write(folder, "seed_noise.json", {**NOISE, "sd": sd})}
 
-    def register(self, paths, **kw):
-        return reg.register(paths, self.s, CONFIG, FEATURES, self.champion, say=self.said.append, **kw)
+    def register(self, paths, sha=None, **kw):
+        """sha: the commit to file it under, for tests with more than one version on Artifact Registry."""
+        if sha is None:
+            return reg.register(paths, self.s, CONFIG, FEATURES, self.champion, say=self.said.append, **kw)
+        with mock.patch("model.tracking.git_state", return_value=(sha, "false")):
+            return reg.register(paths, self.s, CONFIG, FEATURES, self.champion, say=self.said.append, **kw)
+
+    def new_store(self):
+        """A second, empty MLflow store, as on CI: champion.json is all that's left of the first."""
+        env = mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{self.dir / 'ci' / 'mlflow.db'}"})
+        (self.dir / "ci").mkdir()
+        env.start()
+        self.addCleanup(env.stop)
 
     def aliases(self):
         _, client = reg._client()
@@ -318,7 +330,7 @@ class Promotion(Store):
         again = self.register(self.files(0.40, bias_pass=False, model_bytes=b"one model"), push=True)
         self.assertEqual((first["version"], again["version"]), (1, 1))
         self.assertIn("isn't registered again: its bias report didn't pass", self.said[-2])
-        self.assertEqual(self.said[-1], "--push: nothing to upload, nothing was promoted")
+        self.assertEqual(self.said[-1], "--push: there's no champion yet, so nothing to upload")
 
     def test_the_champion_sent_again_is_left_alone(self):
         self.register(self.files(0.40, model_bytes=b"one model"))
@@ -391,38 +403,89 @@ class Rescore(Store):
         self.assertEqual((tags["compared"], float(tags["champion_pr_auc"])), ("stored: same table", 0.40))
 
 
+class FakeGCP:
+    """Artifact Registry as gcloud shows it, in memory: generic upload, files list, versions list, generic download
+    and auth list. Like the real one, a file can't be uploaded to a version twice."""
+
+    def __init__(self, signed_in="me@example.com"):
+        self.held, self.calls, self.signed_in = {}, [], signed_in  # held: {(package, version): {file name: bytes}}
+
+    def __call__(self, cmd, **kw):
+        self.calls.append(list(cmd))
+        args = dict(a[2:].split("=", 1) for a in cmd if a.startswith("--") and "=" in a)
+        what, out = cmd[1:4], ""
+        files = self.held.get((args.get("package"), args.get("version")), {})
+        if what[:2] == ["auth", "list"]:
+            out = self.signed_in
+        elif what == ["artifacts", "generic", "upload"]:
+            source = Path(args["source"])
+            if source.name in files:
+                return mock.Mock(returncode=1, stdout="", stderr=f"ALREADY_EXISTS: {source.name}")
+            self.held.setdefault((args["package"], args["version"]), {})[source.name] = source.read_bytes()
+        elif what == ["artifacts", "files", "list"]:
+            out = json.dumps([{"name": f"projects/p/locations/l/repositories/r/files/{args['package']}:"
+                                       f"{args['version']}:{n}",
+                               "hashes": [{"type": "SHA256", "value": hashlib.sha256(b).hexdigest()},
+                                          {"type": "MD5", "value": hashlib.md5(b).hexdigest()}]}
+                              for n, b in files.items()])
+        elif what == ["artifacts", "versions", "list"]:
+            versions = sorted(v for p, v in self.held if p == args["package"])
+            if not versions:
+                return mock.Mock(returncode=1, stdout="", stderr='Requested package does not exist: "status": '
+                                                                 '"NOT_FOUND"')
+            out = "\n".join(versions) + "\n"
+        elif what == ["artifacts", "generic", "download"]:
+            if args["name"] not in files:
+                return mock.Mock(returncode=1, stdout="", stderr="NOT_FOUND")
+            (Path(args["destination"]) / args["name"]).write_bytes(files[args["name"]])
+        return mock.Mock(returncode=0, stdout=out, stderr="")
+
+    def uploads(self):
+        """(package, version, file name) of each upload, in order."""
+        out = []
+        for c in self.calls:
+            if c[1:4] == ["artifacts", "generic", "upload"]:
+                args = dict(a[2:].split("=", 1) for a in c if a.startswith("--"))
+                out.append((args["package"], args["version"], Path(args["source"]).name))
+        return out
+
+    def pointer(self):
+        """The champion.json the pointer package's newest version holds, or None."""
+        versions = sorted(v for p, v in self.held if p == "champion")
+        return json.loads(self.held["champion", versions[-1]]["champion.json"]) if versions else None
+
+
 class Push(Store):
     """PASS-BARS §3.3 'No credentials', and what --push sends."""
 
-    def gcloud(self, calls, signed_in="me@example.com"):
-        def run(cmd, **kw):
-            calls.append(cmd)
-            out = signed_in if cmd[:3] == ["gcloud", "auth", "list"] else ""
-            return mock.Mock(returncode=0, stdout=out, stderr="")
-        return run
+    def setUp(self):
+        super().setUp()
+        self.gcp = FakeGCP()
+        which = mock.patch("model.registry.shutil.which", return_value="/bin/gcloud")
+        which.start()
+        self.addCleanup(which.stop)
+
+    def on_gcp(self):
+        self.s = {**self.s, "project": "p"}
 
     def test_without_a_project_it_skips_and_says_so(self):
-        calls = []
-        self.register(self.files(0.40), push=True, runner=self.gcloud(calls))
-        self.assertEqual(calls, [])
+        self.register(self.files(0.40), push=True, runner=self.gcp)
+        self.assertEqual(self.gcp.calls, [])
         self.assertTrue(self.champion.exists())
         self.assertIn("--push skipped: model.toml [registry] project isn't set", self.said[-1])
 
     def test_without_gcloud_or_a_signed_in_account_it_skips(self):
-        self.s = {**self.s, "project": "p"}
+        self.on_gcp()
         with mock.patch("model.registry.shutil.which", return_value=None):
-            self.register(self.files(0.40), push=True, runner=self.gcloud([]))
+            self.register(self.files(0.40), push=True, runner=self.gcp)
         self.assertIn("gcloud isn't installed", self.said[-1])
-        with mock.patch("model.registry.shutil.which", return_value="/bin/gcloud"):
-            self.register(self.files(0.50), push=True, runner=self.gcloud([], signed_in=""))
+        self.register(self.files(0.50), push=True, runner=FakeGCP(signed_in=""))
         self.assertIn("no gcloud account is signed in", self.said[-1])
 
     def test_promotion_uploads_the_model_and_champion_json_then_the_pointer(self):
-        self.s = {**self.s, "project": "p"}
-        calls = []
-        with mock.patch("model.registry.shutil.which", return_value="/bin/gcloud"):
-            self.register(self.files(0.40), push=True, runner=self.gcloud(calls))
-        uploads = [c for c in calls if c[:4] == ["gcloud", "artifacts", "generic", "upload"]]
+        self.on_gcp()
+        self.register(self.files(0.40), push=True, runner=self.gcp)
+        uploads = [c for c in self.gcp.calls if c[1:4] == ["artifacts", "generic", "upload"]]
 
         def name(arg):  # --source=<path>: the file's name, whichever slash the path has (Windows: \)
             return Path(arg.split("=", 1)[1]).name
@@ -433,23 +496,189 @@ class Push(Store):
                                            "--package=defect-risk"])
         self.assertEqual((uploads[2][7], name(uploads[2][9])), ("--package=champion", "champion.json"))
         self.assertRegex(uploads[2][8], r"^--version=\d{8}t\d{6}z$")
+        self.assertEqual(self.gcp.pointer(), reg.read_champion(self.champion))
+
+    def test_champion_json_is_the_same_bytes_on_every_os(self):
+        """'\n' line ends, never Windows' '\r\n': else the md5 of one record differs between machines, and a push
+        from Windows would find "another champion.json" where a Mac or CI pushed the same one."""
+        self.on_gcp()
+        self.register(self.files(0.40), push=True, runner=self.gcp)
+        record = reg.read_champion(self.champion)
+        expect = (json.dumps(record, indent=2) + "\n").encode("utf-8")
+        self.assertEqual((self.champion.read_bytes(), self.gcp.held["defect-risk", "e" * 40]["champion.json"]),
+                         (expect, expect))
+
+    def test_gcloud_is_started_by_its_full_path(self):
+        """Windows: gcloud is gcloud.cmd, which subprocess can't find by its bare name."""
+        self.on_gcp()
+        with mock.patch("model.registry.shutil.which", return_value=r"C:\gcloud\bin\gcloud.cmd"):
+            self.register(self.files(0.40), push=True, runner=self.gcp)
+        self.assertEqual({c[0] for c in self.gcp.calls}, {r"C:\gcloud\bin\gcloud.cmd"})
 
     def test_uncommitted_code_isnt_pushed(self):
-        self.s = {**self.s, "project": "p"}
-        with mock.patch("model.registry.shutil.which", return_value="/bin/gcloud"), \
-                mock.patch("model.tracking.git_state", return_value=("e" * 40, "true")):
+        self.on_gcp()
+        with mock.patch("model.tracking.git_state", return_value=("e" * 40, "true")):
             with self.assertRaisesRegex(SystemExit, "needs committed code"):
-                self.register(self.files(0.40), push=True, runner=self.gcloud([]))
+                self.register(self.files(0.40), push=True, runner=self.gcp)
+        self.assertEqual(self.gcp.uploads(), [])
+
+    def test_a_model_registered_in_a_docker_image_isnt_pushed(self):
+        """No .git in the image: the sha is the GIT_SHA build arg, and git can't say the code was committed."""
+        self.on_gcp()
+        with mock.patch("model.tracking.git_state", return_value=("e" * 40, "unknown")):
+            with self.assertRaisesRegex(SystemExit, "a Docker image has no .git"):
+                self.register(self.files(0.40), push=True, runner=self.gcp)
+        self.assertEqual(self.gcp.uploads(), [])
+
+    def test_a_push_skipped_before_is_done_by_the_next_push(self):
+        """run_all registers without --push. The champion still reaches Artifact Registry on the next --push."""
+        self.on_gcp()
+        self.register(self.files(0.40, model_bytes=b"one model"))
+        self.assertEqual(self.gcp.calls, [])
+        again = self.register(self.files(0.40, model_bytes=b"one model"), push=True, runner=self.gcp)
+        self.assertEqual(again["reason"], "it's the champion")
+        self.assertEqual([u[2] for u in self.gcp.uploads()], ["model.joblib", "champion.json", "champion.json"])
+        self.assertEqual(self.gcp.held["defect-risk", "e" * 40]["model.joblib"], b"one model")
+        self.assertEqual(self.gcp.pointer(), reg.read_champion(self.champion))
+
+    def test_a_push_that_failed_halfway_sends_only_the_rest(self):
+        self.on_gcp()
+        self.register(self.files(0.40, model_bytes=b"one model"), push=True, runner=self.gcp)
+        del self.gcp.held["defect-risk", "e" * 40]["champion.json"]
+        for key in [k for k in self.gcp.held if k[0] == "champion"]:
+            del self.gcp.held[key]
+        self.gcp.calls.clear()
+        self.register(self.files(0.40, model_bytes=b"one model"), push=True, runner=self.gcp)
+        self.assertEqual(self.gcp.uploads(), [("defect-risk", "e" * 40, "champion.json"),
+                                              ("champion", self.gcp.uploads()[1][1], "champion.json")])
+
+    def test_pushing_again_sends_nothing(self):
+        """A rerun on the same commit: the model, its record and the pointer are all there already."""
+        self.on_gcp()
+        self.register(self.files(0.40, model_bytes=b"one model"), push=True, runner=self.gcp)
+        self.gcp.calls.clear()
+        self.register(self.files(0.40, model_bytes=b"one model"), push=True, runner=self.gcp)
+        self.assertEqual(self.gcp.uploads(), [])
+        self.assertIn("names it already: nothing new to send", self.said[-1])
+
+    def test_another_model_under_the_same_version_stops_before_any_upload(self):
+        self.on_gcp()
+        self.register(self.files(0.40), push=True, runner=self.gcp)
+        self.gcp.calls.clear()
+        with self.assertRaisesRegex(SystemExit, "has another model.joblib"):
+            self.register(self.files(0.50), push=True, runner=self.gcp)  # the same commit, e * 40
+        self.assertEqual(self.gcp.uploads(), [])
+
+    def test_a_model_not_promoted_still_leaves_the_champion_on_gcp(self):
+        self.on_gcp()
+        self.register(self.files(0.40, model_bytes=b"the champion"))
+        tags = self.register(self.files(0.30), push=True, runner=self.gcp, sha="1" * 40)
+        self.assertEqual(tags["promoted"], "false")
+        self.assertEqual(self.gcp.held["defect-risk", "e" * 40]["model.joblib"], b"the champion")
+        self.assertNotIn(("defect-risk", "1" * 40), self.gcp.held)
+        self.assertEqual(self.gcp.pointer()["version"], "e" * 40)
 
     def test_rollback_pushes_the_restored_record_as_the_pointer(self):
-        self.s = {**self.s, "project": "p"}
+        self.on_gcp()
+        self.register(self.files(0.40), push=True, runner=self.gcp, sha="1" * 40)
+        self.register(self.files(0.45), push=True, runner=self.gcp, sha="2" * 40)
+        self.gcp.calls.clear()
+        reg.rollback(self.s, self.champion, push=True, runner=self.gcp, say=self.said.append)
+        self.assertEqual([u[0] for u in self.gcp.uploads()], ["champion"])
+        self.assertEqual(self.gcp.pointer()["version"], "1" * 40)
+
+    def test_rollback_to_a_version_never_pushed_uploads_it_first(self):
+        """Else the pointer would name a model Artifact Registry doesn't have."""
+        self.on_gcp()
+        self.register(self.files(0.40, model_bytes=b"first"), sha="1" * 40)
+        self.register(self.files(0.45), push=True, runner=self.gcp, sha="2" * 40)
+        reg.rollback(self.s, self.champion, push=True, runner=self.gcp, say=self.said.append)
+        self.assertEqual(self.gcp.held["defect-risk", "1" * 40]["model.joblib"], b"first")
+        self.assertEqual(self.gcp.pointer()["version"], "1" * 40)
+
+    def test_pointer_versions_always_sort_after_the_newest(self):
+        real = time.gmtime
+        with mock.patch("model.registry.time.gmtime", side_effect=lambda *t: real(*t) if t else real(0)):  # now: 1970
+            self.assertEqual(reg.pointer_version(), "19700101t000000z")
+            self.assertEqual(reg.pointer_version("19700101t000000z"), "19700101t000001z")
+            self.assertEqual(reg.pointer_version("20261110t120000z"), "20261110t120001z")  # a clock behind
+
+
+class NewStore(Store):
+    """CI's MLflow store is new every run: champion.json (in git, PLAN §8) is what knows the champion."""
+
+    def test_the_champion_comes_from_champion_json(self):
+        self.register(self.files(0.40))
+        first = reg.read_champion(self.champion)
+        self.new_store()
+        tags = self.register(self.files(0.41))
+        self.assertEqual((tags["promoted"], tags["compared"], float(tags["champion_pr_auc"])),
+                         ("false", "stored: same table", 0.40))
+        self.assertIn("within the margin", tags["reason"])
+        tags = self.register(self.files(0.45))
+        self.assertEqual(tags["promoted"], "true")
+        self.assertEqual(reg.read_champion(self.champion)["previous"],
+                         {"version": first["version"], "run_id": first["run_id"]})
+        self.assertEqual(self.aliases(), {"champion": 2, "previous": None})
+
+    def test_the_champion_sent_again_isnt_registered(self):
+        self.register(self.files(0.40, model_bytes=b"one model"))
+        self.new_store()
+        tags = self.register(self.files(0.40, model_bytes=b"one model"))
+        self.assertEqual((tags["version"], tags["reason"]), (None, "it's the champion"))
+        _, client = reg._client()
+        self.assertEqual(client.search_model_versions("name = 'defect-risk'"), [])
+
+    def test_a_champion_from_another_table_needs_its_model_to_be_rescored(self):
+        self.register(self.files(0.99, features_md5="f" * 32))
+        self.new_store()
+        with self.assertRaisesRegex(SystemExit, "re-scores its model on today's val, and its model.joblib isn't"):
+            self.register(self.files(0.30, features_md5=hashlib.md5(FEATURES.read_bytes()).hexdigest()))
+
+    def test_a_champion_registered_elsewhere_is_pushed_from_there(self):
+        """CI knows the champion from champion.json only: it can't say the champion's code was committed."""
+        self.register(self.files(0.40, model_bytes=b"one model"))
+        self.new_store()
+        gcp = FakeGCP()
+        with mock.patch("model.registry.shutil.which", return_value="/bin/gcloud"):
+            self.s = {**self.s, "project": "p"}
+            with self.assertRaisesRegex(SystemExit, "another MLflow store registered this model"):
+                self.register(self.files(0.40, model_bytes=b"one model"), push=True, runner=gcp)
+            self.assertEqual(gcp.uploads(), [])
+            first = FakeGCP()  # pushed from where it was registered: then CI finds it there
+            first.held["defect-risk", "e" * 40] = {"model.joblib": b"one model",
+                                                   "champion.json": (json.dumps(reg.read_champion(self.champion),
+                                                                                indent=2) + "\n").encode()}
+            self.register(self.files(0.40, model_bytes=b"one model"), push=True, runner=first)
+        self.assertEqual(first.uploads(), [("champion", first.uploads()[0][1], "champion.json")])
+
+    def test_rollback_needs_the_store_that_holds_the_previous_version(self):
         self.register(self.files(0.40))
         self.register(self.files(0.45))
-        calls = []
-        with mock.patch("model.registry.shutil.which", return_value="/bin/gcloud"):
-            reg.rollback(self.s, self.champion, push=True, runner=self.gcloud(calls), say=self.said.append)
-        uploads = [c for c in calls if c[:4] == ["gcloud", "artifacts", "generic", "upload"]]
-        self.assertEqual([u[7] for u in uploads], ["--package=champion"])
+        self.new_store()
+        with self.assertRaisesRegex(SystemExit, "champion.json's previous is eeeeeeeeeeee, and this MLflow store "
+                                                "doesn't hold it"):
+            reg.rollback(self.s, self.champion, say=self.said.append)
+
+
+class Provenance(Store):
+    def test_outside_git_with_no_sha_nothing_is_registered(self):
+        with mock.patch("model.tracking.git_state", return_value=("unknown", "unknown")):
+            with self.assertRaisesRegex(SystemExit, "a version is the git sha .* here it's 'unknown'"):
+                self.register(self.files(0.40))
+        self.assertFalse(self.champion.exists())
+
+    def test_a_store_that_cant_be_read_isnt_taken_for_no_champion(self):
+        from mlflow.exceptions import MlflowException
+        from mlflow.protos.databricks_pb2 import INTERNAL_ERROR, INVALID_PARAMETER_VALUE
+        client = mock.Mock()
+        client.get_model_version_by_alias.side_effect = MlflowException("Registered model alias champion not found.",
+                                                                        error_code=INVALID_PARAMETER_VALUE)
+        self.assertIsNone(reg.alias(client, "defect-risk"))
+        client.get_model_version_by_alias.side_effect = MlflowException("database is locked",
+                                                                        error_code=INTERNAL_ERROR)
+        with self.assertRaisesRegex(MlflowException, "database is locked"):
+            reg.alias(client, "defect-risk")
 
 
 class Decisions(unittest.TestCase):

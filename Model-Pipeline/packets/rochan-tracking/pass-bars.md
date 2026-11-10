@@ -89,9 +89,18 @@ On Rachna's untuned LightGBM (her `candidate.json` isn't written yet), `val` N =
 | Real gains promote | ✅ +0.05 over the champion, with a margin of 0.02, takes `champion`, and `previous` points at the old one |
 | What blocks | ✅ A gain within the margin, a worse model and a failed bias report are each registered, not promoted, with the reason as a tag |
 | First model | ✅ Promoted when its bias report passes. A failed one blocks even the first |
-| The pushed file is the model | Not yet: the drill needs the GCP repo |
-| Rollback | ✅ in the store: `champion` back on `previous`, `previous` a step back, `champion.json` the restored record. The drill on GCP: not yet |
+| The pushed file is the model | ✅ The drill (Nov 9) on the real repo, `meridian-models` in us-east1: two throwaway models promoted with `--push`, under the packages `drill-model` and `drill-champion`. Each `model.joblib` downloaded back from Artifact Registry has the md5 its pushed `champion.json` records, 2 of 2 |
+| Rollback | ✅ in the store: `champion` back on `previous`, `previous` a step back, `champion.json` the restored record. On GCP, in the same drill: one `--rollback --push` adds a pointer version whose `champion.json` names the first model again, the same as the local one, N = 1 |
 | No credentials | ✅ With no project, no gcloud or no signed-in account, `--push` skips and says so. Uncommitted code is refused |
+
+### Registry, Nov 10 (after the review: decisions.md, second look)
+
+| Bar | Result |
+|---|---|
+| The pushed file is the model | ✅ Drill 2 on the real repo, in the new throwaway packages `drill2-model` and `drill2-champion`. A model registered without `--push` reaches Artifact Registry on the next `--push`, a rerun sends nothing, and another model under a version already there is stopped before anything is sent. Both models downloaded back are byte for byte the ones registered, 2 of 2 |
+| Rollback | ✅ Drill 2: `--rollback --push` adds only a pointer, whose `champion.json` names the first model and equals the local one, N = 1. A rollback to a version never pushed uploads it first (`test_registry.py`) |
+| First model | ✅ A new MLflow store, as on CI, takes the champion from `registry/champion.json`, so it isn't a first model there: in `test_registry.py`, `NewStore`, and in drill 2 (nothing sent, nothing registered) |
+| No credentials | ✅ As on Nov 9. Also refused: a model registered with uncommitted code, in a Docker image (git can't tell), or in another MLflow store whose model isn't on GCP yet |
 
 ### Auditor, Nov 7 (policy v0 and Elo)
 
@@ -116,5 +125,12 @@ Only the rows today's code can meet. Seeded ε and the promotion guard come with
 
 | Bar | Result |
 |---|---|
-| No look-ahead | ✅ 0 rows known after the stall, in every table the queries read: call sites, tickets, ticket events and maps, commits and their files, and the 8 tables a run derives (`test_auditor.py`, `KnownAt`, on the fixture with a row of each kind planted after R1). Those rows change nothing at R1 either, and four views broken on purpose are each caught (decisions.md, replay and explore) |
+| No look-ahead | ✅ 0 rows known after the stall, in every table the queries read: call sites, tickets, ticket events and maps, commits and their files, and the 8 tables a run derives (`test_auditor.py`, `KnownAt`, on the fixture with a row of each kind planted after R1). Those rows change nothing at R1 either, and four views broken on purpose are each caught (decisions.md, replay and explore). **Overstated for ticket maps: see Nov 10** |
 | Runs | ✅ Fixture: replay over R1 → R2, 3 stalls ended. With a verdict added, policies written in November play replay matches, at half K and never toward promotion. v1 block (70dd1dabfed544b8): one run, so nothing to replay, and the output says so; 68 stalls in 84 s. No live matches anywhere, since every snapshot is older than the policies, and the output says so |
+
+### Auditor, Nov 10 (after the review: decisions.md, second look)
+
+| Bar | Result |
+|---|---|
+| No look-ahead | ⚠️ The Nov 9 row overstated it. Ticket maps are cut by their ticket's creation date only, not by the run that made them: as of an earlier run, a map made from the block's run's call sites and ticket text is read early. No effect on the v1 block, which has no ticket-to-call-site maps and one run. The fix is written down in decisions.md. Every other table: as on Nov 9 |
+| Runs | ✅ A replay match is dated when it's played, so the log before then, and the ratings and promotions it gave, stay as they were (`test_auditor.py`, `Replay`; the test fails with the old dating) |

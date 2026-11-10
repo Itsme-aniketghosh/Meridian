@@ -205,7 +205,9 @@ class KnownAt(unittest.TestCase):
 
     def test_no_table_the_queries_read_holds_a_row_known_after_the_moment(self):
         """The bar as written: 0 rows known after the stall, in every table the queries read, while the block under
-        them holds such rows of each kind. A derived row's moment is its run's snapshot."""
+        them holds such rows of each kind. A derived row's moment is its run's snapshot. A ticket map's is its
+        ticket's creation, so a later run's map of an earlier ticket is still read: the one gap (decisions.md, second
+        look at the registry and the auditor, Nov 10)."""
         db = A.point(self.planted(), K.R1[1])
         at = "(SELECT at FROM asof)"
         later_run = f"run_id NOT IN (SELECT run_id FROM main.run WHERE snapshot_at <= {at})"
@@ -636,6 +638,23 @@ class Replay(unittest.TestCase):
         self.assertEqual([(o.stall.team, o.resumed) for o in rep.outcomes[K.R2[1], r3[1]]],
                          [("billing", "2026-10-20T00:00:00Z")])
         self.assertEqual(len(rep.matches), 3)  # checkout's, from the first pair
+
+    def test_a_replay_match_is_dated_when_its_played(self):
+        """At R3, not at the first pair's R2: dated in the past, it would land before live matches decided since and
+        change the ratings and promotions they gave. It goes through --write like a live row."""
+        r3 = ("R3", "2026-11-10T00:00:00Z")  # after the policies were written, so --write keeps their rows
+        add_run(self.db, r3)
+        live = [match(1, "stall-v0", "stall-v1", "a", at=K.R2[1])]
+        rep = self.replay(live, at=r3[1], run_id="R3")
+        self.assertEqual((len(rep.matches), {m["decided_at"] for m in rep.matches}), (3, {r3[1]}))
+        history = [m for m in live + rep.matches if m["decided_at"] < r3[1]]
+        self.assertEqual(A.standings(history, self.S, self.policies).rating,
+                         A.standings(live, self.S, self.policies).rating)
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(A.write_tracking(Path(d), r3[1], self.policies, [], live, rep.matches), (4, 4))
+            rows = [json.loads(line) for line in (Path(d) / "match.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(sorted((m["mode"], m["decided_at"]) for m in rows),
+                         [("live", K.R2[1])] + [("replay", r3[1])] * 3)
 
 
 class Explore(unittest.TestCase):

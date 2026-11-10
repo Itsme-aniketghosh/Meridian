@@ -50,7 +50,9 @@ no match: no policy could have ranked it.
 Replay (04 §9): every pair of consecutive runs in the block, oldest first, read the same way. The stalls open at one
 run and not at the next get verdicts as of the next, and every pair of policies in the code plays a replay match on
 each, whenever the policies were written: that's how a new policy is tried on the past. A pair plays a stall once,
-so not in replay after a live match or an earlier replay.
+so not in replay after a live match or an earlier replay. A replay match is dated when it's played, the run's
+snapshot: dated at the past pair's, it would land before live matches already decided and change the ratings and
+promotions they gave.
 
 Explore (04 §9): policies nominate unfiled legacy code for the staff engineer's legacy radar (02-product). v0 reads
 KNOWLEDGE-BASE.md's radar_deprecated_with_callers, one repo at a time: deprecation-marked functions with callers, the
@@ -360,10 +362,11 @@ def shadow_matches(stall, reason, policies, mode, source, decided_by, decided_at
             for a, b in itertools.combinations(sorted(place), 2)]
 
 
-def ended(db, cfg, s, run_id, before, after, players, mode, done=(), played=(), q=None, cache=None):
+def ended(db, cfg, s, run_id, before, after, players, mode, done=(), played=(), q=None, cache=None, decided_at=None):
     """The stalls open at `before` and not at `after` (they ended), each with its verdict as of `after`. When it's one
-    reason, known when the stall was served, every pair of `players` plays a `mode` match on it. done: tasks decided
-    already, left out. played: (task_id, policy_a, policy_b) decided already, no match again."""
+    reason, known when the stall was served, every pair of `players` plays a `mode` match on it, dated `decided_at`
+    (default `after`). done: tasks decided already, left out. played: (task_id, policy_a, policy_b) decided already, no
+    match again."""
     q = q or kb_queries()
     now = {x.task_id for x in stalls_at(db, cfg, after, run_id, q, cache)}
     then = stalls_at(db, cfg, before, run_id, q, cache)
@@ -381,7 +384,7 @@ def ended(db, cfg, s, run_id, before, after, players, mode, done=(), played=(), 
         if len(fired) == 1 and not unchecked:
             [(reason, (rule, _))] = fired.items()
             if reason not in hidden and len(players) > 1:
-                rows = [m for m in shadow_matches(x, reason, players, mode, "rule", rule, after)
+                rows = [m for m in shadow_matches(x, reason, players, mode, "rule", rule, decided_at or after)
                         if (m["task_id"], m["policy_a"], m["policy_b"]) not in played]
         out.append(Outcome(x, t2, fired, reason, rule, rows, hidden, unchecked))
     return out
@@ -422,7 +425,8 @@ def replay_job(db, cfg, s, run_id, at, log, policies=None, q=None, cache=None):
 
     For each pair of consecutive runs, the stalls open at the first and not at the second, with verdicts as of the
     second, and a replay match between every pair of policies on each one that pair hasn't played (`log`, live or
-    replay). A replay match moves Elo half as far and never counts toward promotion (League).
+    replay), dated `at`: when it's played, so the log before then, and the ratings and promotions it gave, stay as they
+    were. A replay match moves Elo half as far and never counts toward promotion (League).
     """
     q = q or kb_queries()
     players = [x for _, x in sorted((POLICIES if policies is None else policies).items()) if x.job == "stall"]
@@ -431,7 +435,8 @@ def replay_job(db, cfg, s, run_id, at, log, policies=None, q=None, cache=None):
     pairs = list(zip(runs, runs[1:]))
     outcomes, new = {}, []
     for before, after in pairs:
-        outcomes[before, after] = ended(db, cfg, s, run_id, before, after, players, "replay", (), played, q, cache)
+        outcomes[before, after] = ended(db, cfg, s, run_id, before, after, players, "replay", (), played, q, cache,
+                                        decided_at=at)
         rows = [m for o in outcomes[before, after] for m in o.matches]
         played |= {(m["task_id"], m["policy_a"], m["policy_b"]) for m in rows}
         new += rows

@@ -51,7 +51,7 @@ flowchart LR
 
 The GCP repo, once, on the trial project (no Terraform until phase 3):
 
-- [ ] `gcloud artifacts repositories create meridian-models --repository-format=generic --location=us-east1`
+- [x] `gcloud artifacts repositories create meridian-models --repository-format=generic --location=us-east1`
 - [ ] A service account that can only write to that repo (Artifact Registry Writer on it, nothing else). Its key as the repo secret Chaitali's workflow reads, main only. Never committed
 
 `python -m model.registry --run <id>`, called by CI after the gate:
@@ -97,14 +97,14 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 
 - [x] `test_evaluate.py`: PR-AUC, F1 and recall at 20% match a hand calculation. Same seed, same interval. Every number in `metrics.json` has an N. A perfect score gives 1.0, a random one about the positive rate. `--split test` refuses unless allowed
 - [x] `test_registry.py`, against a temp local store: a better model takes `champion` and `previous` points at the old one; a worse one is registered, not promoted; one better only within seed noise isn't promoted; a failed bias report blocks promotion; `--rollback` restores; the first model ever is promoted if it passes; `--push` without credentials skips and says so
-- [ ] `test_auditor.py`, the 05-test Auditor bars: the Elo simulation with known skill ranks right; recomputing from the log twice gives the same ratings; seeded ε within ±2% over 1,000 draws; a replay never reads a row with `known_at` after the stall; the promotion guard blocks at 29 matches and at +49 Elo
-- [ ] Once on the real repo: push, roll back, and check the versions in Artifact Registry
+- [x] `test_auditor.py`, the 05-test Auditor bars: the Elo simulation with known skill ranks right; recomputing from the log twice gives the same ratings; seeded ε within ±2% over 1,000 draws; a replay never reads a row with `known_at` after the stall; the promotion guard blocks at 29 matches and at +49 Elo. Ticket maps are the one gap in the look-ahead check (pass-bars.md, Nov 10)
+- [x] Once on the real repo: push, roll back, and check the versions in Artifact Registry
 
 ## Done when
 
 - [ ] The team logs through `tracking.py`, and Vishwa logs agent calls through it
 - [ ] `metrics.json` on `val`, then on `test` once on Nov 12
 - [ ] `registry.py` in CI on main, with a real push and a rollback tried
-- [ ] The auditor passes its simulation tests and runs on the fixture
+- [x] The auditor passes its simulation tests and runs on the fixture
 - [x] Decisions 1–11 written down with their numbers
 - [ ] Your report section: tracking, metrics, results, registry and rollback, auditor
