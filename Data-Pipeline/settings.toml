@@ -283,6 +283,9 @@ base_block_url = ""
 max_scope_files = 200                 # 04 §10: changed files + importers over this, skip (said in one line)
 max_lines = 10                        # 04 §10: one comment, at most 10 findings
 defect_risk_threshold = 2000          # P9: lines × files above this. Not measured yet: 05-test's "P9 vs SZZ" sets it
+# P9 with the model (Rachna, step Q): the champion record registry.py writes, relative to the repo root. Its model file
+# must be next to it with the md5 it records, or P9 stays lines × files and says why. "" = lines × files always
+champion = "Model-Pipeline/registry/champion.json"
 
 # Optional (Phase 2): a push to a watched repo's main branch starts the update DAG through Airflow's REST API
 # (.github/workflows/trigger-update.yml). max_active_runs = 1 and the "anything new?" step make a burst of pushes one run
