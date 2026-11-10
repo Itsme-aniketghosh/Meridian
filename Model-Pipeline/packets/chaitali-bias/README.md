@@ -61,6 +61,8 @@ The guideline says pretrained models still need bias detection. The agents' outp
 
 The guideline also wants a message on training done and on registry push. `[alerts] on` lists `failure`, `error`, `warn`, so check whether `alert.py` takes an `info` event or needs a small change, and tell Aniket if it touches `Data-Pipeline/`.
 
+Checked Nov 9: `alert.send(..., event="info")` sends nothing today. `"info"` isn't in `settings.toml [alerts] on`, so it's only logged, and at ERROR level, since `send` logs every event but `warn` as an error. The gate needs only `failure`. The done and push messages (Nov 10) need `"info"` added to `on`, and `send` logging it at INFO. That's a two-line change in `Data-Pipeline/`, for Aniket to agree first.
+
 ## CI
 
 `model.yml`, on pushes and PRs touching `Model-Pipeline/**`:
@@ -97,10 +99,10 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 
 ## Tests
 
-- [ ] `test_bias.py`: the planted 0.15 gap is flagged; a slice with N = 29 isn't judged; the Wilson interval matches phase 1's `bias.py` on the same numbers
-- [ ] `test_gate.py`: a passing set exits 0; each failure (below the bar, below champion, bias fail, a missing file) exits 1 and alerts once
-- [ ] The alert reaches the local Slack and SMTP servers in `tests/alert_sinks.py`, with no mocks
-- [ ] A broken webhook: the gate still decides, the error is logged
+- [x] `test_bias.py`: the planted 0.15 gap is flagged; a slice with N = 29 isn't judged; the Wilson interval matches phase 1's `bias.py` on the same numbers
+- [x] `test_gate.py`: a passing set exits 0; each failure (below the bar, below champion, bias fail, a missing file) exits 1 and alerts once
+- [x] The alert reaches the local Slack and SMTP servers in `tests/alert_sinks.py`, with no mocks
+- [x] A broken webhook: the gate still decides, the error is logged
 - [ ] On a PR the workflow stops at the gate and never pushes. On main it pushes
 - [ ] A PR from a fork gets no secrets, and the job summary says so
 - [ ] A planted bad model on a branch fails at the gate and Slack gets the message
@@ -108,7 +110,7 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 
 ## Done when
 
-- [ ] `bias_report.json` and bias charts for the final pick, announced with its reasons
+- [x] `bias_report.json` and bias charts for the final pick, announced with its reasons
 - [ ] `llm_bias.json` for the agents
 - [ ] `model.yml` green on main and red on a planted bad model, by Nov 10
 - [ ] The product jobs run on every PR

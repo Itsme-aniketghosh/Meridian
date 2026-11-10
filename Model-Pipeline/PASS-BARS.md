@@ -227,5 +227,5 @@ Each owner signs for their own rows and reads the rest. Aniket reviews. Changing
 | Rochan | §3 | Nov 7 |
 | Rachna | §4 | Rachna, Nov 7 |
 | Vishwa | §5 | Vishwa, Nov 7 |
-| Chaitali | §6 | |
+| Chaitali | §6 | Chaitali, Nov 9 |
 | Aniket | review | |
