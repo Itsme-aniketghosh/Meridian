@@ -82,6 +82,28 @@ def early(policy_id):
     return dataclasses.replace(A.POLICIES[policy_id], created_at="2026-01-01T00:00:00Z")
 
 
+# the as-of ticket_map before it was built as one list (PR: same rows, 7 minutes -> 0.3 s on a real block)
+OLD_TICKET_MAP = """SELECT m.* FROM main.ticket_map m, asof
+WHERE NOT EXISTS (SELECT 1 FROM main.ticket t WHERE t.key = m.key AND t.created_at > asof.at)"""
+
+
+class AsOfTicketMap(unittest.TestCase):
+    def test_it_keeps_the_same_rows_as_before_at_every_moment(self):
+        db = K.build()  # the tickets go in before point() puts its views over the tables
+        add_ticket(db, "CHK-900", "2026-09-20T00:00:00Z", "S_c1")  # created between R1 and R2
+        add_ticket(db, "PAY-900", "2026-09-25T00:00:00Z", "S_p2")
+        for at in (K.R1[1], "2026-09-15T00:00:00Z", "2026-09-22T00:00:00Z", K.R2[1], "2026-01-01T00:00:00Z"):
+            A.point(db, at, K.REPO, K.SYMBOL, "R2")
+            now = sorted(db.execute("SELECT * FROM ticket_map").fetchall())
+            before = sorted(db.execute(OLD_TICKET_MAP).fetchall())
+            self.assertEqual(now, before, at)
+        A.point(db, K.R1[1], K.REPO, K.SYMBOL, "R2")
+        later = db.execute("SELECT count(*) FROM main.ticket WHERE created_at > ?", (K.R1[1],)).fetchone()[0]
+        self.assertGreater(later, 0)  # the moments above do drop maps: the test isn't vacuous
+        self.assertLess(db.execute("SELECT count(*) FROM ticket_map").fetchone()[0],
+                        db.execute("SELECT count(*) FROM main.ticket_map").fetchone()[0])
+
+
 class PolicyV0(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
