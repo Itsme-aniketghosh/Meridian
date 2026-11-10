@@ -1,0 +1,90 @@
+{
+ "consumer": {
+  "facts": {
+   "blocked_by": [],
+   "blocking": [],
+   "files": [
+    {
+     "bug_fixes": 0,
+     "fix_keys": [],
+     "path": "billing/invoice.py",
+     "sites": 1
+    }
+   ],
+   "left": 1,
+   "symbol": "verify_token",
+   "team": "billing"
+  },
+  "source": {
+   "files": "consumer_files:billing:verify_token"
+  }
+ },
+ "rewrite": {
+  "facts": {
+   "area": "cart/",
+   "in_except_n": 1,
+   "key": "CHK-311",
+   "owners": [
+    "checkout"
+   ],
+   "problem": "no description",
+   "sites": [
+    {
+     "in_except": false,
+     "line": 214,
+     "owner_team": "checkout",
+     "path": "cart/pricing.py",
+     "symbol": "verify_token"
+    },
+    {
+     "in_except": true,
+     "line": 231,
+     "owner_team": "checkout",
+     "path": "cart/pricing.py",
+     "symbol": "verify_token"
+    }
+   ],
+   "sites_n": 2,
+   "symbols": [
+    "verify_token"
+   ]
+  },
+  "source": {
+   "key": "ticket:CHK-311",
+   "sites": "manager_facts:CHK-311"
+  }
+ },
+ "stall_reason": {
+  "facts": {
+   "left": 1,
+   "reasons": [
+    {
+     "evidence": 1,
+     "reason": "Never notified"
+    },
+    {
+     "evidence": 1,
+     "reason": "Test gap"
+    }
+   ],
+   "since": "2026-01-10T00:00:00Z",
+   "symbol": "verify_token",
+   "team": "billing"
+  },
+  "source": {
+   "policy": "stall-v0",
+   "stall": "stall:e43bdcb872efb606"
+  }
+ },
+ "ticket_draft": {
+  "facts": {
+   "count": 1,
+   "sites": "billing/invoice.py:12",
+   "symbol": "verify_token",
+   "team": "billing"
+  },
+  "source": {
+   "sites": "maker_drafts:billing:verify_token"
+  }
+ }
+}
