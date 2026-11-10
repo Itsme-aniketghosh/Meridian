@@ -1,0 +1,41 @@
+{
+  "pass": true,
+  "candidate": "forest",
+  "settings": {
+    "split": "val",
+    "reference": "lines_x_files",
+    "min_lift": 0.0,
+    "noise_sds": 2.83
+  },
+  "first_model": true,
+  "checks": [
+    {
+      "check": "inputs",
+      "ok": true,
+      "why": "all read"
+    },
+    {
+      "check": "agree",
+      "ok": true,
+      "why": "val, N = 4,113, candidate forest"
+    },
+    {
+      "check": "bar",
+      "ok": true,
+      "why": "PR-AUC 0.4058 vs lines_x_files 0.3191: +0.0867, must be above +0.0000",
+      "value": 0.40581963724622855,
+      "reference": 0.31913718114819406,
+      "lift": 0.08668245609803449
+    },
+    {
+      "check": "bias",
+      "ok": true,
+      "why": "0 open flags of 5"
+    },
+    {
+      "check": "champion",
+      "ok": true,
+      "why": "no champion yet: the first model"
+    }
+  ]
+}
