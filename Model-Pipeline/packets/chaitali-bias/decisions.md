@@ -153,3 +153,88 @@ Bias: the same 5 flags, all on size, and stronger than untuned: `size_bucket=Q2`
 On both candidates no mitigation meets the rule, so the model ships unmitigated and the report says why. The reason is the same each time: at a fixed alert budget, catching small commits' bugs means taking alerts from large commits, where bugs are 15 times as common (1.9% of Q1 against 29.0% of Q4 in `val`). Equal recall by size costs a quarter to a third of all bugs caught (recall 0.50 → 0.33–0.37). Re-sampling that closes half the gap costs 4 to 7 times the 0.01 PR-AUC the rule allows. Lines × files, the rule the model replaces, is more skewed still (Q2 recall 0.000, Q3 0.018, Q4 false-positive rate 0.540).
 
 For the final pick (Nov 9): the flagged size slices go in `[bias] accepted`, each pointing here, since a mitigation was tried and written down (the team bias bar). That is done on Rachna's candidate, not this provisional one.
+
+---
+
+# Nov 9: the rules for the final pick and decision 6, before the runs
+
+Written before any bias run on Rachna's candidate and before any gate run.
+
+## The final pick
+
+Rachna's `reports/candidate.json` is the tuned forest (`rachna-1`: tied with LightGBM by the paired bootstrap, and the simpler model wins a tie). PASS-BARS §6.2: the pick is the best `val` PR-AUC model whose bias report passes.
+
+Test: `bias.py` on each tuned model in `reports/tuned_val_scores.csv` (`logreg`, `forest`, `lgbm`), on the same `val` rows and threshold rule as before. Decision 5 again on the forest, since accepting a flag needs a mitigation tried on that model.
+
+Rule:
+1. A flagged slice goes in `[bias] accepted` only when decision 5 was tried on it, for this model, and no option met the rule. Its report then passes.
+2. If an option meets the rule on the forest, it is adopted, and the pick is the mitigated forest.
+3. Otherwise the pick is Rachna's candidate, with its flags accepted by 1. Bias reopens her tie only if the forest has more flagged judged slices than LightGBM. Then LightGBM is the pick, and the reason is written here.
+
+## 6. Gate tolerance
+
+Options: fail a candidate below the champion's `val` PR-AUC at all (0); below by more than 2 standard deviations of seed noise (2 sd); below by more than 2 standard deviations of the difference of two seeds (2√2 sd ≈ 2.83 sd), since the champion and the candidate are each one draw.
+
+The other checks aren't options: `val` PR-AUC above lines × files (the bar), the bias report passes, every input is there and they agree with each other (same split, same N, same candidate). The 2024 test of the team's model bar is Rachna's and Rochan's, once, on Nov 12. CI never reads 2024.
+
+Test: (a) Rachna's 5 seeds (`reports/seed_noise.json`, sd 0.0021): every ordered pair, one as the champion and the other as the candidate. That makes 20 comparisons, and all must pass. (b) 3 planted bad models, each fit by `train.fit_and_score` on the same train rows with the candidate's kind, params and seed 1, scored on `val`. They are: shuffled train labels (permutation seed 1); size only (`train.SIZE`, nothing from history or tickets); half the features (every other column of `train.NUMERIC` dropped, starting from the second). Each is checked against the candidate's seed 1 as the champion, and all must fail.
+
+Rule: the smallest tolerance that gets 20 of 20 and 3 of 3. If no option gets both, the one that gets 3 of 3 with the most seed pairs passing, and the report says noise can block an honest retrain. The pick goes in `model.toml [gate] noise_sds`.
+
+---
+
+# Nov 9: results
+
+## Bias on the three tuned models
+
+`python -m model.bias --scores reports/tuned_val_scores.csv --column <model>`. `val` N = 4,113, 486 positives. Threshold by decision 10: the P9 alert rate, 634 alerts (15.4%). 62 judged tests per model.
+
+| Model | `val` PR-AUC | Overall recall | Flags | Flagged slices |
+|---|---:|---:|---:|---|
+| `logreg` | 0.382 | 0.498 | 3 | Q2 recall 0.020, Q3 recall 0.140, Q4 false-positive rate 0.480 |
+| `forest` (Rachna's candidate) | 0.406 | 0.516 | 5 | Q2 recall **0.000** (0 of 51), Q3 recall 0.096 (of 114), Q4 false-positive rate 0.488 (of 732 negatives); Q2 and Q3 PR-AUC, not under Bonferroni |
+| `lgbm` | 0.413 | 0.504 | 5 | the same five: Q2 recall 0.000, Q3 0.070, Q4 false-positive rate 0.488 |
+
+All the flags are on `size_bucket`. No `module`, `component` or `exp_bucket` slice is flagged on any model. Newcomers (`exp_bucket = 0`, 176 rows, 16 positives, not judged): forest recall 0.562, lines × files 0.438.
+
+## Decision 5 on the forest
+
+`python -m model.bias --decide 5` (the candidate's kind and params). The worst gap is `size_bucket=Q2` recall, 0.516.
+
+| Option | Alerts | PR-AUC (cost) | Recall | Precision (cost) | Q2 recall | Closes | Meets the rule |
+|---|---:|---|---:|---|---:|---:|---|
+| none | 634 | 0.406 | 0.516 | 0.396 | 0.000 | — | — |
+| thresholds, equal recall by size | 593 | 0.406 (0) | 0.335 | 0.275 (−0.121) | 0.294 | 92% | no: precision cost |
+| thresholds, Fairlearn TPR parity | 1,645 | 0.406 (0) | 0.652 | 0.193 (−0.203) | 0.667 | 103% | no: precision cost, 2.6× the alerts |
+| re-sampling ×2 | 634 | 0.398 (−0.008) | 0.504 | 0.386 (−0.009) | 0.059 | 14% | no: closes too little |
+| re-sampling ×4 | 634 | 0.345 (−0.061) | 0.422 | 0.323 (−0.073) | 0.255 | 68% | no: PR-AUC cost |
+
+None meets the rule, the same as on both LightGBM runs (Nov 8).
+
+## The final pick: the tuned forest
+
+By the rule above: (1) every flag on the forest had decision 5 tried, and no option met the rule. So the five go in `[bias] accepted`, and the report passes (`reports/bias_report.json`: `pass: true`, 0 open flags of 5). (2) Nothing to adopt. (3) The forest has 5 flagged judged slices, the same as LightGBM, so bias doesn't reopen Rachna's tie, and her candidate stands.
+
+**Pick: the tuned forest** (`reports/candidate.json`; `val` PR-AUC 0.406, interval 0.364–0.450; lines × files 0.319, paired difference +0.087, interval +0.059 to +0.112). It ships unmitigated on size. It misses nearly every bug in Q2 and Q3 commits, and raises half its false alarms on Q4. That's the trade-off the report states with these numbers. Lines × files, the rule it replaces, is more skewed still. Handed to Rochan for the registry. MLflow: the bias run `c8e988aa1f9e4336ab56e0b0b47734e2`.
+
+## 6. Gate tolerance: 2√2 sd
+
+`python -m model.gate --decide 6`. Rachna's 5 seeds: PR-AUC 0.4058, 0.4067, 0.4053, 0.4018, 0.4026 (sd 0.0021, `val` N = 4,113). Champion for the planted models: seed 1, 0.4058. Lines × files: 0.319.
+
+| Planted model | `val` PR-AUC |
+|---|---:|
+| shuffled labels | 0.154 |
+| size only | 0.388 |
+| half the features | 0.384 |
+
+| Option | Tolerance | Seed pairs passing | Planted failing |
+|---|---:|---:|---:|
+| 0 | 0 | 10 of 20 | 3 of 3 |
+| 2 sd | 0.0043 | 19 of 20 | 3 of 3 |
+| 2√2 sd | 0.0060 | **20 of 20** | **3 of 3** |
+
+Picked: **2√2 sd** (`[gate] noise_sds = 2.83`), the only option that gets both. "2 sd" blocks seed 4 against seed 2 (0.0049 apart). "Below at all" blocks half of all honest retrains. The bar alone wouldn't catch two of the planted models: size only and half the features both beat lines × files (0.388 and 0.384 against 0.319). The champion check is what stops them. MLflow: `db2e35e7da6d4a0099bbb88663a251d6`.
+
+## The gate on the final pick
+
+`python -m model.gate`: 5 of 5 checks pass (inputs, agree, bar +0.087, bias 0 open flags, champion: none yet, so the first model). `run_all --fake` now runs the gate too: 6 steps in 22 s.

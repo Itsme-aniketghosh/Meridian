@@ -1,0 +1,72 @@
+{
+  "kind": "forest",
+  "params": {
+    "n_estimators": 200,
+    "min_samples_leaf": 5,
+    "max_features": "sqrt",
+    "max_depth": 8
+  },
+  "seed": 1,
+  "split": "val",
+  "n": 4113,
+  "positives": 486,
+  "seed_pr_auc": {
+    "1": 0.40581963724622855,
+    "2": 0.4067206913252812,
+    "3": 0.405290531275414,
+    "4": 0.4018122233364903,
+    "5": 0.4026045126778621
+  },
+  "sd": 0.0021273296719516873,
+  "champion": 0.40581963724622855,
+  "planted_pr_auc": {
+    "shuffled labels": 0.15416218432290119,
+    "size only": 0.3883739252030701,
+    "half the features": 0.38371898607408733
+  },
+  "reference": "lines_x_files",
+  "options": {
+    "0": {
+      "noise_sds": 0.0,
+      "tolerance": 0.0,
+      "seed_pairs_pass": 10,
+      "seed_pairs": 20,
+      "planted_fail": 3,
+      "planted": 3,
+      "planted_failed": {
+        "shuffled labels": true,
+        "size only": true,
+        "half the features": true
+      }
+    },
+    "2 sd": {
+      "noise_sds": 2.0,
+      "tolerance": 0.004254659343903375,
+      "seed_pairs_pass": 19,
+      "seed_pairs": 20,
+      "planted_fail": 3,
+      "planted": 3,
+      "planted_failed": {
+        "shuffled labels": true,
+        "size only": true,
+        "half the features": true
+      }
+    },
+    "2.83 sd (2 sd of a difference)": {
+      "noise_sds": 2.8284271247461903,
+      "tolerance": 0.006016996947425567,
+      "seed_pairs_pass": 20,
+      "seed_pairs": 20,
+      "planted_fail": 3,
+      "planted": 3,
+      "planted_failed": {
+        "shuffled labels": true,
+        "size only": true,
+        "half the features": true
+      }
+    }
+  },
+  "picked": "2.83 sd (2 sd of a difference)",
+  "why": "the smallest with 20 of 20 and 3 of 3",
+  "reference_pr_auc": 0.31913718114819406
+}

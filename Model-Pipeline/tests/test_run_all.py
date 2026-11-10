@@ -91,8 +91,8 @@ class Fake(unittest.TestCase):
     def test_order_and_what_waits(self):
         with tempfile.TemporaryDirectory() as d:
             names = [s[0] for s in steps(d)]
-        self.assertEqual(names, ["data", "train", "seed noise", "evaluate", "bias"])
-        self.assertEqual(set(FAKE_LATER), {"gate", "registry"})
+        self.assertEqual(names, ["data", "train", "seed noise", "evaluate", "bias", "gate"])
+        self.assertEqual(set(FAKE_LATER), {"registry"})
 
     def test_evaluate_and_bias_log_nothing(self):
         with tempfile.TemporaryDirectory() as d:
@@ -103,7 +103,7 @@ class Fake(unittest.TestCase):
     def test_fake_dry_run(self):
         code, out = quiet(main, ["--fake", "--dry-run"])
         self.assertEqual(code, 0)
-        self.assertEqual(out.count("python -m"), 5)
+        self.assertEqual(out.count("python -m"), 6)
         self.assertIn("meridian-fake-", out)
 
 
