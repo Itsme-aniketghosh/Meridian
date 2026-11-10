@@ -205,7 +205,9 @@ class KnownAt(unittest.TestCase):
 
     def test_no_table_the_queries_read_holds_a_row_known_after_the_moment(self):
         """The bar as written: 0 rows known after the stall, in every table the queries read, while the block under
-        them holds such rows of each kind. A derived row's moment is its run's snapshot."""
+        them holds such rows of each kind. A derived row's moment is its run's snapshot. A ticket map's is its
+        ticket's creation, so a later run's map of an earlier ticket is still read: the one gap (decisions.md, second
+        look at the registry and the auditor, Nov 10)."""
         db = A.point(self.planted(), K.R1[1])
         at = "(SELECT at FROM asof)"
         later_run = f"run_id NOT IN (SELECT run_id FROM main.run WHERE snapshot_at <= {at})"
