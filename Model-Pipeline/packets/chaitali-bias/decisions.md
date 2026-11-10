@@ -153,3 +153,30 @@ Bias: the same 5 flags, all on size, and stronger than untuned: `size_bucket=Q2`
 On both candidates no mitigation meets the rule, so the model ships unmitigated and the report says why. The reason is the same each time: at a fixed alert budget, catching small commits' bugs means taking alerts from large commits, where bugs are 15 times as common (1.9% of Q1 against 29.0% of Q4 in `val`). Equal recall by size costs a quarter to a third of all bugs caught (recall 0.50 → 0.33–0.37). Re-sampling that closes half the gap costs 4 to 7 times the 0.01 PR-AUC the rule allows. Lines × files, the rule the model replaces, is more skewed still (Q2 recall 0.000, Q3 0.018, Q4 false-positive rate 0.540).
 
 For the final pick (Nov 9): the flagged size slices go in `[bias] accepted`, each pointing here, since a mitigation was tried and written down (the team bias bar). That is done on Rachna's candidate, not this provisional one.
+
+---
+
+# Nov 9: the rules for the final pick and decision 6, before the runs
+
+Written before any bias run on Rachna's candidate and before any gate run.
+
+## The final pick
+
+Rachna's `reports/candidate.json` is the tuned forest (`rachna-1`: tied with LightGBM by the paired bootstrap, and the simpler model wins a tie). PASS-BARS §6.2: the pick is the best `val` PR-AUC model whose bias report passes.
+
+Test: `bias.py` on each tuned model in `reports/tuned_val_scores.csv` (`logreg`, `forest`, `lgbm`), on the same `val` rows and threshold rule as before. Decision 5 again on the forest, since accepting a flag needs a mitigation tried on that model.
+
+Rule:
+1. A flagged slice goes in `[bias] accepted` only when decision 5 was tried on it, for this model, and no option met the rule. Its report then passes.
+2. If an option meets the rule on the forest, it is adopted, and the pick is the mitigated forest.
+3. Otherwise the pick is Rachna's candidate, with its flags accepted by 1. Bias reopens her tie only if the forest has more flagged judged slices than LightGBM. Then LightGBM is the pick, and the reason is written here.
+
+## 6. Gate tolerance
+
+Options: fail a candidate below the champion's `val` PR-AUC at all (0); below by more than 2 standard deviations of seed noise (2 sd); below by more than 2 standard deviations of the difference of two seeds (2√2 sd ≈ 2.83 sd), since the champion and the candidate are each one draw.
+
+The other checks aren't options: `val` PR-AUC above lines × files (the bar), the bias report passes, every input is there and they agree with each other (same split, same N, same candidate). The 2024 test of the team's model bar is Rachna's and Rochan's, once, on Nov 12. CI never reads 2024.
+
+Test: (a) Rachna's 5 seeds (`reports/seed_noise.json`, sd 0.0021): every ordered pair, one as the champion and the other as the candidate. That makes 20 comparisons, and all must pass. (b) 3 planted bad models, each fit by `train.fit_and_score` on the same train rows with the candidate's kind, params and seed 1, scored on `val`. They are: shuffled train labels (permutation seed 1); size only (`train.SIZE`, nothing from history or tickets); half the features (every other column of `train.NUMERIC` dropped, starting from the second). Each is checked against the candidate's seed 1 as the champion, and all must fail.
+
+Rule: the smallest tolerance that gets 20 of 20 and 3 of 3. If no option gets both, the one that gets 3 of 3 with the most seed pairs passing, and the report says noise can block an honest retrain. The pick goes in `model.toml [gate] noise_sds`.
