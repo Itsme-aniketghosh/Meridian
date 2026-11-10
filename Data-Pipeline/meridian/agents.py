@@ -26,7 +26,9 @@ rejected for. A task whose facts name a person is never written at all, and is c
 
 Settings (vishwa-agents decisions, the writer, Nov 9):
 - The ladder is LADDER, constants here, not meridian.toml [llm]: a new section there would change every block's
-  config hash and run_id. Fixed rules pick the model (route 'rules') until Jev routes (Rachna).
+  config hash and run_id. Without a router the fixed rules pick (route 'rules'). With Jev (run(router=...), Rachna's
+  meridian.jev.Router), each task starts where Jev picks: write(ladder=, route=) from Router.ladder(task), and the
+  route goes on the suggestion row and the logged call. A task whose facts name a person never reaches Jev.
 - The cache keeps the raw reply and gates it again every run (llm_cache.py). A reply that names a person is never
   written to it: the entry keeps a redacted marker instead, so a rerun still makes 0 calls.
 - A prompt's version is a hash of everything that frames it: the system prompt, the task prompt, the layout and the
@@ -128,6 +130,7 @@ class Written:
     facts_hash: str
     attempts: list = field(default_factory=list)       # (model, cache_hit, outcome): ok, bad_json, gate_miss
     template_misses: tuple = ()                        # what the gate flags in the template, on a real block
+    route: str = ROUTE                                 # who picked the models: 'rules', or 'jev'
 
 
 def _n(count, word, plural=None):
@@ -324,8 +327,18 @@ def names_a_person(text, people):
     return bool(_EMAIL.search(text) or (people_re and people_re.search(text)))
 
 
-def write(task, *, teams, people, llm=None, cache=None, log=None, strict_cache=False):
+def person_check(task, teams, people):
+    """Raises NamesAPerson when the task's facts name a person (the gate refuses such facts)."""
+    try:
+        check(task.template, task.facts, teams=teams, people=people, vocab=VOCAB)
+    except ValueError as e:
+        raise NamesAPerson(f"{task.kind} {task.target}: {e}") from None
+
+
+def write(task, *, teams, people, llm=None, cache=None, log=None, strict_cache=False, ladder=None, route=ROUTE):
     """One task's text. llm(model, prompt) -> {"reply", "tokens_in", "tokens_out", "cost_usd"}, or None for off.
+    ladder: the models to try, smallest first (default LADDER); route: who picked them, 'rules' or 'jev'. Both come
+    from Jev's Router.ladder(task) when it routes; an empty ladder ships the template.
     Raises NamesAPerson when the task's facts name a person: such a task is never written."""
     fh = facts_hash(task.facts)
     try:
@@ -333,8 +346,8 @@ def write(task, *, teams, people, llm=None, cache=None, log=None, strict_cache=F
     except ValueError as e:
         raise NamesAPerson(f"{task.kind} {task.target}: {e}") from None
     pv = prompt_version(task.kind)
-    done = Written(task, task.template, "template", None, fh, template_misses=own.misses)
-    ladder = LADDER if (llm or cache) else ()
+    done = Written(task, task.template, "template", None, fh, template_misses=own.misses, route=route)
+    ladder = (LADDER if ladder is None else tuple(ladder)) if (llm or cache) else ()
     for i, model in enumerate(ladder):
         k = key(model, pv, task.facts["facts"])
         entry = cache.get(k) if cache else None
@@ -359,20 +372,20 @@ def write(task, *, teams, people, llm=None, cache=None, log=None, strict_cache=F
             llm is None and cache.get(key(ladder[i + 1], pv, task.facts["facts"])) is None)
         source = "llm" if passed else "template" if last else None  # what shipped, on the row that decided it
         _log(log, task, fh, model, pv, entry, hit, None if text is None else passed, source,
-             (time.perf_counter() - t0) * 1000)
+             (time.perf_counter() - t0) * 1000, route)
         if passed:
             done.text, done.source, done.model = text, "llm", model
             return done
     return done
 
 
-def _log(log, task, fh, model, pv, entry, hit, gate_pass, source, latency_ms):
+def _log(log, task, fh, model, pv, entry, hit, gate_pass, source, latency_ms, route=ROUTE):
     if log is None:
         return
     paid = not hit
     log(agent=AGENT, model=model, prompt_version=pv, tokens_in=entry["tokens_in"] if paid else 0,
         tokens_out=entry["tokens_out"] if paid else 0, cost_usd=entry["cost_usd"] if paid else 0.0,
-        cache_hit=hit, gate_pass=gate_pass, route=ROUTE, source=source, task=task.kind, repo=task.repo or None,
+        cache_hit=hit, gate_pass=gate_pass, route=route, source=source, task=task.kind, repo=task.repo or None,
         team=task.owner_team, latency_ms=round(latency_ms, 3), facts_hash=fh)
 
 
@@ -385,7 +398,7 @@ def suggestion_row(w, run_id, at):
     return {"run_id": run_id, "suggestion_id": h(kind, t.target, w.facts_hash), "kind": kind,
             "target_kind": t.target_kind, "target": t.target, "owner_team": t.owner_team, "source": w.source,
             "body": w.text, "facts_hash": w.facts_hash, "offered_at": at, "agent": AGENT, "model": w.model,
-            "route": ROUTE, "policy_id": t.policy_id}
+            "route": w.route, "policy_id": t.policy_id}
 
 
 @dataclass
@@ -402,15 +415,20 @@ def _table(db, name):
     return db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone()
 
 
-def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False):
+def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False, router=None):
     """Every task written. Rows are offered once: a suggestion_id already in the block isn't offered again. A block
-    from before schema v1.3 has no suggestion table, so no rows so far."""
+    from before schema v1.3 has no suggestion table, so no rows so far. router: Jev (meridian.jev.Router), which
+    picks each task's starting model; None is the fixed rules. A task naming a person is skipped before Jev sees it."""
     teams, people = names(db)
     written, skipped = [], []
     for t in tasks(db, cfg, run_id, at):
         try:
+            ladder, route = None, ROUTE
+            if router is not None:
+                person_check(t, teams, people)  # Jev's prompt carries the facts: never one that names a person
+                ladder, route = router.ladder(t)
             written.append(write(t, teams=teams, people=people, llm=llm, cache=cache, log=log,
-                                 strict_cache=strict_cache))
+                                 strict_cache=strict_cache, ladder=ladder, route=route))
         except NamesAPerson as e:
             skipped.append((t.kind, t.target, str(e)))
     before = []

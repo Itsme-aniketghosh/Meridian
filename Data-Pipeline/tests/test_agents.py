@@ -370,6 +370,83 @@ class Logging(unittest.TestCase):
         self.assertEqual({c["source"] for c in calls if c["model"] != G.LARGE}, {None})
 
 
+class Stub:
+    """A router that starts every task on the given ladder, and remembers what it was shown."""
+
+    def __init__(self, ladder, route="jev"):
+        self.answer, self.seen = (tuple(ladder), route), []
+
+    def ladder(self, task):
+        self.seen.append((task.kind, task.target))
+        return self.answer
+
+
+class Routing(unittest.TestCase):
+    """Jev (Rachna, meridian/jev.py) picks where each task starts: write(ladder=, route=) from Router.ladder(task)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+    def test_the_writer_starts_where_the_router_says_and_records_its_route(self):
+        llm, calls = Fake(good), []
+        (written, rows), _ = run(llm=llm, router=Stub((G.MID, G.LARGE)), log=lambda **kw: calls.append(kw))
+        self.assertEqual(set(llm.calls), {G.MID})
+        self.assertTrue(all(w.model == G.MID and w.route == "jev" for w in written))
+        new = [r for r in rows if r["run_id"] == "R2"]  # the fixture's R1 rows stay as they were offered
+        self.assertTrue(new)
+        self.assertEqual({r["route"] for r in new}, {"jev"})
+        self.assertEqual({c["route"] for c in calls}, {"jev"})
+
+    def test_it_climbs_only_the_ladder_it_was_given(self):
+        never = Fake(lambda m, f: "nope")
+        (written, _), _ = run(llm=never, router=Stub((G.MID, G.LARGE)))
+        self.assertEqual(never.calls, [G.MID, G.LARGE] * len(written))
+        self.assertTrue(all(w.source == "template" for w in written))
+
+    def test_an_empty_ladder_ships_the_template_with_no_call(self):
+        llm = Fake(good)
+        (written, rows), _ = run(llm=llm, router=Stub((), "rules"))
+        self.assertEqual(llm.calls, [])
+        self.assertTrue(all(w.source == "template" and w.route == "rules" for w in written))
+
+    def test_no_router_is_the_fixed_rules(self):
+        (written, rows), _ = run(llm=Fake(good))
+        self.assertTrue(all(w.model == G.SMALL and w.route == "rules" for w in written))
+        self.assertEqual({r["route"] for r in rows if r["run_id"] == "R2"}, {"rules"})
+
+    def test_a_task_naming_a_person_never_reaches_the_router(self):
+        db = K.build()
+        person(db, "p_gap", "Gap", "gap@example.invalid")
+        router = Stub((G.SMALL,))
+        result, _ = run(db, router=router)
+        self.assertTrue(result.skipped)
+        self.assertEqual({(k, t) for k, t, _ in result.skipped} & set(router.seen), set())
+        self.assertEqual(len(router.seen), len(result.written))
+
+    def test_with_jev_off_the_rows_are_the_same_as_without_it(self):
+        from meridian.jev import Router
+        cache = Cache(self.tmp.name)
+        _, rows0 = run(llm=Fake(good), cache=cache)[0]
+        _, rows1 = run(cache=cache, router=Router(cache=cache))[0]  # Jev off: rules, smallest model, warm cache
+        self.assertEqual(json.dumps(rows0, sort_keys=True), json.dumps(rows1, sort_keys=True))
+
+    def test_jevs_pick_starts_the_writer(self):
+        from meridian.jev import Router
+        teams, people = G.names(K.build())
+        calls = []  # Jev's own calls: its prompt isn't the writer's, so it answers whole
+
+        def jev_llm(model, prompt):
+            calls.append(model)
+            return {"reply": json.dumps({"agent": "writer", "model": G.MID, "reason": "A short text."}),
+                    "tokens_in": 300, "tokens_out": 20, "cost_usd": 0.0001}
+        writer = Fake(good)
+        (written, rows), _ = run(llm=writer, router=Router(llm=jev_llm, teams=teams, people=people))
+        self.assertEqual(len(calls), len(written))  # one Jev pick per task
+        self.assertEqual(set(writer.calls), {G.MID})
+        self.assertTrue(all(w.route == "jev" and w.model == G.MID for w in written))
+
+
 class Command(unittest.TestCase):
     """python -m meridian.agents on a fixture file."""
 
