@@ -268,3 +268,39 @@ What exists, looked at before writing this (Nov 10). Gate fallback: the committe
 Test: texts (fallback) and drafted lines (match) per slice, under each option, on the fixture and on the real block.
 
 Rule: every slice with at least 30 (`[bias] min_n`) is judged by phase 1's rule (`[bias] max_gap`), with the fallback rate's harm upward and the match rate's downward. Every slice under 30 is listed with its N as not judged. A repo whose count isn't published goes in `(other)` with the rest, and the report names them. A flagged slice is accepted only when its owner's `decisions.md` has a fix scored on it. Repo and task kind are judged where the counts exist. Owner team only where a source gives counts per team. Otherwise the report says it can't be judged, and why.
+
+---
+
+# Nov 10: results
+
+## 7. What CI trains: the runner decides
+
+On this laptop (10 cores, not the 8 the rule says; the rule's reasoning holds either way): **(a) the full search, 310 s** (logreg 50 trials, forest 100, LightGBM 100, each stopped flat; then seed noise, evaluate, bias, gate). **(b) the refit, 15 s.** (a) picks the same candidate as the committed one: forest with the same params, and its `val` scores equal the committed ones to 1.1e-16.
+
+(a) is under 15 minutes on the laptop, so by the rule the runner's time decides. `model.yml` runs (a) (`TRAIN: search`) until the first PR run is timed. Over 15 minutes there, it switches to (b), with `train: search` kept for runs started by hand. The runner times go here.
+
+## 8. When CI runs: PRs plus main
+
+Commits touching `Model-Pipeline/**`, all branches: Nov 5: 30, Nov 6: 22, Nov 7: 17, Nov 8: 8, Nov 9: 28. Merges to main: 2 to 9 a day. A PR run per pushed commit plus one per merge is at most about 40 runs a day. At (a)'s laptop time, that's under 4 runner-hours, and the repo is public, so GitHub's runners cost nothing. Nothing argues against running both, so it's **PRs plus main**, filtered to `Model-Pipeline/**` and the workflow, plus `workflow_dispatch`. A newer push to a PR cancels that PR's older run. Main's runs are never cancelled, since they register.
+
+## 9. LLM slices
+
+`python -m model.llm_bias` → `reports/llm_bias.json`, `reports/llm_bias_match.png`.
+
+**Gate fallback: 0 LLM texts, nothing judged.** No `meridian-agents` run has logged a call, in this store or in CI's, since the committed cache is empty and nothing runs with a key. So repo, owner team and task are each listed with N = 0. On the fixture the writer has 14 tasks, on 1 repo and 6 teams (`tests/test_agents.py`). Even with the LLM on, no slice there could reach 30. `llm_bias.py` counts fallbacks from the calls, one text per `facts_hash`, so the first run with a key gives real numbers with no change. A planted team whose 40 texts all fall back is flagged, and one at 29 is listed, not judged (`tests/test_llm_bias.py`).
+
+**Diff match, per repo** (Utkarsh's counts, `diff_match_by_repo.csv`; overall 866 of 1,503 = 0.576):
+
+| Repo | Matched / lines | Rate | 95% interval | Judged | Flagged | Power at a 0.15 gap |
+|---|---:|---:|---|---|---|---:|
+| django (ugettext) | 254 / 267 | 0.951 | 0.918–0.971 | yes | no | 0.39 |
+| wagtail | 194 / 240 | 0.808 | 0.754–0.853 | yes | no | 0.36 |
+| DRF | 129 / 182 | 0.709 | 0.639–0.770 | yes | no | 0.27 |
+| allauth | 42 / 50 | 0.840 | 0.715–0.917 | yes | no | 0.08 |
+| debug-toolbar | 26 / 29 | 0.897 | 0.736–0.964 | **no: 29** | — | — |
+| oscar | 81 / 247 | 0.328 | 0.272–0.389 | yes | **yes** | 0.36 |
+| (other): the 15 packages without published counts | 140 / 488 | 0.287 | 0.249–0.329 | yes | **yes** | 0.59 |
+
+By task: ugettext 0.951 (267 lines), `url()` 0.495 (1,236), neither flagged. Owner team: not judged, since the counts are per repo, not per team.
+
+**The two flags are accepted** (`[llm_bias] accepted`). Utkarsh's decision 11 scored every `url()` style on all 20 packages, so on both flagged slices: the best single style gives 49.5%, and each repo's own best style, known only afterwards, about 68%. The LLM path can add at most 20 lines (1.6 points). The fixes were tried and written down, and none closes the gap. The cause is that each real migration chose its own style, so this is codemod output, not an LLM's. Oscar's numbers under the other styles aren't published per repo. The report says so.
