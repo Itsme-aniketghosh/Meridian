@@ -44,6 +44,25 @@ The same goes for the defect labels: the LLM may audit them (gap 6), but it neve
 | 10 | **Views take ~96 s to start** | Time each query at startup and build the slow ones into tables when the block is written | **Vishwa** | Startup under 10 s | Nov 12 |
 | 11 | **No spend limit on the LLM runs** | A $150 budget alert. Review and merge each owner's PR | **Aniket** | Alert set before gap 1 starts. Go or no-go for 2024 after gap 4 | Nov 11 |
 
+## Why the model tops out: it's the data
+
+The forest scores ROC-AUC 0.826 and PR-AUC 0.407 on val, which is 3.4× chance at an 11.8% positive rate. Accuracy is 88.5%, against 88.2% for always saying "no bug", which is why we don't report accuracy. Three model families land within 0.004 ROC-AUC of each other, and tuning flattened. Two checks point at the data instead:
+
+| Check | Result |
+|---|---|
+| Learning curve, tuned forest on val (Nov 11) | 2022 only 0.360 · 2019–22 0.366 · 2017–22 0.381 · 2015–22 0.407 PR-AUC. A random 25% of 2015–22 (6.5k rows) gets 0.389, beating 2017–22 (16.7k rows). More rows of the same data add little (+0.018 from 25% to 100%). The old years help because their labels are complete (38% of 2015 commits blamed, 9% of 2022) |
+| SZZ against the 130 Defects4J + Fonte labels (KNOWLEDGE-BASE.md) | SZZ picks the right bug-inducing commit 44% of the time (churn 18%, latest 16%). Most positive labels point at the wrong commit |
+
+So the labels are noisy, recent labels are incomplete, and the features never see the code. The champion doesn't change before the 2024 run. What we do:
+
+| # | Fix | Owner | Done when | When |
+|---|---|---|---|---|
+| 12 | Fill decision 5 (training window) from the learning curve above: 2015–22 stays, by its written rule | **Rachna** | Decision 5's row filled in, paired bootstrap 2015–22 against 2019–22 | Nov 12 |
+| 13 | A cleaner SZZ variant: skip whitespace, comment and pure-rename lines when blaming. Measure it on the 130 Defects4J labels, then on val with the same forest. It's measured only and doesn't replace the champion | **Utkarsh** | The pick rate against 44%, and val PR-AUC against 0.407 | Nov 12 |
+| 14 | The report says the ceiling plainly: accuracy is meaningless here, 3.4× chance, and SZZ is right 44% of the time | **Chaitali** (bias section), **Rachna** (model section) | Both sections carry these numbers | Nov 12 |
+
+For the report as next steps, not built now: features from the diff itself (a small local code-embedding model, fixed version, cached per commit, $0 per push), and a commit-intent feature (fix, refactor, feature, formatting) by "LLM first, then ML". An LLM never writes the labels or scores a push.
+
 ## The model comparison
 
 Models: `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`, Gemini Flash, Gemini Pro, Mistral Medium, Llama 4 Maverick, Llama 4 Scout, Gemma 4 31B, and Phi-4-mini (local through Ollama `phi4-mini`, Jev only). Use pay-per-token models only: anything that needs its own GPU server is out.
