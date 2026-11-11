@@ -135,8 +135,9 @@ def rows(db, sql, params=()):
     return [tuple(r) for r in db.execute(sql, params).fetchall()]
 
 
-def push_check(base, repo, checkout, changed, cfg, settings, rng=None):
-    """The comment, '' when there's nothing to say. changed: paths (ignored when rng, a git range, is given)."""
+def push_check(base, repo, checkout, changed, cfg, settings, rng=None, collect=None):
+    """The comment, '' when there's nothing to say. changed: paths (ignored when rng, a git range, is given).
+    collect: a list that gets every finding as (check, target, evidence), push_alert's columns (meridian/replay.py)."""
     if not Path(base).is_file() or not any(r["repo"] == repo for d in cfg["datasets"].values()
                                            for r in d.get("repos", [])):
         return ""  # no base map (04 §10), or not a repo meridian.toml watches: silent
@@ -271,9 +272,11 @@ def push_check(base, repo, checkout, changed, cfg, settings, rng=None):
                 found.append(("P9", "push", v.text))
     finally:
         db.close()
+    found.sort(key=lambda f: f[:2])  # the doc's queries have no ORDER BY: same PR, same comment
+    if collect is not None:
+        collect.extend(found)
     if not found:
         return ""
-    found.sort(key=lambda f: f[:2])  # the doc's queries have no ORDER BY: same PR, same comment
     shown = [f"- **{c} {NAMES[c]}**: {what}" for c, _, what in found[:settings["max_lines"]]]
     more = len(found) - len(shown)
     return "\n".join([head, "", *shown] + ([f"- … and {more} more"] if more else [])) + "\n"
