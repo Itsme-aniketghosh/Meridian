@@ -277,7 +277,7 @@ Rule: every slice with at least 30 (`[bias] min_n`) is judged by phase 1's rule 
 
 On this laptop (10 cores, not the 8 the rule says; the rule's reasoning holds either way): **(a) the full search, 310 s** (logreg 50 trials, forest 100, LightGBM 100, each stopped flat; then seed noise, evaluate, bias, gate). **(b) the refit, 15 s.** (a) picks the same candidate as the committed one: forest with the same params, and its `val` scores equal the committed ones to 1.1e-16.
 
-(a) is under 15 minutes on the laptop, so by the rule the runner's time decides. `model.yml` runs (a) (`TRAIN: search`) until the first PR run is timed. Over 15 minutes there, it switches to (b), with `train: search` kept for runs started by hand. The runner times go here.
+(a) is under 15 minutes on the laptop, so by the rule the runner's time decides. The first PR run (#63, `ubuntu-latest`, 4 cores) ran (a): **the pipeline step took 27 min 40 s** (01:31:16 to 01:58:56 UTC, Nov 11; building the image took 2 min 38 s more), green end to end. That's over 15 minutes, so **(b) on PRs and pushes** (`TRAIN: refit`). (a) stays for a run started by hand (`workflow_dispatch`, `train: search`). (b)'s runner times, median of 3: below.
 
 ## 8. When CI runs: PRs plus main
 
