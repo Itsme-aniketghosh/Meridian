@@ -6,10 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import numpy as np
 
 from model import recall as R
-from model import train as T
 from tests.fake_table import fake_table
 
 

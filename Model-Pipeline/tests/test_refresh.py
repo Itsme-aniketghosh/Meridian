@@ -1,4 +1,4 @@
-"""model/refresh.py: the split rolls forward with the block, nothing new is a no-op, and a failed cycle undoes itself."""
+"""model/refresh.py: the split rolls with the block, nothing new is a no-op, a failed cycle undoes itself."""
 import contextlib
 import io
 import json

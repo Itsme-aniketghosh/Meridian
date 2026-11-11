@@ -1,4 +1,4 @@
-"""Recall-first models: a fresh set of the three model kinds, tuned to catch bugs, not to rank them. Run from Model-Pipeline/.
+"""Recall-first models: the three model kinds, tuned to catch bugs, not to rank them. Run from Model-Pipeline/.
 
     python -m model.recall                      # tune logreg, forest, lgbm; compare with the PR-AUC champion on val
     python -m model.recall --trials 20 --kinds forest
