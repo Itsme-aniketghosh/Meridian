@@ -21,8 +21,8 @@ on:
       train:
         description: "search: the full Optuna search; refit: the committed candidate (decision 7)"
         type: choice
-        options: [search, refit]
-        default: search
+        options: [refit, search]
+        default: refit
 
 permissions:
   contents: read
@@ -42,7 +42,7 @@ jobs:
       MERIDIAN_SLACK_WEBHOOK: ${{ secrets.MERIDIAN_SLACK_WEBHOOK }}
       ON_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      TRAIN: ${{ inputs.train || 'search' }}  # decision 7: what pushes and PRs train
+      TRAIN: ${{ inputs.train || 'refit' }}  # decision 7: the search took 27.7 min on a runner, so PRs and pushes refit
     steps:
       - uses: actions/checkout@v4
 
@@ -71,6 +71,7 @@ jobs:
         id: pipeline
         run: |
           cp -r Model-Pipeline/reports "$OUT"
+          rm -f "$OUT/gate.json" "$OUT/llm_bias.json"  # the committed ones; this run writes its own
           mkdir -p Model-Pipeline/registry
           refit=""
           [ "$TRAIN" = "refit" ] && refit="--refit"
@@ -80,8 +81,13 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e MLFLOW_TRACKING_URI=sqlite:////tmp/mlflow.db \
             -v "$OUT:/app/Model-Pipeline/reports" \
             -v "$PWD/Model-Pipeline/registry:/app/Model-Pipeline/registry:ro" \
-            meridian-model:ci $refit --until gate 2>&1 | tee "$RUNNER_TEMP/pipeline.log"
+            meridian-model:ci $refit --until gate 2>&1 | tee "$RUNNER_TEMP/pipeline.log" || failed=1
           echo "seconds=$(( $(date +%s) - start ))" >> "$GITHUB_OUTPUT"
+          if [ -n "${failed:-}" ]; then  # an annotation anyone can read, logs or not
+            echo "::error::$(grep -m1 '^FAILED at' "$RUNNER_TEMP/pipeline.log" || echo 'the pipeline failed')"
+            [ -f "$OUT/gate.json" ] && jq -r '.checks[] | select(.ok | not) | "::error::gate \(.check): \(.why)"' "$OUT/gate.json"
+            exit 1
+          fi
 
       # LLM bias (step M): the agents' fallback and diff match rates by slice. CI's store has no agent calls, so the
       # fallback side says so; a flagged slice outside [llm_bias] accepted fails the run
