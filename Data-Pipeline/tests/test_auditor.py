@@ -492,12 +492,21 @@ class Promotion(unittest.TestCase):
         self.assertEqual(before.promotions, [("2026-10-02T00:00:00Z", "stall-v0", "stall-v1")])
         self.assertEqual(after.promotions, before.promotions)
 
+    def test_a_policy_created_at_the_check_counts(self):
+        league = self.league()
+        league.policies["stall-v8"] = A.Policy("stall-v8", "stall", 8, "rh", A.stall_v0, "2026-10-02T00:00:00Z")
+        self.assertEqual([league.challengers("2026-10-01T23:59:59Z"), league.challengers("2026-10-02T00:00:00Z")],
+                         [1, 2])
+
     def test_a_luck_test_it_cant_run_stops(self):
         for bad in ({"promote_luck": -0.05}, {"promote_luck": 1}, {"promote_luck": "5%"}, {"promote_luck": True},
-                    {"promote_gain": 0}, {"promote_gain": -100}, {"promote_gain": "200"}):
+                    {"promote_gain": 0}, {"promote_gain": -100}, {"promote_gain": "200"}, {"promote_gain": 6400},
+                    {"promote_gain": float("inf")}, {"promote_gain": float("nan")}):
             with self.subTest(**bad), self.assertRaises(SystemExit):
                 A.settings({"auditor": bad})
         self.assertEqual(A.settings({"auditor": {"promote_luck": 0}})["promote_luck"], 0)  # TOML's "off"
+        top = self.league(record=(30, 0, 0), s=A.settings({"auditor": {"promote_gain": 2000}}))
+        self.assertEqual(top.guard("stall-v9"), [])  # the largest gain still runs: 30-0 is clear of luck for it
 
     def test_a_no_better_policy_reaches_the_luck_bar_at_most_5_percent_of_the_time(self):
         """Ville's inequality, computed exactly: the chance that coin-flip wins and losses ever reach one challenger's
@@ -899,9 +908,10 @@ class Simulations(unittest.TestCase):
 
     def test_decision_12s_measures(self):
         """Match 201 is within the first 67 stalls and 202 isn't; the median is of v1's promotions only."""
-        r = S.measure_12([None, 201, 202, 600], [(45, "stall-v1"), (69, "stall-v1"), (None, None), (100, "stall-v2")])
-        self.assertEqual(r, {"same_201": 0.25, "same_600": 0.75, "best_promoted": 0.5, "best_at": 57,
-                             "worst_first": 0.25})
+        best = [(45, "stall-v1"), (69, "stall-v1"), (300, "stall-v1"), (None, None), (100, "stall-v2")]
+        r = S.measure_12([None, 201, 202, 600], best)
+        self.assertEqual(r, {"same_201": 0.25, "same_600": 0.75, "best_promoted": 0.6, "best_at": 69,
+                             "worst_first": 0.2})
 
     def test_every_option_of_decision_12_sets_the_whole_guard(self):
         """So decision 12's table doesn't depend on what decisions 9-11 run under."""
@@ -909,13 +919,21 @@ class Simulations(unittest.TestCase):
             self.assertEqual(set(guard), {"promote_matches", "promote_elo", "promote_luck", "promote_gain"}, name)
 
     def test_draws_come_from_their_own_stream(self):
-        """With no draws a seed's stalls are what they were; with some, only results become draws."""
-        plain = S.first_promotion(S.SKILLS, 7, S.settings(), 40)
-        self.assertEqual(S.first_promotion(S.SKILLS, 7, S.settings(), 40, draws=0.0), plain)
-        log = []
-        with mock.patch.object(A.League, "add", lambda league, m: log.append(m["result"])):
-            S.first_promotion(S.SKILLS, 7, S.settings(), 40, draws=0.5)
-        self.assertAlmostEqual(log.count("draw") / len(log), 0.5, delta=0.1)
+        """With no draws a seed's stalls are what they were. With some, a result either stays or becomes a draw, and
+        which ones become draws doesn't depend on who won."""
+        never = S.settings(promote_matches=10 ** 9)  # no promotion, so every stall is played
+        runs = {}
+        for draws in (0.0, 0.5):
+            log = []
+            with mock.patch.object(A.League, "add", lambda league, m: log.append(m["result"])):
+                S.first_promotion(S.SKILLS, 7, never, 400, draws=draws)
+            runs[draws] = log
+        plain, drawn = runs[0.0], runs[0.5]
+        self.assertEqual(len(plain), len(drawn))
+        self.assertTrue(all(d in ("draw", r) for r, d in zip(plain, drawn)))
+        share = {r: sum(d == "draw" for x, d in zip(plain, drawn) if x == r) / plain.count(r) for r in ("a", "b")}
+        self.assertAlmostEqual(share["a"], 0.5, delta=0.07)
+        self.assertAlmostEqual(share["b"], 0.5, delta=0.07)
 
     def test_decisions_9_to_11_under_the_guard_now_log_nothing(self):
         out = io.StringIO()

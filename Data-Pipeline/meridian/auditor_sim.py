@@ -455,7 +455,8 @@ def main(argv=None):
         decide, pick, show = DECIDE[n]
         under = {"guard": now} if a.guard == "default" and n != 12 else {}
         if n == 10:
-            print(f"\nthe promotion guard and luck, seeds 1–{max(a.seeds)} (not part of a rule)")
+            print(f"\nthe promotion guard and luck, seeds 1–{max(a.seeds)}: 04 §9's guard with bigger numbers, "
+                  "whatever --guard says (not part of a rule)")
             show_guard(guard_luck(range(1, max(a.seeds) + 1)))
         for count in a.seeds:
             seeds = range(1, count + 1)

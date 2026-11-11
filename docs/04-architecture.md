@@ -137,8 +137,8 @@ Read-only. `run_id`, `snapshot_at`, and coverage on every screen.
   Per repo after 30 matches
 - Promotion: ≥ 30 live matches, +50 Elo, beats v0, and a luck test on the live wins
   and losses against the champion (draws left out): luck gets a no-better policy past it
-  ≤ 5% of the time, however often it's checked. Built to find +200 Elo; the 5% is split
-  over the challengers (auditor decision 12)
+  ≤ 5% of the time per champion, however often it's checked. Built to find +200 Elo; the
+  5% is split over the challengers (auditor decision 12)
 - LLMs may propose policy code. A human reviews it. Never in the decision path
 
 ## 10. Push check

@@ -140,18 +140,20 @@ Only the rows today's code can meet. Seeded ε and the promotion guard come with
 
 | Bar | Result |
 |---|---|
-| Luck doesn't promote | ✅ With the luck test (decision 12), seeds 1–2,000:
-- **Promoted by luck:** a policy no better than the others in 3.7% of 201-match runs and 4.0% of 600-match runs. Under 04 §9's guard alone it's 87.0% and 95.8%. Over 3,000 matches the luck test is still at 4.0%, against 99.1%.
-- **The better policy:** v1, 200 Elo better, is promoted in 100% of runs, at a median of 69 matches instead of 45. v2 is never the first promotion.
-- **With draws** (30–70% of matches), v1 is still promoted within 600 matches in 94–100% of runs, and luck stays at 3.2–3.9%.
+| Luck doesn't promote | ✅ With the luck test (decision 12), a policy no better than the others is promoted in 3.7% of 201-match runs and 4.0% of 600-match runs, seeds 1–2,000, against 87.0% and 95.8% under 04 §9's guard alone. v1, 200 Elo better, is promoted in 100% of runs, at a median of 69 matches instead of 45 (`auditor_sim.py --decide 12`; MLflow `meridian-auditor`, `decision=rochan-12`, run be39aa4f) |
+| Promotion guard | ✅ As on Nov 7 under 04 §9's numbers, plus the luck test (`test_auditor.py`, `Promotion`): see below |
 
-(`auditor_sim.py --decide 12`; MLflow `meridian-auditor`, `decision=rochan-12`, run be39aa4f) |
-| Promotion guard | ✅ As on Nov 7 under 04 §9's numbers, plus the luck test (`test_auditor.py`, `Promotion`):
-- A 20–10 record against v0 is blocked (likelihood ratio 2.82, needs 20); 24–6 passes; 22–8 passes with one challenger but not two, which need 40.
+More on the luck bar, from `--decide 12`'s printout after its table. These aren't in the MLflow run, which holds the rule's table:
+- **Longer runs:** over 3,000 matches, the luck test is still at 4.0%, against 99.1% for 04 §9's guard.
+- **Draws:** with 30–70% of matches drawn, v1 is still promoted within 600 matches in 94–100% of runs, and luck stays at 3.2–3.9%.
+- **First promotions only:** v2 is never the first promotion. The table counts each run's first promotion only.
+
+The guard's tests:
+- A 20–10 record against v0 is blocked (likelihood ratio 2.82, needs 20), and 24–6 passes. 22–8 passes with one challenger but not with two, which need 40.
 - 10 wins, 60 draws and no loss passes: draws don't count.
 - The record that counts is the one against the champion of the day.
-- A policy written later doesn't undo a promotion already given.
+- A policy written later doesn't undo a promotion already given, and one created at the moment of a check counts in it.
 - Settings the test can't run on stop the run.
-- The chance that luck ever gets a no-better policy past the bar is computed exactly: 4.22%, under 5%. |
+- For one challenger (a bar of 20), the chance that luck ever gets a no-better policy past it is computed exactly: 4.22%, under 5%.
 
 Decisions 9–11 still run under 04 §9's guard, and give their tables again. Decision 10's luck column is 87.0% and 89.7%.

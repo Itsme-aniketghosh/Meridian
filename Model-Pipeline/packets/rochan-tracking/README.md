@@ -73,7 +73,7 @@ The GCP repo, once, on the trial project (no Terraform until phase 3):
 - [x] Verdict rules: block removed ≤ 7 days before resumption, ticket created ≤ 14 days before, new author resumed, ticket reopened. Else a person picks. None: no match
 - [x] Replay matches: past stalls, rows with `known_at` ≤ stall time only, half K
 - [x] Promotion guard: ≥ 30 live matches, +50 Elo, beats v0. LLM-written policies are never promoted without a person
-- [x] GAPS 9: the guard's luck test. Luck gets a no-better policy past the champion at most 5% of the time, however often the guard is checked (decision 12)
+- [x] GAPS 9: the guard's luck test. Luck gets a no-better policy past each champion at most 5% of the time, however often the guard is checked (decision 12)
 - [x] Runs on the fixture and on replay. With no users there are no live matches, and the output says so
 
 ## Decisions
@@ -93,7 +93,7 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 | 9 | Auditor ε schedule | 04's 0.2 then 0.1, a fixed 0.1 | Simulation: 3 policies with known skill, 200 matches, 20 seeds. Matches until the best is champion, and how often a worse one is | Too little exploration and a better policy never gets tried. Too much and the team sees worse rankings for longer |
 | 10 | Elo K | 04's 32 then 16, 24 flat | Same simulation: rank error after 30, 60, 100 matches | K sets how fast Elo moves. Too high and one lucky match promotes a policy |
 | 11 | Replay weight | half K (04), full K, no replay | Simulation with replay matches that are noisier than live ones | Replay is cheap but its verdicts are weaker. It should speed learning without steering it |
-| 12 | Promotion guard (GAPS 9) | 04's guard with bigger numbers (25), 04's guard plus a luck test (G 200, G 100) | Same simulation: luck promotions with the same skill, within 201 and 600 matches; when a policy 200 better is promoted | 04's guard promotes a no-better policy by luck in 87% of runs. Every lucky promotion is a worse policy served to the team |
+| 12 | Promotion guard (GAPS 9) | 04's guard with bigger numbers (25), 04's guard plus a luck test (G 200, G 100) | Same simulation: luck promotions with the same skill, within 201 and 600 matches; when a policy 200 better is promoted | 04's guard promotes a no-better policy by luck in 87% of runs. Every lucky promotion serves the team a policy that's no better |
 
 ## Tests
 

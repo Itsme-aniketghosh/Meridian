@@ -68,7 +68,9 @@ losses against the champion (draws don't count): they must be (challengers ÷ pr
 promote_gain Elo better than if it's no better (log_likelihood_ratio). That keeps the chance that luck ever gets a
 no-better challenger past the champion to at most promote_luck, 5%, however often the guard is checked, and each new
 champion starts a new 5%. The challengers are the policies that existed at the check, so a policy written later never
-changes a promotion already given. In decision 12's simulation, 04 §9's original guard promotes a policy no better
+changes a promotion already given. One written during a champion's reign gets its own share when it arrives, while
+the checks before it used the smaller bar, so over a long series of new policies the total can pass 5% (decisions.md
+12). In decision 12's simulation, 04 §9's original guard promotes a policy no better
 than v0 in 87% of 201-match runs and 96% of 600-match ones; with the luck test, 3.7% and 4.0% (decisions.md 12).
 promote_luck = 0 turns the test off. A policy an LLM wrote also needs a person's approval. Replay matches never count
 toward the 30. Like Elo, the champion is replayed from the log: v0 to start, the guard checked after each batch of
@@ -576,7 +578,7 @@ def write_tracking(out, at, policies, before, log, new):
 def settings(cfg):
     """meridian.toml [auditor] over 04 §9's numbers and decision 12's. A key the auditor doesn't read stops the run,
     and so does a luck test it can't run: promote_luck is 0 (no test) or a share between 0 and 1, promote_gain an Elo
-    gain above 0."""
+    gain above 0 and at most 2,000 (past that, p = 1 / (1 + 10^(-gain / 400)) rounds to 1)."""
     given = cfg.get("auditor", {})
     if unknown := sorted(set(given) - set(DEFAULTS)):
         raise SystemExit(f"meridian.toml [auditor] has keys the auditor doesn't read: {', '.join(unknown)}")
@@ -586,9 +588,9 @@ def settings(cfg):
                                                                         or 0 < s["promote_luck"] < 1)):
         raise SystemExit(f"meridian.toml [auditor] promote_luck is {s['promote_luck']!r}: it must be 0 (no luck "
                          "test) or a share between 0 and 1")
-    if not (number(s["promote_gain"]) and s["promote_gain"] > 0):
+    if not (number(s["promote_gain"]) and 0 < s["promote_gain"] <= 2000):
         raise SystemExit(f"meridian.toml [auditor] promote_gain is {s['promote_gain']!r}: it must be an Elo gain "
-                         "above 0")
+                         "above 0 and at most 2,000")
     return s
 
 
@@ -834,7 +836,7 @@ def report(db, cfg, s, run_id, at, path, prev_at=None, out=None):
         log(f"promoted at {at_}: {now} replaced {was}")
     for p in sorted(league.policies):
         if p != league.champion:
-            log(f"  {p} stays a challenger: {'; '.join(league.guard(p))}")
+            log(f"  {p} stays a challenger: {'; '.join(league.guard(p, at))}")
 
     report_explore(explore_job(db, cfg, s, run_id, at, matches, q=q), at)
 
