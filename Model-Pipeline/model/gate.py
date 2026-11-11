@@ -123,7 +123,7 @@ def check(docs, g):
         top, sd, how = champ["metrics"]["pr_auc"]["value"], s["sd"], ""
         if champ["metrics"]["features_md5"] != m.get("features_md5"):
             own = champ["metrics"]["pr_auc"]["value"]
-            top, how = again["value"], f", re-scored on this table ({own:.4f} on its own)"
+            top, how = again["value"], f", re-scored on this table ({own:.4f} on its own table)"
         floor = top - g["noise_sds"] * sd
         add("champion", not below_champion(value, top, sd, g["noise_sds"]),
             f"PR-AUC {value:.4f} vs champion {champ['version'][:8]} {top:.4f}{how}, floor {floor:.4f} "
@@ -139,13 +139,20 @@ def rescore_champion(docs, champion_path, features):
     if champ is None or champ["metrics"]["features_md5"] == m.get("features_md5"):
         return None
     from model.evaluate import file_md5
+    if not features:
+        return {"why": "no feature table was given to re-score it on"}
     model, features = Path(champion_path).parent / champ["model_file"], Path(features)
-    if not model.is_file():
-        return {"why": f"its {champ['model_file']} isn't next to {Path(champion_path).name}, so it can't be re-scored"}
-    if file_md5(model) != champ["model_md5"]:
-        return {"why": f"the {champ['model_file']} next to it isn't the one {Path(champion_path).name} records (md5)"}
-    if not features.is_file() or file_md5(features) != m.get("features_md5"):
-        return {"why": f"{features} isn't this run's feature table (md5), so it can't be re-scored on it"}
+    try:
+        if not model.is_file():
+            return {"why": f"its {champ['model_file']} isn't next to {Path(champion_path).name}, so it can't be "
+                    "re-scored"}
+        if file_md5(model) != champ["model_md5"]:
+            return {"why": f"the {champ['model_file']} next to it isn't the one {Path(champion_path).name} records "
+                    "(md5)"}
+        if not features.is_file() or file_md5(features) != m.get("features_md5"):
+            return {"why": f"{features} isn't this run's feature table (md5), so it can't be re-scored on it"}
+    except OSError as e:  # a file it can't read: the check fails and says so, the gate still writes gate.json
+        return {"why": f"can't read what it needs to re-score it ({type(e).__name__}: {e})"}
     try:
         value, n = registry.rescore(model, features)
     except Exception as e:  # a package the model needs, a file that doesn't load: the check fails, it doesn't crash

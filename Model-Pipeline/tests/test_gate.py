@@ -236,7 +236,7 @@ class AChampionOnAnotherTableIsReScored(Case):
     def test_it_is_re_scored_with_its_own_model_and_compared(self):
         code, result, slack, mail, _ = self.gate()
         self.assertEqual(code, 0, result["checks"])
-        self.assertIn(f"vs champion 00000000 {self.value:.4f}, re-scored on this table (0.9900 on its own)",
+        self.assertIn(f"vs champion 00000000 {self.value:.4f}, re-scored on this table (0.9900 on its own table)",
                       result["checks"][-1]["why"])
         self.assertEqual((slack, mail), ([], []))
 
@@ -253,6 +253,25 @@ class AChampionOnAnotherTableIsReScored(Case):
         self.docs["metrics.json"]["features_md5"] = "e" * 32
         why = self.assert_fails_once("champion")["checks"][-1]["why"]
         self.assertIn("isn't this run's feature table", why)
+
+    def test_a_model_that_doesnt_load_fails(self):
+        junk = b"not a model"
+        (self.tmp / "model.joblib").write_bytes(junk)
+        self.docs["champion.json"]["model_md5"] = hashlib.md5(junk).hexdigest()
+        why = self.assert_fails_once("champion")["checks"][-1]["why"]
+        self.assertIn("re-scoring it failed", why)
+
+    def test_val_rows_that_arent_this_runs_fail(self):
+        for name in ("metrics.json", "bias_report.json", "seed_noise.json"):
+            self.docs[name]["n"] = self.n + 1
+        why = self.assert_fails_once("champion")["checks"][-1]["why"]
+        self.assertIn(f"re-scored on {self.n:,} val rows, but this run's metrics have {self.n + 1}", why)
+
+    def test_a_file_it_cant_read_fails_the_check_instead_of_crashing(self):
+        with mock.patch("model.evaluate.file_md5", side_effect=PermissionError(13, "Permission denied")):
+            result = self.assert_fails_once("champion")
+        self.assertIn("can't read what it needs to re-score it (PermissionError", result["checks"][-1]["why"])
+        self.assertTrue((self.tmp / "gate.json").exists())
 
 
 class ABrokenChannelNeverDecides(Case):
