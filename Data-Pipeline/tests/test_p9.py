@@ -90,8 +90,10 @@ class WithModel(unittest.TestCase):
         cls.db.close()
         cls.tmp.cleanup()
 
-    def champion(self, threshold, model=None, md5=None, missing=False, name="model.joblib"):
-        """A champion.json (+ its model file) in a fresh folder; returns its path."""
+    def champion(self, model_cutoff=-1.0, lxf_cutoff=0, model=None, md5=None, missing=False, name="model.joblib",
+                 adopted=True, rule_md5=None, rule=True):
+        """A champion.json (+ its model file) and decision 15b's p9_rule.json in a fresh folder; returns the
+        champion.json path. The rule file sits next to it (run_p9 finds it there)."""
         import joblib
         folder = Path(tempfile.mkdtemp(dir=self.d))
         model = model if model is not None else self.forest()
@@ -99,45 +101,69 @@ class WithModel(unittest.TestCase):
             joblib.dump(model, folder / name)
         digest = md5 or (hashlib.md5((folder / name).read_bytes()).hexdigest() if not missing else "0" * 32)
         rec = {"version": "abcdef1234567890", "run_id": "r", "model_file": name, "model_md5": digest,
-               "metrics": {"at_threshold": {"threshold": threshold}}, "previous": None}
+               "metrics": {"at_threshold": {"threshold": None}}, "previous": None}
         (folder / "champion.json").write_text(json.dumps(rec))
+        if rule:
+            pick = {"model_cutoff": model_cutoff, "lxf_cutoff": lxf_cutoff, "precision": 0.8, "alerts": 30}
+            (folder / "p9_rule.json").write_text(json.dumps({"adopted": adopted, "pick": pick,
+                                                             "model_md5": rule_md5 or digest}))
         return folder / "champion.json"
 
     def forest(self):
         return small_forest()
 
     def run_p9(self, champion, repo=SPARK, threshold=10):
-        return p9.verdict(self.db, repo, RUN, AT, NUMSTAT, MESSAGES, "ann@x.org", KEY, LXF, threshold, champion)
+        return p9.verdict(self.db, repo, RUN, AT, NUMSTAT, MESSAGES, "ann@x.org", KEY, LXF, threshold, champion,
+                          champion.parent / "p9_rule.json")
 
-    def test_the_champion_scores_the_push(self):
-        v = self.run_p9(self.champion(threshold=0.0))
+    def test_both_over_their_cutoffs_alerts_from_the_model(self):
+        v = self.run_p9(self.champion(model_cutoff=-1.0, lxf_cutoff=0))
         self.assertEqual((v.rule, v.alert), ("model", True))
-        self.assertIn("from the champion model (RandomForestClassifier, version abcdef1234)", v.text)
-        self.assertIn("over its threshold 0.00; 9 lines × 3 files", v.text)
+        self.assertIn("from the champion model (RandomForestClassifier, version abcdef1234) and 9 lines × 3 files "
+                      "= 27: both over their cutoffs (-1.00 and 0, decision 15b)", v.text)
 
-    def test_under_the_models_threshold_no_alert_even_when_lines_x_files_would(self):
-        v = self.run_p9(self.champion(threshold=1.0), threshold=1)
+    def test_the_model_alone_never_alerts(self):
+        """Model over its cutoff, lines × files under its: no alert (the model alone reaches 0.70, under 0.80)."""
+        v = self.run_p9(self.champion(model_cutoff=-1.0, lxf_cutoff=1000), threshold=1)
         self.assertEqual((v.rule, v.alert), ("model", False))
+
+    def test_lines_x_files_alone_never_alerts_while_the_rule_is_on(self):
+        v = self.run_p9(self.champion(model_cutoff=1.01, lxf_cutoff=0), threshold=1)
+        self.assertEqual((v.rule, v.alert), ("model", False))
+
+    def test_a_rule_that_wasnt_adopted_or_isnt_there_is_lines_x_files_by_design(self):
+        for path in (self.champion(adopted=False), self.champion(rule=False)):
+            with self.subTest(path=path):
+                v = self.run_p9(path)
+                self.assertEqual((v.rule, v.alert, v.why, v.text),
+                                 ("lines_x_files", True, None, "9 lines × 3 files = 27, over 10"))
 
     def test_the_score_is_the_models_on_the_push_features(self):
         _, train = p9._model_modules()
         row = p9.push_features(self.db, SPARK, RUN, AT, NUMSTAT, MESSAGES, "ann@x.org", KEY, 365)
         expected = float(train.score_with(self.forest(), row)[0])
-        v = self.run_p9(self.champion(threshold=0.0))
+        v = self.run_p9(self.champion())
         self.assertIn(f"defect risk {expected:.2f}", v.text)
 
     def test_every_way_the_model_cant_be_used_says_why(self):
-        bad = {"md5 isn't champion.json's": self.champion(0.0, md5="f" * 32),
-               "isn't next to champion.json": self.champion(0.0, missing=True),
-               "the champion has no alert threshold": self.champion(None)}
-        corrupt = self.champion(0.0)
+        bad = {"md5 isn't champion.json's": self.champion(md5="f" * 32),
+               "isn't next to champion.json": self.champion(missing=True),
+               "p9_rule.json was measured on another model than the champion": self.champion(rule_md5="e" * 32)}
+        unreadable = self.champion()
+        (unreadable.parent / "p9_rule.json").write_text("{not json")
+        bad["p9_rule.json doesn't read"] = unreadable
+        corrupt = self.champion()
         (corrupt.parent / "model.joblib").write_bytes(b"not a model")
         rec = json.loads(corrupt.read_text())
         rec["model_md5"] = hashlib.md5(b"not a model").hexdigest()
         corrupt.write_text(json.dumps(rec))
+        rule = json.loads((corrupt.parent / "p9_rule.json").read_text())
+        rule["model_md5"] = rec["model_md5"]
+        (corrupt.parent / "p9_rule.json").write_text(json.dumps(rule))
         bad["the model didn't load"] = corrupt
         broken = Path(tempfile.mkdtemp(dir=self.d)) / "champion.json"
         broken.write_text("{not json")
+        (broken.parent / "p9_rule.json").write_text("{}")
         bad["champion.json doesn't read"] = broken
         for why, path in bad.items():
             with self.subTest(why):
@@ -150,12 +176,12 @@ class WithModel(unittest.TestCase):
         from sklearn.dummy import DummyClassifier
         import pandas as pd
         odd = DummyClassifier().fit(pd.DataFrame({"not_a_feature": [0, 1]}), [0, 1])
-        v = self.run_p9(self.champion(0.0, model=odd))
+        v = self.run_p9(self.champion(model=odd))
         self.assertEqual(v.rule, "lines_x_files")
         self.assertIn("couldn't score this push", v.text)
 
     def test_another_repo_keeps_lines_x_files_with_nothing_to_explain(self):
-        v = self.run_p9(self.champion(0.0), repo="acme/shop")
+        v = self.run_p9(self.champion(), repo="acme/shop")
         self.assertEqual((v.rule, v.alert, v.why), ("lines_x_files", True, None))
         self.assertEqual(v.text, "9 lines × 3 files = 27, over 10")
 
@@ -220,8 +246,8 @@ HAS_SCANNER = all(importlib.util.find_spec(m) for m in ("tree_sitter", "tree_sit
 
 @unittest.skipUnless(HAS_MODEL_PACKAGES and HAS_SCANNER, "needs Model-Pipeline's packages and the scanner's")
 class EndToEnd(unittest.TestCase):
-    """push_check itself, on tests/test_pushcheck.py's PR, with [push_check] champion set: the P9 line comes from the
-    model, and a champion that can't load gives today's line plus why. The other checks don't change."""
+    """push_check itself, on tests/test_pushcheck.py's PR, with [push_check] champion and an adopted p9_rule set: the
+    P9 line comes from the model, and a champion that can't load gives today's line plus why. Nothing else changes."""
 
     @classmethod
     def setUpClass(cls):
@@ -245,22 +271,25 @@ class EndToEnd(unittest.TestCase):
 
     def check(self, champion):
         import meridian.pushcheck as P
-        settings = dict(self.T.SETTINGS, champion=str(champion))
+        settings = dict(self.T.SETTINGS, champion=str(champion), p9_rule=str(champion.parent / "p9_rule.json"))
         out = P.push_check(self.base, self.T.REPO, self.co, [], self.T.CFG, settings, "HEAD~1...HEAD")
         return [line for line in out.splitlines() if line.startswith("- **")]
 
-    def write_champion(self, threshold, md5=None):
+    def write_champion(self, model_cutoff=-1.0, md5=None):
+        """champion.json, its model and an adopted p9_rule.json (lines × files cutoff 0) in a fresh folder."""
         import joblib
         folder = Path(tempfile.mkdtemp(dir=self.tmp.name))
         joblib.dump(self.forest, folder / "model.joblib")
-        rec = {"version": "abcdef1234567890", "run_id": "r", "model_file": "model.joblib",
-               "model_md5": md5 or hashlib.md5((folder / "model.joblib").read_bytes()).hexdigest(),
-               "metrics": {"at_threshold": {"threshold": threshold}}, "previous": None}
+        digest = hashlib.md5((folder / "model.joblib").read_bytes()).hexdigest()
+        rec = {"version": "abcdef1234567890", "run_id": "r", "model_file": "model.joblib", "model_md5": md5 or digest,
+               "metrics": {"at_threshold": {"threshold": None}}, "previous": None}
         (folder / "champion.json").write_text(json.dumps(rec))
+        rule = {"adopted": True, "model_md5": md5 or digest, "pick": {"model_cutoff": model_cutoff, "lxf_cutoff": 0}}
+        (folder / "p9_rule.json").write_text(json.dumps(rule))
         return folder / "champion.json"
 
     def test_the_p9_line_comes_from_the_champion(self):
-        lines = self.check(self.write_champion(-1.0))      # any risk is over it: the line must come from the model
+        lines = self.check(self.write_champion(-1.0))      # every push is over both cutoffs: the model's line
         p9_lines = [line for line in lines if line.startswith("- **P9 ")]
         self.assertEqual(len(p9_lines), 1)
         self.assertIn("from the champion model (RandomForestClassifier", p9_lines[0])
@@ -272,7 +301,7 @@ class EndToEnd(unittest.TestCase):
                                   if line.startswith("- **") and not line.startswith("- **P9 ")])
 
     def test_a_champion_that_cant_load_is_todays_line_plus_why(self):
-        lines = self.check(self.write_champion(0.0, md5="0" * 32))
+        lines = self.check(self.write_champion(md5="0" * 32))
         self.assertIn("- **P9 Defect risk**: 9 lines × 5 files = 45, over 10 (lines × files: model.joblib's md5 "
                       "isn't champion.json's)", lines)
 
