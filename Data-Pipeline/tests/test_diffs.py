@@ -10,6 +10,7 @@ Bars (Model-Pipeline/packets/utkarsh-data/pass-bars.md §5, written before the d
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -110,6 +111,36 @@ class Lines(unittest.TestCase):
         self.assertEqual(D.rewrite_url_call(line, "re_path"),            # re_path(regex=...) would be a TypeError
                          '    re_path(r"^$", view=views.UserListView.as_view(), name="list"),\n')
 
+    def test_a_call_over_lines_is_drafted_as_one_statement(self):                     # decision 14
+        block = ["    url(\n", "        r'^about/$',\n", "        views.about,\n",
+                 "        name='about',\n", "    ),\n"]
+        self.assertEqual(D.draft_statement(block, "path_if_plain", 79),
+                         "    path('about/', views.about, name='about'),\n")   # fits: one line, as owners wrote
+        self.assertEqual(D.draft_statement(block, "re_path", 79),
+                         "    re_path(r'^about/$', views.about, name='about'),\n")
+        # too long for the limit: the layout stays, and the pattern is said by path where it is
+        self.assertEqual(D.draft_statement(block, "path_if_plain", 30),
+                         "    path(\n        'about/',\n        views.about,\n        name='about',\n    ),\n")
+        self.assertIsNone(D.draft_statement(block, "alias", 79))                 # alias: the import does it
+        self.assertIsNone(D.draft_statement(["    url(  # home\n", "        r'^$', v),\n"], "re_path", 79))
+
+    def test_joining_drops_only_the_trailing_comma_at_a_line_break(self):
+        self.assertEqual(D.join_call(["    url(\n", "        r'^a/$', v, {'x': (1,)},\n", "    ),\n"]),
+                         "    url(r'^a/$', v, {'x': (1,)}),\n")                   # (1,) stays a tuple
+
+    def test_a_statement_draft_changes_nothing_outside_its_lines(self):
+        old = ["a\n", "url(\n", "  r'^x/$', v)\n", "b\n"]
+        self.assertTrue(D.only_span(old, ["a\n", "path('x/', v)\n", "b\n"], 2, 3, "path('x/', v)\n"))
+        self.assertFalse(D.only_span(old, ["A\n", "path('x/', v)\n", "b\n"], 2, 3, "path('x/', v)\n"))
+        self.assertEqual(D.new_line_no({2: ("", "path('x/', v)\n", 3)}, 4), 3)     # one line shorter after it
+
+    def test_the_line_limit_is_the_repos_own(self):
+        root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root, True)
+        self.assertEqual(D.line_limit(root), 79)
+        (root / "setup.cfg").write_text("[flake8]\nmax-line-length = 119\n")
+        self.assertEqual(D.line_limit(root), 119)
+
     def test_the_owners_own_lines_tell_the_style(self):
         plain = "    url(r'^about/$', v),"
         self.assertEqual(D.style_from_owner([(plain, "    re_path(r'^about/$', v),")]), "re_path")
@@ -208,7 +239,7 @@ URL_SITES = [site("U1", "a.py", 1, 29, "url", "import"), site("U2", "b.py", 1, 2
              site("U3", "c.py", 3, 4, "url", "import")]
 
 
-def url_fixture(in_except=0, files=URL_FILES):
+def url_fixture(in_except=0, files=URL_FILES, extra_sites=()):
     """(root, cfg): a block with three url import sites, and a repo with its own small django.urls."""
     root = Path(tempfile.mkdtemp())
     (root / "meridian.toml").write_text(URL_TOML)
@@ -217,7 +248,7 @@ def url_fixture(in_except=0, files=URL_FILES):
     (out / "run.jsonl").write_text(json.dumps({"run_id": RUN, "snapshot_at": SNAP, "repo_shas": "{}",
                                                "source_hashes": "{}", "config_hash": "x", "image_digest": "x",
                                                "status": "complete"}) + "\n")
-    sites = [dict(s, in_except=in_except) if s["call_site_id"] == "U3" else s for s in URL_SITES]
+    sites = [dict(s, in_except=in_except) if s["call_site_id"] == "U3" else s for s in URL_SITES] + list(extra_sites)
     (out / "call_site.jsonl").write_text("".join(json.dumps(s) + "\n" for s in sites))
     (out / "team_map.jsonl").write_text(json.dumps({"team": "app"}) + "\n")
     (out / "person.jsonl").write_text(json.dumps({"person_id": "p1", "name": "Ada Lovelace", "is_bot": 0}) + "\n")
@@ -248,6 +279,110 @@ def stand_in(after):
 def draft_urls(root, cfg, **kw):
     with redirect_stdout(StringIO()):
         return D.run(RUN, cfg, root=root, out_dir=False, style="re_path", **kw)
+
+
+class Statements(unittest.TestCase):
+    """Decision 14, through run(): a url(...) call over several lines is drafted whole; --one-line turns it off."""
+    FILES = {**URL_FILES, "d.py": "from django.conf.urls import url\n\nurlpatterns = [\n    url(\n"
+                                  "        r'^about/$',\n        about,\n    ),\n]\n"}
+    SITES = [site("U4", "d.py", 1, 29, "url", "import"), site("U5", "d.py", 4, 4, "url", "call")]
+
+    def test_the_call_is_joined_and_its_import_follows_and_one_line_keeps_the_old_way(self):
+        root, cfg = url_fixture(files=self.FILES, extra_sites=self.SITES)
+        self.addCleanup(shutil.rmtree, root, True)
+        with redirect_stdout(StringIO()):
+            d = D.run(RUN, cfg, root=root, out_dir=False, style="path_if_plain")[0]["o/r"]
+            one = D.run(RUN, cfg, root=root, out_dir=False, style="path_if_plain", statements=False)[0]["o/r"]
+        self.assertEqual(d[("d.py", 4)][1:], ("    path('about/', about),\n", 7))   # lines 4-7, now one line
+        self.assertEqual(d[("d.py", 1)][1], "from django.urls import path\n")        # what the call now uses
+        self.assertEqual(one[("d.py", 4)][1:], ("    re_path(\n", 4))               # its own line: re_path
+        self.assertEqual(one[("d.py", 1)][1], "from django.urls import re_path\n")
+        row = D.line_diff("d.py", 4, d[("d.py", 4)][0], d[("d.py", 4)][1])
+        self.assertTrue(row.startswith("--- a/d.py\n+++ b/d.py\n@@ -4,4 +4,1 @@\n-    url(\n"))
+
+
+class OwnerFirst(unittest.TestCase):
+    """Decision 15: don't guess. url() lines wait for the owner's style; their edits of earlier diffs teach it; a
+    diff they rejected isn't offered again."""
+    F = "from django.conf.urls import url\n\nurlpatterns = [url(r'^about/$', v)]\n"
+    SITES = [site("F1", "f.py", 1, 29, "url", "import"), site("F2", "f.py", 3, 16, "url", "call")]
+
+    def make(self, extra_files=None):
+        files = {**URL_FILES, "f.py": self.F, **(extra_files or {})}
+        root, cfg = url_fixture(files=files, extra_sites=self.SITES)
+        self.addCleanup(shutil.rmtree, root, True)
+        return root, cfg
+
+    def draft(self, root, cfg, **kw):
+        with redirect_stdout(StringIO()):
+            return D.run(RUN, cfg, root=root, out_dir=False, **kw)
+
+    def commit(self, repo, name, text):
+        """A commit in the fixture repo holding the owner's line; its sha."""
+        env = ["-c", "user.name=o", "-c", "user.email=o@x", "-c", "commit.gpgsign=false"]
+        if not (repo / ".git").exists():
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        (repo / name).write_text(text)
+        subprocess.run(["git", "-C", str(repo), *env, "add", name], check=True)
+        subprocess.run(["git", "-C", str(repo), *env, "commit", "-q", "-m", "owner"], check=True)
+        out = (repo / name)
+        out.unlink()                                   # the checkout itself shows no migrated line
+        return git(repo, "rev-parse", "HEAD").strip()
+
+    def test_with_no_owner_lines_url_waits_and_renames_still_draft(self):
+        root, cfg = self.make()
+        drafts, refused, styles, rows = self.draft(root, cfg)                 # style learned: the product default
+        self.assertEqual(styles["o/r"], None)
+        self.assertEqual(drafts["o/r"], {})
+        self.assertEqual(refused["o/r"]["style_unknown"], 5)
+        guessed = self.draft(root, cfg, style="path_if_plain")[0]["o/r"]     # the old guess, for evaluation
+        self.assertEqual(guessed[("f.py", 3)][1], "urlpatterns = [path('about/', v)]\n")
+        t = Run("test_llm_off_the_codemod_drafts_and_the_run_completes")   # renames: no style to wait for
+        self.addCleanup(t.doCleanups)
+        self.assertEqual(len(t.draft(t.make())[0]["o/r"]), 3)
+
+    def test_a_file_the_owner_migrated_sets_the_style(self):
+        root, cfg = self.make({"e.py": "urlpatterns = [re_path(r'^contact/$', v)]\n"})
+        drafts, _, styles, _ = self.draft(root, cfg)
+        self.assertEqual(styles["o/r"], "re_path")
+        self.assertEqual(drafts["o/r"][("f.py", 3)][1], "urlpatterns = [re_path(r'^about/$', v)]\n")
+
+    def offered(self, root, cfg, outcome, owner_line):
+        """Offer f.py's call once (style path_if_plain), then record the owner's verdict on it."""
+        rows = self.draft(root, cfg, style="path_if_plain")[3]
+        row = next(r for r in rows if r["target"] == "F2")
+        repo = root / "snapshots" / RUN / "repos" / "o__r"
+        sha = self.commit(repo, "owner.py", owner_line + "\n") if owner_line else "0" * 40
+        out = root / "out" / RUN
+        (out / "suggestion.jsonl").write_text(json.dumps(row) + "\n")
+        (out / "outcome.jsonl").write_text(json.dumps({
+            "suggestion_id": row["suggestion_id"], "decided_run_id": "R2", "outcome": outcome,
+            "decided_at": "2026-11-01T00:00:00Z", "latency_days": 3, "rule": "diff_edited",
+            "evidence": json.dumps({"sha": sha, "path": "owner.py", "line": 1})}) + "\n")
+        return row
+
+    def test_the_owners_edit_of_an_earlier_diff_outranks_the_checkout(self):
+        # the checkout votes path, but the owner turned our path() draft into re_path(): their edit wins
+        root, cfg = self.make({"e.py": "urlpatterns = [path('contact/', v)]\n"})
+        self.offered(root, cfg, "edited", "urlpatterns = [re_path(r'^about/$', v)]")
+        drafts, _, styles, _ = self.draft(root, cfg)
+        self.assertEqual(styles["o/r"], "re_path")
+        self.assertEqual(drafts["o/r"][("f.py", 3)][1], "urlpatterns = [re_path(r'^about/$', v)]\n")
+        self.assertEqual(D.owner_edits(D.prior_rows(root / "out" / RUN), D.newest_outcomes(root / "out" / RUN),
+                                       {"F2": "o/r"}, "o/r", root / "snapshots" / RUN / "repos" / "o__r"),
+                         [("urlpatterns = [url(r'^about/$', v)]", "urlpatterns = [re_path(r'^about/$', v)]")])
+
+    def test_a_rejected_diff_is_never_offered_again(self):
+        root, cfg = self.make()
+        old = self.offered(root, cfg, "rejected", None)
+        _, refused, _, rows = self.draft(root, cfg, style="path_if_plain")
+        self.assertEqual(refused["o/r"]["rejected_before"], 1)
+        self.assertEqual([r["suggestion_id"] for r in rows if r["target"] == "F2"], [old["suggestion_id"]])
+
+    def test_evidence_that_isnt_a_line_is_no_spot(self):
+        self.assertEqual(D.evidence_spots('{"sha": "a", "path": "p.py", "line": 3}'), [("a", "p.py", 3)])
+        self.assertEqual(D.evidence_spots('[{"key": "PROJ-1"}]'), [])
+        self.assertEqual(D.evidence_spots("not json"), [])
 
 
 class LLMPath(unittest.TestCase):
@@ -376,7 +511,8 @@ class Bars(unittest.TestCase):
     def test_packages_owner_seeded(self):
         """Decision 13: the owner migrates their first url() files by hand (until 3 style votes, at most 3 files);
         the drafter takes their style and drafts the rest. Scored only on the files it wasn't shown. On the 12
-        finished repos: 67.0% against 51.8% for the default style on the same lines (Nov 11)."""
+        finished repos (Nov 11): 655/895 = 73.2% with whole statements (decision 14), 600/895 = 67.0% one line
+        at a time, against 58.1% for the default style on the same lines."""
         seeded = default = n = 0
         for repo in self.DONE:
             rd = repo_checkout(TEAM_SNAP, repo)
@@ -389,7 +525,7 @@ class Bars(unittest.TestCase):
             m, k, _ = D.score(rd, parent, self.child[repo], held, got)
             seeded, n = seeded + m, n + k
             default += D.score(rd, parent, self.child[repo], held, base)[0]
-        self.assertGreaterEqual(seeded / n, 0.65, f"{seeded}/{n}")
+        self.assertGreaterEqual(seeded / n, 0.70, f"{seeded}/{n}")
         self.assertGreaterEqual(seeded - default, 0.10 * n, f"seeded {seeded}, default {default} of {n}")
 
     def drafted(self, repos, style):
@@ -404,9 +540,10 @@ class Bars(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_packages_bar(self):
-        """>= 90% on the 12 packages whose migration finished. Codemod alone: 49% with the best single style
-        (path_if_plain); 68% even with each repo's best style. Each real migration chose its own style per repo."""
-        got = self.scored(self.DONE, "learned")
+        """>= 90% on the 12 packages whose migration finished. Not met: 58.6% at the parent commit, 73.2% with the
+        owner's style (test_packages_owner_seeded). Owners chose path or re_path, joined or kept lines, line by
+        line, and nothing at the parent commit says which (diffs.md, decisions 11, 13 and 14)."""
+        got = self.scored(self.DONE, "path_if_plain")        # the guess: learned would wait (decision 15)
         m, n = sum(v[0] for v in got.values()), sum(v[1] for v in got.values())
         self.assertGreaterEqual(m / n, 0.90, f"{m}/{n}")
 
