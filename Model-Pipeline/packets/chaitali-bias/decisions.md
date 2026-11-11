@@ -314,3 +314,59 @@ By task: ugettext 0.951 (267 lines), `url()` 0.495 (1,236), neither flagged. Own
 - Green: #63, run 42944525502 (retrain), and run 42939195787 (full search). Both stop at the gate, as PRs must: the registry steps were skipped.
 - Red at the gate on a planted bad model: #64 (`chaitali-planted-bad`, shuffled train labels, never merged), run 42944590671. "FAILED at gate": bar 0.1744 vs lines × files 0.3191, and bias with 2 open flags (`component=Pandas API on Spark` and `Structured Streaming`, false-positive rate). Nothing was registered.
 - Slack: no `MERIDIAN_SLACK_WEBHOOK` in the repo yet, so these runs posted to their summaries only. A fail, a done and a push message from real runs are still to come.
+
+---
+
+# Nov 11: GAPS.md gap 6, the Q2 label audit: the rule, before any run
+
+The model's worst flag is `size_bucket=Q2` recall: 0 of 51 `val` positives found. GAPS.md asks whether those 51 labels are right. SZZ blames the lines a fix changed, so a small commit may be blamed for a bug it didn't cause. On Defects4J, SZZ picks the right commit only 44% of the time. The audit estimates label noise for the bias section. **It never changes a label, and it never becomes training data** (GAPS.md: an LLM may audit labels, never write them).
+
+## 11. How noisy are Q2's positive labels?
+
+What's audited: each of the 51 Q2 `val` positives, with the fix that blamed it (`bug_inducing`, v1 block `70dd1dabfed544b8`; all 51 have one; c5118's SZZ table differs by 1%, per Utkarsh). For comparison, 50 Q4 `val` positives (`random.seed(1)`), since a noise share means little without one. 2023 only. 2024 is never read.
+
+The question, per (commit, fix) pair: did this commit introduce the bug this fix repairs? The model sees only public Apache code: the fix's ticket key, its message and its diff on the blamed file, plus the blamed commit's message and its diff on that file. Lines that name a person (`Signed-off-by`, `Authored-by`, `Closes #… from <user>`) and every email address are removed first. It answers JSON `{"verdict": "yes" | "no" | "unclear", "reason": "…"}`. A commit's label holds if any of its pairs is `yes`.
+
+Model: one strong model, fixed before the run: `claude-opus-5-5` through `meridian.llm` if our Google Cloud project can call it, else `gemini-pro`. The output names which. Each answer is cached and logged with `log_llm_call` (agent `label_audit`).
+
+Hand check: 20 of the 51 Q2 commits (`random.seed(1)`), judged by Chaitali **blind**, on a sheet that doesn't show the model's answer, from the two GitHub commit pages and the Jira ticket.
+
+Rule:
+- Q2's label-noise estimate is the share of `no` among the commits the model judged (`unclear` left out, and counted), with its Wilson 95% interval. Q4's is computed the same way.
+- The model's answer counts only if it agrees with the hand check on at least 15 of the 20 (75%, `unclear` counting as a disagreement). Otherwise the report gives only the hand check's share, of 20, with its interval, and says the model wasn't good enough to use.
+- "Q2 is more noisily labelled than Q4" is said only when Q2's interval sits wholly above Q4's. Otherwise the report says they can't be told apart at this N.
+
+# Nov 11: GAPS.md gap 16, the context builder: the rule, before any run
+
+Today the writer's consumer task gets every file a stalled team has sites in. The context builder keeps the riskiest files and cuts the rest down to counts, so the agents read less.
+
+## 12. Where to cut a team's context
+
+Looked at before writing this (structure only): the real block `70dd1dabfed544b8` has call sites in 21 repos, all in the Django ecosystem, none in Spark. The champion was trained on Spark only, and P9 keeps lines × files for every other repo (Rachna), so **the champion's scores aren't used here**. A file's risk is its bug fixes in the last year (`file_bug_fixes`, the number the consumer facts already carry). The champion joins when a stalled team's sites are in Spark.
+
+What's cut: each consumer task's `files` on the real block (68 teams). The stall-reason tasks list reasons with evidence counts, not files, so they have nothing to cut, and the report says so.
+
+Rule:
+- A team's files are ranked by bug fixes (most first), then sites left, then path. Files are kept down the ranking until the kept ones hold at least 90% of the team's bug fixes. At least 1 file is always kept, so a team whose files have no bug fixes keeps its file with the most sites.
+- What's cut stays in the facts as counts (`files_cut`, `sites_cut`), so `left` and the text stay true. Nothing cut is ever named.
+- Reported over all 68 teams: files, sites and facts characters (sorted-key JSON, what the prompt carries) kept against the full context. Also bug-fix coverage, and the same coverage reached by a random file order (seed 1, mean of 100 orders), to show what the ranking buys.
+- There's nothing to pick. It's a measurement. It isn't switched on in `agents.py` here, since a new facts shape changes every cache key under Vishwa's running comparison. Switching it on is a separate decision, after gap 2.
+
+## 12. Results: the cut has nothing to rank on the real block
+
+`python -m meridian.context --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite` → `reports/context_cut.json`.
+
+**On the real block no file has a risk signal.** `file_bug_fixes` holds 1,492 files, all in `apache/spark` (its Jira bug tickets). The 21 Django-ecosystem repos the call sites live in have no bug-fix history in the block, and all 1,526 call sites have `bug_fixes = 0`. The champion is Spark-only too. So the rule's fallback decides every team: each keeps its file with the most sites.
+
+| Real block, 68 consumer tasks | All | Kept | Kept share |
+|---|---:|---:|---:|
+| Files | 367 | 68 | 18.5% |
+| Call sites | 1,526 | 444 | 29.1% |
+| Facts characters | 36,676 | 13,170 | 35.9% |
+| Bug fixes covered | 0 | 0 | not defined |
+
+42 of the 68 teams have more than one file and get cut, and 26 have one file and keep it. The cut would save 64% of the consumer facts. But with no bug fixes to cover, **nothing shows the kept files are the risky ones**, so "90% of the likely problems covered" can't be measured here. It isn't switched on.
+
+**On the fixture** (`acme/shop`, which has bug-fix history): 5 teams, 6 files, 5 bug fixes. The ranking keeps all 5 bug fixes with 5 of the 6 files. A random order with the same files keeps 63% (seed 1, 100 orders). The ranking works where the signal exists, but at N = 6 files that shows the code works, not a result.
+
+What would make it useful on the real block: bug-fix history for the package repos (their GitHub issues and fix commits, as `file_bug_fixes` has for Spark's Jira), or a Spark migration. That goes in the report as an open gap.
