@@ -102,6 +102,25 @@ Block 70dd1dab, the writer's 204 real tasks on Gemini 3.8 Flash, Llama 4 Maveric
 - **The `used` list:** the open models list fields inside a fact (`bug_fixes`, `files[0].path`) or words (`evidence`, `reason`). The gate passes the text itself in 175 of the 183. With a looser `used` check: Gemma 98.5%, Scout 93.1%, Maverick 87.7%, against 65.2%, 54.4% and 74.0% as run.
 - None of this changes the writer's comparison: the rules were written before the run and every model is held to the same ones. A fix (numbers that follow from the facts, person names that are common words, top-level-or-inner `used` names) is a new decision, written before its run, and measured from the cache at $0.
 
+### Decision 5b (written Nov 11, before its run): the person check and the `used` list
+
+Two of decision 5's three causes. The gate's fact rules don't change: numbers that follow from the facts (21 of the 23) are a later decision, fixed in the writer's facts, not by loosening the gate (decision 1 showed why).
+
+| Option | Change |
+|---|---|
+| as is | nothing |
+| **1. person names** | a person whose whole name is one English function word ("nothing", "none", "nobody", ... a closed list in `agents.py`) isn't a name the text can be said to use. Function words that are also first names (Will, May, June, Bill) stay names. A dictionary is too wide: 89 of the block's 8,299 people have a one-word name in /usr/share/dict/words, most of them first names (Frank, Mark, Tom, Anna) |
+| **2. `used` list** | an entry counts if, with `[n]` indices dropped, every dotted part is a key somewhere in the facts (`files[0].path`, `bug_fixes`, `evidence`). A value (a date, a symbol) still fails |
+| **both** | 1 and 2 |
+
+Test: the 816 answers in `llm_cache/` gated again ($0). The 45 replies the person check kept as the redacted marker have no text, so they're asked again (about $0.10) and stored only if the new check passes them.
+
+Rule: adopt an option only if all of these hold. Otherwise keep as is.
+1. The 7 texts judged wrong in decision 5 are still rejected.
+2. Every test passes unchanged, the decision-1 corpus sweep among them (2,000 / 2,000 caught), and every person test in `test_agents.py`.
+3. No newly accepted text names a person: each one that has a skipped name in it is read, and the name is an ordinary word there.
+Of the options that pass, the one that accepts the most texts. Reported: each model's pass rate before and after. The writer's comparison isn't redone: its pick stands under the rules it was run with.
+
 ## The writer, Nov 9: settings, not tests
 
 These are design choices for `meridian/agents.py` and `llm_cache.py`, made Nov 9 before any LLM ran. None of them is a measured decision: decisions 3–6, 9 and 10 still measure the model, the prompt format, the templates and the cache once there's a key.
