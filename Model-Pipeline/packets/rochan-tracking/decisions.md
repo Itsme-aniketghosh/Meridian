@@ -385,3 +385,24 @@ A review of #50 (registry) and #51 (replay, explore) once both were on main. Wha
 - **The bias report and seed noise name the candidate by column**, not by model md5, so a stale report for the same column isn't caught.
 - **`radar_deprecated_with_callers` counts calls, not distinct callers**, and counts each call once per deprecation marker on the function. Nothing is nominated on the real block yet (gap G3), so it changes nothing today.
 - **Decision 6 tries every order of the seeds**: 120 at Rachna's 5, too slow past about 9.
+
+## Auditor: decision 12, the promotion guard (GAPS 9, Nov 11)
+
+Decision 10 found that 04 §9's guard promotes a policy no better than v0 in 87% of 201-match runs and 96% of 600-match runs. GAPS.md gap 9: sweep stricter guards in the same simulation and keep the loosest one with at most 5% false promotions. The options, test and rule below were committed before the sweep ran.
+
+### 12. Promotion guard
+
+Options:
+- **04 §9's guard with bigger numbers.** At least N live matches, at least +M Elo over the champion, and a winning live record against v0. N is 30, 60, 90, 120 or 150, and M is 50, 100, 150, 200 or 250: 25 options, 04's (30, +50) among them.
+- **04 §9's guard plus a luck test.** The challenger's live record against the champion must be one that luck gives at most 5% of the time, however often the guard is checked. The test weighs two explanations of the record, "it's G Elo better" and "it's no better", and passes when the first is (challengers ÷ 5%) times likelier: 40 in the simulation, which has two challengers. A draw counts half a win. A policy no better than the champion reaches that bar with chance at most 5% ÷ challengers, over any number of checks (Ville's inequality), so at most 5% for any of them. G is 200, the gap of the simulation's better policy, or 100, to see what looking for smaller gains costs: 2 options.
+
+Test: decision 10's worlds, seeds 1–2,000, the guard checked after every stall, as the auditor checks it after every run.
+- Same skill (all three at 1500): the share of seeds where any policy is promoted within 201 and within 600 matches. Every promotion here is luck.
+- 200 apart (v1 1700, v0 1500, v2 1300): the share of seeds where v1 is promoted within 600 matches, the median match at which it is, and the share where the first promotion is v2.
+
+Rule:
+1. Out: an option that promotes in more than 5% of the same-skill seeds within 600 matches.
+2. Out: an option that promotes v1 in fewer than 95% of the 200-apart seeds within 600 matches, or whose first promotion is ever v2. A guard that never promotes can't fail rule 1, so it has to find the better policy too.
+3. Of the rest, the loosest: the lowest median match at which v1 is promoted.
+4. Within one stall (3 matches) of each other: a guard with bigger numbers over one with the luck test, since it's the smaller change to 04 §9. Then fewer matches, then the smaller margin or G.
+5. If every option is out, none is picked: 04 §9's guard stays, and gap 9 goes into the report as open.
