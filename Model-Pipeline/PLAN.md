@@ -301,7 +301,7 @@ Everything runs on our machines and on GitHub's free runners, except one GCP Art
 | Docker | Built and run locally. `python -m model.run_all` in the image runs data load to registry push. No image registry |
 | CI | GitHub Actions trains on the committed feature table. One secret, a service-account key that can only write to `meridian-models`, for the push on main. Phase 3 replaces it with Workload Identity |
 | Alerts | Slack through `MERIDIAN_SLACK_WEBHOOK`, as in phase 1 |
-| LLM | The provider's API key in `.env` and a repo secret. Billed by the provider, not covered by any credit. Models and a spend cap pinned in `meridian.toml`. The cache is committed, so CI and reruns make 0 calls and need no key |
+| LLM | Vertex AI in the team project, through the same Workload Identity / `gcloud` login as the registry: Claude, Gemini and the Model Garden open models with one client and no provider key. Billed to the trial credits, with a $150 budget alert (§10.1). Phi-4-mini runs locally through Ollama. The cache is committed, so CI and reruns make 0 calls and need no login |
 
 The registry repo is the guideline's §2.6, §7.4 and §8.7, which ask for the model on GCP. It's storage, not serving, so it isn't deployment. It costs about $0: Artifact Registry's first 0.5 GB is free, and a LightGBM model is a few MB. Aniket adds the team to the $300 trial project once (the credits are on that account). Rochan makes the repo and the service account by Nov 9.
 
@@ -348,6 +348,29 @@ Work starts Thu Nov 5 (day 1). Wed Nov 4 is an optional head start: anyone who s
 | Fri Nov 13 – Sun Nov 15 | Report, with Utkarsh. Everyone reviews their own section |
 
 Anything not done by Nov 10 follows the cut order in §9 and isn't squeezed in. The report says what was cut.
+
+### 10.1 Closing the gaps, Nov 11–12
+
+Decided Nov 11. The freeze holds for the model: nothing here retrains it or touches 2024, except the P9 rule (task 4), which must be written down before the 2024 run. Each person runs their own task in parallel. The only thing anyone waits for is task 1's client, about an hour, and until then everyone builds against the fake `llm` the tests already use.
+
+Why this works: the agents already take any `llm(model, prompt)` ([agents.py](../Data-Pipeline/meridian/agents.py) `write`, `diffs.py`). The code has no LLM client yet, which is why the LLM has never run live. A bake-off passes models through the `ladder=` argument, so the `LADDER` constants, and with them every run_id, stay as they are until the winners are picked.
+
+| # | Who | Task | Done when | Est. cost |
+|---|---|---|---|---|
+| 1 | Vishwa | One Vertex AI client: `llm(model, prompt)` returning reply, tokens and cost, the way the fake does. Then the writer on the real block's 204 tasks with every model in the list below | Client merged by Nov 11 midday. Per model: gate pass rate, valid JSON, cost per accepted text, p95 latency. The gate's wrong-rejection rate on real text (vishwa decision 5). Cache committed | ≈ $16 |
+| 2 | Utkarsh | The diff drafter's LLM path on the 624 package lines the codemod didn't match, with every model. Diffs that pass become same-shape examples for the codemod | Match rate against the answer key per model, packages bar 90%. `diffs.md` decision 11 updated | ≈ $49 |
+| 3 | Rachna | Jev on its 60 labelled tasks (30 to write the prompt, 30 held out): Haiku, Sonnet, Gemini Flash, a Llama, and **Phi-4-mini local** (Ollama `phi4-mini`, CI runner CPU). Then Jev against rules | Decisions 13, 14 and 21 filled in by their written rules. Phi or a 7–8B local model picked only within 3 of the 30 tasks of the hosted one, with p95 inside CI's budget | ≈ $3 |
+| 4 | Rochan | P9 on val only: alert when the model **and** lines × files both flag a commit. Then replay the 21 migration commits through the push check (decision 15) | The rule reaches precision 0.80 on 30 alerts and is written down before the 2024 run, or lines × files stays and the report says 0.70. Real `push_alert` rows, and `/push` drops the fixture banner | $0 |
+| 5 | Chaitali | LLM bias on the texts from task 1, once they land. An LLM audit of 50 Q2 labels (is this commit really bug-inducing?), 20 of its answers hand-checked | `llm_bias.json` with N > 0. A label-noise estimate for Q2 in the bias section, never used as training labels | ≈ $2 |
+| 6 | Aniket | Enable Vertex AI on the project, give the CI service account and the team Vertex AI User, and set a $150 budget alert. Review and merge 1–5 | Access works for task 1 before it starts. Go or no-go for 2024 after task 4 | $0 |
+
+Models in the bake-off, through Vertex AI unless marked: `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`, Gemini Flash, Gemini Pro, Mistral Medium, Llama 4 Maverick, Llama 4 Scout, Gemma 4 31B, and Phi-4-mini (local, Jev only). Use only pay-per-token models: a self-deployed GPU endpoint bills for every hour it's up. Check that us-east1 (or `global`) serves each model before starting.
+
+The rule for every agent, written before the run: the cheapest model within 2 points of the best pass rate wins its rung of the ladder (Jev: within 3 of the 30 tasks). Ties go to an open-weights model.
+
+The cost is about $70: $76 for every model on every task, less the Q2 audit, which needs one strong model only, assuming writer 3,000 tokens in and 800 out per task, diff 3,000 and 600, Jev 2,000 and 200, audit 6,000 and 500, plus 30% for retries. Prices are list rates from Nov 11. Claude through Vertex bills at Google's partner rate, and the open-model rates come from third-party listings, so each owner checks Google's pricing page and measures 10 real prompts before the full run. Run the large models only on tasks the small ones fail, and stop at the $150 alert.
+
+Later, not by Nov 15: the auditor guard (Rochan, phase 3: sweep stricter guards in the simulation and keep the loosest with ≤ 5% false promotions), and views startup (Vishwa: time each query and build the slow ones into tables when the block is written).
 
 ## 11. Phase 3: deployment
 
