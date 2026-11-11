@@ -4,6 +4,30 @@ Written Nov 11. Scope is the architecture only: nothing here deploys anything. N
 
 **Deadline: everything is done by the end of Thu Nov 12.** Whatever isn't goes into the report as an open gap. Everyone works in parallel. The one wait is the LLM client (gap 1), about an hour. Until it lands, build against the fake `llm` the tests already use.
 
+## LLM first, then switch to ML once it clears a high bar
+
+Where a trained model isn't good enough yet, an LLM does the job now, and every answer it gives is checked and saved. The saved answers that pass the checks become training examples for the cheaper model. Once the cheaper model clears the bar, we switch to it, and the LLM stays as the fallback for the cases it can't handle.
+
+| Component | Now | Switch to | The bar for switching | Fallback after the switch |
+|---|---|---|---|---|
+| Diff drafter (packages) | LLM on the lines the codemod doesn't match | The codemod, learned from the LLM diffs that passed | ≥ 90% match with the real after-line, on repos the codemod didn't learn from | LLM for lines the codemod refuses |
+| Jev (router) | The hosted model that wins the comparison | Phi-4-mini locally, or a small classifier trained on the saved picks | Within 3 of the 30 held-out tasks of the hosted model, with p95 inside CI's budget | Hosted model, then the rules |
+| Writer | LLM, with a template when the gate rejects | No ML switch: writing text stays an LLM job. We switch down to the cheapest model that passes | Within 2 points of the best gate pass rate | Template |
+| P9 defect risk | **Lines × files, not an LLM** | The champion model | Precision ≥ 0.80 on 30 alerts, and beats lines × files with its interval above 0 | Lines × files |
+
+Every switch follows four rules:
+1. The bar is written before anything is measured.
+2. It's measured on data the cheaper model never saw.
+3. It's checked again on every run, and if the model drops below the bar we switch back.
+4. The report shows both numbers.
+
+Why P9 never uses an LLM:
+- It runs on every push, and an LLM would cost money on each one.
+- Its answer would change from run to run.
+- It would be deciding a fact (is this commit risky?), and in this architecture LLMs write text and code, never facts ([06-dead-ideas](../docs/06-dead-ideas.md)).
+
+The same goes for the defect labels: the LLM may audit them (gap 6), but it never writes them.
+
 ## The gaps
 
 | # | Problem | Fix | Owner | Done when | When |
