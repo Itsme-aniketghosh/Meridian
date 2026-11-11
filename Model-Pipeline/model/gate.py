@@ -8,7 +8,9 @@ Reads the four Contract 4 files (packets/README.md) and checks them against mode
     bar         the candidate's PR-AUC beats [gate] reference's by more than [gate] min_lift
     bias        bias_report.json passes (no flagged judged slice outside [bias] accepted)
     champion    the candidate isn't below the champion's PR-AUC by more than [gate] noise_sds seed-noise standard
-                deviations (decision 6), and both are on the same feature table
+                deviations (decision 6), both on this run's feature table. A champion judged on another table is
+                re-scored on this one first, with its own model next to champion.json (Rochan's decision 7, as
+                the registry does); when it can't be, the check fails and says why
 
 Writes reports/gate.json with every check, its numbers and why. A pass exits 0. A fail exits 1 and sends one alert
 with every failed check, through Data-Pipeline's meridian.alert (Slack and email as settings.toml [alerts] says).
@@ -110,19 +112,47 @@ def check(docs, g):
     add("bias", b["pass"] is True, f"{b['open_flags']} open flags of {len(b['flags'])}"
         + ("" if b["pass"] is True else ": " + (", ".join(still) or "the report says it fails")))
 
+    again = docs.get("champion_rescored") or {}
     if champ is None:
         add("champion", True, "no champion yet: the first model")
-    elif champ["metrics"]["features_md5"] != m.get("features_md5"):
+    elif champ["metrics"]["features_md5"] != m.get("features_md5") and "value" not in again:
         add("champion", False, f"the champion's numbers are on another feature table "
             f"({champ['metrics']['features_md5'][:8]}, this run {str(m.get('features_md5'))[:8]}): "
-            "re-score it on this table first (Rochan's decision 7)")
+            f"{again.get('why', 're-score it on this table first')} (Rochan's decision 7)")
     else:
-        top, sd = champ["metrics"]["pr_auc"]["value"], s["sd"]
+        top, sd, how = champ["metrics"]["pr_auc"]["value"], s["sd"], ""
+        if champ["metrics"]["features_md5"] != m.get("features_md5"):
+            own = champ["metrics"]["pr_auc"]["value"]
+            top, how = again["value"], f", re-scored on this table ({own:.4f} on its own)"
         floor = top - g["noise_sds"] * sd
         add("champion", not below_champion(value, top, sd, g["noise_sds"]),
-            f"PR-AUC {value:.4f} vs champion {champ['version'][:8]} {top:.4f}, floor {floor:.4f} "
+            f"PR-AUC {value:.4f} vs champion {champ['version'][:8]} {top:.4f}{how}, floor {floor:.4f} "
             f"({g['noise_sds']} x seed-noise sd {sd:.4f})", value=value, champion=top, floor=floor)
     return out
+
+
+def rescore_champion(docs, champion_path, features):
+    """Decision 7 for the gate: a champion judged on another feature table, scored on this run's val rows with its own
+    model, the file next to champion.json with the md5 champion.json records. {"value", "n"}, or {"why"} when it
+    can't be. None when there's nothing to re-score: no champion, or the same table."""
+    champ, m = docs.get("champion"), docs.get("metrics") or {}
+    if champ is None or champ["metrics"]["features_md5"] == m.get("features_md5"):
+        return None
+    from model.evaluate import file_md5
+    model, features = Path(champion_path).parent / champ["model_file"], Path(features)
+    if not model.is_file():
+        return {"why": f"its {champ['model_file']} isn't next to {Path(champion_path).name}, so it can't be re-scored"}
+    if file_md5(model) != champ["model_md5"]:
+        return {"why": f"the {champ['model_file']} next to it isn't the one {Path(champion_path).name} records (md5)"}
+    if not features.is_file() or file_md5(features) != m.get("features_md5"):
+        return {"why": f"{features} isn't this run's feature table (md5), so it can't be re-scored on it"}
+    try:
+        value, n = registry.rescore(model, features)
+    except Exception as e:  # a package the model needs, a file that doesn't load: the check fails, it doesn't crash
+        return {"why": f"re-scoring it failed ({type(e).__name__}: {e})"}
+    if n != m.get("n"):
+        return {"why": f"re-scored on {n:,} val rows, but this run's metrics have {m.get('n')}"}
+    return {"value": value, "n": n}
 
 
 def alert(subject, lines):
@@ -136,8 +166,9 @@ def alert(subject, lines):
         return []
 
 
-def run(reports=REPORTS, champion=registry.CHAMPION, config=MODEL_TOML, out=None, send=alert):
-    """The gate. Returns (exit code, gate.json as a dict); writes it to out (default: reports/gate.json)."""
+def run(reports=REPORTS, champion=registry.CHAMPION, config=MODEL_TOML, out=None, send=alert, features=FEATURES):
+    """The gate. Returns (exit code, gate.json as a dict); writes it to out (default: reports/gate.json). features:
+    this run's feature table, the one a champion judged on another table is re-scored on (decision 7)."""
     from model.data import load_config
     problems, checks, docs = [], [], {}
     try:
@@ -148,6 +179,7 @@ def run(reports=REPORTS, champion=registry.CHAMPION, config=MODEL_TOML, out=None
         docs, problems = read_inputs(reports, champion)
         if not problems:
             try:
+                docs["champion_rescored"] = rescore_champion(docs, champion, features)
                 checks = check(docs, g)
             except (KeyError, TypeError) as e:  # a key the contract has, holding the wrong thing
                 problems.append(f"inputs: can't read {e!r}")
@@ -229,12 +261,14 @@ def main(argv=None):
     p.add_argument("--config", default=str(MODEL_TOML))
     p.add_argument("--out", help="gate.json (default: <reports>/gate.json)")
     p.add_argument("--decide", type=int, choices=(6,), help="run decision 6's test instead")
-    p.add_argument("--features", default=str(FEATURES), help="decision 6: the table the planted models fit on")
+    p.add_argument("--features", default=str(FEATURES),
+                   help="this run's feature table: decision 7 re-scores a champion on it, decision 6's planted models "
+                        "fit on it")
     p.add_argument("--no-mlflow", action="store_true", help="decision 6: don't log a run")
     a = p.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     if a.decide != 6:
-        return run(a.reports, a.champion, a.config, a.out)[0]
+        return run(a.reports, a.champion, a.config, a.out, features=a.features)[0]
 
     import pandas as pd
 

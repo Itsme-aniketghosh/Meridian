@@ -3,6 +3,7 @@ SMTP servers of Data-Pipeline/tests/alert_sinks.py. The inputs are the Contract 
 made to agree with each other; each test breaks one thing."""
 import contextlib
 import copy
+import hashlib
 import importlib.util
 import io
 import json
@@ -174,9 +175,12 @@ class EveryFailureExits1AndAlertsOnce(Case):
                 self.assert_fails_once("agree")
 
     def test_a_champion_on_another_table(self):
+        """Without its model next to champion.json it can't be re-scored on this table, so it fails and says why."""
         self.docs["champion.json"]["metrics"]["features_md5"] = "0" * 32
         result = self.assert_fails_once("champion")
         self.assertIn("another feature table", result["checks"][-1]["why"])
+        self.assertIn("its model.joblib isn't next to champion.json, so it can't be re-scored",
+                      result["checks"][-1]["why"])
 
     def test_every_failure_in_one_message(self):
         self.docs["metrics.json"]["models"]["lines_x_files"]["pr_auc"]["value"] = 0.5
@@ -194,6 +198,61 @@ class EveryFailureExits1AndAlertsOnce(Case):
             code, result = gate.run(self.tmp, self.tmp / "champion.json", self.tmp / "model.toml", send=lambda *a: [])
         self.assertEqual(code, 1)
         self.assertIn("no [gate]", result["checks"][0]["why"])
+
+
+class AChampionOnAnotherTableIsReScored(Case):
+    """Decision 7: a champion judged on another feature table (the first run after a new block) is scored on this
+    run's val rows with its own model, the file next to champion.json, and then compared as usual."""
+
+    @classmethod
+    def setUpClass(cls):
+        import joblib
+        from model import train
+        df = train.load_features(gate.FEATURES)
+        model, _, _ = train.fit_and_score(df, "logreg", 1)
+        buf = io.BytesIO()
+        joblib.dump(model, buf)
+        val = train.rows(df, "val")
+        cls.model, cls.n = buf.getvalue(), len(val)
+        cls.value = float(train.pr_auc(val["label"].to_numpy(), train.score_with(model, val)))
+        cls.table_md5 = hashlib.md5(gate.FEATURES.read_bytes()).hexdigest()
+
+    def setUp(self):
+        super().setUp()
+        (self.tmp / "model.joblib").write_bytes(self.model)
+        m, b, s, c = (self.docs[k] for k in ("metrics.json", "bias_report.json", "seed_noise.json", "champion.json"))
+        m["n"] = b["n"] = s["n"] = self.n
+        m["features_md5"] = self.table_md5
+        m["models"]["lines_x_files"]["pr_auc"]["value"] = 0.0
+        m["models"][m["candidate"]["column"]]["pr_auc"]["value"] = self.value
+        c.update(model_file="model.joblib", model_md5=hashlib.md5(self.model).hexdigest())
+        c["metrics"]["features_md5"] = "f" * 32
+        c["metrics"]["pr_auc"]["value"] = 0.99  # its number on its own table: not what it's compared at here
+
+    def candidate(self, value):
+        m = self.docs["metrics.json"]
+        m["models"][m["candidate"]["column"]]["pr_auc"]["value"] = value
+
+    def test_it_is_re_scored_with_its_own_model_and_compared(self):
+        code, result, slack, mail, _ = self.gate()
+        self.assertEqual(code, 0, result["checks"])
+        self.assertIn(f"vs champion 00000000 {self.value:.4f}, re-scored on this table (0.9900 on its own)",
+                      result["checks"][-1]["why"])
+        self.assertEqual((slack, mail), ([], []))
+
+    def test_below_the_re_scored_champion_by_more_than_the_tolerance_fails(self):
+        self.candidate(self.value - 2.83 * self.docs["seed_noise.json"]["sd"] - 1e-6)
+        self.assert_fails_once("champion")
+
+    def test_a_model_file_that_isnt_the_champions_fails(self):
+        self.docs["champion.json"]["model_md5"] = "e" * 32
+        why = self.assert_fails_once("champion")["checks"][-1]["why"]
+        self.assertIn("the model.joblib next to it isn't the one champion.json records", why)
+
+    def test_a_table_that_isnt_this_runs_fails(self):
+        self.docs["metrics.json"]["features_md5"] = "e" * 32
+        why = self.assert_fails_once("champion")["checks"][-1]["why"]
+        self.assertIn("isn't this run's feature table", why)
 
 
 class ABrokenChannelNeverDecides(Case):
