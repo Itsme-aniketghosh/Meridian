@@ -1,0 +1,8 @@
+task,repo,matched,lines,style,source
+ugettext,django,254,267,codemod,packets/utkarsh-data/diffs.md Results: Django
+url,wagtail,194,240,path_if_plain,packets/utkarsh-data/diffs.md decision 11
+url,DRF,129,182,path_if_plain,packets/utkarsh-data/diffs.md decision 11
+url,allauth,42,50,path_if_plain,packets/utkarsh-data/diffs.md decision 11
+url,debug-toolbar,26,29,path_if_plain,packets/utkarsh-data/diffs.md decision 11
+url,oscar,81,247,path_if_plain,packets/utkarsh-data/diffs.md decision 11
+url,(other),140,488,path_if_plain,"diffs.md decision 11: the other 15 packages, 612 of 1,236 less the five above; no per-repo counts published"
