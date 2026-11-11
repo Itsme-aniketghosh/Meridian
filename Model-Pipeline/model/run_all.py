@@ -3,8 +3,8 @@
     python -m model.run_all            # the real table: data check, train, seed noise, evaluate, bias, gate, registry
     python -m model.run_all --fake     # the same steps on tests/fake_table.py in a temp folder, in under 2 minutes:
                                        # CI's model job runs it on every PR (packets/README.md, Integration tests)
-    python -m model.run_all --refit    # train refits the committed candidate instead of searching (CI, decision
-                                       # chaitali-7): fails unless the refit equals the committed val scores
+    python -m model.run_all --refit    # train refits each kind with its committed tuning_<kind>.json's best params
+                                       # instead of searching (CI, decision chaitali-7)
     python -m model.run_all --dry-run  # print the commands, run nothing
 
 Runs every step in order and stops at the first failure, saying which step and why. A step whose module isn't in the
@@ -31,9 +31,9 @@ FAKE_LATER = {"registry": "nothing to register from a fake table"}
 
 def steps(fake=None, refit=False):
     """(name, owner, module, args), in order. fake: the temp folder of a --fake run, or None for the real table.
-    refit: train refits reports/candidate.json's config (train.py --save-model) instead of the full search."""
+    refit: train refits each kind with its committed best params (train.py --retrain) instead of the search."""
     if fake is None:
-        train = ["--save-model"] if refit else ["--tune", "logreg", "forest", "lgbm"]
+        train = ["--retrain" if refit else "--tune", "logreg", "forest", "lgbm"]
         return [
             ("data", "Utkarsh", "model.train", ["--check"]),
             ("train", "Rachna", "model.train", train),
