@@ -170,7 +170,7 @@ jobs:
           PIPELINE: ${{ steps.pipeline.outcome }}
           LLM_BIAS: ${{ steps.llm_bias.outcome }}
           REGISTRY: ${{ steps.registry.outcome }}
-          WHERE: ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.number) || github.ref_name }} @ ${{ github.sha }}
+          WHERE: "${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.number) || github.ref_name }} @ ${{ github.sha }}"
         run: |
           post() {
             echo "$1" >> "$GITHUB_STEP_SUMMARY"
