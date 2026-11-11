@@ -480,6 +480,8 @@ def main(argv=None):
     ap.add_argument("--strict-cache", action="store_true", help="a cache miss stops the run (CI)")
     ap.add_argument("--track", action="store_true", help="log every LLM answer to MLflow meridian-agents")
     ap.add_argument("--quiet", action="store_true", help="print the report only, not every text")
+    ap.add_argument("--jev", action="store_true", help="Jev (meridian.jev) picks each task's agent and model; "
+                                                       "without an LLM or a cached pick it falls back to the rules")
     a = ap.parse_args(argv)
     cfg = load_config(a.config)
     path = Path(a.db or handoff(cfg, a.run_id) / "meridian.sqlite")
@@ -499,8 +501,13 @@ def main(argv=None):
         if a.write and a.at and (not run_row or a.at != run_row[0]):
             raise SystemExit("--write offers rows at the run's snapshot_at (schema.sql): leave out --at")
         at = a.at or run_row[0]
+        router = None
+        if a.jev:
+            from meridian.jev import Router   # here, not at the top: jev imports this module
+            teams, people = names(db)
+            router = Router(cache=cache, log=log, teams=teams, people=people)
         # no LLM client yet: the LLM is off, and the cache answers what it has
-        result = run(db, cfg, a.run_id, at, cache=cache, log=log, strict_cache=a.strict_cache)
+        result = run(db, cfg, a.run_id, at, cache=cache, log=log, strict_cache=a.strict_cache, router=router)
     rep = report(result)
     for kind, r in rep.items():
         say(f"{kind}: {r['texts']} texts, {r['templates']} templates, {r['template_gate_misses']} templates the gate "
