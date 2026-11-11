@@ -121,6 +121,21 @@ Rule: adopt an option only if all of these hold. Otherwise keep as is.
 3. No newly accepted text names a person: each one that has a skipped name in it is read, and the name is an ordinary word there.
 Of the options that pass, the one that accepts the most texts. Reported: each model's pass rate before and after. The writer's comparison isn't redone: its pick stands under the rules it was run with.
 
+Result (Nov 11): **both, adopted**, now in `agents.py` (`FUNCTION_WORDS` in `names()`, `_a_fact` in `parse()`). The 45 redacted replies were asked again ($0.10); the other 771 were gated again from the cache.
+
+| Model | As run | With 5b |
+|---|---:|---:|
+| Gemini 3.8 Flash | 80.4% | **98.0%** |
+| Llama 4 Scout | 54.4% | **93.1%** |
+| Gemma 4 26B A4B | 65.2% | **92.2%** |
+| Llama 4 Maverick | 74.0% | **90.7%** |
+
+1. All 7 texts judged wrong in decision 5 are still rejected.
+2. Every test passes unchanged (186 in test_agents, test_fact_gate, test_jev, test_views, test_diffs and test_llm), and the decision-1 sweep is unchanged: article catches 2,000 / 2,000 with 0 / 2,000 false rejects.
+3. The one person name skipped on this block is NOTHING. 19 accepted texts have the word, all read by hand: 16 "blocked by nothing and is blocking nothing", 3 "nothing blocks them". In every one it's the ordinary word.
+
+Under 5b the cheapest model within 2 points of the best (98.0%) is still Gemini 3.8 Flash: the others are 4.9 points or more behind. What's left is the gate's 21 numbers that follow from the facts, and the writer's facts are where they get fixed.
+
 ## The writer, Nov 9: settings, not tests
 
 These are design choices for `meridian/agents.py` and `llm_cache.py`, made Nov 9 before any LLM ran. None of them is a measured decision: decisions 3–6, 9 and 10 still measure the model, the prompt format, the templates and the cache once there's a key.

@@ -3,8 +3,7 @@
  "facts_hash": "f16445d73ab0a7ab",
  "model": "gemini-flash",
  "prompt_version": "271b69057be0",
- "redacted": "a person",
- "reply": null,
+ "reply": "{\"text\": \"Team views has 6 call sites left to migrate: 1 call site in django/views/csrf.py (0 bug fixes), 1 call site in django/views/debug.py (0 bug fixes), 1 call site in django/views/generic/dates.py (0 bug fixes), 1 call site in django/views/generic/detail.py (0 bug fixes), 1 call site in django/views/generic/list.py (0 bug fixes), and 1 call site in django/views/static.py (0 bug fixes). Team views is blocked by nothing and is blocking nobody.\", \"used\": [\"blocked_by\", \"blocking\", \"files\", \"left\", \"team\"]}",
  "tokens_in": 501,
  "tokens_out": 155
 }

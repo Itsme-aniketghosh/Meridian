@@ -3,8 +3,7 @@
  "facts_hash": "d0415cbb8453b752",
  "model": "gemini-flash",
  "prompt_version": "271b69057be0",
- "redacted": "a person",
- "reply": null,
+ "reply": "```json\n{\n \"text\": \"Team templatetags has 3 call sites left to migrate for symbol ugettext. In django/templatetags/i18n.py, there are 3 sites and 0 bug fixes (tickets: none). It is blocked by none and blocking none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
  "tokens_in": 277,
  "tokens_out": 109
 }

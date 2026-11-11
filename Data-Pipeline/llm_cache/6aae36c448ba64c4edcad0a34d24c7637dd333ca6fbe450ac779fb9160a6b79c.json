@@ -1,10 +1,9 @@
 {
- "cost_usd": 0.0066135,
+ "cost_usd": 0.006381,
  "facts_hash": "c888fe06ed3d6de0",
  "model": "gemini-flash",
  "prompt_version": "271b69057be0",
- "redacted": "a person",
- "reply": null,
+ "reply": "```json\n{\n \"text\": \"Team encode/django-rest-framework has 182 call sites left to migrate for symbol url across 26 files: tests/authentication/test_authentication.py (9 sites, 0 bug fixes), tests/browsable_api/auth_urls.py (3 sites, 0 bug fixes), tests/browsable_api/no_auth_urls.py (2 sites, 0 bug fixes), tests/browsable_api/test_browsable_nested_api.py (2 sites, 0 bug fixes), tests/schemas/test_coreapi.py (30 sites, 0 bug fixes), tests/schemas/test_managementcommand.py (2 sites, 0 bug fixes), tests/schemas/test_openapi.py (20 sites, 0 bug fixes), tests/test_api_client.py (8 sites, 0 bug fixes), tests/test_atomic_requests.py (2 sites, 0 bug fixes), tests/test_htmlrenderer.py (4 sites, 0 bug fixes), tests/test_lazy_hyperlinks.py (2 sites, 0 bug fixes), tests/test_middleware.py (3 sites, 0 bug fixes), tests/test_relations.py (2 sites, 0 bug fixes), tests/test_relations_hyperlink.py (9 sites, 0 bug fixes), tests/test_renderers.py (10 sites, 0 bug fixes), tests/test_request.py (4 sites, 0 bug fixes), tests/test_requests_client.py (5 sites, 0 bug fixes), tests/test_response.py (10 sites, 0 bug fixes), tests/test_reverse.py (2 sites, 0 bug fixes), tests/test_routers.py (11 sites, 0 bug fixes), tests/test_testing.py (6 sites, 0 bug fixes), tests/test_urlpatterns.py (10 sites, 0 bug fixes), tests/test_utils.py (7 sites, 0 bug fixes), tests/test_versioning.py (15 sites, 0 bug fixes), tests/test_viewsets.py (2 sites, 0 bug fixes), and tests/urls.py (2 sites, 0 bug fixes). The team is blocked by none and is blocking none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
  "tokens_in": 1454,
- "tokens_out": 591
+ "tokens_out": 560
 }
