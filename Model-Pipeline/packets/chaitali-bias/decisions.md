@@ -335,3 +335,19 @@ Rule:
 - Q2's label-noise estimate is the share of `no` among the commits the model judged (`unclear` left out, and counted), with its Wilson 95% interval. Q4's is computed the same way.
 - The model's answer counts only if it agrees with the hand check on at least 15 of the 20 (75%, `unclear` counting as a disagreement). Otherwise the report gives only the hand check's share, of 20, with its interval, and says the model wasn't good enough to use.
 - "Q2 is more noisily labelled than Q4" is said only when Q2's interval sits wholly above Q4's. Otherwise the report says they can't be told apart at this N.
+
+# Nov 11: GAPS.md gap 16, the context builder: the rule, before any run
+
+Today the writer's consumer task gets every file a stalled team has sites in. The context builder keeps the riskiest files and cuts the rest down to counts, so the agents read less.
+
+## 12. Where to cut a team's context
+
+Looked at before writing this (structure only): the real block `70dd1dabfed544b8` has call sites in 21 repos, all in the Django ecosystem, none in Spark. The champion was trained on Spark only, and P9 keeps lines × files for every other repo (Rachna), so **the champion's scores aren't used here**. A file's risk is its bug fixes in the last year (`file_bug_fixes`, the number the consumer facts already carry). The champion joins when a stalled team's sites are in Spark.
+
+What's cut: each consumer task's `files` on the real block (68 teams). The stall-reason tasks list reasons with evidence counts, not files, so they have nothing to cut, and the report says so.
+
+Rule:
+- A team's files are ranked by bug fixes (most first), then sites left, then path. Files are kept down the ranking until the kept ones hold at least 90% of the team's bug fixes. At least 1 file is always kept, so a team whose files have no bug fixes keeps its file with the most sites.
+- What's cut stays in the facts as counts (`files_cut`, `sites_cut`), so `left` and the text stay true. Nothing cut is ever named.
+- Reported over all 68 teams: files, sites and facts characters (sorted-key JSON, what the prompt carries) kept against the full context. Also bug-fix coverage, and the same coverage reached by a random file order (seed 1, mean of 100 orders), to show what the ranking buys.
+- There's nothing to pick. It's a measurement. It isn't switched on in `agents.py` here, since a new facts shape changes every cache key under Vishwa's running comparison. Switching it on is a separate decision, after gap 2.
