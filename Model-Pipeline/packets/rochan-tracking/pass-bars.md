@@ -117,7 +117,7 @@ Only the rows today's code can meet. Seeded ε and the promotion guard come with
 | Bar | Result |
 |---|---|
 | Seeded ε | ✅ Over 10,000 seeded draws the challenger share is 19.36% at ε = 0.2 and 9.88% at ε = 0.1, within ±2 points (`test_auditor.py`, `Epsilon`) |
-| Promotion guard | ✅ for what it checks (`test_auditor.py`, `Promotion`). It blocks at 29 live matches and at +49.9 Elo. 100 replay wins plus 29 live ones are still blocked, and the 30th live win passes. An LLM's policy is blocked until a person approves it. But the guard as 04 writes it promotes a policy no better than v0 by luck in 87% of simulated runs: decisions.md 10, raised for the team. This row stays as written until the team changes the guard |
+| Promotion guard | ✅ for what it checks (`test_auditor.py`, `Promotion`). It blocks at 29 live matches and at +49.9 Elo. 100 replay wins plus 29 live ones are still blocked, and the 30th live win passes. An LLM's policy is blocked until a person approves it. But the guard as 04 writes it promotes a policy no better than v0 by luck in 87% of simulated runs: decisions.md 10, raised for the team. This row stays as written until the team changes the guard. **Changed Nov 11 (GAPS 9): see Auditor, Nov 11** |
 | Runs | Fixture: the stall job runs. Three stalls ended between R1 and R2, and no rule fires for them, so each waits for a person. With a verdict added, the policies play live matches. v1 block (70dd1dabfed544b8): 68 stalls served, 60 with v0's ranking and 8 with v1's, in 80 s. That block holds one run, so no stall can have ended. Replay comes Nov 10 |
 | No look-ahead | Comes with replay, Nov 10 |
 
@@ -134,3 +134,11 @@ Only the rows today's code can meet. Seeded ε and the promotion guard come with
 |---|---|
 | No look-ahead | ⚠️ The Nov 9 row overstated it. Ticket maps are cut by their ticket's creation date only, not by the run that made them: as of an earlier run, a map made from the block's run's call sites and ticket text is read early. No effect on the v1 block, which has no ticket-to-call-site maps and one run. The fix is written down in decisions.md. Every other table: as on Nov 9 |
 | Runs | ✅ A replay match is dated when it's played, so the log before then, and the ratings and promotions it gave, stay as they were (`test_auditor.py`, `Replay`; the test fails with the old dating) |
+
+### Auditor, Nov 11 (GAPS 9: the promotion guard)
+
+| Bar | Result |
+|---|---|
+| Luck doesn't promote (GAPS 9: at most 5% false promotions, by decision 12's rule, committed before the sweep) | ✅ With the luck test (decision 12), a policy no better than the others is promoted in 3.7% of 201-match runs and 4.0% of 600-match runs, seeds 1–2,000, against 87.0% and 95.8% under 04 §9's guard alone. Over 3,000 matches it's still 4.0%, against 99.1%. v1, 200 Elo better, is promoted in 100% of runs, at a median of 69 matches instead of 45, and v2 never is (`auditor_sim.py --decide 12`; MLflow `meridian-auditor`, `decision=rochan-12`) |
+| Promotion guard | ✅ As on Nov 7 under 04 §9's numbers, plus the luck test. 20 of 30 live wins against v0 are blocked (likelihood ratio 2.82, needs 20), and 24 of 30 pass. 22 of 30 pass with one challenger but not with two, which need 40. 1,000 coin-flip records, checked after every match, stay under the bar's 5% (`test_auditor.py`, `Promotion`) |
+| Recompute | ✅ Decisions 9–11 still run under 04 §9's guard and give their tables again: decision 10's luck column is 87.0% and 89.7% |

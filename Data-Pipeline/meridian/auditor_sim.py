@@ -261,6 +261,20 @@ def luck_over(seeds, names, stalls=1000):
                       for seed in seeds) / len(seeds) for name in names}
 
 
+NEAR = {"stall-v0": 1500, "stall-v1": 1600, "stall-v2": 1300}  # v1 only 100 better
+
+
+def found_over(seeds, names, stalls=1000):
+    """Not part of the rule: when v1 is only 100 better, the share of seeds where it's promoted within 3 × `stalls`
+    matches, and the median match at which it is."""
+    out = {}
+    for name in names:
+        s = settings(**GUARDS[name][0])
+        at = [n for n, p in (first_promotion(NEAR, seed, s, stalls) for seed in seeds) if p == BEST]
+        out[name] = (len(at) / len(seeds), statistics.median(at) if at else None)
+    return out
+
+
 # Printing and logging
 
 
@@ -402,6 +416,9 @@ def main(argv=None):
                 longer = luck_over(seeds, names)
                 print("Not part of the rule, same skill: promoted by luck within 3,000 matches: "
                       + ", ".join(f"{name} {pct(x)}" for name, x in longer.items()))
+                found = found_over(seeds, [name for name, r in res.items() if out_12(r) is None])
+                print("Not part of the rule, v1 only 100 better: promoted within 3,000 matches, at match (median): "
+                      + "; ".join(f"{name} {pct(x)} at {at}" for name, (x, at) in found.items()))
             if count == max(a.seeds) and not a.no_log:
                 log_run(n, res, picked, seeds)
     return 0

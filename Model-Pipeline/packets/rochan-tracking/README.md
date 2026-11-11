@@ -73,6 +73,7 @@ The GCP repo, once, on the trial project (no Terraform until phase 3):
 - [x] Verdict rules: block removed ≤ 7 days before resumption, ticket created ≤ 14 days before, new author resumed, ticket reopened. Else a person picks. None: no match
 - [x] Replay matches: past stalls, rows with `known_at` ≤ stall time only, half K
 - [x] Promotion guard: ≥ 30 live matches, +50 Elo, beats v0. LLM-written policies are never promoted without a person
+- [x] GAPS 9: the guard's luck test, so a no-better policy is promoted in at most 5% of simulated runs, however long (decision 12)
 - [x] Runs on the fixture and on replay. With no users there are no live matches, and the output says so
 
 ## Decisions

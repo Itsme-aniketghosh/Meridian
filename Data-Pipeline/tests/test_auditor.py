@@ -336,7 +336,7 @@ class Elo(unittest.TestCase):
     def test_settings_are_04s_unless_meridian_toml_has_an_auditor_section(self):
         self.assertEqual(A.settings({}), {"elo_start": 1500, "k": 32, "k_after": 16, "k_after_matches": 30,
                                           "replay_k": 0.5, "eps": 0.2, "eps_after": 0.1, "eps_after_matches": 30,
-                                          "promote_matches": 30, "promote_elo": 50, "promote_luck": None,
+                                          "promote_matches": 30, "promote_elo": 50, "promote_luck": 0.05,
                                           "promote_gain": 200, "block_days": 7,
                                           "ticket_days": 14, "explore_budget": 200, "reply_days": 14})
         self.assertEqual(A.settings({"auditor": {"k": 24}})["k"], 24)
@@ -369,11 +369,13 @@ class Epsilon(unittest.TestCase):
 
 class Promotion(unittest.TestCase):
     """pass-bars.md §4 'Promotion guard': at least 30 live matches, +50 Elo over the champion, a winning live record
-    against v0, and a person for an LLM's policy. Blocks at 29 matches and at +49 Elo; replay never counts."""
+    against v0, a record against the champion that luck gives at most 5% of the time (decision 12), and a person for
+    an LLM's policy. Blocks at 29 matches and at +49 Elo; replay never counts."""
     S = A.settings({})
-    LUCK = A.settings({"auditor": {"promote_luck": 0.05}})
+    LUCK = A.settings({"auditor": {"promote_luck": 0.05, "promote_gain": 200}})
+    G04 = A.settings({"auditor": {"promote_luck": 0}})  # 04 §9's guard alone
 
-    def league(self, live=30, gap=50.0, vs_v0=(20.0, 30), author="rh", approved_by="", s=None):
+    def league(self, live=30, gap=50.0, vs_v0=(24.0, 30), author="rh", approved_by="", s=None):
         new = A.Policy("stall-v9", "stall", 9, author, A.stall_v0, "2026-01-01T00:00:00Z", approved_by)
         league = A.League(s or self.S, {"stall-v0": A.POLICIES["stall-v0"], "stall-v9": new})
         league.rating = {"stall-v0": 1500.0, "stall-v9": 1500.0 + gap}
@@ -381,7 +383,7 @@ class Promotion(unittest.TestCase):
         league.h2h = {("stall-v9", "stall-v0"): vs_v0}
         return league
 
-    def test_30_live_matches_and_plus_50_pass(self):
+    def test_30_live_matches_plus_50_and_a_record_clear_of_luck_pass(self):
         self.assertEqual(self.league().guard("stall-v9"), [])
 
     def test_29_live_matches_block(self):
@@ -391,8 +393,11 @@ class Promotion(unittest.TestCase):
         self.assertEqual(self.league(gap=49.9).guard("stall-v9"), ["+49.9 Elo over stall-v0, needs +50"])
 
     def test_it_must_have_beaten_v0_in_live_matches(self):
-        self.assertEqual(self.league(vs_v0=(15.0, 30)).guard("stall-v9"), ["hasn't beaten stall-v0: 15 of 30 live"])
-        self.assertEqual(self.league(vs_v0=(15.5, 30)).guard("stall-v9"), [])
+        self.assertEqual(self.league(vs_v0=(15.0, 30), s=self.G04).guard("stall-v9"),
+                         ["hasn't beaten stall-v0: 15 of 30 live"])
+        self.assertEqual(self.league(vs_v0=(15.5, 30), s=self.G04).guard("stall-v9"), [])
+        self.assertEqual(self.league(vs_v0=(15.5, 30)).guard("stall-v9"),     # beating it by a hair isn't enough
+                         ["15.5 of 30 live against stall-v0 could be luck: likelihood ratio 0.0159, needs 20"])
 
     def test_an_llms_policy_needs_a_person(self):
         self.assertEqual(self.league(author="llm:model-x").guard("stall-v9"),
@@ -436,9 +441,10 @@ class Promotion(unittest.TestCase):
     def test_the_luck_test_blocks_a_winning_record_luck_could_give(self):
         """20 of 30 beats v0, but it's only 2.82 times likelier from a policy 200 Elo better than from one no better:
         one challenger needs 20 (1 / 5%)."""
-        self.assertEqual(self.league(s=self.LUCK).guard("stall-v9"),
+        self.assertEqual(self.league(vs_v0=(20.0, 30), s=self.LUCK).guard("stall-v9"),
                          ["20 of 30 live against stall-v0 could be luck: likelihood ratio 2.82, needs 20"])
         self.assertEqual(self.league(vs_v0=(24.0, 30), s=self.LUCK).guard("stall-v9"), [])
+        self.assertEqual(self.league(vs_v0=(20.0, 30), s=self.G04).guard("stall-v9"), [])  # 04 §9's guard: passes
 
     def test_the_luck_bar_is_split_over_the_challengers(self):
         self.assertEqual(self.league(vs_v0=(22.0, 30), s=self.LUCK).guard("stall-v9"), [])

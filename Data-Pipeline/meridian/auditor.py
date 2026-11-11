@@ -62,12 +62,14 @@ challenger, the radar shows the champion's and a challenger's lists team-draft i
 get more accepts wins; no reply in [auditor] reply_days is no match. Nothing records radar replies yet (no users), so
 there are no explore matches, and the output says so.
 
-Promotion (04 §9): a challenger replaces the champion when it has at least 30 live matches, at least 50 Elo over the
-champion and a winning live record against v0. A policy an LLM wrote also needs a person's approval. Replay matches
-never count toward the 30. Like Elo, the champion is replayed from the log: v0 to start, the guard checked after each
-batch of matches decided at the same time. With [auditor] promote_luck set (decision 12, GAPS 9), the challenger's
-live record against the champion must also be one that luck gives at most that share of the time, split over the
-challengers, however often the guard is checked (log_likelihood_ratio). 0 or unset: 04 §9's guard alone.
+Promotion (04 §9, decision 12): a challenger replaces the champion when it has at least 30 live matches, at least 50
+Elo over the champion, a winning live record against v0, and a live record against the champion that luck gives at
+most 5% of the time, split over the challengers, however often the guard is checked (log_likelihood_ratio, [auditor]
+promote_luck and promote_gain). Without that last test, 04 §9's guard promotes a policy no better than v0 in 87% of
+simulated 201-match runs and 96% of 600-match ones; with it, 3.7% and 4.0% (decisions.md 12). promote_luck = 0 is
+04 §9's guard alone. A policy an LLM wrote also needs a person's approval. Replay matches never count toward the 30.
+Like Elo, the champion is replayed from the log: v0 to start, the guard checked after each batch of matches decided at
+the same time.
 
 Settings: meridian.toml [auditor] when the section exists, else 04 §9's numbers.
 """
@@ -98,11 +100,12 @@ DERIVED = ("blocked_by", "file_owner", "person_alias", "team_map", "module_impor
 NEEDS = {1: ("blocked_by",), 4: ("file_owner", "person_alias"), 7: ("module_import",), 8: ("person_alias", "team_map")}
 RULE_NEEDS = {"block_removed": ("blocked_by",), "new_author": ("file_owner", "person_alias")}
 
-# 04 §9's numbers, and decision 12's luck test: promote_luck, the share of no-better challengers luck may promote
-# (None: no test), and promote_gain, the Elo gain the test looks for. meridian.toml [auditor] can set any of them
+# 04 §9's numbers, and decision 12's luck test (GAPS 9): promote_luck, the share of no-better challengers luck may
+# promote (0: no test, 04 §9's guard alone), and promote_gain, the Elo gain the test looks for. meridian.toml
+# [auditor] can set any of them
 DEFAULTS = {"elo_start": 1500, "k": 32, "k_after": 16, "k_after_matches": 30, "replay_k": 0.5,
             "eps": 0.2, "eps_after": 0.1, "eps_after_matches": 30, "promote_matches": 30, "promote_elo": 50,
-            "promote_luck": None, "promote_gain": 200,
+            "promote_luck": 0.05, "promote_gain": 200,
             "block_days": 7, "ticket_days": 14, "explore_budget": 200, "reply_days": 14}
 TS = "%Y-%m-%dT%H:%M:%SZ"
 ELO = ("elo_start", "k", "k_after", "k_after_matches", "replay_k")
