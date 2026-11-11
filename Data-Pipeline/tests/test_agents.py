@@ -475,6 +475,12 @@ class Command(unittest.TestCase):
         self.assertEqual(json.loads((out / "writer_report.json").read_text())["consumer"]["texts"], 5)
         self.assertIn("rewrite: 2 texts, 2 templates", said)
 
+    def test_jev_without_an_llm_falls_back_to_the_same_rows(self):
+        plain, routed = Path(self.tmp.name) / "plain", Path(self.tmp.name) / "routed"
+        self.assertEqual(self.main("--write", "--out", str(plain))[0], 0)
+        self.assertEqual(self.main("--write", "--out", str(routed), "--jev")[0], 0)
+        self.assertEqual((routed / "suggestion.jsonl").read_bytes(), (plain / "suggestion.jsonl").read_bytes())
+
     def test_write_refuses_an_at_that_isnt_the_snapshot(self):
         with self.assertRaises(SystemExit):
             self.main("--write", "--at", "2026-10-08T00:00:00Z")
