@@ -1,0 +1,51 @@
+{
+  "decision": "rachna-15b",
+  "split": "val",
+  "n": 4113,
+  "positives": 486,
+  "model": "forest",
+  "model_md5": "a817afba812250e1f3bb29b30963cf57",
+  "rule": "model >= model_cutoff AND lines x files >= lxf_cutoff; cutoffs at the top 1-30% of val; >= 30 alerts; highest precision; adopt if >= 0.80",
+  "pairs_tried": 900,
+  "pairs_eligible": 890,
+  "pick": {
+    "alerts": 42,
+    "true": 26,
+    "precision": 0.6190476190476191,
+    "interval": [
+      0.4681404026715268,
+      0.7500027423604485
+    ],
+    "recall": 0.053497942386831275,
+    "model_top": 0.01,
+    "model_cutoff": 0.5964534404972137,
+    "lxf_top": 0.07,
+    "lxf_cutoff": 7364.0
+  },
+  "bar": 0.8,
+  "adopted": false,
+  "model_alone": {
+    "alerts": 42,
+    "true": 26,
+    "precision": 0.6190476190476191,
+    "interval": [
+      0.4681404026715268,
+      0.7500027423604485
+    ],
+    "recall": 0.053497942386831275,
+    "top": 0.01,
+    "cutoff": 0.5964534404972137
+  },
+  "lines_x_files_alone": {
+    "alerts": 206,
+    "true": 87,
+    "precision": 0.4223300970873786,
+    "interval": [
+      0.3569073176378995,
+      0.49059660184569764
+    ],
+    "recall": 0.17901234567901234,
+    "top": 0.05,
+    "cutoff": 11814.0
+  }
+}
