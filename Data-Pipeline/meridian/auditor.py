@@ -65,12 +65,15 @@ there are no explore matches, and the output says so.
 Promotion (04 §9): a challenger replaces the champion when it has at least 30 live matches, at least 50 Elo over the
 champion and a winning live record against v0. A policy an LLM wrote also needs a person's approval. Replay matches
 never count toward the 30. Like Elo, the champion is replayed from the log: v0 to start, the guard checked after each
-batch of matches decided at the same time.
+batch of matches decided at the same time. With [auditor] promote_luck set (decision 12, GAPS 9), the challenger's
+live record against the champion must also be one that luck gives at most that share of the time, split over the
+challengers, however often the guard is checked (log_likelihood_ratio). 0 or unset: 04 §9's guard alone.
 
 Settings: meridian.toml [auditor] when the section exists, else 04 §9's numbers.
 """
 import argparse
 import itertools
+import math
 import random
 import sqlite3
 from collections import Counter, namedtuple
@@ -95,9 +98,11 @@ DERIVED = ("blocked_by", "file_owner", "person_alias", "team_map", "module_impor
 NEEDS = {1: ("blocked_by",), 4: ("file_owner", "person_alias"), 7: ("module_import",), 8: ("person_alias", "team_map")}
 RULE_NEEDS = {"block_removed": ("blocked_by",), "new_author": ("file_owner", "person_alias")}
 
-# 04 §9's numbers. meridian.toml [auditor] can set any of them
+# 04 §9's numbers, and decision 12's luck test: promote_luck, the share of no-better challengers luck may promote
+# (None: no test), and promote_gain, the Elo gain the test looks for. meridian.toml [auditor] can set any of them
 DEFAULTS = {"elo_start": 1500, "k": 32, "k_after": 16, "k_after_matches": 30, "replay_k": 0.5,
             "eps": 0.2, "eps_after": 0.1, "eps_after_matches": 30, "promote_matches": 30, "promote_elo": 50,
+            "promote_luck": None, "promote_gain": 200,
             "block_days": 7, "ticket_days": 14, "explore_budget": 200, "reply_days": 14}
 TS = "%Y-%m-%dT%H:%M:%SZ"
 ELO = ("elo_start", "k", "k_after", "k_after_matches", "replay_k")
@@ -584,16 +589,27 @@ def serve(run_id, task_id, champion, challengers, eps):
     return champion
 
 
+def log_likelihood_ratio(points, n, gain):
+    """The log of how much likelier `points` of `n` live matches against a policy are if the policy that scored them
+    is `gain` Elo better than if it's no better: points · ln 2p + (n − points) · ln 2(1 − p), p = 1 / (1 + 10^(−gain /
+    400)), a draw counting half. For a policy no better, the ratio is at best a fair bet that starts at 1, so it ever
+    reaches 1/α with chance at most α, however often it's checked (Ville's inequality). That's what lets the guard be
+    checked after every run without luck adding up (decision 12)."""
+    p = 1 / (1 + 10 ** (-gain / 400))
+    return points * math.log(2 * p) + (n - points) * math.log(2 * (1 - p))
+
+
 class League:
     """Elo and the promotion guard over one job's match log, one match at a time, oldest first (04 §9).
 
     rating, played: Elo and matches played, live and replay alike (what K counts). live: live matches only (what the
-    guard counts). vs_v0: each policy's live (points, matches) against v0. champion: v0 until `promote` moves it.
+    guard counts). h2h: {(policy, other): (points, matches)}, live only, both ways round. champion: v0 until `promote`
+    moves it.
     """
 
     def __init__(self, s, policies=None, job="stall"):
         self.s, self.policies, self.v0 = s, dict(policies or {}), f"{job}-v0"
-        self.rating, self.played, self.live, self.vs_v0 = {}, {}, {}, {}
+        self.rating, self.played, self.live, self.h2h = {}, {}, {}, {}
         self.champion, self.promotions = self.v0, []
 
     def add(self, m):
@@ -612,10 +628,9 @@ class League:
         self.played[a], self.played[b] = self.played.get(a, 0) + 1, self.played.get(b, 0) + 1
         if m["mode"] == "live":
             self.live[a], self.live[b] = self.live.get(a, 0) + 1, self.live.get(b, 0) + 1
-            if self.v0 in (a, b):
-                other, points = (b, 1 - score) if a == self.v0 else (a, score)
-                p, n = self.vs_v0.get(other, (0.0, 0))
-                self.vs_v0[other] = (p + points, n + 1)
+            for x, y, points in ((a, b, score), (b, a, 1 - score)):
+                p, n = self.h2h.get((x, y), (0.0, 0))
+                self.h2h[(x, y)] = (p + points, n + 1)
 
     def guard(self, policy_id):
         """Why `policy_id` can't replace the champion now: one line per unmet condition. Empty means it can."""
@@ -626,9 +641,16 @@ class League:
         gap = self.rating.get(policy_id, s["elo_start"]) - self.rating.get(self.champion, s["elo_start"])
         if gap < s["promote_elo"]:
             why.append(f"{gap:+.1f} Elo over {self.champion}, needs +{s['promote_elo']}")
-        points, n = self.vs_v0.get(policy_id, (0.0, 0))
+        points, n = self.h2h.get((policy_id, self.v0), (0.0, 0))
         if policy_id != self.v0 and not (n and points / n > 0.5):
             why.append(f"hasn't beaten {self.v0}: {points:g} of {n} live")
+        if s.get("promote_luck"):
+            points, n = self.h2h.get((policy_id, self.champion), (0.0, 0))
+            bar = max(1, len(self.policies) - 1) / s["promote_luck"]
+            ratio = log_likelihood_ratio(points, n, s["promote_gain"])
+            if ratio < math.log(bar):
+                why.append(f"{points:g} of {n} live against {self.champion} could be luck: likelihood ratio "
+                           f"{math.exp(ratio):.3g}, needs {bar:g}")
         p = self.policies.get(policy_id)
         if p is None:
             why.append("not a policy in the code")

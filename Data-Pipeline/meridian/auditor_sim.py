@@ -1,8 +1,11 @@
-"""Simulations behind the auditor's decisions 9–11 and its "Ranks right" bar (Model-Pipeline/packets/rochan-tracking:
+"""Simulations behind the auditor's decisions 9–12 and its "Ranks right" bar (Model-Pipeline/packets/rochan-tracking:
 decisions.md, pass-bars.md §4). They run the auditor's own code: serve, epsilon, League and its promotion guard.
 
-    python -m meridian.auditor_sim --decide 9 10 11              # from Data-Pipeline/: 20 seeds, then 2,000
+    python -m meridian.auditor_sim --decide 9 10 11 12           # from Data-Pipeline/: 20 seeds, then 2,000
     python -m meridian.auditor_sim --decide 9 --seeds 200        # one size, for a quick look
+
+Decisions 9–11 were decided under 04 §9's guard, and they still run under it (settings), so their tables reproduce.
+Decision 12 (GAPS 9) picks the guard: each of its options sets it in full.
 
 The world: stall policies of known skill on the Elo scale. Each decided stall draws one performance per policy, its
 skill plus Gumbel noise of scale 400 / ln 10. Then a policy beats another 1 / (1 + 10^(-gap / 400)) of the time, the
@@ -16,6 +19,7 @@ import argparse
 import itertools
 import math
 import random
+import re
 import statistics
 import sys
 import time
@@ -64,8 +68,12 @@ def order(rating):
     return sorted(rating, key=lambda p: (-rating[p], p))
 
 
+GUARD_04 = {"promote_matches": 30, "promote_elo": 50, "promote_luck": None}  # 04 §9's guard, no luck test
+
+
 def settings(**over):
-    return {**A.DEFAULTS, **over}
+    """The auditor's settings under 04 §9's guard, which decisions 9–11 were decided under, with `over` on top."""
+    return {**A.DEFAULTS, **GUARD_04, **over}
 
 
 # Decision 9: ε schedule
@@ -199,6 +207,60 @@ def pick_11(res):
     return "half K" if at["half K"] - at[best] <= 0.01 else best
 
 
+# Decision 12: the promotion guard (GAPS 9)
+
+# name: (settings, tiebreak key: luck test or not, live matches, margin or gain). 04 §9's guard with bigger numbers,
+# then 04 §9's guard plus the luck test
+GUARDS = {f"{n}, +{m}": ({"promote_matches": n, "promote_elo": m}, (0, n, m))
+          for n in (30, 60, 90, 120, 150) for m in (50, 100, 150, 200, 250)}
+GUARDS.update({f"30, +50, luck test G {g}": ({"promote_luck": 0.05, "promote_gain": g}, (1, 30, g))
+               for g in (200, 100)})
+HORIZON = 200  # stalls: 600 matches, the longest run in decision 10's guard table
+
+
+def decide_12(seeds, stalls=HORIZON):
+    """Per option: the share of same-skill seeds with a promotion within 201 and 600 matches, and of 200-apart seeds
+    where v1 is promoted within 600, the median match at which it is, and the share whose first promotion is v2."""
+    out = {}
+    for name, (guard, _) in GUARDS.items():
+        s = settings(**guard)
+        same = [first_promotion(SAME, seed, s, stalls)[0] for seed in seeds]
+        best = [first_promotion(SKILLS, seed, s, stalls) for seed in seeds]
+        at = [n for n, p in best if p == BEST]
+        out[name] = {"same_201": sum(n is not None and n <= 3 * STALLS for n in same) / len(seeds),
+                     "same_600": sum(n is not None for n in same) / len(seeds),
+                     "best_promoted": len(at) / len(seeds),
+                     "best_at": statistics.median(at) if at else None,
+                     "worst_first": sum(p == "stall-v2" for _, p in best) / len(seeds)}
+    return out
+
+
+def out_12(r):
+    """Which of decision 12's rules puts an option out, or None if it's in."""
+    if r["same_600"] > 0.05:
+        return 1
+    if r["best_promoted"] < 0.95 or r["worst_first"] > 0:
+        return 2
+    return None
+
+
+def pick_12(res):
+    """decisions.md 12: out by rules 1 and 2; of the rest, the lowest median match at which v1 is promoted; within one
+    stall (3 matches) of it, 04 §9's guard with bigger numbers over the luck test, then fewer matches, then the smaller
+    margin or gain. None if every option is out: 04 §9's guard stays."""
+    ok = {name: r for name, r in res.items() if out_12(r) is None}
+    if not ok:
+        return None
+    fastest = min(r["best_at"] for r in ok.values())
+    return min((name for name, r in ok.items() if r["best_at"] - fastest <= 3), key=lambda name: GUARDS[name][1])
+
+
+def luck_over(seeds, names, stalls=1000):
+    """Not part of the rule: the share of same-skill seeds with a promotion within 3 × `stalls` matches."""
+    return {name: sum(first_promotion(SAME, seed, settings(**GUARDS[name][0]), stalls)[0] is not None
+                      for seed in seeds) / len(seeds) for name in names}
+
+
 # Printing and logging
 
 
@@ -266,6 +328,18 @@ def show_guard(res):
               f"| {r['best_at']} | {pct(r['worst_promoted'])} |")
 
 
+def show_12(res):
+    print("| Guard: live matches, Elo margin | Same skill: promoted by luck within 201 | within 600 "
+          "| 200 apart: v1 promoted within 600 | at match (median) | first promotion v2 | Rule |")
+    print("|---|---|---|---|---|---|---|")
+    for name, r in res.items():
+        why = out_12(r)
+        print(f"| {name} | {pct(r['same_201'])} | {pct(r['same_600'])} | {pct(r['best_promoted'])} | {r['best_at']} "
+              f"| {pct(r['worst_first'])} | {f'out ({why})' if why else 'in'} |")
+    if pick_12(res) is None:
+        print("Every option is out: none is picked, and 04 §9's guard stays (rule 5).")
+
+
 def show_11(res):
     print("| Wrong replay verdicts | Replay | Wrong order after 30 live | 60 live | Mean |")
     print("|---|---|---|---|---|")
@@ -274,10 +348,11 @@ def show_11(res):
 
 
 def flat(res):
-    """Numbers only, for MLflow metric names."""
+    """Numbers only, for MLflow metric names, which can't hold commas or plus signs."""
     out = {}
     for key, r in res.items():
         name = "_".join(str(k) for k in (key if isinstance(key, tuple) else (key,))).replace(" ", "_")
+        name = re.sub(r"[^\w./-]", "", name)
         for metric, v in r.items():
             if isinstance(v, dict):
                 out.update({f"{name}.{metric}_{n}": x for n, x in v.items()})
@@ -300,7 +375,8 @@ def log_run(n, res, picked, seeds):
         mlflow.log_metrics(flat(res))
 
 
-DECIDE = {9: (decide_9, pick_9, show_9), 10: (decide_10, pick_10, show_10), 11: (decide_11, pick_11, show_11)}
+DECIDE = {9: (decide_9, pick_9, show_9), 10: (decide_10, pick_10, show_10), 11: (decide_11, pick_11, show_11),
+          12: (decide_12, pick_12, show_12)}
 
 
 def main(argv=None):
@@ -321,6 +397,11 @@ def main(argv=None):
             picked = pick(res)
             print(f"\ndecision {n}, seeds 1–{count} ({time.perf_counter() - t0:.1f} s): picked {picked}")
             show(res)
+            if n == 12 and count == max(a.seeds):
+                names = [name for name in ("30, +50", picked) if name]
+                longer = luck_over(seeds, names)
+                print("Not part of the rule, same skill: promoted by luck within 3,000 matches: "
+                      + ", ".join(f"{name} {pct(x)}" for name, x in longer.items()))
             if count == max(a.seeds) and not a.no_log:
                 log_run(n, res, picked, seeds)
     return 0

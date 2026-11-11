@@ -10,6 +10,7 @@ import contextlib
 import dataclasses
 import io
 import json
+import math
 import random
 import sqlite3
 import sys
@@ -335,7 +336,8 @@ class Elo(unittest.TestCase):
     def test_settings_are_04s_unless_meridian_toml_has_an_auditor_section(self):
         self.assertEqual(A.settings({}), {"elo_start": 1500, "k": 32, "k_after": 16, "k_after_matches": 30,
                                           "replay_k": 0.5, "eps": 0.2, "eps_after": 0.1, "eps_after_matches": 30,
-                                          "promote_matches": 30, "promote_elo": 50, "block_days": 7,
+                                          "promote_matches": 30, "promote_elo": 50, "promote_luck": None,
+                                          "promote_gain": 200, "block_days": 7,
                                           "ticket_days": 14, "explore_budget": 200, "reply_days": 14})
         self.assertEqual(A.settings({"auditor": {"k": 24}})["k"], 24)
         with self.assertRaises(SystemExit):
@@ -369,13 +371,14 @@ class Promotion(unittest.TestCase):
     """pass-bars.md §4 'Promotion guard': at least 30 live matches, +50 Elo over the champion, a winning live record
     against v0, and a person for an LLM's policy. Blocks at 29 matches and at +49 Elo; replay never counts."""
     S = A.settings({})
+    LUCK = A.settings({"auditor": {"promote_luck": 0.05}})
 
-    def league(self, live=30, gap=50.0, vs_v0=(20.0, 30), author="rh", approved_by=""):
+    def league(self, live=30, gap=50.0, vs_v0=(20.0, 30), author="rh", approved_by="", s=None):
         new = A.Policy("stall-v9", "stall", 9, author, A.stall_v0, "2026-01-01T00:00:00Z", approved_by)
-        league = A.League(self.S, {"stall-v0": A.POLICIES["stall-v0"], "stall-v9": new})
+        league = A.League(s or self.S, {"stall-v0": A.POLICIES["stall-v0"], "stall-v9": new})
         league.rating = {"stall-v0": 1500.0, "stall-v9": 1500.0 + gap}
         league.live = {"stall-v0": live, "stall-v9": live}
-        league.vs_v0 = {"stall-v9": vs_v0}
+        league.h2h = {("stall-v9", "stall-v0"): vs_v0}
         return league
 
     def test_30_live_matches_and_plus_50_pass(self):
@@ -421,6 +424,42 @@ class Promotion(unittest.TestCase):
     def test_with_no_log_v0_is_champion(self):
         league = A.standings([], self.S)
         self.assertEqual((league.champion, league.promotions), ("stall-v0", []))
+
+    def test_live_matches_keep_each_pairs_record_both_ways_round(self):
+        league = A.League(self.S)
+        league.add(match(0, "stall-v1", "stall-v0", "a"))
+        league.add(match(1, "stall-v1", "stall-v0", "draw"))
+        league.add(match(2, "stall-v0", "stall-v1", "a"))
+        league.add(match(3, "stall-v1", "stall-v0", "a", mode="replay"))
+        self.assertEqual(league.h2h, {("stall-v1", "stall-v0"): (1.5, 3), ("stall-v0", "stall-v1"): (1.5, 3)})
+
+    def test_the_luck_test_blocks_a_winning_record_luck_could_give(self):
+        """20 of 30 beats v0, but it's only 2.82 times likelier from a policy 200 Elo better than from one no better:
+        one challenger needs 20 (1 / 5%)."""
+        self.assertEqual(self.league(s=self.LUCK).guard("stall-v9"),
+                         ["20 of 30 live against stall-v0 could be luck: likelihood ratio 2.82, needs 20"])
+        self.assertEqual(self.league(vs_v0=(24.0, 30), s=self.LUCK).guard("stall-v9"), [])
+
+    def test_the_luck_bar_is_split_over_the_challengers(self):
+        self.assertEqual(self.league(vs_v0=(22.0, 30), s=self.LUCK).guard("stall-v9"), [])
+        two = self.league(vs_v0=(22.0, 30), s=self.LUCK)
+        two.policies["stall-v8"] = A.Policy("stall-v8", "stall", 8, "rh", A.stall_v0, "2026-01-01T00:00:00Z")
+        self.assertEqual(two.guard("stall-v9"),
+                         ["22 of 30 live against stall-v0 could be luck: likelihood ratio 28.2, needs 40"])
+
+    def test_a_no_better_policy_reaches_the_luck_bar_at_most_5_percent_of_the_time(self):
+        """Ville's inequality, checked: 1,000 coin-flip records of 600 matches, the ratio checked after every match."""
+        rng, bar, hits = random.Random(1), math.log(20), 0
+        for _ in range(1000):
+            points = 0
+            for n in range(1, 601):
+                points += rng.random() < 0.5
+                if A.log_likelihood_ratio(points, n, 200) >= bar:
+                    hits += 1
+                    break
+        self.assertLessEqual(hits, 50)
+        self.assertEqual(A.log_likelihood_ratio(0, 0, 200), 0.0)
+        self.assertLess(A.log_likelihood_ratio(0.5, 1, 200), 0)  # a draw is evidence of no gain
 
 
 class Verdicts(unittest.TestCase):
@@ -781,6 +820,25 @@ class Simulations(unittest.TestCase):
         for n, options in ((9, S.EPS), (10, S.K), (11, S.REPLAY)):
             decide, pick, _ = S.DECIDE[n]
             self.assertIn(pick(decide(range(1, 6))), options, n)
+        res = S.decide_12(range(1, 4), stalls=30)
+        self.assertEqual(set(res), set(S.GUARDS))
+        self.assertIn(S.pick_12(res), [*S.GUARDS, None])
+
+    def test_decisions_9_to_11_run_under_04s_guard_whatever_the_auditors_default(self):
+        self.assertEqual({k: S.settings()[k] for k in S.GUARD_04}, {"promote_matches": 30, "promote_elo": 50,
+                                                                    "promote_luck": None})
+
+    def test_decision_12s_rule(self):
+        r = lambda same, best, at, worst=0.0: {"same_201": same, "same_600": same, "best_promoted": best,
+                                               "best_at": at, "worst_first": worst}
+        res = {"30, +50": r(0.96, 1.0, 45), "90, +150": r(0.04, 0.97, 100),
+               "30, +50, luck test G 200": r(0.02, 1.0, 99), "30, +50, luck test G 100": r(0.01, 1.0, 90)}
+        self.assertEqual(S.pick_12(res), "30, +50, luck test G 100")    # the fastest of those in
+        res["90, +150"] = r(0.04, 0.97, 93)
+        self.assertEqual(S.pick_12(res), "90, +150")                    # within one stall: bigger numbers first
+        self.assertEqual([S.out_12(r(0.051, 1.0, 50)), S.out_12(r(0.05, 0.94, 50)),
+                          S.out_12(r(0.05, 1.0, 50, worst=0.001)), S.out_12(r(0.05, 0.95, 50))], [1, 2, 2, None])
+        self.assertIsNone(S.pick_12({"30, +50": r(0.96, 1.0, 45)}))     # every option out: 04 §9's guard stays
 
     def test_the_command_prints_each_decisions_table(self):
         out = io.StringIO()
@@ -788,6 +846,13 @@ class Simulations(unittest.TestCase):
             self.assertEqual(S.main(["--decide", "9", "10", "--seeds", "3", "--no-log"]), 0)
         self.assertIn("decision 9, seeds 1–3", out.getvalue())
         self.assertIn("| 24 flat |", out.getvalue())
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(S.main(["--decide", "12", "--seeds", "2", "--no-log"]), 0)
+        self.assertIn("decision 12, seeds 1–2", out.getvalue())
+        self.assertIn("| 30, +50, luck test G 200 |", out.getvalue())
+        self.assertIn("Not part of the rule, same skill: promoted by luck within 3,000 matches: 30, +50 ",
+                      out.getvalue())
 
 
 class Command(unittest.TestCase):
