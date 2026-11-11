@@ -50,7 +50,7 @@ class TestClient(unittest.TestCase):
         called = []
         c = client(transport={"gemini": lambda m, p: called.append(1)})
         with self.assertRaises(L.Unpriced):
-            c("gemini-flash", "hi")
+            c("gemini-pro", "hi")
         self.assertEqual(called, [])
 
     def test_an_unknown_model_is_refused(self):

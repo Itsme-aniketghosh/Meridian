@@ -40,18 +40,21 @@ class Model:
     region: str = "global"
 
 
-# The names on the left are what ladders, cache keys and logged rows carry. Claude's prices: GAPS.md (list rates,
-# Nov 11). The rest are marked None until someone checks them on the Vertex pricing page and fills them in.
+# The names on the left are what ladders, cache keys and logged rows carry. Prices: Google's Cloud Billing catalog
+# for Vertex AI (service C7E2-9256-1C43, global online text, read Nov 11), which matches GAPS.md for Sonnet and Opus.
+# Haiku isn't in the catalog: GAPS.md's list rate. None = not in the catalog, so never called: Gemini 3.1 Pro (only a
+# CodeMender SKU, $2 / $12) and Mistral Medium (no SKU at all). Gemini ids: the newest Flash and the only Pro that
+# answered on a live project (gemini-3.8-flash, gemini-3.1-pro-preview).
 MODELS = {
     "claude-haiku-5-5": Model("claude", "claude-haiku-5-5", 0.10, 0.50),
     "claude-sonnet-5-5": Model("claude", "claude-sonnet-5-5", 2.00, 10.00),
     "claude-opus-5-5": Model("claude", "claude-opus-5-5", 4.00, 20.00),
-    "gemini-flash": Model("gemini", "gemini-flash-latest", None, None),
-    "gemini-pro": Model("gemini", "gemini-pro-latest", None, None),
+    "gemini-flash": Model("gemini", "gemini-3.8-flash", 1.50, 7.50),
+    "gemini-pro": Model("gemini", "gemini-3.1-pro-preview", None, None),
     "mistral-medium": Model("mistral", "mistral-medium-3", None, None, "us-central1"),
-    "llama-4-maverick": Model("maas", "meta/llama-4-maverick-17b-128e-instruct-maas", None, None, "us-east5"),
-    "llama-4-scout": Model("maas", "meta/llama-4-scout-17b-16e-instruct-maas", None, None, "us-east5"),
-    "gemma-4": Model("maas", "google/gemma-4-31b-it-maas", None, None, "us-central1"),
+    "llama-4-maverick": Model("maas", "meta/llama-4-maverick-17b-128e-instruct-maas", 0.35, 1.15, "us-east5"),
+    "llama-4-scout": Model("maas", "meta/llama-4-scout-17b-16e-instruct-maas", 0.25, 0.70, "us-east5"),
+    "gemma-4": Model("maas", "google/gemma-4-31b-it-maas", 0.15, 0.60, "us-central1"),
     "phi4-mini": Model("ollama", "phi4-mini", 0.0, 0.0, "local"),
 }
 MAX_OUT = 4000          # reply tokens, thinking included: the writer's texts are ~800 (GAPS.md, cost)
