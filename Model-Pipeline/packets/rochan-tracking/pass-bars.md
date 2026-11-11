@@ -57,6 +57,7 @@ PR-AUC means average precision, as in Rachna's `train.py`, so there is one defin
 | Seeded ε | The share of challenger picks is within ±2% of ε over **10,000** seeded draws, at ε = 0.2 and at 0.1 | `test_auditor.py` |
 | No look-ahead | A replay never reads a row whose `known_at` is after the stall: 0 rows. The fixture has rows on both sides of the stall time | `test_auditor.py` |
 | Promotion guard | Blocks at 29 live matches and at +49 Elo. Replay matches never count toward the 30. A policy written by an LLM is never promoted without a person | `test_auditor.py` |
+| Luck doesn't promote (added Nov 11: GAPS 9's bar, as decision 12's rule, committed before the sweep) | In the simulation, a policy no better than the champion is promoted in at most 5% of 2,000 runs of 600 matches, and one 200 Elo better is promoted within 600 matches in at least 95% | `auditor_sim.py --decide 12` |
 | Runs | Runs on the fixture and on replay. With no live matches, the output says so | `test_auditor.py` |
 
 Why two of these differ from a first reading of 05-test (simulated on Nov 5, before any auditor code exists):
@@ -139,6 +140,18 @@ Only the rows today's code can meet. Seeded ε and the promotion guard come with
 
 | Bar | Result |
 |---|---|
-| Luck doesn't promote (GAPS 9: at most 5% false promotions, by decision 12's rule, committed before the sweep) | ✅ With the luck test (decision 12), a policy no better than the others is promoted in 3.7% of 201-match runs and 4.0% of 600-match runs, seeds 1–2,000, against 87.0% and 95.8% under 04 §9's guard alone. Over 3,000 matches it's still 4.0%, against 99.1%. v1, 200 Elo better, is promoted in 100% of runs, at a median of 69 matches instead of 45, and v2 never is (`auditor_sim.py --decide 12`; MLflow `meridian-auditor`, `decision=rochan-12`) |
-| Promotion guard | ✅ As on Nov 7 under 04 §9's numbers, plus the luck test. 20 of 30 live wins against v0 are blocked (likelihood ratio 2.82, needs 20), and 24 of 30 pass. 22 of 30 pass with one challenger but not with two, which need 40. 1,000 coin-flip records, checked after every match, stay under the bar's 5% (`test_auditor.py`, `Promotion`) |
-| Recompute | ✅ Decisions 9–11 still run under 04 §9's guard and give their tables again: decision 10's luck column is 87.0% and 89.7% |
+| Luck doesn't promote | ✅ With the luck test (decision 12), seeds 1–2,000:
+- **Promoted by luck:** a policy no better than the others in 3.7% of 201-match runs and 4.0% of 600-match runs. Under 04 §9's guard alone it's 87.0% and 95.8%. Over 3,000 matches the luck test is still at 4.0%, against 99.1%.
+- **The better policy:** v1, 200 Elo better, is promoted in 100% of runs, at a median of 69 matches instead of 45. v2 is never the first promotion.
+- **With draws** (30–70% of matches), v1 is still promoted within 600 matches in 94–100% of runs, and luck stays at 3.2–3.9%.
+
+(`auditor_sim.py --decide 12`; MLflow `meridian-auditor`, `decision=rochan-12`, run be39aa4f) |
+| Promotion guard | ✅ As on Nov 7 under 04 §9's numbers, plus the luck test (`test_auditor.py`, `Promotion`):
+- A 20–10 record against v0 is blocked (likelihood ratio 2.82, needs 20); 24–6 passes; 22–8 passes with one challenger but not two, which need 40.
+- 10 wins, 60 draws and no loss passes: draws don't count.
+- The record that counts is the one against the champion of the day.
+- A policy written later doesn't undo a promotion already given.
+- Settings the test can't run on stop the run.
+- The chance that luck ever gets a no-better policy past the bar is computed exactly: 4.22%, under 5%. |
+
+Decisions 9–11 still run under 04 §9's guard, and give their tables again. Decision 10's luck column is 87.0% and 89.7%.

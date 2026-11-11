@@ -439,23 +439,49 @@ Result (run Nov 11; 87 s for 2,000 seeds). Under no option was v2 ever the first
 | **30, +50, luck test G 200** | 3.7% | 4.0% | 100.0% | 69 | in |
 | 30, +50, luck test G 100 | 2.0% | 3.4% | 100.0% | 96 | in |
 
-Seeds 1–20 alone pick the same option. A second run of the 2,000 seeds gives the same table.
+Seeds 1–20 alone pick the same option. A second run of the 2,000 seeds, after the review fixes below, gives the same table.
 
-Not part of the rule, the same simulation run longer, to 3,000 matches:
-- Same skill: 04 §9's guard promotes by luck in 99.1% of seeds. The luck test is still at 4.0%.
-- v1 only 100 better (1600): the luck test with G 200 promotes it in 86.9% of seeds, and G 100 in 100%, both at a median of 225 matches. (90, +200) promotes it in 99.7%, at 444.
+Not part of the rule: the same simulation with more in it. `--decide 12` prints these after the table.
+- **Longer runs, to 3,000 matches.** With the same skill, 04 §9's guard promotes by luck in 99.1% of seeds. The luck test is still at 4.0%.
+- **Smaller gains.** v1 only 60, 80 or 100 Elo better than v0. The share of seeds where it's promoted within 3,000 matches, and the median match at which it is:
+
+| v1 better by | Luck test, G 200 (picked) | Luck test, G 100 | 90, +200 |
+|---|---|---|---|
+| 60 | 21.9%, at 144 | 89.6%, at 543 | 78.4%, at 1,044 |
+| 80 | 49.5%, at 192 | 99.7%, at 327 | 95.5%, at 699 |
+| 100 | 86.9%, at 225 | 100%, at 225 | 99.7%, at 444 |
+
+- **Draws.** In the real stall job, two policies that put the stall's reason in the same place draw. The world above has no draws, so here a share of matches is made into draws. The table shows v1 (200 better) promoted within 600 matches, then a same-skill policy promoted by luck:
+
+| Draws | Luck test, G 200: v1 / luck | 04 §9's guard: v1 / luck |
+|---|---|---|
+| 30% | 100% / 3.9% | 100% / 94.9% |
+| 50% | 99.5% / 3.4% | 99.9% / 93.5% |
+| 70% | 94.4% / 3.2% | 99.7% / 85.2% |
 
 Picked: **04 §9's guard plus the luck test, G 200.**
-- Of the bigger-number guards, only those at +200 with 90 or more matches, or at +250, pass. The fastest of them, (90, +200), needs a median of 144 matches, and it's at 4.9% by 600. Bigger numbers keep climbing as a run gets longer, since every check is another chance for luck. The luck test doesn't: 4.0% by 600 matches, and still 4.0% by 3,000.
-- With the luck test, v1 is promoted at a median of 69 matches, 24 more than under 04's guard. G 100 takes 96.
+- **The bigger-number guards.** Six pass: (30, +250), (60, +250), (90, +200), (90, +250), (120, +200) and (150, +200). The fastest, (90, +200), needs a median of 144 matches, and it's at 4.9% by 600. They keep climbing as a run gets longer, since every check is another chance for luck.
+- **The luck test** doesn't climb: 4.0% by 600 matches, and still 4.0% by 3,000. With it, v1 is promoted at a median of 69 matches, 24 more than under 04's guard. G 100 takes 96.
+
+What the 5% means: the chance that luck ever gets a policy no better than the champion past it, however often the guard is checked. For coin-flip wins and losses it's exactly 4.22%, the same at 600, 1,200 or 3,000 matches (`test_auditor.py` computes it). The bound holds for each champion: once a challenger is promoted, the challengers against the new one start a new 5%. The table counts each run's first promotion only, so "never v2" means v2 is never the first.
 
 What it costs:
-- **Smaller gains.** G 200 is tuned to the simulation's 200-Elo gap. A policy only 100 better is promoted in 86.9% of 3,000-match runs, against 100% with G 100. If the team expects smaller gains, for instance from gap 22's LLM-written policies, `[auditor] promote_gain = 100` finds them every time, for 27 more matches on big gains. The rule picked G 200, so that's the default.
-- **The better policy arrives later.** In decision 9's 67-stall run, the team sees a worse ranking than v1's in 44.9% of stalls, up from 28.7%. Decisions 9 and 10 still pick the same under the new guard. That was checked with their code and the new guard in place of `auditor_sim.GUARD_04`; it isn't part of this rule. They pick 04's ε schedule, and 04's K, which is now picked the way decision 10's rule meant: both K options pass the luck check, at 3.7% each.
+- **Smaller gains.** G 200 is tuned to the simulation's 200-Elo gap. Below about 100 better, it finds a better policy mostly through early luck: in 49.5% of runs at 80 better, and 21.9% at 60. G 100 finds 80 better in 99.7% and 60 better in 89.6%, for 27 more matches on a 200-Elo gain. If the team expects smaller gains, for instance from gap 22's LLM-written policies, `[auditor] promote_gain = 100` switches to it. The rule picked G 200, so that's the default.
+- **The better policy arrives later.** This is decision 9's 67-stall run under the new guard (`--decide 9 10 --guard default`):
+  - v1 is champion at a median of 69 matches instead of 45, and isn't champion within those 201 matches in 70 of 2,000 seeds, instead of 0;
+  - a worse policy is champion in 42.0% of stalls, instead of 23.1%;
+  - the team sees a worse ranking than v1's in 44.9% of stalls, instead of 28.7%.
+
+  Decisions 9 and 10 still pick the same options: 04's ε schedule, and 04's K. K is now picked the way decision 10's rule meant, since both K options pass its luck check (3.7% each).
+
+Changed after review (Nov 11; a second look at the branch, commit 2a5b41d):
+- **Draws don't count in the luck test.** The option above counted a draw as half a win. That made a draw evidence against a gain, so a better policy whose matches are mostly draws could hardly pass. On the code before the change, in the draws world above, v1 was promoted within 600 matches in 36.0% of runs at 50% draws, and 0.4% at 70%. Now the test reads wins and losses only. For a policy no better, a match that isn't a draw is won at most half the time, so the 5% bound still holds. The sweep's world has no draws, so its table is the same. "Beats v0" still counts a draw as half, as 04 §9 reads it.
+- **The 5% is split over the policies that existed at the check.** It used to be split over every policy in today's code. The log is replayed every run, so a policy written later raised the bar for checks already made, and could undo a promotion. In the simulation every policy exists from the start, so its table is the same.
+- **Settings the test can't run on now stop the run.** `promote_luck` must be 0 or a share between 0 and 1, and `promote_gain` above 0.
 
 In the code:
-- **Settings.** `DEFAULTS` has `promote_luck = 0.05` and `promote_gain = 200`. `meridian.toml [auditor]` can change either, and `promote_luck = 0` is 04 §9's guard alone.
-- **The 5% is split** over the challengers in the code when the guard is checked: two in the simulation (a bar of 40), and one today, v1 (a bar of 20). That bounds luck among the challengers in play. Over a long series of new policies, as gap 22 would add, the total can pass 5%. Written down, not changed.
+- **Settings.** `DEFAULTS` has `promote_luck = 0.05` and `promote_gain = 200`. `meridian.toml [auditor]` can change either, and `promote_luck = 0` turns the test off, giving 04 §9's original guard.
+- **The 5% is split** over the challengers at each check: two in the simulation (a bar of 40), and one today, v1 (a bar of 20). An LLM-written policy that no person has approved yet counts too, which only makes the bar stricter. Over a long series of new policies, as gap 22 would add, the total can pass 5%. Written down, not changed.
 - **Docs.** 04 §9's promotion line now names the test. PASS-BARS.md §3's promotion row still holds as written: the guard still blocks at 29 matches and at +49 Elo.
 
-The run is in MLflow, `meridian-auditor`, tagged `decision=rochan-12`.
+The run is in MLflow, `meridian-auditor`, tagged `decision=rochan-12`: run be39aa4f, at commit 2a5b41d, with `git_dirty` false. An earlier run with the same numbers was logged from a tree with uncommitted changes; it's tagged `superseded_by` the new one.

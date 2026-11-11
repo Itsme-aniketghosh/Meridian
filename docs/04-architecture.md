@@ -135,8 +135,10 @@ Read-only. `run_id`, `snapshot_at`, and coverage on every screen.
   days before · new author resumed · ticket reopened. Else a human picks. None → no match
 - Elo: start 1500, K 32 then 16 after 30 matches. Recomputed from the log each run.
   Per repo after 30 matches
-- Promotion: ≥ 30 live matches, +50 Elo, beats v0, and a live record against the
-  champion that luck gives ≤ 5% of the time, however often it's checked (Rochan decision 12)
+- Promotion: ≥ 30 live matches, +50 Elo, beats v0, and a luck test on the live wins
+  and losses against the champion (draws left out): luck gets a no-better policy past it
+  ≤ 5% of the time, however often it's checked. Built to find +200 Elo; the 5% is split
+  over the challengers (auditor decision 12)
 - LLMs may propose policy code. A human reviews it. Never in the decision path
 
 ## 10. Push check
