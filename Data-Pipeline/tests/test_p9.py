@@ -128,7 +128,8 @@ class WithModel(unittest.TestCase):
 
     def test_every_way_the_model_cant_be_used_says_why(self):
         bad = {"md5 isn't champion.json's": self.champion(0.0, md5="f" * 32),
-               "isn't next to champion.json": self.champion(0.0, missing=True)}
+               "isn't next to champion.json": self.champion(0.0, missing=True),
+               "the champion has no alert threshold": self.champion(None)}
         corrupt = self.champion(0.0)
         (corrupt.parent / "model.joblib").write_bytes(b"not a model")
         rec = json.loads(corrupt.read_text())
