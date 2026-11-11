@@ -351,3 +351,22 @@ Rule:
 - What's cut stays in the facts as counts (`files_cut`, `sites_cut`), so `left` and the text stay true. Nothing cut is ever named.
 - Reported over all 68 teams: files, sites and facts characters (sorted-key JSON, what the prompt carries) kept against the full context. Also bug-fix coverage, and the same coverage reached by a random file order (seed 1, mean of 100 orders), to show what the ranking buys.
 - There's nothing to pick. It's a measurement. It isn't switched on in `agents.py` here, since a new facts shape changes every cache key under Vishwa's running comparison. Switching it on is a separate decision, after gap 2.
+
+## 12. Results: the cut has nothing to rank on the real block
+
+`python -m meridian.context --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite` → `reports/context_cut.json`.
+
+**On the real block no file has a risk signal.** `file_bug_fixes` holds 1,492 files, all in `apache/spark` (its Jira bug tickets). The 21 Django-ecosystem repos the call sites live in have no bug-fix history in the block, and all 1,526 call sites have `bug_fixes = 0`. The champion is Spark-only too. So the rule's fallback decides every team: each keeps its file with the most sites.
+
+| Real block, 68 consumer tasks | All | Kept | Kept share |
+|---|---:|---:|---:|
+| Files | 367 | 68 | 18.5% |
+| Call sites | 1,526 | 444 | 29.1% |
+| Facts characters | 36,676 | 13,170 | 35.9% |
+| Bug fixes covered | 0 | 0 | not defined |
+
+42 of the 68 teams have more than one file and get cut, and 26 have one file and keep it. The cut would save 64% of the consumer facts. But with no bug fixes to cover, **nothing shows the kept files are the risky ones**, so "90% of the likely problems covered" can't be measured here. It isn't switched on.
+
+**On the fixture** (`acme/shop`, which has bug-fix history): 5 teams, 6 files, 5 bug fixes. The ranking keeps all 5 bug fixes with 5 of the 6 files. A random order with the same files keeps 63% (seed 1, 100 orders). The ranking works where the signal exists, but at N = 6 files that shows the code works, not a result.
+
+What would make it useful on the real block: bug-fix history for the package repos (their GitHub issues and fix commits, as `file_bug_fixes` has for Spark's Jira), or a Spark migration. That goes in the report as an open gap.
