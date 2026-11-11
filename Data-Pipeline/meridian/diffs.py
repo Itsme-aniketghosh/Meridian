@@ -12,9 +12,9 @@ Reads out/<run_id>/call_site.jsonl and run.jsonl, and the code in snapshots/<run
      re_path         always re_path
      path_if_plain   path(...) when the pattern is plain text between ^ and $, else re_path
      alias           the import becomes `from django.urls import re_path as url`; url(...) calls stay as they are
-     learned         per repo, from its owner's earlier migrations: what the checkout's own `from django.urls import`
-                     lines already use (an alias, path, or re_path). None: path_if_plain, the best single
-                     style on the 20 packages (decision 11)
+     learned         per repo, from its owner's own migrations so far: every checkout line already on django.urls
+                     votes (style_vote: `re_path as url`, a re_path that could have been path, a path). None, as
+                     at every package's parent: path_if_plain, the best single style (decisions 11 and 13)
    All sites on one line get one draft for that line, so the draft is the whole after-line.
 2. The LLM path may only draft a line the codemod refused, with 2 or more same-shape examples (the repo's own
    codemod drafts), and never inside `except` (llm_allowed). Models go coding small -> mid -> large (04 §6). Each
@@ -60,7 +60,9 @@ DJANGO_URLS = {"include", "path", "re_path", "register_converter"}   # names `fr
 DJANGO_REF = "3.2"                                                   # a Django with django.urls.path and re_path
 FROM_IMPORT = re.compile(r"^(?P<indent>\s*)from\s+(?P<module>[\w.]+)\s+import\s+"
                          r"(?P<names>[^()#]+?)\s*(?P<comment>#.*)?$")
-URL_CALL = re.compile(r"""\burl\(\s*(?P<prefix>[rRuU]{0,2})(?P<q>['"])(?P<pat>(?:\\.|(?!(?P=q)).)*)(?P=q)""")
+URL_CALL = re.compile(r"""\burl\(\s*(?P<kw>regex\s*=\s*)?(?P<prefix>[rRuU]{0,2})(?P<q>['"])"""
+                      r"""(?P<pat>(?:\\.|(?!(?P=q)).)*)(?P=q)""")
+REGEX_KW = re.compile(r"\burl\(\s*regex\s*=\s*")   # url(regex=...): path and re_path call it route, so it goes
 REGEX_CHARS = re.compile(r"[.*+?()\[\]{}|\\]")
 REASONS = ("stale", "other_line", "multi_line_import", "other_names", "not_python", "parse", "resolve", "no_change")
 
@@ -96,6 +98,9 @@ CONVERTERS = [
     (re.compile(r"\(\?P<(\w+)>(?:\[-\\w\]\+|\[\\w-\]\+|\[-a-zA-Z0-9_\]\+|\[a-zA-Z0-9_-\]\+)\)"), r"<slug:\1>"),
     (re.compile(r"\(\?P<(\w+)>\[\^/\]\+\)"), r"<\1>"),
     (re.compile(r"\(\?P<(\w+)>\.\+\)"), r"<path:\1>"),
+    # any other one-or-more character class without '/', e.g. [a-z0-9]+: str ([^/]+) is what owners wrote for it
+    # (oscar's <str:key>), wider than the class but never across a '/' (decision 13)
+    (re.compile(r"\(\?P<(\w+)>\[(?![^\]]*/)[^\]]+\]\+\)"), r"<str:\1>"),
 ]
 
 
@@ -133,7 +138,8 @@ def rewrite_url_call(line, style):
         m = URL_CALL.search(line)
         q = m.group("q")
         return line[:m.start()] + f"path({q}{path_text(m.group('pat'))}{q}" + line[m.end():]
-    return rename(line, "url", "re_path")
+    # url(regex=...) was valid; re_path(regex=...) is a TypeError (its first argument is route): pass it positionally
+    return rename(REGEX_KW.sub("url(", line), "url", "re_path")
 
 
 def rewrite_url_import(line, style, file_choices):
@@ -345,7 +351,8 @@ def gated(before, after, facts, teams, people):
     return check("\n".join(added), facts, teams=teams, people=people, kinds="numbers").passed
 
 
-def llm_draft(old_lines, drafts, path, n, sites, facts, resolver, *, teams, people, llm, cache, log, strict_cache):
+def llm_draft(old_lines, drafts, path, n, sites, facts, resolver, *, teams, people, llm, cache, log, strict_cache,
+              ladder=LADDER):
     """One line by the LLM, up the ladder: cache or call -> JSON -> fact gate -> one line, parses, resolves.
     (model, after) or None. With no LLM, a cached answer still counts; a miss drafts nothing (code has no
     template), or with strict_cache stops the run."""
@@ -353,7 +360,7 @@ def llm_draft(old_lines, drafts, path, n, sites, facts, resolver, *, teams, peop
     from meridian.llm_cache import key
     pv, fh, before = prompt_version(), facts_hash(facts["facts"]), old_lines[n - 1]
     end = "\n" if before.endswith("\n") else ""
-    for i, model in enumerate(LADDER):
+    for i, model in enumerate(ladder):
         k = key(model, pv, facts["facts"])
         entry = cache.get(k) if cache else None
         hit, t0 = entry is not None, time.perf_counter()
@@ -379,8 +386,8 @@ def llm_draft(old_lines, drafts, path, n, sites, facts, resolver, *, teams, peop
             new_src = "".join(new_lines)
             spots = new_names(before, after, sites, "path_if_plain")
             ok = parses(new_src) and resolves(resolver, path, new_src, n, spots)
-        last = ok or i == len(LADDER) - 1 or (
-            llm is None and cache.get(key(LADDER[i + 1], pv, facts["facts"])) is None)
+        last = ok or i == len(ladder) - 1 or (
+            llm is None and cache.get(key(ladder[i + 1], pv, facts["facts"])) is None)
         if log is not None:
             paid = not hit
             log(agent=AGENT, model=model, prompt_version=pv, tokens_in=entry["tokens_in"] if paid else 0,
@@ -409,23 +416,68 @@ def known_names(out):
 
 # ───────────── the run ─────────────
 
+ALIAS_IMPORT = re.compile(r"\bre_path\s+as\s+url\b")
+NEW_CALL = re.compile(r"""(?<![\w.])(?<!def )(?P<fn>re_path|path)\(\s*[rRuU]{0,2}(?P<q>['"])"""
+                      r"""(?P<pat>(?:\\.|(?!(?P=q)).)*)(?P=q)""")
+
+
+def style_vote(line):
+    """What one already-migrated line says about its owner's url() style, or None. `re_path as url`: alias. A
+    re_path(...) whose pattern path() could have said: re_path, by choice. A path(...): path_if_plain. A re_path
+    path() couldn't say is no vote: the owner had no choice there."""
+    if ALIAS_IMPORT.search(line):
+        return "alias"
+    m = NEW_CALL.search(line)
+    if not m:
+        return None
+    if m.group("fn") == "path":
+        return "path_if_plain"
+    return "re_path" if path_text(m.group("pat")) is not None else None
+
+
+def pick_style(votes):
+    """The style most votes say, ties to path_if_plain (decision 11's default); None with no votes."""
+    if not votes:
+        return None
+    return max(sorted(votes), key=lambda s: (votes[s], s == "path_if_plain"))
+
+
 def learned_style(repo_dir):
-    """The owner's earlier migrations: what this checkout's own `from django.urls import` lines already use."""
-    seen = Counter()
+    """The owner's own migrations so far (decision 13): every line of the checkout already on django.urls votes
+    (style_vote), outside the repo's own django/ package (Django defines path and re_path there). No votes, as at
+    every package's parent commit: path_if_plain, the best single style (decision 11). Once an owner migrates a file
+    by hand, the next run drafts the rest in their style."""
+    votes = Counter()
     for p in sorted(Path(repo_dir).rglob("*.py")):
+        rel = p.relative_to(repo_dir).parts
+        if rel and rel[0] == "django":
+            continue
         try:
             text = p.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        for m in re.finditer(r"^\s*from\s+django\.urls\s+import\s+([^\n#]+)", text, re.M):
-            names = m.group(1)
-            if re.search(r"\bre_path\s+as\s+url\b", names):
-                seen["alias"] += 1
-            elif re.search(r"\bpath\b", names):
-                seen["path_if_plain"] += 1
-            elif re.search(r"\bre_path\b", names):
-                seen["re_path"] += 1
-    return seen.most_common(1)[0][0] if seen else "path_if_plain"   # decision 11: the best single style
+        for line in text.splitlines():
+            v = style_vote(line)
+            if v:
+                votes[v] += 1
+    return pick_style(votes) or "path_if_plain"
+
+
+def style_from_owner(pairs):
+    """The url() style an owner's own migrated lines show, from [(before, after)]: None when they show none. Each
+    after-line votes as learned_style's do (style_vote); a url(...) call the owner kept as it was votes alias.
+    Used by seeded_score, where the before-lines are known."""
+    votes = Counter()
+    for b, a in pairs:
+        if a is None:
+            continue
+        v = style_vote(a)
+        if v is None and URL_CALL.search(a) and URL_CALL.search(b or "") and path_text(
+                URL_CALL.search(b).group("pat")) is not None:
+            v = "alias"
+        if v:
+            votes[v] += 1
+    return pick_style(votes)
 
 
 def django_for_resolve(mirror, ref, cache):
@@ -541,7 +593,7 @@ def llm_lines(repo, by_file, sources, drafts, refused, todo, resolver, o):
             continue
         got = llm_draft(sources[path], drafts, path, n, ss, facts, resolver, teams=o["teams"],
                         people=o["people"], llm=o.get("llm"), cache=o.get("cache"), log=o.get("log"),
-                        strict_cache=o.get("strict_cache", False))
+                        strict_cache=o.get("strict_cache", False), ladder=o.get("ladder") or LADDER)
         if got:
             models[(path, n)] = (got[0], facts_hash(facts["facts"]))
             drafts[(path, n)] = (sources[path][n - 1], got[1])
@@ -581,10 +633,11 @@ def suggestion_rows(run_id, snapshot_at, repo, sites, drafts, llm_models=None):
 
 
 def run(run_id, cfg, root=None, out_dir=None, style="learned", django_ref=DJANGO_REF, cache=None, repos=None,
-        llm=None, llm_cache=None, log_call=None, strict_cache=False):
+        llm=None, llm_cache=None, log_call=None, strict_cache=False, ladder=None):
     """Drafts for every repo with present sites. Returns ({repo: drafts}, {repo: refusals}, {repo: style}, rows).
     The LLM path is on when llm (a callable: llm(model, prompt) -> {"reply", "tokens_in", "tokens_out",
-    "cost_usd"}) or llm_cache (meridian.llm_cache.Cache) is given; log_call is model.tracking.log_llm_call."""
+    "cost_usd"}) or llm_cache (meridian.llm_cache.Cache) is given; log_call is model.tracking.log_llm_call.
+    ladder: the models to try, smallest first (GAPS 2, the model comparison); LADDER, Jev's, when None."""
     root = Path(root or data_root())
     out = handoff(cfg, run_id, root)
     run_row = read_jsonl(out / "run.jsonl")[0]
@@ -602,7 +655,7 @@ def run(run_id, cfg, root=None, out_dir=None, style="learned", django_ref=DJANGO
     if llm is not None or llm_cache is not None:
         teams, people = known_names(out)
         llm_opts = {"llm": llm, "cache": llm_cache, "log": log_call, "strict_cache": strict_cache,
-                    "teams": teams, "people": people}
+                    "teams": teams, "people": people, "ladder": tuple(ladder) if ladder else LADDER}
     all_drafts, all_refused, styles, rows = {}, {}, {}, []
     for repo, ss in sorted(by_repo.items()):
         repo_dir = repo_checkout(snap, repo)
@@ -661,6 +714,30 @@ def after_lines(repo_dir, parent, child, path):
 
 def squash(s):
     return re.sub(r"\s+", "", s or "")
+
+
+def owner_pairs(repo_dir, parent, child, path):
+    """(before, after) for each line of one file that the child commit changed in a same-size hunk: what the owner
+    wrote, line by line. Read only for the file the owner is shown to have migrated (seeded_score)."""
+    changed, _ = after_lines(repo_dir, parent, child, path)
+    src = (Path(repo_dir) / path).read_text(encoding="utf-8", errors="replace").splitlines()
+    return [(src[n - 1], a) for n, (a, _) in sorted(changed.items()) if a is not None and n <= len(src)]
+
+
+SEED_VOTES, SEED_FILES = 3, 3      # decision 13, set before the run: show files until 3 votes, at most 3 files
+
+
+def owner_seed(repo_dir, parent, child, sites, votes=SEED_VOTES, max_files=SEED_FILES):
+    """(seed files, style): the owner is taken to have migrated a repo's first url() files (by path) by hand, until
+    their lines show `votes` style votes or `max_files` files are read. The style is what those lines say, else
+    path_if_plain. Only these files' real after-lines are read; seeded scoring leaves them out."""
+    seed, pairs = [], []
+    for f in sorted({s["path"] for s in sites if s["symbol"] == "url"})[:max_files]:
+        seed.append(f)
+        pairs += owner_pairs(repo_dir, parent, child, f)
+        if sum(1 for p in pairs if style_from_owner([p])) >= votes:
+            break
+    return seed, style_from_owner(pairs) or "path_if_plain"
 
 
 def score(repo_dir, parent, child, sites, drafts):

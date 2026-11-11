@@ -97,6 +97,30 @@ class Lines(unittest.TestCase):
         with self.assertRaises(D.Refused):
             D.rewrite_url_import("from django.conf.urls import handler404, url\n", "re_path", set())
 
+    def test_a_class_without_slash_becomes_str_and_one_with_slash_stays_regex(self):     # decision 13
+        self.assertEqual(D.path_text(r"wishlists/(?P<key>[a-z0-9]+)/$"), "wishlists/<str:key>/")
+        self.assertEqual(D.path_text(r"^(?P<uuid>[0-9a-f-]+)/$"), "<str:uuid>/")
+        self.assertIsNone(D.path_text(r"^(?P<p>[a-z/]+)/$"))                  # str never crosses a '/'
+        self.assertEqual(D.path_text(r"^(?P<pk>\d+)/$"), "<int:pk>/")         # the specific converters still win
+
+    def test_url_regex_keyword_is_passed_positionally(self):
+        line = '    url(regex=r"^$", view=views.UserListView.as_view(), name="list"),\n'
+        self.assertEqual(D.rewrite_url_call(line, "path_if_plain"),
+                         '    path("", view=views.UserListView.as_view(), name="list"),\n')
+        self.assertEqual(D.rewrite_url_call(line, "re_path"),            # re_path(regex=...) would be a TypeError
+                         '    re_path(r"^$", view=views.UserListView.as_view(), name="list"),\n')
+
+    def test_the_owners_own_lines_tell_the_style(self):
+        plain = "    url(r'^about/$', v),"
+        self.assertEqual(D.style_from_owner([(plain, "    re_path(r'^about/$', v),")]), "re_path")
+        self.assertEqual(D.style_from_owner([(plain, "    path('about/', v),")]), "path_if_plain")
+        self.assertEqual(D.style_from_owner([("from django.conf.urls import url",
+                                              "from django.urls import re_path as url")]), "alias")
+        # a pattern path() can't say is no vote: the owner had no choice there
+        self.assertIsNone(D.style_from_owner([("    url(r'^a(b|c)/$', v),", "    re_path(r'^a(b|c)/$', v),")]))
+        self.assertEqual(D.style_from_owner([(plain, "    path('about/', v),"),
+                                             (plain, "    re_path(r'^about/$', v),")]), "path_if_plain")   # tie
+
     def test_a_draft_that_touches_another_line_is_refused(self):
         self.assertTrue(D.only_line(["a\n", "b\n"], ["a\n", "B\n"], 1))
         self.assertFalse(D.only_line(["a\n", "b\n"], ["A\n", "B\n"], 1))
@@ -281,6 +305,12 @@ class LLMPath(unittest.TestCase):
                 self.assertEqual([c["source"] for c in self.calls], [None] * 3)
                 self.assertNotIn("U3", {r["target"] for r in rows})
 
+    def test_a_ladder_passed_in_is_the_one_tried_and_ladder_itself_stays(self):      # GAPS 2
+        llm = stand_in("    re_pathx,")                                      # fails resolve on every model
+        draft_urls(self.root, self.cfg, llm=llm, llm_cache=self.cache, ladder=("gemini-flash", "mistral-medium"))
+        self.assertEqual(llm.calls, ["gemini-flash", "mistral-medium"])
+        self.assertEqual(D.LADDER, ("claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"))
+
     def test_a_line_that_doesnt_resolve_moves_up_the_ladder(self):
         drafts, _, _, _ = draft_urls(self.root, self.cfg, llm=stand_in("    re_pathx,"), llm_cache=self.cache,
                                      log_call=self.log)
@@ -343,15 +373,40 @@ class Bars(unittest.TestCase):
         self.assertEqual(n, 267)
         self.assertGreaterEqual(m / n, 0.90, f"{m}/{n}")              # 254/267 = 0.951 on Nov 5
 
+    def test_packages_owner_seeded(self):
+        """Decision 13: the owner migrates their first url() files by hand (until 3 style votes, at most 3 files);
+        the drafter takes their style and drafts the rest. Scored only on the files it wasn't shown. On the 12
+        finished repos: 67.0% against 51.8% for the default style on the same lines (Nov 11)."""
+        seeded = default = n = 0
+        for repo in self.DONE:
+            rd = repo_checkout(TEAM_SNAP, repo)
+            parent = git(rd, "rev-parse", "HEAD").strip()
+            ss = [s for s in self.sites if s["repo"] == repo]
+            seed, style = D.owner_seed(rd, parent, self.child[repo], ss)
+            held = [s for s in ss if s["path"] not in seed]
+            got = self.drafted([repo], style)[repo]
+            base = self.drafted([repo], "path_if_plain")[repo]
+            m, k, _ = D.score(rd, parent, self.child[repo], held, got)
+            seeded, n = seeded + m, n + k
+            default += D.score(rd, parent, self.child[repo], held, base)[0]
+        self.assertGreaterEqual(seeded / n, 0.65, f"{seeded}/{n}")
+        self.assertGreaterEqual(seeded - default, 0.10 * n, f"seeded {seeded}, default {default} of {n}")
+
+    def drafted(self, repos, style):
+        with redirect_stdout(StringIO()):
+            return D.run(TEAM, self.cfg, root=ROOT, out_dir=False, style=style, cache=self.cache,
+                         repos=set(repos))[0]
+
+    DONE = ["carltongibson/django-filter", "cookiecutter/cookiecutter-django", "django-cms/django-cms",
+            "django-guardian/django-guardian", "django-oscar/django-oscar", "django-tastypie/django-tastypie",
+            "django/channels", "encode/django-rest-framework", "iMerica/dj-rest-auth",
+            "pennersr/django-allauth", "jazzband/django-two-factor-auth", "wagtail/wagtail"]
+
     @unittest.expectedFailure
     def test_packages_bar(self):
         """>= 90% on the 12 packages whose migration finished. Codemod alone: 49% with the best single style
         (path_if_plain); 68% even with each repo's best style. Each real migration chose its own style per repo."""
-        done = ["carltongibson/django-filter", "cookiecutter/cookiecutter-django", "django-cms/django-cms",
-                "django-guardian/django-guardian", "django-oscar/django-oscar", "django-tastypie/django-tastypie",
-                "django/channels", "encode/django-rest-framework", "iMerica/dj-rest-auth",
-                "pennersr/django-allauth", "jazzband/django-two-factor-auth", "wagtail/wagtail"]
-        got = self.scored(done, "learned")
+        got = self.scored(self.DONE, "learned")
         m, n = sum(v[0] for v in got.values()), sum(v[1] for v in got.values())
         self.assertGreaterEqual(m / n, 0.90, f"{m}/{n}")
 

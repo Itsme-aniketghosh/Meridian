@@ -22,7 +22,7 @@ Everything below comes from the team run `c5118b019d642a9b`. Each repo is drafte
 | Bar | Result |
 |---|---|
 | Django ≥ 90% (05-test) | ✅ **254 of 267 lines = 95.1%.** 265 drafted. 2 refused (`code.sample` isn't Python). 13 misses: 2 non-Python lines, and lines where the real commit did more than rename (e.g. `widgets.py` switched to `_`, a multi-line import merged into one) |
-| Packages ≥ 90% on the 12 finished repos | ❌ **49.5%** with the best single style (612 of 1,236 over all 20; see decision 11) |
+| Packages ≥ 90% on the 12 finished repos | ❌ **53.7%** at the parent commit (571 of 1,063; 610 of 1,236 = 49.4% over all 20). With the owner's style learned from their first files (decision 13): **67.0%** on the files it wasn't shown (600 of 895), against 51.8% for the default style on the same lines. Still under 90%, and no one-line drafter can reach it (decision 13) |
 | Draft touching another line refused | ✅ test |
 | New name that doesn't resolve refused | ✅ test (no `gettext` in the module: all 4 drafts refused) |
 | No LLM diff inside `except` | ✅ tests: `llm_allowed`, and a fixture run where the LLM is never called for an `except` site. The codemod may draft there; only the LLM may not |
@@ -51,7 +51,44 @@ Everything below comes from the team run `c5118b019d642a9b`. Each repo is drafte
 | learned from the repo's earlier `django.urls` lines | same as `path` (none of the repos has earlier ones) | — |
 | each repo's best style, known only after the fact | about 68% | — |
 
-**Pick: `path` when the pattern allows, else `re_path`.** It's the default and the fallback for `learned`. Each real migration chose its own style (cms kept `re_path`, wagtail moved to `path`, autocomplete-light aliased), and nothing at the parent commit says which. So no single codemod style reaches 90%, and even an oracle choosing per repo stops near 68%. The rest are rewrites beyond a one-line swap: patterns turned into converters the rules don't cover, and lines merged, split or moved.
+**Pick: `path` when the pattern allows, else `re_path`.** It's the default and the fallback for `learned` (decision 13 changes how `learned` reads the owner's style). Each real migration chose its own style (cms kept `re_path`, wagtail moved to `path`, autocomplete-light aliased), and nothing at the parent commit says which. So no single codemod style reaches 90%, and even an oracle choosing per repo stops near 68%. The rest are rewrites beyond a one-line swap: patterns turned into converters the rules don't cover, and lines merged, split or moved.
+
+## Decision 13: learn each owner's style from their own lines (GAPS 3)
+
+**Why the packages miss.** Of the 624 package lines the default drafts get wrong (Nov 11, team run):
+
+| What the real commit did | Lines | One line can fix it? |
+|---|---:|---|
+| `re_path` where we drafted `path` (cms, dj-rest-auth, tastypie, two-factor) | 173 | only by knowing the owner's style |
+| kept `url` through `re_path as url` (autocomplete-light, graphene, extensions, …) | 84 | only by knowing the owner's style |
+| rewrote the hunk: lines merged, split or moved (oscar alone: 132) | 156 | no |
+| deleted the line | 34 | no |
+| a one-line `url()` rewrite the rules don't make (33 have the pattern on the next line, so `path(` would change 2 lines) | 120 | partly |
+| wrote the import differently, other | 57 | partly |
+
+The parent commit doesn't show the style. `path` and `re_path` both arrived in Django 2.0, and owners supporting the same Django versions chose differently: wagtail and DRF (≥ 2.2) went to `path`, dj-rest-auth and two-factor (≥ 2.2) kept `re_path`. And 190 lines (15.4%) aren't one-line changes at all, so **no one-line drafter can get above 84.6%**, with or without an LLM.
+
+**Test, written before the run.** The owner migrates a repo's first `url()` files (by path) by hand, until their lines show 3 style votes or 3 files are read (`owner_seed`). The drafter takes the style those lines show (`style_from_owner`) and drafts the rest. It's scored **only on the files it wasn't shown**, against the default style on the same lines. The answer key is read only for the shown files.
+**Rule.** Keep it if it beats the default by 10 points or more on the 12 finished repos.
+
+**Result** (`test_packages_owner_seeded`):
+
+| | default style | owner's style | best style per repo, picked in hindsight |
+|---|---|---|---|
+| 12 finished repos, held-out files | 464 / 895 = 51.8% | **600 / 895 = 67.0%** | 69.0% (all lines) |
+| all 20, held-out files | 488 / 1,006 = 48.5% | **684 / 1,006 = 68.0%** | 68.6% (all lines) |
+
+Biggest gains: cms 47 → 143 of 149, autocomplete-light 0 → 60 of 61, dj-rest-auth 6 → 33 of 33, tastypie 0 → 11 of 22. It reaches nearly the best a per-repo style can do. What's left is the hunk rewrites, deletions and two-line patterns.
+
+Seeding until 5 votes (5 files) gives 68.9% on all 20; one file gives 57.3%. These are reported, not picked: the 3-vote rule was set first.
+
+**Pick: keep it.** In the product it's `learned`. `style_vote` reads every line already on `django.urls` in the checkout (outside the repo's own `django/`), so once an owner migrates one file by hand, the next run drafts the rest their way. At the parent commit no package has such lines, so `learned` gives the default and the Django bar is unchanged (254 of 267).
+
+**Also fixed while reading the misses:**
+- `url(regex=...)` now drafts `re_path(r"...", ...)`. The old draft `re_path(regex=...)` was a TypeError, because `re_path`'s first argument is `route`.
+- Any `/`-free character class (`[a-z0-9]+`) becomes `<str:…>`, as owners wrote it. It recovers few lines, since most of those lines were also split across lines.
+
+**On GAPS' bar** ("≥ 90% on repos the codemod didn't learn from"): style is per owner, so learning from one repo can't carry to another (cms's `re_path` says nothing about wagtail). The held-out unit here is the files of the same repo that the drafter wasn't shown.
 
 ## The LLM path
 
