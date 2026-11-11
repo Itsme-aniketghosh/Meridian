@@ -48,9 +48,9 @@ class TestClient(unittest.TestCase):
 
     def test_a_model_with_no_checked_price_is_never_called(self):
         called = []
-        c = client(transport={"gemini": lambda m, p: called.append(1)})
+        c = client(transport={"mistral": lambda m, p: called.append(1)})
         with self.assertRaises(L.Unpriced):
-            c("gemini-pro", "hi")
+            c("mistral-medium", "hi")
         self.assertEqual(called, [])
 
     def test_an_unknown_model_is_refused(self):
