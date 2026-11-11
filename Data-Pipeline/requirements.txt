@@ -23,3 +23,9 @@ gcsfs==2026.10.1            # what dvc-gs resolves to with dvc 3.67.1 (fsspec 20
 # Airflow is not here on purpose: it pins its own versions of many of these, and it doesn't install on Windows.
 # It comes pinned in the image (Dockerfile: apache/airflow:2.10.5-python3.11), which runs every part from a
 # separate environment built from this file.
+
+# the LLM client (meridian.llm): every model through Vertex AI, imported only when a call is made
+anthropic[vertex]==2.8.0    # Claude on Vertex (AnthropicVertex)
+google-genai==3.2.0         # Gemini on Vertex
+google-auth==2.62.0         # application default credentials, for the open models' endpoint
+requests==2.34.2            # google-auth's AuthorizedSession

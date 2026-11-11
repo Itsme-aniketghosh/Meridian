@@ -415,15 +415,20 @@ def _table(db, name):
     return db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone()
 
 
-def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False, router=None):
+def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False, router=None, ladder=None,
+        limit=None):
     """Every task written. Rows are offered once: a suggestion_id already in the block isn't offered again. A block
     from before schema v1.3 has no suggestion table, so no rows so far. router: Jev (meridian.jev.Router), which
-    picks each task's starting model; None is the fixed rules. A task naming a person is skipped before Jev sees it."""
+    picks each task's starting model; None is the fixed rules. A task naming a person is skipped before Jev sees it.
+    ladder: the models every task tries without a router (default LADDER): the model comparison runs one model at a
+    time this way (GAPS.md gap 2), so LADDER and every run_id stay as they are. limit: the first n tasks only (the 10
+    real prompts measured before a full run)."""
     teams, people = names(db)
     written, skipped = [], []
-    for t in tasks(db, cfg, run_id, at):
+    fixed = ladder
+    for t in tasks(db, cfg, run_id, at)[:limit]:
         try:
-            ladder, route = None, ROUTE
+            ladder, route = fixed, ROUTE
             if router is not None:
                 person_check(t, teams, people)  # Jev's prompt carries the facts: never one that names a person
                 ladder, route = router.ladder(t)
@@ -468,6 +473,18 @@ def fallback_counts(written):
     return {k: tuple(v) for k, v in sorted(out.items())}
 
 
+def _tee(log, path):
+    """log, and each row appended to path as one JSON line: what meridian.writer_compare reads."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    def both(**row):
+        if log is not None:
+            log(**row)
+        with open(path, "a", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps(row, sort_keys=True) + "\n")
+    return both
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--run-id", required=True, help="the block to read: out/<run_id>/meridian.sqlite")
@@ -480,6 +497,12 @@ def main(argv=None):
     ap.add_argument("--strict-cache", action="store_true", help="a cache miss stops the run (CI)")
     ap.add_argument("--track", action="store_true", help="log every LLM answer to MLflow meridian-agents")
     ap.add_argument("--quiet", action="store_true", help="print the report only, not every text")
+    ap.add_argument("--llm", action="store_true",
+                    help="call models live (meridian.llm.Client, $MERIDIAN_GCP_PROJECT); a cache hit makes no call")
+    ap.add_argument("--models", help="comma-separated ladder for every task, smallest first (default: LADDER)")
+    ap.add_argument("--limit", type=int, help="write the first n tasks only")
+    ap.add_argument("--max-usd", type=float, help="the client's spend cap for this run (default settings.toml [llm])")
+    ap.add_argument("--calls", type=Path, help="append every answer's logged row (counts and labels) to this jsonl")
     ap.add_argument("--jev", action="store_true", help="Jev (meridian.jev) picks each task's agent and model; "
                                                        "without an LLM or a cached pick it falls back to the rules")
     a = ap.parse_args(argv)
@@ -489,11 +512,18 @@ def main(argv=None):
         raise SystemExit(f"no block at {path}: run the writer first, or pass --db")
     cache = Cache(a.cache_dir) if a.cache_dir else Cache()
     tracked, log = nullcontext(), None
+    llm = None
+    if a.llm:
+        from meridian.llm import Client
+        llm = Client(max_usd=a.max_usd)
+    ladder = tuple(m.strip() for m in a.models.split(",") if m.strip()) if a.models else None
     if a.track:
         sys.path.append(str(Path(__file__).resolve().parents[2] / "Model-Pipeline"))  # last: both have tests
         from model import tracking
         tracked = tracking.start_run(AGENT, owner="vishwa", experiment=tracking.AGENTS, block_run_id=a.run_id)
         log = tracking.log_llm_call
+    if a.calls:
+        log = _tee(log, a.calls)
     with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as db, tracked:
         run_row = db.execute("SELECT snapshot_at FROM run WHERE run_id = ?", (a.run_id,)).fetchone()
         if not (run_row or a.at):
@@ -505,9 +535,11 @@ def main(argv=None):
         if a.jev:
             from meridian.jev import Router   # here, not at the top: jev imports this module
             teams, people = names(db)
-            router = Router(cache=cache, log=log, teams=teams, people=people)
-        # no LLM client yet: the LLM is off, and the cache answers what it has
-        result = run(db, cfg, a.run_id, at, cache=cache, log=log, strict_cache=a.strict_cache, router=router)
+            router = Router(llm=llm, cache=cache, log=log, teams=teams, people=people)
+        result = run(db, cfg, a.run_id, at, llm=llm, cache=cache, log=log, strict_cache=a.strict_cache,
+                     router=router, ladder=ladder, limit=a.limit)
+    if llm is not None:
+        say(f"{llm.calls} calls, ${llm.spent:.4f}")
     rep = report(result)
     for kind, r in rep.items():
         say(f"{kind}: {r['texts']} texts, {r['templates']} templates, {r['template_gate_misses']} templates the gate "
