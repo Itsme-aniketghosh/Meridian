@@ -70,6 +70,12 @@ class Plan(unittest.TestCase):
         self.assertEqual([s[0] for s in steps()],
                          ["data", "train", "seed noise", "evaluate", "bias", "gate", "registry"])
 
+    def test_refit_only_changes_the_train_step(self):
+        full, refit = steps(), steps(refit=True)
+        self.assertEqual([s[0] for s in full], [s[0] for s in refit])
+        self.assertEqual(dict((s[0], s[3]) for s in refit)["train"], ["--retrain", "logreg", "forest", "lgbm"])
+        self.assertEqual([s for s in full if s[0] != "train"], [s for s in refit if s[0] != "train"])
+
     def test_seed_noise_reads_the_picked_candidate(self):
         args = dict((s[0], s[3]) for s in steps())["seed noise"]
         self.assertEqual(args, ["--seed-noise", "reports/candidate.json"])

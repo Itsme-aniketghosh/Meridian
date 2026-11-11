@@ -621,6 +621,8 @@ def main(argv=None):
     p.add_argument("--models", nargs="+", choices=MODEL_KINDS, default=list(MODEL_KINDS))
     p.add_argument("--tune", nargs="+", choices=MODEL_KINDS, help="tune these on the folds inside train, "
                    "then score the best of each on val")
+    p.add_argument("--retrain", nargs="+", choices=MODEL_KINDS, help="--tune without the search: fit each kind with "
+                   "the best params in its tuning_<kind>.json in --out, score val, pick (CI, decision chaitali-7)")
     p.add_argument("--start", type=int, default=50, help="first batch of trials (decision 6)")
     p.add_argument("--step", type=int, default=50, help="trials added while the curve isn't flat")
     p.add_argument("--max-trials", type=int, default=200)
@@ -633,8 +635,8 @@ def main(argv=None):
     p.add_argument("--save-model", action="store_true", help="refit reports/candidate.json's model, check it's the "
                    "judged one, save reports/model.joblib (--tune and --pick do this themselves)")
     a = p.parse_args(argv)
-    if not (a.untuned or a.tune or a.seed_noise or a.check or a.pick or a.save_model):
-        p.error("nothing to do: pass --check, --untuned, --tune, --pick, --save-model or --seed-noise")
+    if not (a.untuned or a.tune or a.retrain or a.seed_noise or a.check or a.pick or a.save_model):
+        p.error("nothing to do: pass --check, --untuned, --tune, --retrain, --pick, --save-model or --seed-noise")
     cfg = load_config(a.config)
     try:
         df = load_features(a.features)
@@ -658,26 +660,31 @@ def main(argv=None):
         print_summary(summary)
         log_to_mlflow(summary, out, "rachna-1", a.config, a.features)
         print(f"wrote {out / 'untuned_val.json'} and untuned_val_scores.csv")
-    if a.tune:
-        space = search_space(cfg)
+    if a.tune or a.retrain:
         best = {}
-        results = pmap(tune, [(df, kind, seed, space, a.start, a.step, a.max_trials) for kind in a.tune])
-        for kind, result in zip(a.tune, results):
-            out.mkdir(parents=True, exist_ok=True)
-            (out / f"tuning_{kind}.json").write_text(json.dumps(result, indent=2) + "\n")
-            print(f"{kind}: {result['n_trials']} trials, stopped {result['stopped']}, "
-                  f"best fold PR-AUC {result['best_value']:.3f} (trial {result['best_trial']})")
-            best[kind] = result["best_params"]
+        if a.tune:
+            space = search_space(cfg)
+            results = pmap(tune, [(df, kind, seed, space, a.start, a.step, a.max_trials) for kind in a.tune])
+            for kind, result in zip(a.tune, results):
+                out.mkdir(parents=True, exist_ok=True)
+                (out / f"tuning_{kind}.json").write_text(json.dumps(result, indent=2) + "\n")
+                print(f"{kind}: {result['n_trials']} trials, stopped {result['stopped']}, "
+                      f"best fold PR-AUC {result['best_value']:.3f} (trial {result['best_trial']})")
+                best[kind] = result["best_params"]
+        else:  # the same fits on this machine, so the scores and the saved model's check agree (S8)
+            for kind in a.retrain:
+                best[kind] = read_params(out / f"tuning_{kind}.json")[1]
+                print(f"{kind}: best params from tuning_{kind}.json, no search")
         summary = evaluate(df, seed, out, best, "tuned", a.reps)
         print_summary(summary)
-        log_to_mlflow(summary, out, "rachna-6", a.config, a.features)
+        log_to_mlflow(summary, out, "rachna-6" if a.tune else None, a.config, a.features)
         print(f"wrote {out / 'tuned_val.json'}, tuned_val_scores.csv and tuning_<kind>.json")
         print_pick(pick_candidate(out, "tuned", seed, bootstrap_reps(cfg, a.reps)))
         print(f"wrote {out / 'candidate.json'}")
     if a.pick:
         print_pick(pick_candidate(out, a.pick, seed, bootstrap_reps(cfg, a.reps)))
         print(f"wrote {out / 'candidate.json'}")
-    if a.tune or a.pick or a.save_model:
+    if a.tune or a.retrain or a.pick or a.save_model:
         path, c = save_model(df, out / "candidate.json")
         print(f"saved {path} ({path.stat().st_size / 1e6:.1f} MB, md5 {c['model_md5']}); the refit matches the judged "
               f"scores to {c['refit_max_diff']:.1e}")

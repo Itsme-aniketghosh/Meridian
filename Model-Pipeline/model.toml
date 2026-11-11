@@ -61,3 +61,10 @@ location = "us-east1"
 repository = "meridian-models"
 package = "defect-risk"            # model.joblib and champion.json, version <git sha>
 pointer = "champion"               # its newest version holds the champion.json in force
+
+# Chaitali's keys: llm_bias.py (decision 9). The slices' rule is [bias]'s min_n and max_gap
+[llm_bias]
+# Flagged slices with a fix tried and written down ("<rate>:<slice>"). Both: Utkarsh's decision 11 scored every url()
+# style on all 20 packages (best single style 49.5%, each repo's own best about 68%), and the LLM path can add at most
+# 20 lines (packets/utkarsh-data/diffs.md)
+accepted = ["match:repo=oscar", "match:repo=(other)"]
