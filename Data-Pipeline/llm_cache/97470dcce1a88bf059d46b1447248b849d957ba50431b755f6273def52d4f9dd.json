@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001188,
+ "facts_hash": "688a631cf8cd1871",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"carltongibson/django-filter has 7 call sites of url left to migrate. These are in tests/rest_framework/test_integration.py (4 sites) and tests/urls.py (3 sites). Both files had 0 bug fixes.\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 336,
+ "tokens_out": 114
+}

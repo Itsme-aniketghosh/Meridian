@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00015095,
+ "facts_hash": "fc944df6a433788c",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The migration of symbol 'url' by team 'django-guardian/django-guardian' has seen no change since 2018-09-11T19:53:53Z. There are 25 call sites left. Possible reasons are: 'Never notified' (1), 'Orphaned owner' (1), 'Test gap' (4).\", \"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"]}",
+ "tokens_in": 307,
+ "tokens_out": 106
+}

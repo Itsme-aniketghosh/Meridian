@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0014265,
+ "facts_hash": "09d91e29aab348b9",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team contrib.contenttypes has 2 call sites left to migrate for ugettext_lazy: 1 call site in django/contrib/contenttypes/apps.py with 0 bug fixes and 1 call site in django/contrib/contenttypes/models.py with 0 bug fixes. The team is blocked by nothing and is blocking nobody.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 326,
+ "tokens_out": 125
+}

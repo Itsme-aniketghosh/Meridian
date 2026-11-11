@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0017775,
+ "facts_hash": "57e5760cb89faf38",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team jazzband/django-silk still has 28 call sites of url to migrate across 4 files: 2 sites in project/example_app/urls.py (0 bug fixes), 5 sites in project/project/urls.py (0 bug fixes), 2 sites in project/tests/urlconf_without_silk.py (0 bug fixes), and 19 sites in silk/urls.py (0 bug fixes). Nothing blocks them and they block nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 415,
+ "tokens_out": 154
+}

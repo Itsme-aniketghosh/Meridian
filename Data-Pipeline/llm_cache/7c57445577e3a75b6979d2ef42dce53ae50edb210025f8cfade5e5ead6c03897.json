@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00012285,
+ "facts_hash": "09d91e29aab348b9",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.contenttypes has 2 call sites of ugettext_lazy left to migrate. The files are django/contrib/contenttypes/apps.py (1 site, 0 bug fixes) and django/contrib/contenttypes/models.py (1 site, 0 bug fixes).\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 339,
+ "tokens_out": 120
+}

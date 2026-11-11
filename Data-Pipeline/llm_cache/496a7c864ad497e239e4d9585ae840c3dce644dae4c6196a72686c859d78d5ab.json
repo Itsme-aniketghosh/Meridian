@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0014325,
+ "facts_hash": "0a0b0bad171fa0e6",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team jazzband/django-debug-toolbar's migration of url has had no change since 2018-10-26T06:25:08Z, with 29 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1), Test gap (evidence: 5).\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"since\",\n  \"left\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 335,
+ "tokens_out": 124
+}

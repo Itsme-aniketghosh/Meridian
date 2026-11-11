@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001185,
+ "facts_hash": "66add1baf996395e",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team contrib.syndication has 1 call site left to migrate. The file django/contrib/syndication/apps.py has 1 call site and 0 bug fixes with fix keys []. The team is blocked by [] and is blocking [].\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 280,
+ "tokens_out": 102
+}

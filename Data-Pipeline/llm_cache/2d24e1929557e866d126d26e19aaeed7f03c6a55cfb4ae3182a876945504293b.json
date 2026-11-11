@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00015795,
+ "facts_hash": "541a10107c0b2d08",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 3 call sites of 'ungettext' in django/template/defaultfilters.py:22, django/template/defaultfilters.py:849, django/template/defaultfilters.py:866. The task is done when all call sites are migrated by the template team.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 218,
+ "tokens_out": 71
+}

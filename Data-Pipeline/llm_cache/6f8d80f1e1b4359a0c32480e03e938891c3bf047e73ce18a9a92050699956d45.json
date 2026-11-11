@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0021885,
+ "facts_hash": "8641d9c9c06a9e2b",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\"text\": \"Migrate the symbol url at 13 sites for team graphql-python/graphene-django across examples/cookbook-plain/cookbook/urls.py:1, examples/cookbook-plain/cookbook/urls.py:8, examples/cookbook-plain/cookbook/urls.py:9, examples/cookbook/cookbook/urls.py:1, examples/cookbook/cookbook/urls.py:8, examples/cookbook/cookbook/urls.py:9, graphene_django/tests/urls.py:1, graphene_django/tests/urls.py:6, graphene_django/tests/urls.py:7, graphene_django/tests/urls_inherited.py:1, graphene_django/tests/urls_inherited.py:13, graphene_django/tests/urls_pretty.py:1, graphene_django/tests/urls_pretty.py:6.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}\n```",
+ "tokens_in": 379,
+ "tokens_out": 216
+}

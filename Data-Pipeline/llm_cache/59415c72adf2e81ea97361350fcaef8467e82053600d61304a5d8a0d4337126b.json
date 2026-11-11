@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.35e-05,
+ "facts_hash": "737d73b389d35c08",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"The django-import-export team needs to migrate 7 call sites of url across import_export/admin.py and tests/urls.py.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 248,
+ "tokens_out": 45
+}

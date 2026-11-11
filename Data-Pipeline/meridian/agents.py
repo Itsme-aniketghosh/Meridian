@@ -65,6 +65,21 @@ ROW_KIND = {"rewrite": "rewrite", "ticket_draft": "ticket_draft", "stall_reason"
 # the templates' fixed product phrases that can share a word with a team (the real block has a team named Bug):
 # the gate reads them as words, for the templates and the LLM's text alike (02-product: "Bug fixes", never "incidents")
 VOCAB = ("bug fix", "bug fixes")
+# Decision 5b: a person whose whole name is one of these isn't a name a text can use: on block 70dd1dab a git author
+# named NOTHING made "nothing blocks them" name a person. Function words only, a closed list; the ones that are also
+# first names (will, may, june, bill, ...) are left out, so those people stay names. A dictionary is too wide: most
+# of its one-word matches among the block's people are first names (Frank, Mark, Tom).
+FUNCTION_WORDS = frozenset("""
+a about above after again against all also an and any anybody anyone anything anywhere are as at be because been
+before being below between both but by can cannot could did do does doing done down during each either else
+enough every everybody everyone everything everywhere few for from further had has have having he her here hers
+herself him himself his how however i if in into is it its itself just least less many me might mine more most
+much must my myself neither never no nobody none noone nor not nothing now nowhere of off often on once one only
+or other others otherwise our ours ourselves out over own per rather same she should since so some somebody
+someone something sometimes somewhere still such than that the their theirs them themselves then there these they
+this those though through thus to too under until up upon us very via was we were what whatever when where
+whether which while who whoever whom whose why with within without would yet you your yours yourself yourselves
+""".split())
 REDACTED = {"redacted": "a person"}  # a cached reply that named a person, kept as this so a rerun makes 0 calls
 
 SYSTEM = """You write one short text for a tool that tracks a code migration across teams.
@@ -287,7 +302,7 @@ def names(db):
     teams = {r[0] for r in db.execute("SELECT team FROM team_map UNION SELECT owner_team FROM call_site") if r[0]}
     people = {r[0] for r in db.execute(
         "SELECT p.name FROM person p WHERE NOT p.is_bot AND EXISTS (SELECT 1 FROM person_alias a "
-        "WHERE a.person_id = p.person_id AND NOT a.generic)") if r[0]}
+        "WHERE a.person_id = p.person_id AND NOT a.generic)") if r[0] and r[0].strip().lower() not in FUNCTION_WORDS}
     return sorted(teams), sorted(people)
 
 
@@ -306,7 +321,7 @@ _FENCE = re.compile(r"^```(?:json)?\s*\n(.*)\n```\s*$", re.S)
 
 def parse(reply, facts):
     """The text of a reply that is {"text": str, "used": [fact names]}, else None (bad JSON). A reply in one
-    ```json fence is read inside it."""
+    ```json fence is read inside it. A fact name can be nested (decision 5b)."""
     if not isinstance(reply, str):
         return None
     fenced = _FENCE.match(reply.strip())
@@ -317,9 +332,34 @@ def parse(reply, facts):
     if not isinstance(obj, dict) or not isinstance(obj.get("text"), str) or not obj["text"].strip():
         return None
     used = obj.get("used")
-    if not isinstance(used, list) or not all(isinstance(u, str) and u in facts["facts"] for u in used):
+    keys = _keys(facts["facts"])
+    if not isinstance(used, list) or not all(isinstance(u, str) and _a_fact(u, keys) for u in used):
         return None
     return obj["text"].strip()
+
+
+_INDEX = re.compile(r"\[\d+\]")
+
+
+def _keys(obj, out=None):
+    """Every dict key anywhere in the facts, nested ones too (files -> path, reasons -> evidence)."""
+    out = set() if out is None else out
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            out.add(k)
+            _keys(v, out)
+    elif isinstance(obj, list):
+        for v in obj:
+            _keys(v, out)
+    return out
+
+
+def _a_fact(name, keys):
+    """Decision 5b: a `used` entry names a fact if, with [n] indices dropped, every dotted part is a key somewhere in
+    the facts: "team", "files[0].path", "bug_fixes". A value ("2016-04-22", a symbol) isn't a fact's name. `used` is
+    bookkeeping: the gate checks the text itself either way."""
+    parts = _INDEX.sub("", name).split(".")
+    return all(part in keys for part in parts) and bool(name)
 
 
 def names_a_person(text, people):
@@ -415,15 +455,20 @@ def _table(db, name):
     return db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone()
 
 
-def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False, router=None):
+def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False, router=None, ladder=None,
+        limit=None):
     """Every task written. Rows are offered once: a suggestion_id already in the block isn't offered again. A block
     from before schema v1.3 has no suggestion table, so no rows so far. router: Jev (meridian.jev.Router), which
-    picks each task's starting model; None is the fixed rules. A task naming a person is skipped before Jev sees it."""
+    picks each task's starting model; None is the fixed rules. A task naming a person is skipped before Jev sees it.
+    ladder: the models every task tries without a router (default LADDER): the model comparison runs one model at a
+    time this way (GAPS.md gap 2), so LADDER and every run_id stay as they are. limit: the first n tasks only (the 10
+    real prompts measured before a full run)."""
     teams, people = names(db)
     written, skipped = [], []
-    for t in tasks(db, cfg, run_id, at):
+    fixed = ladder
+    for t in tasks(db, cfg, run_id, at)[:limit]:
         try:
-            ladder, route = None, ROUTE
+            ladder, route = fixed, ROUTE
             if router is not None:
                 person_check(t, teams, people)  # Jev's prompt carries the facts: never one that names a person
                 ladder, route = router.ladder(t)
@@ -468,6 +513,18 @@ def fallback_counts(written):
     return {k: tuple(v) for k, v in sorted(out.items())}
 
 
+def _tee(log, path):
+    """log, and each row appended to path as one JSON line: what meridian.writer_compare reads."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    def both(**row):
+        if log is not None:
+            log(**row)
+        with open(path, "a", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps(row, sort_keys=True) + "\n")
+    return both
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--run-id", required=True, help="the block to read: out/<run_id>/meridian.sqlite")
@@ -480,6 +537,12 @@ def main(argv=None):
     ap.add_argument("--strict-cache", action="store_true", help="a cache miss stops the run (CI)")
     ap.add_argument("--track", action="store_true", help="log every LLM answer to MLflow meridian-agents")
     ap.add_argument("--quiet", action="store_true", help="print the report only, not every text")
+    ap.add_argument("--llm", action="store_true",
+                    help="call models live (meridian.llm.Client, $MERIDIAN_GCP_PROJECT); a cache hit makes no call")
+    ap.add_argument("--models", help="comma-separated ladder for every task, smallest first (default: LADDER)")
+    ap.add_argument("--limit", type=int, help="write the first n tasks only")
+    ap.add_argument("--max-usd", type=float, help="the client's spend cap for this run (default settings.toml [llm])")
+    ap.add_argument("--calls", type=Path, help="append every answer's logged row (counts and labels) to this jsonl")
     ap.add_argument("--jev", action="store_true", help="Jev (meridian.jev) picks each task's agent and model; "
                                                        "without an LLM or a cached pick it falls back to the rules")
     a = ap.parse_args(argv)
@@ -489,11 +552,18 @@ def main(argv=None):
         raise SystemExit(f"no block at {path}: run the writer first, or pass --db")
     cache = Cache(a.cache_dir) if a.cache_dir else Cache()
     tracked, log = nullcontext(), None
+    llm = None
+    if a.llm:
+        from meridian.llm import Client
+        llm = Client(max_usd=a.max_usd)
+    ladder = tuple(m.strip() for m in a.models.split(",") if m.strip()) if a.models else None
     if a.track:
         sys.path.append(str(Path(__file__).resolve().parents[2] / "Model-Pipeline"))  # last: both have tests
         from model import tracking
         tracked = tracking.start_run(AGENT, owner="vishwa", experiment=tracking.AGENTS, block_run_id=a.run_id)
         log = tracking.log_llm_call
+    if a.calls:
+        log = _tee(log, a.calls)
     with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as db, tracked:
         run_row = db.execute("SELECT snapshot_at FROM run WHERE run_id = ?", (a.run_id,)).fetchone()
         if not (run_row or a.at):
@@ -505,9 +575,11 @@ def main(argv=None):
         if a.jev:
             from meridian.jev import Router   # here, not at the top: jev imports this module
             teams, people = names(db)
-            router = Router(cache=cache, log=log, teams=teams, people=people)
-        # no LLM client yet: the LLM is off, and the cache answers what it has
-        result = run(db, cfg, a.run_id, at, cache=cache, log=log, strict_cache=a.strict_cache, router=router)
+            router = Router(llm=llm, cache=cache, log=log, teams=teams, people=people)
+        result = run(db, cfg, a.run_id, at, llm=llm, cache=cache, log=log, strict_cache=a.strict_cache,
+                     router=router, ladder=ladder, limit=a.limit)
+    if llm is not None:
+        say(f"{llm.calls} calls, ${llm.spent:.4f}")
     rep = report(result)
     for kind, r in rep.items():
         say(f"{kind}: {r['texts']} texts, {r['templates']} templates, {r['template_gate_misses']} templates the gate "

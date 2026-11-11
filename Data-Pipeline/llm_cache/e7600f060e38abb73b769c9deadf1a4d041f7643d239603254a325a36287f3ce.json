@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00017165,
+ "facts_hash": "e169a2273a33d4a0",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 8 call sites of 'ungettext_lazy' in tests/i18n/tests.py to new API: lines 28, 148, 150, 159, 160, 182, 183, 186.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 267,
+ "tokens_out": 68
+}

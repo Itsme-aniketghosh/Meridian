@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00038805,
+ "facts_hash": "0d4fa6de0349d6a5",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"tests has 24 call sites of ugettext left to migrate: tests/auth_tests/test_forms.py (1), tests/flatpages_tests/test_forms.py (1), tests/humanize_tests/tests.py (1), tests/i18n/commands/__init__.py (1), tests/i18n/commands/code.sample (2), tests/i18n/exclude/__init__.py (1), tests/i18n/project_dir/__init__.py (1), tests/i18n/project_dir/app_no_locale/models.py (1), tests/i18n/project_dir/app_with_locale/models.py (1), tests/i18n/test_compilation.py (5), and tests/i18n/tests.py (9). Each file had 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"tests/auth_tests/test_forms.py\",\n  \"tests/flatpages_tests/test_forms.py\",\n  \"tests/humanize_tests/tests.py\",\n  \"tests/i18n/commands/__init__.py\",\n  \"tests/i18n/commands/code.sample\",\n  \"tests/i18n/exclude/__init__.py\",\n  \"tests/i18n/project_dir/__init__.py\",\n  \"tests/i18n/project_dir/app_no_locale/models.py\",\n  \"tests/i18n/project_dir/app_with_locale/models.py\",\n  \"tests/i18n/test_compilation.py\",\n  \"tests/i18n/tests.py\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 803,
+ "tokens_out": 446
+}

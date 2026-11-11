@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001554,
+ "facts_hash": "e169a2273a33d4a0",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ungettext_lazy at tests/i18n/tests.py:28, tests/i18n/tests.py:148, tests/i18n/tests.py:150, tests/i18n/tests.py:159, tests/i18n/tests.py:160, tests/i18n/tests.py:182, tests/i18n/tests.py:183, tests/i18n/tests.py:186 for tests. Count: 8.\",\n \"used\": [\n  \"sites\",\n  \"symbol\",\n  \"team\",\n  \"count\"\n ]\n}\n```",
+ "tokens_in": 336,
+ "tokens_out": 175
+}

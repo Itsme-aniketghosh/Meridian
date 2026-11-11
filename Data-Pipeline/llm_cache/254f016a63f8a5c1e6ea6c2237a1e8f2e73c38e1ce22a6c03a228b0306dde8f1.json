@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0003261,
+ "facts_hash": "63ada199964a5a16",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The pennersr/django-allauth team still has to migrate 50 call sites. The sites are in the following files: allauth/account/urls.py (14 sites), allauth/socialaccount/providers/draugiem/urls.py (3 sites), allauth/socialaccount/providers/facebook/urls.py (2 sites), allauth/socialaccount/providers/oauth/urls.py (4 sites), allauth/socialaccount/providers/oauth2/urls.py (4 sites), allauth/socialaccount/providers/openid/urls.py (3 sites), allauth/socialaccount/providers/persona/urls.py (2 sites), allauth/socialaccount/providers/steam/urls.py (3 sites), allauth/socialaccount/providers/telegram/urls.py (2 sites), allauth/socialaccount/urls.py (5 sites), allauth/urls.py (3 sites), example/example/urls.py (5 sites). No bug fixes have been applied in any of these files (no ticket keys).\", \"used\": [\"team\", \"files\", \"left\", \"symbol\"]}",
+ "tokens_in": 708,
+ "tokens_out": 213
+}

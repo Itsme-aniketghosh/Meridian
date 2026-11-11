@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.020078,
+ "facts_hash": "6d42404403e5c161",
+ "model": "gemini-pro",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\n  \"text\": \"Migrate the url symbol for django-oscar/django-oscar. This is done when the 247 call sites are migrated.\",\n  \"used\": [\n    \"symbol\",\n    \"team\",\n    \"count\"\n  ]\n}",
+ "tokens_in": 4297,
+ "tokens_out": 957
+}

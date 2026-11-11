@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00025495,
+ "facts_hash": "688a631cf8cd1871",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The 'url' symbol still has 7 call sites across the codebase. The 'carltongibson/django-filter' team still needs to migrate 7 call sites: 4 in 'tests/rest_framework/test_integration.py' and 3 in 'tests/urls.py'. The files 'tests/rest_framework/test_integration.py' and 'tests/urls.py' had 0 bug fixes each. The migration of 'url' is not blocked by any other symbols and does not block any other symbols.\", \"used\": [\"left\", \"symbol\", \"team\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 298,
+ "tokens_out": 131
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.015e-05,
+ "facts_hash": "14399f94a32e04e4",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ungettext_lazy at django/contrib/postgres/validators.py:9, django/contrib/postgres/validators.py:13, django/contrib/postgres/validators.py:20 for contrib.postgres.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 257,
+ "tokens_out": 86
+}

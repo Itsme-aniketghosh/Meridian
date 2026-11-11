@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.44e-05,
+ "facts_hash": "541a10107c0b2d08",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"The template team's call sites for ungettext at django/template/defaultfilters.py:22, django/template/defaultfilters.py:849, django/template/defaultfilters.py:866 need to be migrated.\", \"used\": [\"symbol\", \"sites\", \"team\", \"count\"]}",
+ "tokens_in": 218,
+ "tokens_out": 57
+}

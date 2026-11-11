@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.026524,
+ "facts_hash": "26381b869e364898",
+ "model": "gemini-pro",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\n  \"text\": \"The django-tastypie/django-tastypie team must migrate url. The migration is done when 31 call sites are migrated at: tastypie/api.py:3, tastypie/api.py:112, tastypie/resources.py:13, tastypie/resources.py:341, tastypie/resources.py:342, tastypie/resources.py:343, tastypie/resources.py:344, tests/alphanumeric/urls.py:1, tests/alphanumeric/urls.py:5, tests/authorization/urls.py:1, tests/authorization/urls.py:15, tests/basic/urls.py:1, tests/basic/urls.py:5, tests/content_gfk/urls.py:1, tests/content_gfk/urls.py:5, tests/core/tests/api_urls.py:1, tests/core/tests/api_urls.py:11, tests/core/tests/manual_urls.py:1, tests/core/tests/manual_urls.py:8, tests/core/tests/resource_urls.py:1, tests/core/tests/resource_urls.py:36, tests/gis/urls.py:1, tests/gis/urls.py:5, tests/namespaced/api/urls.py:2, tests/namespaced/api/urls.py:17, tests/profilingtests/urls.py:1, tests/profilingtests/urls.py:13, tests/slashless/api/urls.py:1, tests/slashless/api/urls.py:11, tests/validation/api/urls.py:1, tests/validation/api/urls.py:15.\",\n  \"used\": [\n    \"team\",\n    \"symbol\",\n    \"count\",\n    \"sites\"\n  ]\n}",
+ "tokens_in": 596,
+ "tokens_out": 2111
+}

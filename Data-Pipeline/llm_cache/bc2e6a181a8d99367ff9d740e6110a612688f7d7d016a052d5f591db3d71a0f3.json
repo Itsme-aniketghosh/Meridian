@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.19e-05,
+ "facts_hash": "3d96ad6761145350",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/contrib/contenttypes/apps.py:5 and django/contrib/contenttypes/models.py:6 for contrib.contenttypes.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 246,
+ "tokens_out": 75
+}

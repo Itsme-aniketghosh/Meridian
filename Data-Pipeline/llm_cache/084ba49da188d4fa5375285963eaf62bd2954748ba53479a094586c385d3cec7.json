@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00012375,
+ "facts_hash": "737d73b389d35c08",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate url at import_export/admin.py:6, import_export/admin.py:93, import_export/admin.py:96, import_export/admin.py:368, tests/urls.py:3, tests/urls.py:12, tests/urls.py:13 for django-import-export/django-import-export. Total sites: 7.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 293,
+ "tokens_out": 133
+}

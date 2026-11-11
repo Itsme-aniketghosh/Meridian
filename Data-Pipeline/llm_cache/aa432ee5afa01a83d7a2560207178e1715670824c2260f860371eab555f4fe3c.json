@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00018105,
+ "facts_hash": "eb486ec7dc1deba7",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.flatpages has 4 call sites of ugettext_lazy left to migrate: django/contrib/flatpages/admin.py (1 site), django/contrib/flatpages/apps.py (1 site), django/contrib/flatpages/forms.py (1 site), and django/contrib/flatpages/models.py (1 site). Each file had 0 bug fixes.\",\n \"used\": [\n  \"contrib.flatpages\",\n  \"4\",\n  \"ugettext_lazy\",\n  \"django/contrib/flatpages/admin.py\",\n  \"1\",\n  \"django/contrib/flatpages/apps.py\",\n  \"django/contrib/flatpages/forms.py\",\n  \"django/contrib/flatpages/models.py\",\n  \"0\"\n ]\n}\n```",
+ "tokens_in": 435,
+ "tokens_out": 193
+}

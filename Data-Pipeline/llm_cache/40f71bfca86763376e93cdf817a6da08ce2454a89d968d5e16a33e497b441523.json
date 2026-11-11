@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.45e-05,
+ "facts_hash": "b7b30ffc397ae9c5",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy in django/contrib/gis/apps.py:3, django/contrib/gis/db/models/fields.py:13, and django/contrib/gis/forms/fields.py:3 for contrib.gis.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 262,
+ "tokens_out": 92
+}

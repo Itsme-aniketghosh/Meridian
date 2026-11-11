@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00105,
+ "facts_hash": "541a10107c0b2d08",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team template must migrate 3 sites of ungettext at django/template/defaultfilters.py:22, django/template/defaultfilters.py:849, django/template/defaultfilters.py:866. Done when all 3 sites of ungettext are migrated.\",\n \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]\n}\n```",
+ "tokens_in": 240,
+ "tokens_out": 92
+}

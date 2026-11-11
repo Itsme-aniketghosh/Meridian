@@ -1,0 +1,23 @@
+{
+  "decision": "rachna-5",
+  "kind": "forest",
+  "split": "val",
+  "n": 4113,
+  "positives": 486,
+  "train_rows": {
+    "2015-2022": 26050,
+    "2019-2022": 11792
+  },
+  "pr_auc": {
+    "2015-2022": 0.40581963724622855,
+    "2019-2022": 0.3644820366932508
+  },
+  "short_minus_full": -0.04133760055297775,
+  "interval": [
+    -0.05933921445609521,
+    -0.022097093099994698
+  ],
+  "bootstrap_reps": 2000,
+  "rule": "the shorter window wins only if its paired interval is above 0; tied: 2015-2022",
+  "picked": "2015-2022"
+}

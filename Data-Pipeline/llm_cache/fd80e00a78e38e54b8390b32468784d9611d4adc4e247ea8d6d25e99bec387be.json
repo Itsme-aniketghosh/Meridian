@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002226,
+ "facts_hash": "6b22cbfe36f9aa74",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"graphql-python/graphene-django has 13 url call sites left to migrate: 3 in examples/cookbook-plain/cookbook/urls.py, 3 in examples/cookbook/cookbook/urls.py, 3 in graphene_django/tests/urls.py, 2 in graphene_django/tests/urls_inherited.py, and 2 in graphene_django/tests/urls_pretty.py. There were 0 bug fixes for these files.\",\n \"used\": [\n  \"graphql-python/graphene-django\",\n  \"13\",\n  \"url\",\n  \"3\",\n  \"examples/cookbook-plain/cookbook/urls.py\",\n  \"3\",\n  \"examples/cookbook/cookbook/urls.py\",\n  \"3\",\n  \"graphene_django/tests/urls.py\",\n  \"2\",\n  \"graphene_django/tests/urls_inherited.py\",\n  \"2\",\n  \"graphene_django/tests/urls_pretty.py\",\n  \"0\"\n ]\n}\n```",
+ "tokens_in": 488,
+ "tokens_out": 249
+}

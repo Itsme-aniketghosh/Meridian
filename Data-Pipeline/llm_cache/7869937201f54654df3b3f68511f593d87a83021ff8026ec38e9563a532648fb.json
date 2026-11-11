@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.002136,
+ "facts_hash": "1ce702c6ae1f6b87",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team jazzband/django-two-factor-auth still has 37 call sites left to migrate: 11 sites in example/urls.py (0 bug fixes), 10 sites in tests/urls.py (0 bug fixes), 2 sites in tests/urls_admin.py (0 bug fixes), 2 sites in tests/urls_otp_admin.py (0 bug fixes), 2 sites in two_factor/gateways/twilio/urls.py (0 bug fixes), and 10 sites in two_factor/urls.py (0 bug fixes). The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"files\",\n  \"blocked_by\",\n  \"blocking\"\n ]\n}\n```",
+ "tokens_in": 509,
+ "tokens_out": 183
+}

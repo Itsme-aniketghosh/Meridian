@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001055,
+ "facts_hash": "1a78ab032873c023",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Create a new ticket to track migration of symbol 'ungettext' in contrib.auth team's call sites at django/contrib/auth/password_validation.py:15, django/contrib/auth/password_validation.py:102, django/contrib/auth/password_validation.py:112.\", \"used\": [\"symbol\", \"sites\", \"team\", \"count\"]}",
+ "tokens_in": 226,
+ "tokens_out": 70
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.017624,
+ "facts_hash": "737d73b389d35c08",
+ "model": "gemini-pro",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\n  \"text\": \"This ticket tracks the migration of the url symbol for the django-import-export/django-import-export team. It is done when the 7 sites are migrated: import_export/admin.py:6, import_export/admin.py:93, import_export/admin.py:96, import_export/admin.py:368, tests/urls.py:3, tests/urls.py:12, tests/urls.py:13.\",\n  \"used\": [\n    \"symbol\",\n    \"team\",\n    \"count\",\n    \"sites\"\n  ]\n}",
+ "tokens_in": 280,
+ "tokens_out": 1422
+}

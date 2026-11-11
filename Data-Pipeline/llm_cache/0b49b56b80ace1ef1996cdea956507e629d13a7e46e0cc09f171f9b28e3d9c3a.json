@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00013445,
+ "facts_hash": "8e41b64b243a9f94",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 'ugettext_lazy' at django/contrib/syndication/apps.py:2 to the new API when 'contrib.syndication' team completes the code migration.\", \"used\": [\"symbol\", \"sites\", \"team\"]}",
+ "tokens_in": 210,
+ "tokens_out": 53
+}

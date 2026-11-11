@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0019125,
+ "facts_hash": "efdcd5893d8f16e3",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"Team django-haystack/django-haystack still has 13 call sites left to migrate for symbol url. The remaining sites are located across these files: 2 sites in haystack/urls.py (0 bug fixes), 6 sites in test_haystack/core/urls.py (0 bug fixes), 3 sites in test_haystack/results_per_page_urls.py (0 bug fixes), and 2 sites in test_haystack/test_app_without_models/urls.py (0 bug fixes). None of these files have fix keys. There are no teams or items blocking them, and they are blocking no other teams or items.\", \"used\": [\"blocked_by\", \"blocking\", \"files\", \"left\", \"symbol\", \"team\"]}",
+ "tokens_in": 430,
+ "tokens_out": 169
+}

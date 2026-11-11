@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001323,
+ "facts_hash": "882dd0b4a7aa2122",
+ "model": "gemma-4",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The django-tastypie/django-tastypie migration of the symbol url has had no change since 2017-07-12T15:46:50Z. There are 31 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 2), Test gap (evidence: 12).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 354,
+ "tokens_out": 132
+}

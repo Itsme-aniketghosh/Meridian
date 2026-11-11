@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00027125,
+ "facts_hash": "d2674c77e546809f",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The iMerica/dj-rest-auth team still has to migrate 51 call sites of 'url'. The remaining files are: demo/demo/urls.py with 18 call sites and 0 bug fixes (ticket keys: []), dj_rest_auth/tests/django_urls.py with 15 call sites and 0 bug fixes (ticket keys: []), dj_rest_auth/tests/urls.py with 18 call sites and 0 bug fixes (ticket keys: []). The migration is not blocked by anyone and does not block anyone.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 338,
+ "tokens_out": 133
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.165e-05,
+ "facts_hash": "16f2cb7eaccacac8",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Create a new ticket to migrate ugettext in contrib.admindocs at django/contrib/admindocs/views.py:23\", \"used\": [\"symbol\", \"team\", \"sites\"]}",
+ "tokens_in": 209,
+ "tokens_out": 42
+}

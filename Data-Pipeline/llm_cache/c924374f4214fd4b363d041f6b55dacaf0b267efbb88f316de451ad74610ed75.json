@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0005242,
+ "facts_hash": "00dc7039a74e880e",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The django-tastypie/django-tastypie team still has to migrate 31 call sites of 'url' across the codebase. The remaining call sites are in the following files: tastypie/api.py (2), tastypie/resources.py (5), tests/alphanumeric/urls.py (2), tests/authorization/urls.py (2), tests/basic/urls.py (2), tests/content_gfk/urls.py (2), tests/core/tests/api_urls.py (2), tests/core/tests/manual_urls.py (2), tests/core/tests/resource_urls.py (2), tests/gis/urls.py (2), tests/namespaced/api/urls.py (2), tests/profilingtests/urls.py (2), tests/slashless/api/urls.py (2), tests/validation/api/urls.py (2). None of these files had any bug fixes. The migration is not blocked by any other team and does not block any other team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 765,
+ "tokens_out": 223
+}

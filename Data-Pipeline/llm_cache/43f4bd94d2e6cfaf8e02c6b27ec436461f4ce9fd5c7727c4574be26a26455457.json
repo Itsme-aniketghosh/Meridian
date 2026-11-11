@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.915e-05,
+ "facts_hash": "4bcd8afe2b9dd757",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.messages has 1 call site of ugettext_lazy left to migrate in django/contrib/messages/apps.py. There were 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 289,
+ "tokens_out": 93
+}

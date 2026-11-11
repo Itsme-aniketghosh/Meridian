@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0008044,
+ "facts_hash": "bb1b44d1be3965cb",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The team has 240 call sites left to migrate. The call sites are located in the following files: wagtail/admin/api/urls.py (2 sites), wagtail/admin/urls/__init__.py (33 sites), wagtail/admin/urls/collections.py (6 sites), wagtail/admin/urls/pages.py (27 sites), wagtail/admin/urls/password_reset.py (5 sites), wagtail/admin/urls/reports.py (2 sites), wagtail/admin/viewsets/__init__.py (2 sites), wagtail/admin/viewsets/model.py (5 sites), wagtail/api/v2/router.py (2 sites), wagtail/api/v2/views.py (4 sites), wagtail/contrib/forms/urls.py (4 sites), wagtail/contrib/modeladmin/options.py (7 sites), wagtail/contrib/redirects/urls.py (7 sites), wagtail/contrib/search_promotions/admin_urls.py (5 sites), wagtail/contrib/settings/urls.py (3 sites), wagtail/core/urls.py (4 sites), wagtail/documents/admin_urls.py (12 sites), wagtail/documents/urls.py (3 sites), wagtail/embeds/urls.py (3 sites), wagtail/images/admin_urls.py (18 sites), wagtail/images/tests/urls.py (7 sites), wagtail/images/urls.py (2 sites), wagtail/project_template/project_name/urls.py (6 sites), wagtail/search/urls/admin.py (3 sites), wagtail/snippets/urls.py (11 sites), wagtail/tests/headless_urls.py (4 sites), wagtail/tests/non_root_urls.py (5 sites), wagtail/tests/testapp/urls.py (3 sites), wagtail/tests/urls.py (12 sites), wagtail/tests/urls_multilang.py (2 sites), wagtail/users/urls/users.py (5 sites), wagtail/users/views/groups.py (2 sites). No bug fixes have been applied to these files (fix keys: ). The team is not blocked by other teams and does not block other teams.\", \"used\": [\"files\", \"left\", \"symbol\", \"team\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 1980,
+ "tokens_out": 442
+}

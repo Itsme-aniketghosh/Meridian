@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.009762,
+ "facts_hash": "17be09146ad7f6fe",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n  \"text\": \"Team tests has 8 call sites left to migrate: 2 sites in tests/i18n/commands/__init__.py with 0 bug fixes, and 6 sites in tests/i18n/tests.py with 0 bug fixes. Team tests is blocked by nothing and blocks nothing.\",\n  \"used\": [\n    \"team\",\n    \"left\",\n    \"files\",\n    \"blocked_by\",\n    \"blocking\"\n  ]\n}\n```",
+ "tokens_in": 323,
+ "tokens_out": 1237
+}

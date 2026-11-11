@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000879,
+ "facts_hash": "16f2cb7eaccacac8",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.admindocs must migrate 1 call site of symbol ugettext at django/contrib/admindocs/views.py:23.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 221,
+ "tokens_out": 73
+}

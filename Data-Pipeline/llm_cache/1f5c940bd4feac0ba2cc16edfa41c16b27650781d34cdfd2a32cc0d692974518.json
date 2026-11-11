@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002943,
+ "facts_hash": "674327c145704bc4",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate 29 call sites for symbol url: debug_toolbar/panels/sql/panel.py:6, debug_toolbar/panels/sql/panel.py:131, debug_toolbar/panels/sql/panel.py:132, debug_toolbar/panels/sql/panel.py:133, debug_toolbar/staticfiles.py:34, debug_toolbar/panels/templates/panel.py:7, debug_toolbar/panels/templates/panel.py:165, debug_toolbar/toolbar.py:9, debug_toolbar/toolbar.py:131, example/urls.py:2, example/urls.py:7, example/urls.py:8, example/urls.py:9, example/urls.py:10, example/urls.py:11, example/urls.py:17, tests/urls.py:1, tests/urls.py:9, tests/urls.py:10, tests/urls.py:11, tests/urls.py:12, tests/urls.py:13, tests/urls.py:14, tests/urls.py:15, tests/urls.py:16, tests/urls.py:17, tests/urls.py:18, tests/urls.py:19, tests/urls.py:20 for jazzband/django-debug-toolbar\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 522,
+ "tokens_out": 360
+}

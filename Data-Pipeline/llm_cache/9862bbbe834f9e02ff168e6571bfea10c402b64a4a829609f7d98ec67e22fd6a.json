@@ -1,0 +1,9 @@
+{
+ "cost_usd": 7.35e-05,
+ "facts_hash": "9507ecd58325fee8",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ungettext at django/templatetags/i18n.py:145 for templatetags.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 234,
+ "tokens_out": 64
+}

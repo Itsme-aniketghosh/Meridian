@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00022725,
+ "facts_hash": "81850abc4d900f40",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.redirects team still has to migrate 2 call sites of ugettext_lazy: 1 in django/contrib/redirects/apps.py (line not specified) with 0 bug fixes ([]) and 1 in django/contrib/redirects/models.py (line not specified) with 0 bug fixes ([]). It is not blocked by any team and does not block any team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 301,
+ "tokens_out": 106
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000376,
+ "facts_hash": "3bc77b1977cd8c7e",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The django-guardian/django-guardian team still has to migrate 25 call sites of 'url'. The remaining call sites are in example_project/articles/urls.py (6), example_project/posts/urls.py (3), example_project/urls.py (7), guardian/admin.py (4), guardian/compat.py (1), guardian/testapp/tests/urls.py (4). The files had the following number of bug fixes: example_project/articles/urls.py (0, []), example_project/posts/urls.py (0, []), example_project/urls.py (0, []), guardian/admin.py (0, []), guardian/compat.py (0, []), guardian/testapp/tests/urls.py (0, []). The migration is not blocked by any team and does not block any team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 450,
+ "tokens_out": 190
+}

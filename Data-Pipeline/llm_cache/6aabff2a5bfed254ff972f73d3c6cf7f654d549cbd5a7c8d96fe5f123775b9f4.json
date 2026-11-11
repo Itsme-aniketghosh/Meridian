@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00011745,
+ "facts_hash": "2513d0b2618f6374",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n  \"text\": \"Migrate ungettext at django/contrib/admin/options.py:46, django/contrib/admin/options.py:1612, django/contrib/admin/options.py:1644, django/contrib/admin/utils.py:18, django/contrib/admin/utils.py:274 for contrib.admin.\",\n  \"used\": [\n    \"count\",\n    \"sites\",\n    \"symbol\",\n    \"team\"\n  ]\n}\n```",
+ "tokens_in": 287,
+ "tokens_out": 124
+}

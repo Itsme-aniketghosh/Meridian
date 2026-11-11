@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001782,
+ "facts_hash": "e169a2273a33d4a0",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team tests: migrate ungettext_lazy at 8 sites: tests/i18n/tests.py:28, tests/i18n/tests.py:148, tests/i18n/tests.py:150, tests/i18n/tests.py:159, tests/i18n/tests.py:160, tests/i18n/tests.py:182, tests/i18n/tests.py:183, tests/i18n/tests.py:186.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"count\",\n  \"sites\"\n ]\n}\n```",
+ "tokens_in": 323,
+ "tokens_out": 173
+}

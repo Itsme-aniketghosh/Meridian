@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001023,
+ "facts_hash": "d0415cbb8453b752",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"templatetags has 3 call sites of ugettext left to migrate. The sites are in django/templatetags/i18n.py, which had 0 bug fixes.\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 290,
+ "tokens_out": 98
+}

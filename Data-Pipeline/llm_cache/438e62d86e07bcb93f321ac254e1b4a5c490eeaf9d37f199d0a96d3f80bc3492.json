@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00016215,
+ "facts_hash": "75c17f66d9417591",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 3 call sites of 'ugettext' in django/contrib/flatpages/forms.py:4, django/contrib/flatpages/forms.py:29, django/contrib/flatpages/forms.py:36 by the contrib.flatpages team.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 230,
+ "tokens_out": 71
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001464,
+ "facts_hash": "3681ed10942e8536",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team forms still has 7 call sites left to migrate: django/forms/forms.py has 1 site and 0 bug fixes, django/forms/formsets.py has 1 site and 0 bug fixes, and django/forms/models.py has 5 sites and 0 bug fixes. The team is blocked by none and is blocking none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 361,
+ "tokens_out": 123
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00021195,
+ "facts_hash": "f8786a7733a90e07",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate 13 sites for url in django-haystack/django-haystack: haystack/urls.py:2, haystack/urls.py:6, test_haystack/core/urls.py:2, test_haystack/core/urls.py:13, test_haystack/core/urls.py:14, test_haystack/core/urls.py:15, test_haystack/core/urls.py:23, test_haystack/core/urls.py:27, test_haystack/results_per_page_urls.py:2, test_haystack/results_per_page_urls.py:12, test_haystack/results_per_page_urls.py:13, test_haystack/test_app_without_models/urls.py:2, test_haystack/test_app_without_models/urls.py:6\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 413,
+ "tokens_out": 250
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 7.665e-05,
+ "facts_hash": "9127da5055854ed3",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/contrib/sitemaps/apps.py:2 for contrib.sitemaps.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 235,
+ "tokens_out": 69
+}
