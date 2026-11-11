@@ -258,3 +258,13 @@ Options: every push to any branch; PRs only; PRs plus pushes to main.
 Test: commits touching `Model-Pipeline/**` per day from `git log`, over Nov 5–9, times the run length from decision 7.
 
 Rule: main must run, because it registers and pushes, and only main can sign in to Google Cloud. PRs must run, because the gate has to judge a change before it merges. So it's PRs plus main unless the count shows main and PR runs together can't be run daily. Every option is filtered to `Model-Pipeline/**` and the workflow file, and `workflow_dispatch` is added for a run by hand (Rochan).
+
+## 9. LLM slices
+
+Options: repo, owner team, task kind.
+
+What exists, looked at before writing this (Nov 10). Gate fallback: the committed LLM cache is empty and no run has had an LLM, so every writer text so far is its template, with no LLM attempt behind it. That's not a fallback. Fallbacks are counted from `log_llm_call` rows (agent, repo, team, task, `gate_pass`, `source`), one text per `facts_hash`, so "template because the LLM is off" is never counted as "template because the gate failed". Diff match: Utkarsh's results (`packets/utkarsh-data/diffs.md`) are counts per repo, at each repo's drafting style: Django's ugettext 254 of 267, and the packages' `url()` 612 of 1,236. Five packages have their own counts, and the other 15 only a total.
+
+Test: texts (fallback) and drafted lines (match) per slice, under each option, on the fixture and on the real block.
+
+Rule: every slice with at least 30 (`[bias] min_n`) is judged by phase 1's rule (`[bias] max_gap`), with the fallback rate's harm upward and the match rate's downward. Every slice under 30 is listed with its N as not judged. A repo whose count isn't published goes in `(other)` with the rest, and the report names them. A flagged slice is accepted only when its owner's `decisions.md` has a fix scored on it. Repo and task kind are judged where the counts exist. Owner team only where a source gives counts per team. Otherwise the report says it can't be judged, and why.
