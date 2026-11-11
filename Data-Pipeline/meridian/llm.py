@@ -14,6 +14,8 @@ Auth is Google's application default credentials: `gcloud auth application-defau
 
 The prompt goes in as one user message, the same bytes for every vendor, so the comparison compares models and not
 framings. The reply is the model's text only; thinking tokens are billed as output and counted in tokens_out.
+Thinking is set low for every model that has a setting (Claude effort low, Gemini thinking_level LOW): at its
+default, Gemini 3.8 Flash spent 3,064 tokens a task on 10 real tasks and ran out of room before the JSON in 3.
 A refusal or an empty answer comes back as reply "" (not an error): the writer reads it as bad JSON and moves up the
 ladder, as it does for any reply it can't use.
 
@@ -54,10 +56,10 @@ MODELS = {
     "mistral-medium": Model("mistral", "mistral-medium-3", None, None, "us-central1"),
     "llama-4-maverick": Model("maas", "meta/llama-4-maverick-17b-128e-instruct-maas", 0.35, 1.15, "us-east5"),
     "llama-4-scout": Model("maas", "meta/llama-4-scout-17b-16e-instruct-maas", 0.25, 0.70, "us-east5"),
-    "gemma-4": Model("maas", "google/gemma-4-31b-it-maas", 0.15, 0.60, "us-central1"),
+    "gemma-4": Model("maas", "google/gemma-4-26b-a4b-it-maas", 0.15, 0.60, "global"),
     "phi4-mini": Model("ollama", "phi4-mini", 0.0, 0.0, "local"),
 }
-MAX_OUT = 4000          # reply tokens, thinking included: the writer's texts are ~800 (GAPS.md, cost)
+MAX_OUT = 8000          # reply tokens, thinking included: most texts are ~900, a draft listing 60+ sites hit 4,000
 RETRY_STATUS = {408, 429, 500, 502, 503, 504}
 
 
@@ -140,8 +142,8 @@ class Client:
         c = self._client(("gemini", m.region), lambda: genai.Client(
             vertexai=True, project=self.project, location=m.region,
             http_options=types.HttpOptions(timeout=int(self.timeout * 1000))))
-        r = c.models.generate_content(model=m.id, contents=prompt,
-                                      config=types.GenerateContentConfig(max_output_tokens=MAX_OUT))
+        r = c.models.generate_content(model=m.id, contents=prompt, config=types.GenerateContentConfig(
+            max_output_tokens=MAX_OUT, thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)))
         u = r.usage_metadata
         out = (u.candidates_token_count or 0) + (getattr(u, "thoughts_token_count", 0) or 0)
         return r.text or "", u.prompt_token_count or 0, out
