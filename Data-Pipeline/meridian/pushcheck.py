@@ -19,9 +19,9 @@ KNOWLEDGE-BASE.md, which tests/test_kb.py proves on its fixture) run twice, as o
     P6 Mismatch         stall_ticket_mismatch as of the push minus as of the base: re-adds a site of a Done ticket
     P7 Risky edit       p7_risky_edit on every file where a call site changed
     P8 Bad key          Python, as the KB says (SQLite has no regex): a commit key that isn't a ticket in the block
-    P9 Defect risk      the champion model's risk over its threshold (meridian/p9.py), when [push_check] champion
-                        names a champion.json whose model loads; else p9_defect_risk on the PR's diff, above
-                        [push_check] defect_risk_threshold, and the line says why the model wasn't used
+    P9 Defect risk      the champion model's risk AND lines × files both over decision 15b's cutoffs (meridian/p9.py),
+                        when [push_check] p9_rule was adopted for the champion; else p9_defect_risk on the PR's diff,
+                        above [push_check] defect_risk_threshold, and the line says why when a model was meant to run
 Scope (04 §10): the changed files plus every non-test file that imports one (module_import, read in reverse). Over
 [push_check] max_scope_files: skipped, said in one line. At most [push_check] max_lines findings are listed.
 """
@@ -49,9 +49,9 @@ NAMES = {"P1": "Drift", "P2": "Legacy use", "P3": "Collision", "P4": "New block"
          "P6": "Mismatch", "P7": "Risky edit", "P8": "Bad key", "P9": "Defect risk"}
 
 
-def champion_path(settings):
-    """[push_check] champion, relative to the repo root, or None: no champion configured, lines × files."""
-    name = settings.get("champion")
+def champion_path(settings, key="champion"):
+    """[push_check] champion (or p9_rule), relative to the repo root, or None: not configured, lines × files."""
+    name = settings.get(key)
     return (HERE.parent / name) if name else None
 
 
@@ -135,8 +135,9 @@ def rows(db, sql, params=()):
     return [tuple(r) for r in db.execute(sql, params).fetchall()]
 
 
-def push_check(base, repo, checkout, changed, cfg, settings, rng=None):
-    """The comment, '' when there's nothing to say. changed: paths (ignored when rng, a git range, is given)."""
+def push_check(base, repo, checkout, changed, cfg, settings, rng=None, collect=None):
+    """The comment, '' when there's nothing to say. changed: paths (ignored when rng, a git range, is given).
+    collect: a list that gets every finding as (check, target, evidence), push_alert's columns (meridian/replay.py)."""
     if not Path(base).is_file() or not any(r["repo"] == repo for d in cfg["datasets"].values()
                                            for r in d.get("repos", [])):
         return ""  # no base map (04 §10), or not a repo meridian.toml watches: silent
@@ -265,14 +266,17 @@ def push_check(base, repo, checkout, changed, cfg, settings, rng=None):
             lines, files, risk = at(PUSH_AT, "p9_defect_risk", {"sha": "push"})[0]
             key_rx = ds.get("key_regex") or cfg.get("tickets", {}).get("key_regex_generic", r"[A-Z][A-Z0-9]+-\d+")
             v = p9.verdict(db, repo, base_run, base_at, numstat, messages, author, key_rx, (lines, files, risk),
-                           settings["defect_risk_threshold"], champion_path(settings))
+                           settings["defect_risk_threshold"], champion_path(settings),
+                           champion_path(settings, "p9_rule"))
             if v.alert:
                 found.append(("P9", "push", v.text))
     finally:
         db.close()
+    found.sort(key=lambda f: f[:2])  # the doc's queries have no ORDER BY: same PR, same comment
+    if collect is not None:
+        collect.extend(found)
     if not found:
         return ""
-    found.sort(key=lambda f: f[:2])  # the doc's queries have no ORDER BY: same PR, same comment
     shown = [f"- **{c} {NAMES[c]}**: {what}" for c, _, what in found[:settings["max_lines"]]]
     more = len(found) - len(shown)
     return "\n".join([head, "", *shown] + ([f"- … and {more} more"] if more else [])) + "\n"

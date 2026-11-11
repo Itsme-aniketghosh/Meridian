@@ -286,6 +286,9 @@ defect_risk_threshold = 2000          # P9: lines × files above this. Not measu
 # P9 with the model (Rachna, step Q): the champion record registry.py writes, relative to the repo root. Its model file
 # must be next to it with the md5 it records, or P9 stays lines × files and says why. "" = lines × files always
 champion = "Model-Pipeline/registry/champion.json"
+# Decision 15b (Model-Pipeline/model/p9rule.py): the model is used only when this rule was adopted on val for the
+# champion's md5, and then only when the model AND lines × files both flag. Not adopted or missing: lines × files
+p9_rule = "Model-Pipeline/reports/p9_rule.json"
 
 # Optional (Phase 2): a push to a watched repo's main branch starts the update DAG through Airflow's REST API
 # (.github/workflows/trigger-update.yml). max_active_runs = 1 and the "anything new?" step make a burst of pushes one run
@@ -293,3 +296,12 @@ airflow_url = ""                      # e.g. https://airflow.example.com. "" = d
 airflow_dag_id = "meridian_update"
 airflow_user_env = "MERIDIAN_AIRFLOW_USER"          # the secret holding the Airflow API user
 airflow_password_env = "MERIDIAN_AIRFLOW_PASSWORD"  # ... and its password
+
+# ───────────── the LLM client ─────────────
+
+[llm]                                 # meridian.llm.Client: how it calls, never what a row says (the cache key does)
+project_env = "MERIDIAN_GCP_PROJECT"  # the environment variable holding the GCP project every model is called through
+max_usd = 25.0                        # the client stops itself here, per process: under the $150 account alert
+retries = 3                           # on 408, 429, 5xx and dropped connections, backing off 1, 2, 4 s
+timeout_s = 120
+ollama = "http://localhost:11434"     # Phi-4-mini, local (Jev only)
