@@ -34,6 +34,12 @@ Common terms:
 | 20 | More model families | decision 1's three, plus `HistGradientBoostingClassifier`, `ExtraTreesClassifier`, `MLPClassifier` (all scikit-learn, nothing new to install) | `val` PR-AUC of each, tuned the same way; paired bootstrap against the best | Same as decision 1: highest PR-AUC wins, and the simplest model tied with it wins. If a new family wins, decisions 3-18 are rerun on it | | |
 | 21 | Quantized open model for Jev | the hosted small model, a 7-8B open instruct model at 4-bit (GGUF, llama.cpp or Ollama), run on CPU | Pick accuracy on decision 19's held-out 30 tasks, cost per task, p95 latency on a CPU runner | Local only if it gets within 3 of the 30 tasks of the hosted model and its p95 latency fits CI's budget. Otherwise the hosted model | | |
 
+## A rule added after the first results (written before its own run, and before 2024)
+
+| # | Decision | Why it was added | Test | Rule (written Nov 11, before this run) | Result (N) | Picked |
+|---|---|---|---|---|---|---|
+| 15b | P9 with the model: model AND lines × files | The model alone reaches precision 0.70 on 30 val alerts, under the 0.80 bar, so P9 can't alert on it alone (GAPS.md gap 4) | `python -m model.p9rule` on the champion's judged val scores, no refit | Alert only when the model's score ≥ its cutoff AND lines × files ≥ its cutoff. Cutoffs: each signal's score at the val commit ranked in the top 1%, 2%, ..., 30% (900 pairs). Eligible: ≥ 30 val alerts. Pick: the highest precision; ties go to more alerts, then the larger lines × files cutoff. Adopted only if its precision ≥ 0.80; otherwise P9 stays lines × files and the report gives 0.70. The best of 900 on the same rows is optimistic: the 2024 run checks it and doesn't change it | | |
+
 ## Data notes
 
 | Date | What | Handling |
