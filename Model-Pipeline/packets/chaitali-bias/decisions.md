@@ -314,3 +314,24 @@ By task: ugettext 0.951 (267 lines), `url()` 0.495 (1,236), neither flagged. Own
 - Green: #63, run 42944525502 (retrain), and run 42939195787 (full search). Both stop at the gate, as PRs must: the registry steps were skipped.
 - Red at the gate on a planted bad model: #64 (`chaitali-planted-bad`, shuffled train labels, never merged), run 42944590671. "FAILED at gate": bar 0.1744 vs lines × files 0.3191, and bias with 2 open flags (`component=Pandas API on Spark` and `Structured Streaming`, false-positive rate). Nothing was registered.
 - Slack: no `MERIDIAN_SLACK_WEBHOOK` in the repo yet, so these runs posted to their summaries only. A fail, a done and a push message from real runs are still to come.
+
+---
+
+# Nov 11: GAPS.md gap 6, the Q2 label audit: the rule, before any run
+
+The model's worst flag is `size_bucket=Q2` recall: 0 of 51 `val` positives found. GAPS.md asks whether those 51 labels are right. SZZ blames the lines a fix changed, so a small commit may be blamed for a bug it didn't cause. On Defects4J, SZZ picks the right commit only 44% of the time. The audit estimates label noise for the bias section. **It never changes a label, and it never becomes training data** (GAPS.md: an LLM may audit labels, never write them).
+
+## 11. How noisy are Q2's positive labels?
+
+What's audited: each of the 51 Q2 `val` positives, with the fix that blamed it (`bug_inducing`, v1 block `70dd1dabfed544b8`; all 51 have one; c5118's SZZ table differs by 1%, per Utkarsh). For comparison, 50 Q4 `val` positives (`random.seed(1)`), since a noise share means little without one. 2023 only. 2024 is never read.
+
+The question, per (commit, fix) pair: did this commit introduce the bug this fix repairs? The model sees only public Apache code: the fix's ticket key, its message and its diff on the blamed file, plus the blamed commit's message and its diff on that file. Lines that name a person (`Signed-off-by`, `Authored-by`, `Closes #… from <user>`) and every email address are removed first. It answers JSON `{"verdict": "yes" | "no" | "unclear", "reason": "…"}`. A commit's label holds if any of its pairs is `yes`.
+
+Model: one strong model, fixed before the run: `claude-opus-5-5` through `meridian.llm` if our Google Cloud project can call it, else `gemini-pro`. The output names which. Each answer is cached and logged with `log_llm_call` (agent `label_audit`).
+
+Hand check: 20 of the 51 Q2 commits (`random.seed(1)`), judged by Chaitali **blind**, on a sheet that doesn't show the model's answer, from the two GitHub commit pages and the Jira ticket.
+
+Rule:
+- Q2's label-noise estimate is the share of `no` among the commits the model judged (`unclear` left out, and counted), with its Wilson 95% interval. Q4's is computed the same way.
+- The model's answer counts only if it agrees with the hand check on at least 15 of the 20 (75%, `unclear` counting as a disagreement). Otherwise the report gives only the hand check's share, of 20, with its interval, and says the model wasn't good enough to use.
+- "Q2 is more noisily labelled than Q4" is said only when Q2's interval sits wholly above Q4's. Otherwise the report says they can't be told apart at this N.
