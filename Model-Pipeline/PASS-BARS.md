@@ -223,7 +223,7 @@ Each owner signs for their own rows and reads the rest. Aniket reviews. Changing
 
 | Who | Rows | Signed |
 |---|---|---|
-| Utkarsh | §2 | |
+| Utkarsh | §2 | Utkarsh, Nov 11 |
 | Rochan | §3 | Nov 7 |
 | Rachna | §4 | Rachna, Nov 7 |
 | Vishwa | §5 | Vishwa, Nov 7 |

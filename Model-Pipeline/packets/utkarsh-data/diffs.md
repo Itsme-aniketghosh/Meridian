@@ -22,8 +22,8 @@ Everything below comes from the team run `c5118b019d642a9b`. Each repo is drafte
 | Bar | Result |
 |---|---|
 | Django ≥ 90% (05-test) | ✅ **254 of 267 lines = 95.1%.** 265 drafted. 2 refused (`code.sample` isn't Python). 13 misses: 2 non-Python lines, and lines where the real commit did more than rename (e.g. `widgets.py` switched to `_`, a multi-line import merged into one) |
-| Packages ≥ 90% on the 12 finished repos | ❌ **49.5%** with the best single style (612 of 1,236 over all 20; see decision 11) |
-| Draft touching another line refused | ✅ test |
+| Packages ≥ 90% on the 12 finished repos | ❌ **73.2%** on the files the drafter wasn't shown (655 of 895), with the owner's style learned from their first files (decision 13) and whole statements (decision 14). 58.1% for the default style on the same lines. At the parent commit, with no owner lines: 58.6% (623 of 1,063; 677 of 1,236 = 54.8% over all 20). Django is unchanged at 254 of 267 |
+| Draft touching another line refused | ✅ test. With decision 14 it's "another statement": a `url(...)` call over several lines is drafted whole. **Needs Aniket's OK**, since it changes the PASS-BARS §2.5 row; `--one-line` keeps the old rule and gives the old numbers |
 | New name that doesn't resolve refused | ✅ test (no `gettext` in the module: all 4 drafts refused) |
 | No LLM diff inside `except` | ✅ tests: `llm_allowed`, and a fixture run where the LLM is never called for an `except` site. The codemod may draft there; only the LLM may not |
 | LLM off: codemod drafts, run completes | ✅ test. Rows load into the `suggestion` table (#30) |
@@ -51,9 +51,96 @@ Everything below comes from the team run `c5118b019d642a9b`. Each repo is drafte
 | learned from the repo's earlier `django.urls` lines | same as `path` (none of the repos has earlier ones) | — |
 | each repo's best style, known only after the fact | about 68% | — |
 
-**Pick: `path` when the pattern allows, else `re_path`.** It's the default and the fallback for `learned`. Each real migration chose its own style (cms kept `re_path`, wagtail moved to `path`, autocomplete-light aliased), and nothing at the parent commit says which. So no single codemod style reaches 90%, and even an oracle choosing per repo stops near 68%. The rest are rewrites beyond a one-line swap: patterns turned into converters the rules don't cover, and lines merged, split or moved.
+**Pick: `path` when the pattern allows, else `re_path`.** It's the style `--url-style path_if_plain` guesses with. `learned`, the default, reads the owner's style instead (decision 13) and waits when there's none (decision 15). Each real migration chose its own style (cms kept `re_path`, wagtail moved to `path`, autocomplete-light aliased), and nothing at the parent commit says which. So no single codemod style reaches 90%, and even an oracle choosing per repo stops near 68%. The rest are rewrites beyond a one-line swap: patterns turned into converters the rules don't cover, and lines merged, split or moved.
 
-## The LLM path
+## Decision 13: learn each owner's style from their own lines (GAPS 3)
+
+**Why the packages miss.** Of the 624 package lines the default drafts get wrong (Nov 11, team run):
+
+| What the real commit did | Lines | One line can fix it? |
+|---|---:|---|
+| `re_path` where we drafted `path` (cms, dj-rest-auth, tastypie, two-factor) | 173 | only by knowing the owner's style |
+| kept `url` through `re_path as url` (autocomplete-light, graphene, extensions, …) | 84 | only by knowing the owner's style |
+| rewrote the hunk: lines merged, split or moved (oscar alone: 132) | 156 | no |
+| deleted the line | 34 | no |
+| a one-line `url()` rewrite the rules don't make (33 have the pattern on the next line, so `path(` would change 2 lines) | 120 | partly |
+| wrote the import differently, other | 57 | partly |
+
+The parent commit doesn't show the style. `path` and `re_path` both arrived in Django 2.0, and owners supporting the same Django versions chose differently: wagtail and DRF (≥ 2.2) went to `path`, dj-rest-auth and two-factor (≥ 2.2) kept `re_path`. And 190 lines (15.4%) aren't one-line changes at all, so **no one-line drafter can get above 84.6%**, with or without an LLM.
+
+**Test, written before the run.** The owner migrates a repo's first `url()` files (by path) by hand, until their lines show 3 style votes or 3 files are read (`owner_seed`). The drafter takes the style those lines show (`style_from_owner`) and drafts the rest. It's scored **only on the files it wasn't shown**, against the default style on the same lines. The answer key is read only for the shown files.
+**Rule.** Keep it if it beats the default by 10 points or more on the 12 finished repos.
+
+**Result** (`test_packages_owner_seeded`):
+
+| | default style | owner's style | best style per repo, picked in hindsight |
+|---|---|---|---|
+| 12 finished repos, held-out files | 464 / 895 = 51.8% | **600 / 895 = 67.0%** | 69.0% (all lines) |
+| all 20, held-out files | 488 / 1,006 = 48.5% | **684 / 1,006 = 68.0%** | 68.6% (all lines) |
+
+Biggest gains: cms 47 → 143 of 149, autocomplete-light 0 → 60 of 61, dj-rest-auth 6 → 33 of 33, tastypie 0 → 11 of 22. It reaches nearly the best a per-repo style can do. What's left is the hunk rewrites, deletions and two-line patterns.
+
+Seeding until 5 votes (5 files) gives 68.9% on all 20; one file gives 57.3%. These are reported, not picked: the 3-vote rule was set first.
+
+**Pick: keep it.** In the product it's `learned`. `style_vote` reads every line already on `django.urls` in the checkout (outside the repo's own `django/`), so once an owner migrates one file by hand, the next run drafts the rest their way. At the parent commit no package has such lines, so `learned` waits for the owner (decision 15). Django's own checkout has them, and its bar is unchanged (254 of 267).
+
+**Also fixed while reading the misses:**
+- `url(regex=...)` now drafts `re_path(r"...", ...)`. The old draft `re_path(regex=...)` was a TypeError, because `re_path`'s first argument is `route`.
+- Any `/`-free character class (`[a-z0-9]+`) becomes `<str:…>`, as owners wrote it. It recovers few lines, since most of those lines were also split across lines.
+
+**On GAPS' bar** ("≥ 90% on repos the codemod didn't learn from"): style is per owner, so learning from one repo can't carry to another (cms's `re_path` says nothing about wagtail). The held-out unit here is the files of the same repo that the drafter wasn't shown.
+
+## Decision 14: draft the whole statement (options 1–3)
+
+**Test, written before the run.** On top of decision 13, with the same held-out files:
+1. A `url(...)` call over several lines is drafted as one statement. Its pattern may be on a later line.
+2. The rewritten call goes on one line when it fits the repo's own limit (flake8 `max-line-length`, else 79).
+3. The `django.urls` import takes its names from what the file's drafted calls use.
+
+**Rule.** Keep it if it beats decision 13 on the 12 finished repos.
+
+**Result** (scratch run, then the product code):
+
+| Held-out files | 12 finished repos | all 20 |
+|---|---|---|
+| decision 13 alone | 600 / 895 = 67.0% | 684 / 1,006 = 68.0% |
+| + 1 | 597 = 66.7% | 695 = 69.1% |
+| + 1 + 2 | 647 = 72.3% | 744 = 74.0% |
+| + 1 + 2 + 3, in `diffs.py` | **655 = 73.2%** | **753 = 74.9%** |
+| 1 + 3, joining only if the owner's seed files did | 597 = 66.7% | 695 = 69.1% |
+
+Joining does it. Oscar goes from 75 to 154 of 237, because its owners rewrote multi-line calls as one-line `path(...)` calls. It costs cms (143 → 125) and two-factor (14 → 5), whose owners kept calls multi-line. Reading the join habit from the seed files lost: oscar's first files show none, so it kept the layout and lost 79 lines. It's reported, not used.
+
+**Pick: keep 1–3.** A call with a comment inside isn't joined. A trailing comma is dropped only at a line break, so `(1,)` stays a tuple. When the call doesn't fit, `path` is used only if the pattern line can say it where it is; otherwise it's `re_path`. A draft still changes nothing outside its own lines (`only_span`), and must parse and resolve. **This changes PASS-BARS §2.5's "a draft that changes any other line is refused" to "any other statement", so it needs Aniket's OK.** `--one-line` (or `statements=False`) drafts the old way and gives the old numbers.
+
+## Decision 15: don't guess; learn from the owner
+
+A wrong diff costs the owner more than no diff. So for `url()` the drafter doesn't guess a style:
+
+1. **Wait.** With style `learned` (the default), no owner lines means no `url()` draft. Those sites are refused as `style_unknown`. Renames (`ugettext` → `gettext`) have no style to choose and still draft. `--url-style path_if_plain` keeps the old guess, for evaluation.
+2. **Copy.** Once an owner migrates a file by hand, the checkout's own `django.urls` lines vote (decision 13), and the next run drafts the rest their way.
+3. **Learn from edits.** A diff whose newest `outcome` is `applied` or `edited` gives a pair: our before-line and the line the owner really wrote, read with `git show` at the evidence commit. Those pairs outrank the checkout's lines. A diff the owner `rejected` is never offered again with the same facts (`rejected_before`).
+
+The evidence format the drafter reads: `outcome.evidence` is `{"sha", "path", "line"}` (or a list of them), the commit and line where the owner's line landed. No outcome writer exists yet, so it should write this.
+
+**Measured:** 1 and 2 give the held-out numbers above: 73.2% on the 12 finished repos when the drafter has the owner's style, and no `url()` draft before that. **3 is built and tested on a fixture** (`OwnerFirst` in `test_diffs.py`), but there are no real outcomes yet to measure it on.
+
+
+The 244 misses left on the 12 finished repos, sorted by comparing each draft with the real lines (Nov 11):
+
+| | Lines |
+|---|---:|
+| **We drafted the migration differently from the owner** | **230** |
+| ↳ the pattern's converter or escaping (e.g. `<object_pk>` for `.+`) | 48 |
+| ↳ we wrote `re_path`, the owner `path`, loosening the regex (e.g. `\-?\d+` → `<user_id>`) | 51 |
+| ↳ we joined, the owner kept the lines; or the other way | 63 |
+| ↳ we wrote `path`, the owner kept `re_path` (DRF, on some lines) | 14 |
+| ↳ the import's names, or an import the owner deleted | 44 |
+| ↳ guardian's `url` from `guardian.compat`: the codemod refuses those lines | 11 |
+| **The owner did more than migrate** (routes changed, names added, lines deleted) | **14** |
+
+The earlier guess was wrong: owner restructuring is only 14 lines (5.7%), so a "migration-only" score would barely differ. What's left is owners choosing line by line: `path` on one line and `re_path` on the next, joined here and kept there, a strict converter here and a loose one there. The parent commit doesn't show those choices, and a few seed files can't settle them.
+
 
 Built on Vishwa's cache and fact gate (#28, #48) and Rochan's `log_llm_call` (#32), the same way the writer uses them.
 

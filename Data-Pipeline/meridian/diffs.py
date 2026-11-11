@@ -12,9 +12,9 @@ Reads out/<run_id>/call_site.jsonl and run.jsonl, and the code in snapshots/<run
      re_path         always re_path
      path_if_plain   path(...) when the pattern is plain text between ^ and $, else re_path
      alias           the import becomes `from django.urls import re_path as url`; url(...) calls stay as they are
-     learned         per repo, from its owner's earlier migrations: what the checkout's own `from django.urls import`
-                     lines already use (an alias, path, or re_path). None: path_if_plain, the best single
-                     style on the 20 packages (decision 11)
+     learned         per repo, from its owner's own migrations so far: every checkout line already on django.urls
+                     votes (style_vote: `re_path as url`, a re_path that could have been path, a path). None, as
+                     at every package's parent: path_if_plain, the best single style (decisions 11 and 13)
    All sites on one line get one draft for that line, so the draft is the whole after-line.
 2. The LLM path may only draft a line the codemod refused, with 2 or more same-shape examples (the repo's own
    codemod drafts), and never inside `except` (llm_allowed). Models go coding small -> mid -> large (04 §6). Each
@@ -22,11 +22,13 @@ Reads out/<run_id>/call_site.jsonl and run.jsonl, and the code in snapshots/<run
    3. Any failure moves one model up; the top model failing drafts nothing (code has no template). Every answer,
    cached or called, goes to log_call (model.tracking.log_llm_call). With no LLM and no cache, the codemod runs
    alone; with only the cache (--llm-cache, as in CI), a miss drafts nothing, or with --strict-cache stops the run.
-3. Every draft must apply (the line holds the symbol at its column), touch only its own line, parse (ast, Python
-   files only), and resolve: Jedi, through meridian.resolve.Repo, must land each new name on the new symbol. url()
+3. Every draft must apply (the line holds the symbol at its column), touch only its own statement (a url(...)
+   call over several lines is drafted whole, on one line when it fits the repo's line limit: decision 14;
+   --one-line keeps each draft to its own line), parse (ast, Python files only), and resolve: Jedi, through
+   meridian.resolve.Repo, must land each new name on the new symbol. url()
    drafts resolve against a Django that has django.urls (git archive of [diffs] django_ref from the Django mirror,
    kept in snapshots/_cache/diffs/). Anything else: no diff, counted by reason.
-4. One suggestion row per call site whose line changes: body is the unified diff of that one line.
+4. One suggestion row per call site whose line changes: body is the unified diff of its line or statement.
 
 score() compares drafts with what really happened: the after-line of each site's line at a later commit
 (whitespace ignored), the 05-test bar (>= 90% on Django). A line with no draft counts as its own line unchanged.
@@ -60,9 +62,12 @@ DJANGO_URLS = {"include", "path", "re_path", "register_converter"}   # names `fr
 DJANGO_REF = "3.2"                                                   # a Django with django.urls.path and re_path
 FROM_IMPORT = re.compile(r"^(?P<indent>\s*)from\s+(?P<module>[\w.]+)\s+import\s+"
                          r"(?P<names>[^()#]+?)\s*(?P<comment>#.*)?$")
-URL_CALL = re.compile(r"""\burl\(\s*(?P<prefix>[rRuU]{0,2})(?P<q>['"])(?P<pat>(?:\\.|(?!(?P=q)).)*)(?P=q)""")
+URL_CALL = re.compile(r"""\burl\(\s*(?P<kw>regex\s*=\s*)?(?P<prefix>[rRuU]{0,2})(?P<q>['"])"""
+                      r"""(?P<pat>(?:\\.|(?!(?P=q)).)*)(?P=q)""")
+REGEX_KW = re.compile(r"\burl\(\s*regex\s*=\s*")   # url(regex=...): path and re_path call it route, so it goes
 REGEX_CHARS = re.compile(r"[.*+?()\[\]{}|\\]")
-REASONS = ("stale", "other_line", "multi_line_import", "other_names", "not_python", "parse", "resolve", "no_change")
+REASONS = ("stale", "other_line", "multi_line_import", "other_names", "not_python", "parse", "resolve", "no_change",
+           "style_unknown", "rejected_before")
 
 
 class Refused(Exception):
@@ -96,6 +101,9 @@ CONVERTERS = [
     (re.compile(r"\(\?P<(\w+)>(?:\[-\\w\]\+|\[\\w-\]\+|\[-a-zA-Z0-9_\]\+|\[a-zA-Z0-9_-\]\+)\)"), r"<slug:\1>"),
     (re.compile(r"\(\?P<(\w+)>\[\^/\]\+\)"), r"<\1>"),
     (re.compile(r"\(\?P<(\w+)>\.\+\)"), r"<path:\1>"),
+    # any other one-or-more character class without '/', e.g. [a-z0-9]+: str ([^/]+) is what owners wrote for it
+    # (oscar's <str:key>), wider than the class but never across a '/' (decision 13)
+    (re.compile(r"\(\?P<(\w+)>\[(?![^\]]*/)[^\]]+\]\+\)"), r"<str:\1>"),
 ]
 
 
@@ -133,7 +141,8 @@ def rewrite_url_call(line, style):
         m = URL_CALL.search(line)
         q = m.group("q")
         return line[:m.start()] + f"path({q}{path_text(m.group('pat'))}{q}" + line[m.end():]
-    return rename(line, "url", "re_path")
+    # url(regex=...) was valid; re_path(regex=...) is a TypeError (its first argument is route): pass it positionally
+    return rename(REGEX_KW.sub("url(", line), "url", "re_path")
 
 
 def rewrite_url_import(line, style, file_choices):
@@ -185,6 +194,122 @@ def tidy_import(line, was_sorted):
             + ("\n" if line.endswith("\n") else ""))
 
 
+# ───────────── one statement: a url(...) call over several lines (decision 14) ─────────────
+
+def line_limit(repo_dir):
+    """The repo's own line limit: flake8's max-line-length (setup.cfg, tox.ini, .flake8), else 79 (PEP 8)."""
+    import configparser
+    for name in ("setup.cfg", "tox.ini", ".flake8"):
+        p = Path(repo_dir) / name
+        if not p.exists():
+            continue
+        c = configparser.ConfigParser(strict=False, interpolation=None)
+        try:
+            c.read(p, encoding="utf-8")
+        except (configparser.Error, UnicodeDecodeError):
+            continue
+        for sec in ("flake8", "pycodestyle", "pep8"):
+            if c.has_option(sec, "max-line-length"):
+                try:
+                    return int(c.get(sec, "max-line-length"))
+                except ValueError:
+                    pass
+    return 79
+
+
+def call_spans(src):
+    """{first line: last line} of every url(...) call that runs over several lines."""
+    try:
+        tree = ast.parse(src)
+    except (SyntaxError, ValueError):
+        return {}
+    out = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and node.end_lineno > node.lineno and \
+                getattr(node.func, "id", getattr(node.func, "attr", None)) == "url":
+            out[node.lineno] = node.end_lineno
+    return out
+
+
+def has_comment(text):
+    try:
+        return any(t.type == tokenize.COMMENT for t in tokenize.generate_tokens(io.StringIO(text).readline))
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return True
+
+
+def join_call(block):
+    """A call over several lines as one line: each inner line stripped, no space after an opening bracket or
+    before a closing one, and the trailing comma at a line break before a closing bracket dropped (black's magic
+    trailing comma). A comma inside a line, such as (1,), is never touched."""
+    out = block[0].rstrip("\n").rstrip()
+    for part in (ln.strip() for ln in block[1:]):
+        if not part:
+            continue
+        if part.startswith((")", "]", "}")):
+            out = (out[:-1] if out.endswith(",") else out) + part
+        elif out.endswith(("(", "[", "{")):
+            out += part
+        else:
+            out += " " + part
+    return out + "\n"
+
+
+def draft_statement(block, style, limit):
+    """The after-text for a url(...) call over the lines in block, or None to draft its first line alone.
+    - On one line when the rewritten call fits the repo's limit (decision 14), as owners wrote it.
+    - Else in its own layout: path only if the pattern line can say it where it is, otherwise re_path."""
+    text = "".join(block)
+    if style == "alias" or has_comment(text):
+        return None
+    one = join_call(block)
+    new = rewrite_url_call(one, style)
+    if new == one:
+        return None
+    if len(new.rstrip("\n")) <= limit:
+        return new
+    if url_choice(one, style) != "path":
+        return None                               # re_path on the first line: draft_line does that
+    m = URL_CALL.search(one)
+    literal = m.group("prefix") + m.group("q") + m.group("pat") + m.group("q")
+    at = [i for i, ln in enumerate(block) if literal in ln]
+    if len(at) != 1 or at[0] == 0:
+        return None
+    out = list(block)
+    out[0] = rename(REGEX_KW.sub("url(", out[0]), "url", "path")
+    q = m.group("q")
+    out[at[0]] = re.sub(r"regex\s*=\s*$", "", out[at[0]].split(literal)[0]) + f"{q}{path_text(m.group('pat'))}{q}" \
+        + out[at[0]].split(literal, 1)[1]
+    return "".join(out)
+
+
+def call_choice(lines, n, spans, style):
+    """path or re_path for the url(...) call that starts on line n, reading the whole call when it spans lines."""
+    if n in spans:
+        return url_choice(join_call(lines[n - 1:spans[n]]), style)
+    return url_choice(lines[n - 1], style)
+
+
+def apply_drafts(old_lines, pend):
+    """The file with drafts applied: pend {first line: (before, after, last line)}; each replaces its own lines."""
+    out, k = [], 1
+    while k <= len(old_lines):
+        if k in pend:
+            _, a, end = pend[k]
+            out += a.splitlines(keepends=True)
+            k = end + 1
+        else:
+            out.append(old_lines[k - 1])
+            k += 1
+    return out
+
+
+def new_line_no(pend, n):
+    """Line n's number once the drafts before it (some of them joined from several lines) are applied."""
+    shift = sum(len(a.splitlines()) - (end - k + 1) for k, (_, a, end) in pend.items() if k < n)
+    return n + shift
+
+
 def draft_line(line, sites, style, file_choices):
     """The after-line for one line holding these sites, or Refused."""
     new = line
@@ -212,6 +337,12 @@ def draft_line(line, sites, style, file_choices):
 def only_line(old_lines, new_lines, i):
     return len(old_lines) == len(new_lines) and all(a == b for k, (a, b) in enumerate(zip(old_lines, new_lines))
                                                     if k != i)
+
+
+def only_span(old_lines, new_lines, n, end, after):
+    """A draft for lines n..end changes nothing outside them (decision 14: its own statement, not only its line)."""
+    k = len(after.splitlines())
+    return new_lines[:n - 1] == old_lines[:n - 1] and new_lines[n - 1 + k:] == old_lines[end:]
 
 
 def parses(src):
@@ -315,7 +446,7 @@ def llm_facts(repo, path, n, before, sites, examples):
     ids = ",".join(sorted(s["call_site_id"] for s in sites))
     facts = {"repo": repo, "path": path, "line": n, "before": before.rstrip("\n"),
              "symbols": sorted({s["symbol"] for s in sites}), "new": new,
-             "examples": [{"before": b.rstrip("\n"), "after": a.rstrip("\n")} for b, a in examples]}
+             "examples": [{"before": d[0].rstrip("\n"), "after": d[1].rstrip("\n")} for d in examples]}
     source = {"repo": f"call_site:{ids}", "path": f"call_site:{ids}", "line": f"call_site:{ids}",
               "before": f"snapshot:{repo}:{path}:{n}", "symbols": f"call_site:{ids}", "new": "diffs:RULES",
               "examples": "diffs:codemod"}
@@ -345,7 +476,8 @@ def gated(before, after, facts, teams, people):
     return check("\n".join(added), facts, teams=teams, people=people, kinds="numbers").passed
 
 
-def llm_draft(old_lines, drafts, path, n, sites, facts, resolver, *, teams, people, llm, cache, log, strict_cache):
+def llm_draft(old_lines, drafts, path, n, sites, facts, resolver, *, teams, people, llm, cache, log, strict_cache,
+              ladder=LADDER):
     """One line by the LLM, up the ladder: cache or call -> JSON -> fact gate -> one line, parses, resolves.
     (model, after) or None. With no LLM, a cached answer still counts; a miss drafts nothing (code has no
     template), or with strict_cache stops the run."""
@@ -353,7 +485,7 @@ def llm_draft(old_lines, drafts, path, n, sites, facts, resolver, *, teams, peop
     from meridian.llm_cache import key
     pv, fh, before = prompt_version(), facts_hash(facts["facts"]), old_lines[n - 1]
     end = "\n" if before.endswith("\n") else ""
-    for i, model in enumerate(LADDER):
+    for i, model in enumerate(ladder):
         k = key(model, pv, facts["facts"])
         entry = cache.get(k) if cache else None
         hit, t0 = entry is not None, time.perf_counter()
@@ -374,13 +506,13 @@ def llm_draft(old_lines, drafts, path, n, sites, facts, resolver, *, teams, peop
         gate = None if after is None else gated(before, after, facts, teams, people)
         ok = bool(gate) and after != before
         if ok:
-            new_lines = [drafts[(path, j + 1)][1] if (path, j + 1) in drafts else ln for j, ln in enumerate(old_lines)]
-            new_lines[n - 1] = after
-            new_src = "".join(new_lines)
+            pend = {j: d for (p, j), d in drafts.items() if p == path}
+            pend[n] = (before, after, n)
+            new_src = "".join(apply_drafts(old_lines, pend))
             spots = new_names(before, after, sites, "path_if_plain")
-            ok = parses(new_src) and resolves(resolver, path, new_src, n, spots)
-        last = ok or i == len(LADDER) - 1 or (
-            llm is None and cache.get(key(LADDER[i + 1], pv, facts["facts"])) is None)
+            ok = parses(new_src) and resolves(resolver, path, new_src, new_line_no(pend, n), spots)
+        last = ok or i == len(ladder) - 1 or (
+            llm is None and cache.get(key(ladder[i + 1], pv, facts["facts"])) is None)
         if log is not None:
             paid = not hit
             log(agent=AGENT, model=model, prompt_version=pv, tokens_in=entry["tokens_in"] if paid else 0,
@@ -409,23 +541,68 @@ def known_names(out):
 
 # ───────────── the run ─────────────
 
+ALIAS_IMPORT = re.compile(r"\bre_path\s+as\s+url\b")
+NEW_CALL = re.compile(r"""(?<![\w.])(?<!def )(?P<fn>re_path|path)\(\s*[rRuU]{0,2}(?P<q>['"])"""
+                      r"""(?P<pat>(?:\\.|(?!(?P=q)).)*)(?P=q)""")
+
+
+def style_vote(line):
+    """What one already-migrated line says about its owner's url() style, or None. `re_path as url`: alias. A
+    re_path(...) whose pattern path() could have said: re_path, by choice. A path(...): path_if_plain. A re_path
+    path() couldn't say is no vote: the owner had no choice there."""
+    if ALIAS_IMPORT.search(line):
+        return "alias"
+    m = NEW_CALL.search(line)
+    if not m:
+        return None
+    if m.group("fn") == "path":
+        return "path_if_plain"
+    return "re_path" if path_text(m.group("pat")) is not None else None
+
+
+def pick_style(votes):
+    """The style most votes say, ties to path_if_plain (decision 11's default); None with no votes."""
+    if not votes:
+        return None
+    return max(sorted(votes), key=lambda s: (votes[s], s == "path_if_plain"))
+
+
 def learned_style(repo_dir):
-    """The owner's earlier migrations: what this checkout's own `from django.urls import` lines already use."""
-    seen = Counter()
+    """The owner's own migrations so far (decision 13): every line of the checkout already on django.urls votes
+    (style_vote), outside the repo's own django/ package (Django defines path and re_path there). No votes, as at
+    every package's parent commit: None, and the drafter waits (decision 15): no url() draft until the owner has
+    migrated a file by hand, then the rest in their style. --url-style path_if_plain still guesses (decision 11)."""
+    votes = Counter()
     for p in sorted(Path(repo_dir).rglob("*.py")):
+        rel = p.relative_to(repo_dir).parts
+        if rel and rel[0] == "django":
+            continue
         try:
             text = p.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        for m in re.finditer(r"^\s*from\s+django\.urls\s+import\s+([^\n#]+)", text, re.M):
-            names = m.group(1)
-            if re.search(r"\bre_path\s+as\s+url\b", names):
-                seen["alias"] += 1
-            elif re.search(r"\bpath\b", names):
-                seen["path_if_plain"] += 1
-            elif re.search(r"\bre_path\b", names):
-                seen["re_path"] += 1
-    return seen.most_common(1)[0][0] if seen else "path_if_plain"   # decision 11: the best single style
+        for line in text.splitlines():
+            v = style_vote(line)
+            if v:
+                votes[v] += 1
+    return pick_style(votes)
+
+
+def style_from_owner(pairs):
+    """The url() style an owner's own migrated lines show, from [(before, after)]: None when they show none. Each
+    after-line votes as learned_style's do (style_vote); a url(...) call the owner kept as it was votes alias.
+    Used by seeded_score, where the before-lines are known."""
+    votes = Counter()
+    for b, a in pairs:
+        if a is None:
+            continue
+        v = style_vote(a)
+        if v is None and URL_CALL.search(a) and URL_CALL.search(b or "") and path_text(
+                URL_CALL.search(b).group("pat")) is not None:
+            v = "alias"
+        if v:
+            votes[v] += 1
+    return pick_style(votes)
 
 
 def django_for_resolve(mirror, ref, cache):
@@ -454,12 +631,15 @@ def symbols_of(cfg):
     return {s["name"]: s["module"] for d in cfg["datasets"].values() for s in d.get("symbols", [])}
 
 
-def draft_repo(repo, repo_dir, sites, style, resolver, llm_opts=None):
+def draft_repo(repo, repo_dir, sites, style, resolver, llm_opts=None, statements=True, owner_style=None):
     """{(path, line): (before, after)}, Counter of refusals (per site), the style used, and {(path, line): model}
     for the lines the LLM drafted. llm_opts (llm, cache, log, strict_cache, teams, people) turns the LLM path on:
     it may try a line the codemod refused (LLM_REASONS) when llm_allowed holds for every site on it. The LLM lines
-    come back as {(path, line): (model, facts_hash)}."""
-    style = learned_style(repo_dir) if style == "learned" else style
+    come back as {(path, line): (model, facts_hash)}. With style 'learned', the owner's edits of earlier diffs
+    (owner_style) outrank the checkout's lines; with neither, url() lines wait (style_unknown, decision 15)."""
+    if style == "learned":
+        style = owner_style or learned_style(repo_dir)
+    limit = line_limit(repo_dir)
     drafts, refused, llm_models = {}, Counter(), {}
     todo, sources = [], {}                  # (path, line, reason) the codemod refused; each file's lines
     by_file = defaultdict(lambda: defaultdict(list))
@@ -474,39 +654,50 @@ def draft_repo(repo, repo_dir, sites, style, resolver, llm_opts=None):
         old_lines = old_src.splitlines(keepends=True)
         sources[path] = old_lines
         is_py = path.endswith(".py")
-        file_choices = {url_choice(old_lines[n - 1], style) for n, ss in lines.items() if n <= len(old_lines)
+        spans = call_spans(old_src) if is_py and statements else {}
+        site_lines = set(lines)
+        file_choices = {call_choice(old_lines, n, spans, style) for n, ss in lines.items() if n <= len(old_lines)
                         for s in ss if s["symbol"] == "url" and s["role"] == "call"}
         ok_before = parses(old_src)
         pending = {}
-        for n, ss in sorted(lines.items()):  # each line on its own: apply, own line only, parse
+        for n, ss in sorted(lines.items()):  # each draft on its own: apply, its own lines only, parse
             try:
                 if n > len(old_lines):
                     raise Refused("stale")
                 if not is_py:
                     raise Refused("not_python")
-                before = old_lines[n - 1]
-                after = draft_line(before, ss, style, file_choices)
-                new_lines = old_lines[:n - 1] + [after] + old_lines[n:]
-                if not only_line(old_lines, new_lines, n - 1) or after.count("\n") > before.count("\n"):
+                if style is None and any(s["symbol"] == "url" for s in ss):
+                    raise Refused("style_unknown")      # don't guess: the owner's first file shows it (decision 15)
+                end, after = n, None
+                if statements and n in spans and all(s["symbol"] == "url" and s["role"] == "call" for s in ss) and \
+                        not (site_lines & set(range(n + 1, spans[n] + 1))):
+                    after = draft_statement(old_lines[n - 1:spans[n]], style, limit)
+                    end = spans[n] if after is not None else n
+                before = "".join(old_lines[n - 1:end])
+                if after is None:
+                    after = draft_line(before, ss, style, file_choices)
+                    if after.count("\n") > before.count("\n"):
+                        raise Refused("other_line")
+                new_lines = old_lines[:n - 1] + after.splitlines(keepends=True) + old_lines[end:]
+                if not only_span(old_lines, new_lines, n, end, after):
                     raise Refused("other_line")
                 if ok_before and not parses("".join(new_lines)):
                     raise Refused("parse")
-                pending[n] = (before, after)
+                pending[n] = (before, after, end)
             except Refused as e:
                 refused[str(e)] += len(ss)
                 todo.append((path, n, str(e)))
         # resolve with the file's drafts applied together: a renamed call resolves only once its import is renamed
         # too, as in a real migration. Each draft still changes only its own line
         while pending:
-            new_lines = [pending[k + 1][1] if k + 1 in pending else ln for k, ln in enumerate(old_lines)]
-            new_src = "".join(new_lines)
+            new_src = "".join(apply_drafts(old_lines, pending))
             if ok_before and not parses(new_src):   # each parsed alone, not together: refuse them all, to be safe
                 for n in pending:
                     refused["parse"] += len(lines[n])
                     todo.append((path, n, "parse"))
                 break
-            bad = [n for n, (b, a) in pending.items()
-                   if not resolves(resolver, path, new_src, n, new_names(b, a, lines[n], style))]
+            bad = [n for n, (b, a, _) in pending.items()
+                   if not resolves(resolver, path, new_src, new_line_no(pending, n), new_names(b, a, lines[n], style))]
             if not bad:
                 drafts.update({(path, n): d for n, d in pending.items()})
                 break
@@ -541,19 +732,21 @@ def llm_lines(repo, by_file, sources, drafts, refused, todo, resolver, o):
             continue
         got = llm_draft(sources[path], drafts, path, n, ss, facts, resolver, teams=o["teams"],
                         people=o["people"], llm=o.get("llm"), cache=o.get("cache"), log=o.get("log"),
-                        strict_cache=o.get("strict_cache", False))
+                        strict_cache=o.get("strict_cache", False), ladder=o.get("ladder") or LADDER)
         if got:
             models[(path, n)] = (got[0], facts_hash(facts["facts"]))
-            drafts[(path, n)] = (sources[path][n - 1], got[1])
+            drafts[(path, n)] = (sources[path][n - 1], got[1], n)
             refused[reason] -= len(ss)
     for r in [r for r, c in refused.items() if c <= 0]:
         del refused[r]
     return models
 
 
-def line_diff(path, n, before, after):
-    b, a = before.rstrip("\n"), after.rstrip("\n")
-    return f"--- a/{path}\n+++ b/{path}\n@@ -{n} +{n} @@\n-{b}\n+{a}\n"
+def line_diff(path, n, before, after, end=None):
+    """The unified diff of one draft: its line, or its statement's lines n..end (decision 14)."""
+    b, a = before.rstrip("\n").split("\n"), after.rstrip("\n").split("\n")
+    head = f"@@ -{n} +{n} @@" if len(b) == len(a) == 1 else f"@@ -{n},{len(b)} +{n},{len(a)} @@"
+    return f"--- a/{path}\n+++ b/{path}\n{head}\n" + "".join(f"-{x}\n" for x in b) + "".join(f"+{x}\n" for x in a)
 
 
 def suggestion_rows(run_id, snapshot_at, repo, sites, drafts, llm_models=None):
@@ -580,11 +773,71 @@ def suggestion_rows(run_id, snapshot_at, repo, sites, drafts, llm_models=None):
     return rows
 
 
+# ───────────── learning from what owners did with earlier diffs (decision 15) ─────────────
+
+def prior_rows(out):
+    """The block's suggestion rows so far (out/<run_id>/suggestion.jsonl), or none."""
+    p = Path(out) / "suggestion.jsonl"
+    return read_jsonl(p) if p.exists() else []
+
+
+def newest_outcomes(out):
+    """{suggestion_id: its newest outcome row} (outcome is append-only; the newest verdict wins)."""
+    p = Path(out) / "outcome.jsonl"
+    last = {}
+    for r in read_jsonl(p) if p.exists() else []:
+        if r["suggestion_id"] not in last or r["decided_at"] >= last[r["suggestion_id"]]["decided_at"]:
+            last[r["suggestion_id"]] = r
+    return last
+
+
+def evidence_spots(evidence):
+    """[(sha, path, line)] from an outcome's evidence JSON: {"sha", "path", "line"} or a list of them, the commit
+    where the owner's line landed. Anything else (a ticket key) is no spot."""
+    try:
+        ev = json.loads(evidence) if isinstance(evidence, str) else evidence
+    except ValueError:
+        return []
+    ev = ev if isinstance(ev, list) else [ev]
+    return [(e["sha"], e["path"], int(e["line"])) for e in ev
+            if isinstance(e, dict) and {"sha", "path", "line"} <= set(e)]
+
+
+def diff_before(body):
+    """The lines a diff body removes, as one text (what we drafted from)."""
+    lines = body.split("\n")
+    at = next((i for i, ln in enumerate(lines) if ln.startswith("@@")), len(lines))
+    return "\n".join(ln[1:] for ln in lines[at + 1:] if ln.startswith("-"))
+
+
+def owner_edits(rows, outcomes, site_repo, repo, repo_dir):
+    """[(our before, the owner's line)] for this repo's diffs whose newest outcome is applied or edited: what the
+    owner really wrote, read from git at the evidence commit. style_from_owner turns them into a style, and it
+    outranks the checkout's lines (decision 15)."""
+    pairs = []
+    for r in rows:
+        o = outcomes.get(r["suggestion_id"])
+        if r["kind"] != "diff" or site_repo.get(r["target"]) != repo or not o or \
+                o["outcome"] not in ("applied", "edited"):
+            continue
+        for sha, path, line in evidence_spots(o["evidence"]):
+            try:
+                text = git(repo_dir, "show", f"{sha}:{path}").splitlines()
+            except Exception:
+                continue
+            if 0 < line <= len(text):
+                pairs.append((diff_before(r["body"]), text[line - 1]))
+    return pairs
+
+
 def run(run_id, cfg, root=None, out_dir=None, style="learned", django_ref=DJANGO_REF, cache=None, repos=None,
-        llm=None, llm_cache=None, log_call=None, strict_cache=False):
+        llm=None, llm_cache=None, log_call=None, strict_cache=False, ladder=None, statements=True):
     """Drafts for every repo with present sites. Returns ({repo: drafts}, {repo: refusals}, {repo: style}, rows).
     The LLM path is on when llm (a callable: llm(model, prompt) -> {"reply", "tokens_in", "tokens_out",
-    "cost_usd"}) or llm_cache (meridian.llm_cache.Cache) is given; log_call is model.tracking.log_llm_call."""
+    "cost_usd"}) or llm_cache (meridian.llm_cache.Cache) is given; log_call is model.tracking.log_llm_call.
+    ladder: the models to try, smallest first (GAPS 2, the model comparison); LADDER, Jev's, when None.
+    statements: a url(...) call over several lines is drafted as one statement (decision 14); False drafts only the
+    site's own line, as PASS-BARS §2.5 was written."""
     root = Path(root or data_root())
     out = handoff(cfg, run_id, root)
     run_row = read_jsonl(out / "run.jsonl")[0]
@@ -602,8 +855,13 @@ def run(run_id, cfg, root=None, out_dir=None, style="learned", django_ref=DJANGO
     if llm is not None or llm_cache is not None:
         teams, people = known_names(out)
         llm_opts = {"llm": llm, "cache": llm_cache, "log": log_call, "strict_cache": strict_cache,
-                    "teams": teams, "people": people}
+                    "teams": teams, "people": people, "ladder": tuple(ladder) if ladder else LADDER}
     all_drafts, all_refused, styles, rows = {}, {}, {}, []
+    before = prior_rows(out)
+    outcomes = newest_outcomes(out)
+    site_repo = {r["call_site_id"]: r["repo"] for r in read_jsonl(out / "call_site.jsonl")}
+    rejected = {(r["target"], r["facts_hash"]) for r in before
+                if r["kind"] == "diff" and outcomes.get(r["suggestion_id"], {}).get("outcome") == "rejected"}
     for repo, ss in sorted(by_repo.items()):
         repo_dir = repo_checkout(snap, repo)
         deps = []
@@ -614,11 +872,20 @@ def run(run_id, cfg, root=None, out_dir=None, style="learned", django_ref=DJANGO
             deps = [django_tree]
         new_syms = {RULES[(s["module"], s["symbol"])][1]: RULES[(s["module"], s["symbol"])][0] for s in ss}
         resolver = Repo(repo_dir, new_syms, deps)
-        drafts, refused, used, by_llm = draft_repo(repo, repo_dir, ss, style, resolver, llm_opts)
+        edits = owner_edits(before, outcomes, site_repo, repo, repo_dir)
+        drafts, refused, used, by_llm = draft_repo(repo, repo_dir, ss, style, resolver, llm_opts, statements,
+                                                   owner_style=style_from_owner(edits))
+        new = suggestion_rows(run_id, run_row["snapshot_at"], repo, ss, drafts, by_llm)
+        again = [r for r in new if (r["target"], r["facts_hash"]) in rejected]
+        if again:
+            refused["rejected_before"] += len(again)     # the owner said no to this exact diff: never offered again
+        rows += [r for r in new if (r["target"], r["facts_hash"]) not in rejected]
         all_drafts[repo], all_refused[repo], styles[repo] = drafts, refused, used
-        rows += suggestion_rows(run_id, run_row["snapshot_at"], repo, ss, drafts, by_llm)
         log(f"{repo:45} {len(ss):>5} sites  {len({(s['path'], s['line']) for s in ss}):>5} lines  "
-            f"{len(drafts):>5} drafted ({len(by_llm)} by the LLM)  style {used:13} refused {dict(refused) or '-'}")
+            f"{len(drafts):>5} drafted ({len(by_llm)} by the LLM)  style {str(used):13} "
+            f"{len(edits):>3} owner edits  refused {dict(refused) or '-'}")
+    seen = {r["suggestion_id"] for r in before}
+    rows = before + [r for r in rows if r["suggestion_id"] not in seen]   # offered once, as the writer does
     rows.sort(key=lambda r: (r["run_id"], r["suggestion_id"]))
     if out_dir is not False:
         dest = Path(out_dir) if out_dir else out
@@ -663,6 +930,30 @@ def squash(s):
     return re.sub(r"\s+", "", s or "")
 
 
+def owner_pairs(repo_dir, parent, child, path):
+    """(before, after) for each line of one file that the child commit changed in a same-size hunk: what the owner
+    wrote, line by line. Read only for the file the owner is shown to have migrated (seeded_score)."""
+    changed, _ = after_lines(repo_dir, parent, child, path)
+    src = (Path(repo_dir) / path).read_text(encoding="utf-8", errors="replace").splitlines()
+    return [(src[n - 1], a) for n, (a, _) in sorted(changed.items()) if a is not None and n <= len(src)]
+
+
+SEED_VOTES, SEED_FILES = 3, 3      # decision 13, set before the run: show files until 3 votes, at most 3 files
+
+
+def owner_seed(repo_dir, parent, child, sites, votes=SEED_VOTES, max_files=SEED_FILES):
+    """(seed files, style): the owner is taken to have migrated a repo's first url() files (by path) by hand, until
+    their lines show `votes` style votes or `max_files` files are read. The style is what those lines say, else
+    path_if_plain. Only these files' real after-lines are read; seeded scoring leaves them out."""
+    seed, pairs = [], []
+    for f in sorted({s["path"] for s in sites if s["symbol"] == "url"})[:max_files]:
+        seed.append(f)
+        pairs += owner_pairs(repo_dir, parent, child, f)
+        if sum(1 for p in pairs if style_from_owner([p])) >= votes:
+            break
+    return seed, style_from_owner(pairs) or "path_if_plain"
+
+
 def score(repo_dir, parent, child, sites, drafts):
     """Per site line: does the draft (or the line unchanged, when there's none) say what the commit did?
     - an unchanged line matches a prediction of no change;
@@ -681,7 +972,8 @@ def score(repo_dir, parent, child, sites, drafts):
         src = (Path(repo_dir) / path).read_text(encoding="utf-8", errors="replace").splitlines()
         for n in ns:
             before = src[n - 1] if n <= len(src) else ""
-            pred = (drafts[(path, n)][1] if (path, n) in drafts else before).rstrip("\n")
+            pred = (drafts[(path, n)][1] if (path, n) in drafts else before).split("\n")[0]   # a statement: its
+            # first line, the one the site is on (a joined call is all of it)
             if n not in changed:
                 ok, real = squash(pred) == squash(before), before
             else:
@@ -708,10 +1000,12 @@ if __name__ == "__main__":
     ap.add_argument("--llm-cache", action="store_true",
                     help="LLM path from llm_cache/ only (no key: a miss drafts nothing, as in CI)")
     ap.add_argument("--strict-cache", action="store_true", help="with --llm-cache, a cache miss stops the run")
+    ap.add_argument("--one-line", action="store_true",
+                    help="draft only each site's own line, never a whole statement (decision 14 off)")
     a = ap.parse_args()
     lc = None
     if a.llm_cache:
         from meridian.llm_cache import Cache
         lc = Cache()
     run(a.run_id, load_config(a.config), out_dir=a.out, style=a.url_style, django_ref=a.django_ref, cache=a.cache,
-        llm_cache=lc, strict_cache=a.strict_cache)
+        llm_cache=lc, strict_cache=a.strict_cache, statements=not a.one_line)
