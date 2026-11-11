@@ -16,7 +16,7 @@ from model.train import main
 
 class Retrain(unittest.TestCase):
     def test_same_scores_and_candidate_as_the_search(self):
-        with tempfile.TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:  # Windows: SQLAlchemy keeps mlflow.db open
             table, out = write_fake(d), Path(d) / "reports"
             io_args = ["--config", str(MODEL_TOML), "--features", str(table), "--out", str(out)]
             env = {"MLFLOW_TRACKING_URI": f"sqlite:///{Path(d) / 'mlflow.db'}"}
