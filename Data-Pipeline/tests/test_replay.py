@@ -129,7 +129,9 @@ class Apply(unittest.TestCase):
                 db.close()
                 R.apply(path, rows, {"c" * 40})
                 R.apply(path, rows, {"c" * 40})                  # twice: replaced, not doubled
-                got = sqlite3.connect(path).execute("SELECT check_id, target FROM push_alert").fetchall()
+                db = sqlite3.connect(path)                       # closed: Windows can't delete an open file
+                got = db.execute("SELECT check_id, target FROM push_alert").fetchall()
+                db.close()
                 self.assertEqual(got, [("P9", "push")])
 
 
