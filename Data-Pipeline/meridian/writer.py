@@ -6,6 +6,9 @@
 Every row is checked against the schema (column names, types, NOT NULL, run_id, duplicate keys) before anything is
 written. Then rows go in sorted by primary key, tables in name order, in one transaction, into a fresh file, which is
 VACUUMed and moved into place.
+INDEXES are built last (gap 10): KNOWLEDGE-BASE.md's stall queries join on columns no primary key starts with, and
+the views took 16.8 s to start on block 70dd1dab without them, 7.0 s with them. An index changes no row and isn't part
+of the run_id. A block written before them gets them in place: python -m meridian.writer --index --db <block>
 Any bad row stops the load with its file and line: a half-right database is worse than none.
 
 Every row carries the folder's run_id, except in a table that keeps rows across runs (KNOWN_AT: call_site and the
@@ -27,6 +30,16 @@ PY_TYPES = {"TEXT": (str,), "INTEGER": (int,), "REAL": (int, float)}
 # Tables whose rows from earlier runs ride along, and the column that says when each became known
 KNOWN_AT = {"call_site": "known_at", "suggestion": "offered_at", "outcome": "decided_at", "push_alert": "decided_at",
             "policy": "created_at", "match": "decided_at"}
+# The join columns of the stall reasons (stall_competing_load, stall_orphaned_owner): every one is needed, with half of
+# them startup was 10.5 s again. No ANALYZE: the planner picks these without statistics, and the bytes stay simpler
+INDEXES = (
+    "CREATE INDEX IF NOT EXISTS ix_git_commit_author ON git_commit (author_email, authored_at)",
+    "CREATE INDEX IF NOT EXISTS ix_git_commit_sha ON git_commit (sha)",
+    "CREATE INDEX IF NOT EXISTS ix_commit_file_sha ON commit_file (sha)",
+    "CREATE INDEX IF NOT EXISTS ix_commit_file_path ON commit_file (repo, path, sha)",
+    "CREATE INDEX IF NOT EXISTS ix_person_alias_person ON person_alias (person_id, email)",
+    "CREATE INDEX IF NOT EXISTS ix_team_map_subject ON team_map (subject_kind, subject, team)",
+)
 # Stage 6: written by the product and the auditor, not by a pipeline run. Missing from a complete block = empty
 TRACKING = {"suggestion", "outcome", "push_alert", "policy", "match"}
 
@@ -151,6 +164,7 @@ def write(src, db=None, schema=SCHEMA, complete=False):
                 except sqlite3.IntegrityError as e:  # CHECK constraints: enums, 0/1, depth
                     raise BadRow(f"{where}: {e}")
         con.execute("COMMIT")
+        index(con)
         con.execute("VACUUM")
     except BaseException:
         con.close()
@@ -161,10 +175,34 @@ def write(src, db=None, schema=SCHEMA, complete=False):
     return {t: len(loaded.get(t, [])) for t in spec}
 
 
+def index(con):
+    """Build INDEXES on an open block (each one once: IF NOT EXISTS). Returns the names it built."""
+    built = missing_indexes(con)
+    for sql in INDEXES:
+        con.execute(sql)
+    return built
+
+
+def missing_indexes(con):
+    """INDEXES' names the block doesn't have: a block written before them (the views warn)."""
+    have = {n for (n,) in con.execute("SELECT name FROM sqlite_master WHERE type = 'index'")}
+    return [sql.split()[5] for sql in INDEXES if sql.split()[5] not in have]
+
+
 if __name__ == "__main__":
     ap = parser(__doc__, "loads out/<run_id>/")
     ap.add_argument("--db", help="default: out/<run_id>/meridian.sqlite")
+    ap.add_argument("--index", action="store_true", help="only add INDEXES to the existing block (no rows change)")
     a = ap.parse_args()
+    if a.index:
+        path = Path(a.db or handoff(load_config(a.config), a.run_id) / "meridian.sqlite")
+        if not path.exists():
+            sys.exit(f"no block at {path}")
+        con = sqlite3.connect(path, isolation_level=None)
+        built = index(con)
+        con.close()
+        log(f"{path}: built {', '.join(built) or 'nothing (it had every index)'}")
+        sys.exit(0)
     try:
         counts = write(handoff(load_config(a.config), a.run_id), a.db)
     except BadRow as e:
