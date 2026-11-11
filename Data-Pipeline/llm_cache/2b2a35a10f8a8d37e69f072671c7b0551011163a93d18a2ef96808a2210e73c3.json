@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001706,
+ "facts_hash": "d2674c77e546809f",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The iMerica/dj-rest-auth team still has to migrate 51 call sites across the codebase. The call sites are located in 3 files: demo/demo/urls.py with 18 sites, dj_rest_auth/tests/django_urls.py with 15 sites, and dj_rest_auth/tests/urls.py with 18 sites. No bug fixes have been applied in these files (no ticket keys). The team is not blocked by any team and does not block any team.\", \"used\": [\"left\", \"team\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 338,
+ "tokens_out": 123
+}

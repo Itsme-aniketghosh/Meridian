@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000843,
+ "facts_hash": "d0cd3b63efc47596",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Team forms: migrate ungettext_lazy at django/forms/fields.py:33, django/forms/fields.py:537 (count: 2). Done when all 2 call sites are migrated.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 227,
+ "tokens_out": 67
+}

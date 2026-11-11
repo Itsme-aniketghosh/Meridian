@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014955,
+ "facts_hash": "3d96ad6761145350",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 2 call sites of 'ugettext_lazy' in 'django/contrib/contenttypes/apps.py:5' and 'django/contrib/contenttypes/models.py:6' as tracked by the contrib.contenttypes team.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 217,
+ "tokens_out": 64
+}

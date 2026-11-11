@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001265,
+ "facts_hash": "561f8c97fe41be94",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 1 call site of 'ugettext' in django/contrib/gis/views.py:2 by contrib.gis team.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 207,
+ "tokens_out": 47
+}

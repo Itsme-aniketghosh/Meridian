@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00010035,
+ "facts_hash": "4650a107642ee8d9",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.postgres still has 3 call sites of ungettext_lazy to migrate. django/contrib/postgres/validators.py has 3 sites and 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 289,
+ "tokens_out": 95
+}

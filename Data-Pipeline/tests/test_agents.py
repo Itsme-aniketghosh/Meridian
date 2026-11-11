@@ -514,5 +514,33 @@ class HandOff(unittest.TestCase):
         self.assertEqual(set(table["source"]), {"llm"})
 
 
+class Decision5b(unittest.TestCase):
+    """The person check and the `used` list, as measured on the real block (decisions.md, decision 5b)."""
+
+    FACTS = {"facts": {"team": "billing", "left": 1, "files": [{"path": "a.py", "sites": 1, "bug_fixes": 0}],
+                       "reasons": [{"reason": "Never notified", "evidence": 1}]}}
+
+    def reply(self, used):
+        return json.dumps({"text": "billing has 1 call site left in a.py.", "used": used})
+
+    def test_used_may_name_a_fact_inside_another(self):
+        for used in (["team"], ["files[0].path", "left"], ["files.bug_fixes"], ["sites"], ["reasons[0].evidence"]):
+            self.assertIsNotNone(G.parse(self.reply(used), self.FACTS), used)
+
+    def test_used_may_not_name_a_value_or_an_unknown_field(self):
+        for used in (["2016-04-22T17:39:13Z"], ["billing"], ["files[0].owner"], [""], "team"):
+            self.assertIsNone(G.parse(self.reply(used), self.FACTS), used)
+
+    def test_a_person_named_a_function_word_is_not_a_name_but_a_first_name_still_is(self):
+        db = K.build()
+        person(db, "p_nothing", "NOTHING", "nothing@example.com")
+        person(db, "p_will", "Will", "will@example.com")
+        _, people = G.names(db)
+        self.assertNotIn("NOTHING", people)
+        self.assertIn("Will", people)
+        self.assertFalse(G.names_a_person("billing is blocked by nothing.", people))
+        self.assertTrue(G.names_a_person("Ask Will to review it.", people))
+
+
 if __name__ == "__main__":
     unittest.main()

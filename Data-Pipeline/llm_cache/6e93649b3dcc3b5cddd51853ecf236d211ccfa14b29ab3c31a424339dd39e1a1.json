@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002029,
+ "facts_hash": "4650a107642ee8d9",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.postgres team still has to migrate 3 call sites of ungettext_lazy: 3 in django/contrib/postgres/validators.py, which had 0 bug fixes ([]). This migration is not blocked by any other migration and does not block any other migration.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 261,
+ "tokens_out": 97
+}

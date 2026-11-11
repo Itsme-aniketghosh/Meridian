@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0037425,
+ "facts_hash": "00dc7039a74e880e",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"Team django-tastypie/django-tastypie has 31 call sites left to migrate for url. The files are: tastypie/api.py (2 sites, 0 bug fixes), tastypie/resources.py (5 sites, 0 bug fixes), tests/alphanumeric/urls.py (2 sites, 0 bug fixes), tests/authorization/urls.py (2 sites, 0 bug fixes), tests/basic/urls.py (2 sites, 0 bug fixes), tests/content_gfk/urls.py (2 sites, 0 bug fixes), tests/core/tests/api_urls.py (2 sites, 0 bug fixes), tests/core/tests/manual_urls.py (2 sites, 0 bug fixes), tests/core/tests/resource_urls.py (2 sites, 0 bug fixes), tests/gis/urls.py (2 sites, 0 bug fixes), tests/namespaced/api/urls.py (2 sites, 0 bug fixes), tests/profilingtests/urls.py (2 sites, 0 bug fixes), tests/slashless/api/urls.py (2 sites, 0 bug fixes), and tests/validation/api/urls.py (2 sites, 0 bug fixes). The migration is blocked by none and is blocking none.\", \"used\": [\"blocked_by\", \"blocking\", \"files\", \"left\", \"symbol\", \"team\"]}",
+ "tokens_in": 895,
+ "tokens_out": 320
+}

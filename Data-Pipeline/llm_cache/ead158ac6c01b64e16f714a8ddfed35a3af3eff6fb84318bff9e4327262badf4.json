@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.014016,
+ "facts_hash": "162bb180f9357f78",
+ "model": "gemini-pro",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\n  \"text\": \"The team django-extensions/django-extensions has 10 call sites of url to migrate. It is done when the following are migrated: django_extensions/admin/__init__.py:55, django_extensions/admin/__init__.py:63, tests/management/commands/test_show_urls.py:3, tests/management/commands/test_show_urls.py:26, tests/management/commands/test_show_urls.py:27, tests/management/commands/test_show_urls.py:28, tests/testapp/urls.py:19, tests/testapp/urls.py:27, tests/testapp/urls.py:28, tests/testapp/urls.py:29.\",\n  \"used\": [\n    \"team\",\n    \"count\",\n    \"symbol\",\n    \"sites\"\n  ]\n}",
+ "tokens_in": 348,
+ "tokens_out": 1110
+}

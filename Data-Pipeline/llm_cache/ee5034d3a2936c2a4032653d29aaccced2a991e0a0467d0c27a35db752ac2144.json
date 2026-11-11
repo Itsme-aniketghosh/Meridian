@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00174,
+ "facts_hash": "85ff271658a40a63",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.auth has 7 call sites left to migrate for symbol ugettext. The sites are in django/contrib/auth/admin.py with 2 sites and 0 bug fixes (ticket keys: none), django/contrib/auth/forms.py with 4 sites and 0 bug fixes (ticket keys: none), and django/contrib/auth/password_validation.py with 1 site and 0 bug fixes (ticket keys: none). blocked_by is empty and blocking is empty.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 370,
+ "tokens_out": 158
+}

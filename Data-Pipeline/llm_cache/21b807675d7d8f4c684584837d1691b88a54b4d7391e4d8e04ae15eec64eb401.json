@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001014,
+ "facts_hash": "ee2a38fbfa14991b",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.humanize has 29 call sites of ungettext left to migrate in django/contrib/humanize/templatetags/humanize.py. This file had 0 bug fixes.\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"sites\",\n  \"path\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 296,
+ "tokens_out": 95
+}

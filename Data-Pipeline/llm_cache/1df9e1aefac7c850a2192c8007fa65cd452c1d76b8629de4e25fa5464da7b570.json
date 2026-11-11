@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00010575,
+ "facts_hash": "fe25ee7aabf44167",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.flatpages has 3 call sites of ugettext left to migrate. The sites are in django/contrib/flatpages/forms.py, which had 0 bug fixes.\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\",\n  \"fix_keys\"\n ]\n}\n```",
+ "tokens_in": 289,
+ "tokens_out": 104
+}

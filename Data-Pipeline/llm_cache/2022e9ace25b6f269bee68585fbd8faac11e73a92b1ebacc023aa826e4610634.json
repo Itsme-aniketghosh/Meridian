@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0013965,
+ "facts_hash": "de9bcaa0a15f1f79",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team templatetags migration of symbol ugettext has had no change since 2015-05-31T14:20:19Z, with 3 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1), Test gap (evidence: 1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 331,
+ "tokens_out": 120
+}

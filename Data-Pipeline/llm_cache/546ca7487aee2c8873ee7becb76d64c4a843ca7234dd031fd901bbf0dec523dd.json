@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.85e-05,
+ "facts_hash": "7e6abea96700b099",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/contrib/redirects/apps.py:2 and django/contrib/redirects/models.py:3 for contrib.redirects. Total count: 2.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\",\n  \"count\"\n ]\n}\n```",
+ "tokens_in": 246,
+ "tokens_out": 86
+}

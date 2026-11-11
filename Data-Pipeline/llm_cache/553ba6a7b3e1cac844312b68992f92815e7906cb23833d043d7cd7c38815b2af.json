@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002112,
+ "facts_hash": "5ef83e3d8d856c18",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The jazzband/django-debug-toolbar team still has to migrate 29 call sites. The sites are in the following files: debug_toolbar/panels/sql/panel.py (4 sites), debug_toolbar/panels/staticfiles.py (1 site), debug_toolbar/panels/templates/panel.py (2 sites), debug_toolbar/toolbar.py (2 sites), example/urls.py (7 sites), and tests/urls.py (13 sites). No bug fixes have been applied in any of these files (no ticket keys). The team is blocked by no one and blocks no one.\", \"used\": [\"team\", \"files\", \"left\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 450,
+ "tokens_out": 141
+}

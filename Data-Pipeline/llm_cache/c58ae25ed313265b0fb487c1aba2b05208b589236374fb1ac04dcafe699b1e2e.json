@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002008,
+ "facts_hash": "2e23586ee056fc1c",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The core team still has to migrate 6 call sites of ungettext_lazy: 6 in django/core/validators.py. django/core/validators.py had 0 bug fixes []. The migration of ungettext_lazy is not blocked by any team and does not block any team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"bug_fixes\", \"fix_keys\", \"path\", \"sites\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 255,
+ "tokens_out": 97
+}

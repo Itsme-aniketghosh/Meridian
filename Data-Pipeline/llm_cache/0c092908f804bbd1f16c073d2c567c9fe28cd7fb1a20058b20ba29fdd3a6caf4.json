@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00015335,
+ "facts_hash": "ce4908fed1d4f875",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 2 call sites of 'ugettext_lazy' in 'django/contrib/sessions/apps.py:2, django/contrib/sessions/base_session.py:6' to the new location as done by the contrib.sessions team.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 218,
+ "tokens_out": 67
+}

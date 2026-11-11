@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000155,
+ "facts_hash": "1a78ab032873c023",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 3 call sites of 'ungettext' in django/contrib/auth/password_validation.py:15, django/contrib/auth/password_validation.py:102, django/contrib/auth/password_validation.py:112 by contrib.auth team.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 226,
+ "tokens_out": 66
+}

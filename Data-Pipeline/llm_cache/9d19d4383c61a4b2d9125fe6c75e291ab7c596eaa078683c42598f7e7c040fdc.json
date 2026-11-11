@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0012345,
+ "facts_hash": "4130b9859c4c2c0b",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team contrib.humanize has 1 call site left to migrate for symbol ugettext_lazy: 1 site in django/contrib/humanize/apps.py, which had 0 bug fixes (fix keys: none). It is blocked by none and blocking none.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"blocked_by\",\n  \"blocking\"\n ]\n}\n```",
+ "tokens_in": 278,
+ "tokens_out": 109
+}

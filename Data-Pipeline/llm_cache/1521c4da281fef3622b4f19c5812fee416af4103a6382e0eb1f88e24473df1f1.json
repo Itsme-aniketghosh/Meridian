@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001458,
+ "facts_hash": "c4dfa0a3f463d1c0",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The jazzband/django-two-factor-auth team's migration of the symbol 'url' has had no change since 2020-05-24T20:32:21Z. There are 37 call sites left. Possible reasons are: 'Never notified' (1), 'Orphaned owner' (1), 'Test gap' (3).\", \"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"since\"]}",
+ "tokens_in": 306,
+ "tokens_out": 99
+}

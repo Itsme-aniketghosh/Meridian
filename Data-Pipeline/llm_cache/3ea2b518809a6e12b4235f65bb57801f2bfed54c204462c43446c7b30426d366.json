@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014125,
+ "facts_hash": "9e98e9c1536ed1a1",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The url migration across the carltongibson/django-filter team has had no change since 2017-05-16T19:05:52Z. There are 7 call sites left. The possible reasons are: 'Never notified' with 1 piece of evidence, 'Test gap' with 2 pieces of evidence.\",\n\"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"] }",
+ "tokens_in": 285,
+ "tokens_out": 100
+}

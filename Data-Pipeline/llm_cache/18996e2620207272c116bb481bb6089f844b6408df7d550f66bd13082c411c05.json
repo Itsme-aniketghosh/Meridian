@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00021375,
+ "facts_hash": "ead251ba12fe4a00",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.auth has 7 call sites of ugettext_lazy left to migrate: django/contrib/auth/admin.py (1 site, 0 bug fixes), django/contrib/auth/apps.py (1 site, 0 bug fixes), django/contrib/auth/base_user.py (1 site, 0 bug fixes), django/contrib/auth/forms.py (1 site, 0 bug fixes), django/contrib/auth/models.py (1 site, 0 bug fixes), django/contrib/auth/validators.py (1 site, 0 bug fixes), and django/contrib/auth/views.py (1 site, 0 bug fixes).\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\",\n  \"fix_keys\"\n ]\n}\n```",
+ "tokens_in": 573,
+ "tokens_out": 213
+}

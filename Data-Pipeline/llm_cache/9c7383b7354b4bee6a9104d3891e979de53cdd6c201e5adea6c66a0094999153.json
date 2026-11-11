@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001272,
+ "facts_hash": "61b927b5d53cc6d4",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The template team still has to migrate 7 call sites. The file django/template/defaultfilters.py has 7 call sites and had 0 bug fixes (no ticket keys). No files are blocked, and it does not block any other files.\", \"used\": [\"team\", \"left\", \"files\", \"symbol\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 254,
+ "tokens_out": 91
+}

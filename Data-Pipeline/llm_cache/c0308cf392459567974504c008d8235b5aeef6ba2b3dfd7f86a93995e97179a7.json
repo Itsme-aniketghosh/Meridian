@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0012135,
+ "facts_hash": "7dbec4f98aee2413",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team contrib.gis has 1 call site left to migrate for symbol ugettext. The file django/contrib/gis/views.py has 1 call site and 0 bug fixes with keys []. The team is blocked by [] and is blocking [].\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"blocked_by\",\n  \"blocking\"\n ]\n}\n```",
+ "tokens_in": 274,
+ "tokens_out": 107
+}

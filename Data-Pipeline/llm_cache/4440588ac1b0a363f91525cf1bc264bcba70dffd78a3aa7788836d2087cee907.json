@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00012885,
+ "facts_hash": "7bd46ed156146c89",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"utils has 5 left to migrate for ugettext. There are 5 call sites: 1 in django/utils/dateformat.py, 1 in django/utils/text.py, and 3 in django/utils/timesince.py. Each file had 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"sites\",\n  \"path\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 375,
+ "tokens_out": 121
+}

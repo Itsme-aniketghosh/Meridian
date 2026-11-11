@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001231,
+ "facts_hash": "e2944dc5f75c4bf3",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.auth team still has 1 call site to migrate. The call site is in django/contrib/auth/hashers.py, which has 0 bug fixes (no ticket keys). No other teams are blocked by this team, and this team is not blocking any other teams.\", \"used\": [\"team\", \"files\", \"left\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 260,
+ "tokens_out": 83
+}

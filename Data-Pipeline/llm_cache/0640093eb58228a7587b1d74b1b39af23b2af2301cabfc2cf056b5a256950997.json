@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001284,
+ "facts_hash": "9280931ff2b84862",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team forms's migration of ugettext has had no change since 2016-03-28T22:33:29Z, with 7 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 3).\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"since\",\n  \"left\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 306,
+ "tokens_out": 110
+}

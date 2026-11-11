@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.02632,
+ "facts_hash": "364ba1d6c479f37f",
+ "model": "gemini-pro",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\n  \"text\": \"The cookiecutter/cookiecutter-django team has 16 call sites for url. The migration is done when 16 sites are migrated: {{cookiecutter.project_slug}}/config/urls.py:2, {{cookiecutter.project_slug}}/config/urls.py:9, {{cookiecutter.project_slug}}/config/urls.py:10, {{cookiecutter.project_slug}}/config/urls.py:16, {{cookiecutter.project_slug}}/config/urls.py:18, {{cookiecutter.project_slug}}/config/urls.py:22, {{cookiecutter.project_slug}}/config/urls.py:32, {{cookiecutter.project_slug}}/config/urls.py:37, {{cookiecutter.project_slug}}/config/urls.py:42, {{cookiecutter.project_slug}}/config/urls.py:47, {{cookiecutter.project_slug}}/config/urls.py:52, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:1, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:7, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:8, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:9, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:10.\",\n  \"used\": [\n    \"team\",\n    \"count\",\n    \"symbol\",\n    \"sites\"\n  ]\n}",
+ "tokens_in": 512,
+ "tokens_out": 2108
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0003103,
+ "facts_hash": "57e5760cb89faf38",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The jazzband/django-silk team still has to migrate 28 call sites of 'url'. The remaining call sites are in project/example_app/urls.py (2), project/project/urls.py (5), project/tests/urlconf_without_silk.py (2) and silk/urls.py (19). The files had the following number of bug fixes: project/example_app/urls.py (0, []), project/project/urls.py (0, []), project/tests/urlconf_without_silk.py (0, []) and silk/urls.py (0, []). The migration is not blocked by any team and does not block any team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 374,
+ "tokens_out": 156
+}

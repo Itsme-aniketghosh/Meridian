@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00132,
+ "facts_hash": "25359fd9b62a9620",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team contrib.auth's migration of ugettext_noop has had no change since 2011-12-24T19:38:37Z and has 1 call site left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 310,
+ "tokens_out": 114
+}

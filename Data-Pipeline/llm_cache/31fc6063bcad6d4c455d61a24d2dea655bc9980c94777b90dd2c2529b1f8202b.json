@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.019988,
+ "facts_hash": "f8786a7733a90e07",
+ "model": "gemini-pro",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\n  \"text\": \"The django-haystack/django-haystack team needs to migrate the url symbol. This ticket is done when the 13 call sites are migrated at the following locations: haystack/urls.py:2, haystack/urls.py:6, test_haystack/core/urls.py:2, test_haystack/core/urls.py:13, test_haystack/core/urls.py:14, test_haystack/core/urls.py:15, test_haystack/core/urls.py:23, test_haystack/core/urls.py:27, test_haystack/results_per_page_urls.py:2, test_haystack/results_per_page_urls.py:12, test_haystack/results_per_page_urls.py:13, test_haystack/test_app_without_models/urls.py:2, test_haystack/test_app_without_models/urls.py:6.\",\n  \"used\": [\n    \"team\",\n    \"symbol\",\n    \"count\",\n    \"sites\"\n  ]\n}",
+ "tokens_in": 400,
+ "tokens_out": 1599
+}

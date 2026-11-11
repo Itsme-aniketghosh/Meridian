@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00015395,
+ "facts_hash": "58f0ccbf17ec5450",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The migration of symbol 'url' by team 'yourlabs/django-autocomplete-light' has had no change since 2021-11-25T09:53:05Z. There are 67 call sites left. Possible reasons are: 'Never notified' with 1 evidence, 'Orphaned owner' with 2 evidence, and 'Test gap' with 19 evidence.\",\n\"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"] }",
+ "tokens_in": 305,
+ "tokens_out": 111
+}

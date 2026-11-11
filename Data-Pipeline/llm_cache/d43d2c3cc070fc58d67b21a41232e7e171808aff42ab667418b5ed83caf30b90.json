@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00027045,
+ "facts_hash": "efdcd5893d8f16e3",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The django-haystack/django-haystack team still has to migrate 13 call sites of 'url': 2 in haystack/urls.py, 6 in test_haystack/core/urls.py, 3 in test_haystack/results_per_page_urls.py, 2 in test_haystack/test_app_without_models/urls.py. The files had 0 bug fixes each. Nothing blocks the migration and it doesn't block anything.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 385,
+ "tokens_out": 118
+}

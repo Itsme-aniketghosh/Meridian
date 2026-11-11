@@ -1,0 +1,9 @@
+{
+ "cost_usd": 6.915e-05,
+ "facts_hash": "561f8c97fe41be94",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext at django/contrib/gis/views.py:2 for contrib.gis.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 229,
+ "tokens_out": 58
+}

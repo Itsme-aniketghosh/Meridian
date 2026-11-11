@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014445,
+ "facts_hash": "e949a9e4a64fc983",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 2 call sites of 'ugettext_lazy' in 'django/views/static.py' at lines 18 and 98. The task is done when the 'views' team has migrated both sites.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 209,
+ "tokens_out": 62
+}

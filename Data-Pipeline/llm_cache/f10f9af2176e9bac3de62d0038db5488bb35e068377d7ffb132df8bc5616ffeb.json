@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00016755,
+ "facts_hash": "162bb180f9357f78",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate url in django_extensions/admin/__init__.py:55, django_extensions/admin/__init__.py:63, tests/management/commands/test_show_urls.py:3, tests/management/commands/test_show_urls.py:26, tests/management/commands/test_show_urls.py:27, tests/management/commands/test_show_urls.py:28, tests/testapp/urls.py:19, tests/testapp/urls.py:27, tests/testapp/urls.py:28, tests/testapp/urls.py:29 for django-extensions/django-extensions.\",\n \"used\": [\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 361,
+ "tokens_out": 189
+}

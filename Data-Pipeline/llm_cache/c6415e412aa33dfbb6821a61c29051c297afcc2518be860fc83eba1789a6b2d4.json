@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00021705,
+ "facts_hash": "efdcd5893d8f16e3",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"The django-haystack/django-haystack team still has to migrate 13 url call sites: 2 in haystack/urls.py, 6 in test_haystack/core/urls.py, 3 in test_haystack/results_per_page_urls.py, and 2 in test_haystack/test_app_without_models/urls.py. There were 0 bug fixes for these files.\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"files\",\n  \"files[0].sites\",\n  \"files[0].path\",\n  \"files[1].sites\",\n  \"files[1].path\",\n  \"files[2].sites\",\n  \"files[2].path\",\n  \"files[3].sites\",\n  \"files[3].path\",\n  \"files[0].bug_fixes\",\n  \"files[1].bug_fixes\",\n  \"files[2].bug_fixes\",\n  \"files[3].bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 443,
+ "tokens_out": 251
+}

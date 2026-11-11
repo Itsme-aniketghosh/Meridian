@@ -65,6 +65,21 @@ ROW_KIND = {"rewrite": "rewrite", "ticket_draft": "ticket_draft", "stall_reason"
 # the templates' fixed product phrases that can share a word with a team (the real block has a team named Bug):
 # the gate reads them as words, for the templates and the LLM's text alike (02-product: "Bug fixes", never "incidents")
 VOCAB = ("bug fix", "bug fixes")
+# Decision 5b: a person whose whole name is one of these isn't a name a text can use: on block 70dd1dab a git author
+# named NOTHING made "nothing blocks them" name a person. Function words only, a closed list; the ones that are also
+# first names (will, may, june, bill, ...) are left out, so those people stay names. A dictionary is too wide: most
+# of its one-word matches among the block's people are first names (Frank, Mark, Tom).
+FUNCTION_WORDS = frozenset("""
+a about above after again against all also an and any anybody anyone anything anywhere are as at be because been
+before being below between both but by can cannot could did do does doing done down during each either else
+enough every everybody everyone everything everywhere few for from further had has have having he her here hers
+herself him himself his how however i if in into is it its itself just least less many me might mine more most
+much must my myself neither never no nobody none noone nor not nothing now nowhere of off often on once one only
+or other others otherwise our ours ourselves out over own per rather same she should since so some somebody
+someone something sometimes somewhere still such than that the their theirs them themselves then there these they
+this those though through thus to too under until up upon us very via was we were what whatever when where
+whether which while who whoever whom whose why with within without would yet you your yours yourself yourselves
+""".split())
 REDACTED = {"redacted": "a person"}  # a cached reply that named a person, kept as this so a rerun makes 0 calls
 
 SYSTEM = """You write one short text for a tool that tracks a code migration across teams.
@@ -287,7 +302,7 @@ def names(db):
     teams = {r[0] for r in db.execute("SELECT team FROM team_map UNION SELECT owner_team FROM call_site") if r[0]}
     people = {r[0] for r in db.execute(
         "SELECT p.name FROM person p WHERE NOT p.is_bot AND EXISTS (SELECT 1 FROM person_alias a "
-        "WHERE a.person_id = p.person_id AND NOT a.generic)") if r[0]}
+        "WHERE a.person_id = p.person_id AND NOT a.generic)") if r[0] and r[0].strip().lower() not in FUNCTION_WORDS}
     return sorted(teams), sorted(people)
 
 
@@ -306,7 +321,7 @@ _FENCE = re.compile(r"^```(?:json)?\s*\n(.*)\n```\s*$", re.S)
 
 def parse(reply, facts):
     """The text of a reply that is {"text": str, "used": [fact names]}, else None (bad JSON). A reply in one
-    ```json fence is read inside it."""
+    ```json fence is read inside it. A fact name can be nested (decision 5b)."""
     if not isinstance(reply, str):
         return None
     fenced = _FENCE.match(reply.strip())
@@ -317,9 +332,34 @@ def parse(reply, facts):
     if not isinstance(obj, dict) or not isinstance(obj.get("text"), str) or not obj["text"].strip():
         return None
     used = obj.get("used")
-    if not isinstance(used, list) or not all(isinstance(u, str) and u in facts["facts"] for u in used):
+    keys = _keys(facts["facts"])
+    if not isinstance(used, list) or not all(isinstance(u, str) and _a_fact(u, keys) for u in used):
         return None
     return obj["text"].strip()
+
+
+_INDEX = re.compile(r"\[\d+\]")
+
+
+def _keys(obj, out=None):
+    """Every dict key anywhere in the facts, nested ones too (files -> path, reasons -> evidence)."""
+    out = set() if out is None else out
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            out.add(k)
+            _keys(v, out)
+    elif isinstance(obj, list):
+        for v in obj:
+            _keys(v, out)
+    return out
+
+
+def _a_fact(name, keys):
+    """Decision 5b: a `used` entry names a fact if, with [n] indices dropped, every dotted part is a key somewhere in
+    the facts: "team", "files[0].path", "bug_fixes". A value ("2016-04-22", a symbol) isn't a fact's name. `used` is
+    bookkeeping: the gate checks the text itself either way."""
+    parts = _INDEX.sub("", name).split(".")
+    return all(part in keys for part in parts) and bool(name)
 
 
 def names_a_person(text, people):

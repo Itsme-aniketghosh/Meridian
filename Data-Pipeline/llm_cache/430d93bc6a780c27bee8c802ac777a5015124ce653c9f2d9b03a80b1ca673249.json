@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014205,
+ "facts_hash": "4ea0663fd61ee240",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"django-extensions/django-extensions has 10 left call sites for url. The files to migrate are: django_extensions/admin/__init__.py (2 sites, 0 bug fixes), tests/management/commands/test_show_urls.py (4 sites, 0 bug fixes), and tests/testapp/urls.py (4 sites, 0 bug fixes).\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 387,
+ "tokens_out": 140
+}

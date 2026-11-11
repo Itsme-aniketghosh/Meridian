@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002193,
+ "facts_hash": "4d7f21ce2624ed58",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate url in tests/test_routing.py:4, tests/test_routing.py:62, tests/test_routing.py:63, tests/test_routing.py:64, tests/test_routing.py:65, tests/test_routing.py:66, tests/test_routing.py:67, tests/test_routing.py:110, tests/test_routing.py:111, tests/test_routing.py:116, tests/test_routing.py:117, tests/test_routing.py:218, tests/test_routing.py:221, tests/test_routing.py:221, tests/test_routing.py:223, tests/test_routing.py:235, tests/test_testing.py:5, tests/test_testing.py:101 for django/channels. 18 sites.\",\n \"used\": [\n  \"sites\",\n  \"symbol\",\n  \"team\",\n  \"count\"\n ]\n}\n```",
+ "tokens_in": 422,
+ "tokens_out": 260
+}

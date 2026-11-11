@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00010395,
+ "facts_hash": "535b908432e06681",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.staticfiles has 1 call site of ugettext_lazy left to migrate in django/contrib/staticfiles/apps.py. This file had 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\",\n  \"fix_keys\"\n ]\n}\n```",
+ "tokens_in": 289,
+ "tokens_out": 101
+}

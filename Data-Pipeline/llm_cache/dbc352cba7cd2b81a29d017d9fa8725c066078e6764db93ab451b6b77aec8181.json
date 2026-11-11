@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0007515,
+ "facts_hash": "561f8c97fe41be94",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.gis: migrate 1 call site of symbol ugettext at django/contrib/gis/views.py:2.\",\n \"used\": [\"team\", \"count\", \"symbol\", \"sites\"]\n}\n```",
+ "tokens_in": 216,
+ "tokens_out": 57
+}

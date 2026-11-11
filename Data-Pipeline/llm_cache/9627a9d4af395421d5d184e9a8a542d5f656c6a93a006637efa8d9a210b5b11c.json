@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0003099,
+ "facts_hash": "364ba1d6c479f37f",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"The cookiecutter/cookiecutter-django team has 16 call sites for the 'url' symbol that need migration. The sites are located in {{cookiecutter.project_slug}}/config/urls.py:2, {{cookiecutter.project_slug}}/config/urls.py:9, {{cookiecutter.project_slug}}/config/urls.py:10, {{cookiecutter.project_slug}}/config/urls.py:16, {{cookiecutter.project_slug}}/config/urls.py:18, {{cookiecutter.project_slug}}/config/urls.py:22, {{cookiecutter.project_slug}}/config/urls.py:32, {{cookiecutter.project_slug}}/config/urls.py:37, {{cookiecutter.project_slug}}/config/urls.py:42, {{cookiecutter.project_slug}}/config/urls.py:47, {{cookiecutter.project_slug}}/config/urls.py:52, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:1, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:7, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:8, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:9, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:10.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 436,
+ "tokens_out": 287
+}

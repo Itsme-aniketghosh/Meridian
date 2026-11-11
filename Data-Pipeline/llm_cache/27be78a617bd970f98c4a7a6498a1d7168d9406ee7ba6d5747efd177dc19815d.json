@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001405,
+ "facts_hash": "a84ce9e6a597e8ac",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.admin team still has to migrate 5 call sites. The call sites are in 2 files: django/contrib/admin/options.py with 3 call sites and 0 bug fixes (fix keys: ) and django/contrib/admin/utils.py with 2 call sites and 0 bug fixes (fix keys: ).\", \n\"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 296,
+ "tokens_out": 95
+}

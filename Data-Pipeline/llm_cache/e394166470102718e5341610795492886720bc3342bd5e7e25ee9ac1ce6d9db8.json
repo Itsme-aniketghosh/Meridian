@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00058705,
+ "facts_hash": "63ada199964a5a16",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The pennersr/django-allauth team still has to migrate 50 call sites of 'url'. Remaining files are: allauth/account/urls.py (14 sites, 0 bug fixes), allauth/socialaccount/providers/draugiem/urls.py (3 sites, 0 bug fixes), allauth/socialaccount/providers/facebook/urls.py (2 sites, 0 bug fixes), allauth/socialaccount/providers/oauth/urls.py (4 sites, 0 bug fixes), allauth/socialaccount/providers/oauth2/urls.py (4 sites, 0 bug fixes), allauth/socialaccount/providers/openid/urls.py (3 sites, 0 bug fixes), allauth/socialaccount/providers/persona/urls.py (2 sites, 0 bug fixes), allauth/socialaccount/providers/steam/urls.py (3 sites, 0 bug fixes), allauth/socialaccount/providers/telegram/urls.py (2 sites, 0 bug fixes), allauth/socialaccount/urls.py (5 sites, 0 bug fixes), allauth/urls.py (3 sites, 0 bug fixes), example/example/urls.py (5 sites, 0 bug fixes). No files had bug fixes. The migration is not blocked by or blocking any other task.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"bug_fixes\", \"fix_keys\", \"path\", \"sites\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 708,
+ "tokens_out": 295
+}

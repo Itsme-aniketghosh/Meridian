@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001869,
+ "facts_hash": "9fa892110a082bee",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 7 call sites of 'ungettext_lazy' across the codebase to the new API. The affected sites are in django/utils/timesince.py at lines 6, 9, 10, 11, 12, 13, 14. The task is done when all sites are migrated.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 258,
+ "tokens_out": 84
+}

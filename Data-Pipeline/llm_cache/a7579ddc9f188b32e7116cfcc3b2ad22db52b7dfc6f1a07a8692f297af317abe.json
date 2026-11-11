@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00366,
+ "facts_hash": "0d4fa6de0349d6a5",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team tests still has 24 call sites left to migrate for symbol ugettext across the following files: tests/auth_tests/test_forms.py (1 site, 0 bug fixes), tests/flatpages_tests/test_forms.py (1 site, 0 bug fixes), tests/humanize_tests/tests.py (1 site, 0 bug fixes), tests/i18n/commands/__init__.py (1 site, 0 bug fixes), tests/i18n/commands/code.sample (2 sites, 0 bug fixes), tests/i18n/exclude/__init__.py (1 site, 0 bug fixes), tests/i18n/project_dir/__init__.py (1 site, 0 bug fixes), tests/i18n/project_dir/app_no_locale/models.py (1 site, 0 bug fixes), tests/i18n/project_dir/app_with_locale/models.py (1 site, 0 bug fixes), tests/i18n/test_compilation.py (5 sites, 0 bug fixes), and tests/i18n/tests.py (9 sites, 0 bug fixes). Blocked by: none. Blocking: none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 790,
+ "tokens_out": 330
+}

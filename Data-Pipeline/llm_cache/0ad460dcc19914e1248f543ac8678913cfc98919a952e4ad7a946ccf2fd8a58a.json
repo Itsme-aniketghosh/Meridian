@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001285,
+ "facts_hash": "c5db106564d7d947",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The templatetags team still has 1 call site to migrate. The file django/templatetags/i18n.py has 1 call site and had 0 bug fixes. No ticket keys are associated with bug fixes in this file. The migration is blocked by no tasks and blocks no tasks.\", \"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 262,
+ "tokens_out": 90
+}

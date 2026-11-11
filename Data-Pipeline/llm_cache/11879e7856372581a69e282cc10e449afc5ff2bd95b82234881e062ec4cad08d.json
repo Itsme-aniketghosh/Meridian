@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00026055,
+ "facts_hash": "302eb7678ff872e7",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.admin team still has to migrate 27 call sites. The sites are in the following files: django/contrib/admin/actions.py (1 site), django/contrib/admin/helpers.py (3 sites), django/contrib/admin/models.py (15 sites), django/contrib/admin/options.py (1 site), django/contrib/admin/sites.py (1 site), django/contrib/admin/templatetags/admin_list.py (1 site), django/contrib/admin/tests.py (1 site), django/contrib/admin/views/main.py (3 sites), django/contrib/admin/widgets.py (1 site). No bug fixes have been applied in these files (no ticket keys).\", \"used\": [\"team\", \"left\", \"files\", \"path\", \"sites\", \"symbol\", \"bug_fixes\", \"fix_keys\"]}",
+ "tokens_in": 569,
+ "tokens_out": 169
+}

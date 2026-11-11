@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002248,
+ "facts_hash": "bf0bcb7d5e176418",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The django-import-export/django-import-export team still has to migrate 7 call sites of 'url'. The remaining call sites are in import_export/admin.py (4) and tests/urls.py (3). import_export/admin.py had 0 bug fixes []. tests/urls.py had 0 bug fixes []. The migration is not blocked by any other migration and does not block any other migration.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 294,
+ "tokens_out": 106
+}

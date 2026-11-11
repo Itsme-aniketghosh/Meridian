@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001089,
+ "facts_hash": "75c17f66d9417591",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext across 3 sites for contrib.flatpages: django/contrib/flatpages/forms.py:4, django/contrib/flatpages/forms.py:29, django/contrib/flatpages/forms.py:36.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 246,
+ "tokens_out": 96
+}

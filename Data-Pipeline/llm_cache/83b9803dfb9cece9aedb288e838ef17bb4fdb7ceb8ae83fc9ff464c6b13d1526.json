@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002052,
+ "facts_hash": "57e5760cb89faf38",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"jazzband/django-silk has 28 url call sites left to migrate: 2 in project/example_app/urls.py, 5 in project/project/urls.py, 2 in project/tests/urlconf_without_silk.py, and 19 in silk/urls.py. There were 0 bug fixes for these files.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"files[0].sites\",\n  \"files[0].path\",\n  \"files[0].bug_fixes\",\n  \"files[1].sites\",\n  \"files[1].path\",\n  \"files[1].bug_fixes\",\n  \"files[2].sites\",\n  \"files[2].path\",\n  \"files[2].bug_fixes\",\n  \"files[3].sites\",\n  \"files[3].path\",\n  \"files[3].bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 428,
+ "tokens_out": 235
+}

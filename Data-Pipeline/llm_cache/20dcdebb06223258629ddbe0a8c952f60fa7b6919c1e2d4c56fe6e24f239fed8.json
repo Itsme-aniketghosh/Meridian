@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.66e-05,
+ "facts_hash": "61b927b5d53cc6d4",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"template has 7 call sites of ugettext left to migrate in django/template/defaultfilters.py. django/template/defaultfilters.py had 0 bug fixes.\",\n \"used\": [\n  \"left\",\n  \"sites\",\n  \"symbol\",\n  \"team\",\n  \"path\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 284,
+ "tokens_out": 90
+}

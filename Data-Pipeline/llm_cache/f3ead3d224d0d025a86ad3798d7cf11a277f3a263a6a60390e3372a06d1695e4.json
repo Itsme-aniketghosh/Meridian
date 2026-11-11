@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014275,
+ "facts_hash": "28b23f006797a157",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The cookiecutter/cookiecutter-django team's migration of the url symbol has had no change since 2018-04-08T22:03:29Z. There are 16 call sites left. The possible reasons are: Never notified (1), Orphaned owner (2), Test gap (2).\", \"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"]}",
+ "tokens_in": 305,
+ "tokens_out": 95
+}

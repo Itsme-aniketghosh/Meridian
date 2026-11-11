@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00016755,
+ "facts_hash": "d2126c5d544aaa49",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy in django/contrib/admin/actions.py:12, django/contrib/admin/actions.py:87, django/contrib/admin/apps.py:4, django/contrib/admin/filters.py:18, django/contrib/admin/forms.py:3, django/contrib/admin/helpers.py:16, django/contrib/admin/models.py:11, django/contrib/admin/sites.py:13, django/contrib/admin/sites.py:39, django/contrib/admin/sites.py:42, django/contrib/admin/sites.py:45 for contrib.admin.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 361,
+ "tokens_out": 189
+}

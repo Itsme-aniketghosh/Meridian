@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00012615,
+ "facts_hash": "c853152133c601f8",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext at django/template/defaultfilters.py:22, django/template/defaultfilters.py:820, django/template/defaultfilters.py:868, django/template/defaultfilters.py:870, django/template/defaultfilters.py:872, django/template/defaultfilters.py:874, django/template/defaultfilters.py:876 for template.\",\n \"used\": [\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 305,
+ "tokens_out": 134
+}

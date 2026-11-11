@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001508,
+ "facts_hash": "3681ed10942e8536",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The forms team still has to migrate 7 call sites. The sites are in files django/forms/forms.py (1 site), django/forms/formsets.py (1 site), and django/forms/models.py (5 sites). No bug fixes have been applied in these files (no ticket keys). The migration is blocked by no other teams, and blocks no other teams.\", \"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 326,
+ "tokens_out": 99
+}

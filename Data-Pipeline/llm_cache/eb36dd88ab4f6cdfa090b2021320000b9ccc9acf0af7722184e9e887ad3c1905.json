@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001268,
+ "facts_hash": "4bcd8afe2b9dd757",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.messages team still has 1 call site to migrate. The call site is in django/contrib/messages/apps.py at 1 site. This file had 0 bug fixes with no associated ticket keys. No other teams are blocked by this team, but this team is not blocking any other teams either.\", \"used\": [\"team\", \"files\", \"left\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 258,
+ "tokens_out": 89
+}

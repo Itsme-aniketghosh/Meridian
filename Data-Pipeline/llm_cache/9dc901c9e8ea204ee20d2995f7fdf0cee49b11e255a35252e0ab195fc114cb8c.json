@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0004531,
+ "facts_hash": "d54d7f985f760a80",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 50 call sites of 'url' across the codebase to the new API. The affected files are allauth/account/urls.py, allauth/socialaccount/providers/draugiem/urls.py, allauth/socialaccount/providers/facebook/urls.py, allauth/socialaccount/providers/oauth/urls.py, allauth/socialaccount/providers/oauth2/urls.py, allauth/socialaccount/providers/openid/urls.py, allauth/socialaccount/providers/persona/urls.py, allauth/socialaccount/providers/steam/urls.py, allauth/socialaccount/providers/telegram/urls.py, allauth/socialaccount/urls.py, allauth/urls.py, and example/example/urls.py. The task is complete when all 50 call sites are migrated.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 736,
+ "tokens_out": 170
+}

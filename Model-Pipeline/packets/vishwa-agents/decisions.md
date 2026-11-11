@@ -83,7 +83,58 @@ Review fix (Nov 8, PR #42): two swapped teams got past article: a curly apostrop
 From decision 1: all 10 false rejects are a team name (`platform`) used as a plain word. Loosening the gate to allow that let a swapped team through ("Done: platform, 2 of 2." for search), so the fix goes in the writer, not the gate.
 
 - [x] The writer's prompt tells the LLM: "Use team names only to name teams. Don't use them as ordinary words." So it writes "across the codebase", not "across the platform". (`agents.SYSTEM`, Nov 9)
-- [ ] Measure the gate's false-reject rate on real LLM output (decision 5). At or under 5%: done. Over 5%: revisit the team rule then, with real data, not our own test sentence.
+- [x] Measure the gate's false-reject rate on real LLM output (decision 5). At or under 5%: done. Over 5%: revisit the team rule then, with real data, not our own test sentence.
+
+### Decision 5 result (Nov 11): the gate's false rejects on real LLM text
+
+Block 70dd1dab, the writer's 204 real tasks on Gemini 3.8 Flash, Llama 4 Maverick, Llama 4 Scout and Gemma 4 26B (816 answers, `llm_cache/`). Every text the gate rejected was read by hand next to its facts: fine (every claim is in the facts or follows from them, and the gate was too strict) or wrong (a claim the facts don't support, or a reply that can't be read). Sheet: `out/70dd1dabfed544b8/handcheck_writer.csv`, local, not in git.
+
+| Rejected by | Texts | Read | Fine (false reject) | Wrong |
+|---|---:|---:|---:|---:|
+| **the gate** (a token not in the facts) | 27 | all 27 | **23 (85%)** | 4 |
+| the person check (a person's name) | 45 | 0: such replies are never stored | likely all (below) | 0 |
+| the `used` list (a name that isn't a top-level fact) | 183 | 18, sampled | 17 | 1 |
+| not JSON | 2 | 2 | 0 | 2 (an extra closing brace) |
+
+**85% is over the 5% bar, so the gate is revisited. The team rule isn't the cause:** of the 23 false rejects, 21 are numbers and 2 are paths, none a team. The writers state numbers that follow from the facts and are right ("11 sites in config/urls.py", counted from the site list; "done when the count is 0"), and the gate takes only numbers the facts spell out. The 4 it caught were real: "44 other files" (the facts have 35), a date that doesn't exist (2016-13-05), a wrong path, and a site list with wrong lines and one site left out.
+
+- **The person check:** a git author in the block is named "Nothing", so "nothing blocks them" names a person. Gemini 39 consumer texts, Maverick 5 consumer and 1 ticket draft. Regenerated, 2 of 3 replies matched "Nothing" (the third came back without the word); the stored ones are only the redacted marker, so the 45 aren't read one by one.
+- **The `used` list:** the open models list fields inside a fact (`bug_fixes`, `files[0].path`) or words (`evidence`, `reason`). The gate passes the text itself in 175 of the 183. With a looser `used` check: Gemma 98.5%, Scout 93.1%, Maverick 87.7%, against 65.2%, 54.4% and 74.0% as run.
+- None of this changes the writer's comparison: the rules were written before the run and every model is held to the same ones. A fix (numbers that follow from the facts, person names that are common words, top-level-or-inner `used` names) is a new decision, written before its run, and measured from the cache at $0.
+
+### Decision 5b (written Nov 11, before its run): the person check and the `used` list
+
+Two of decision 5's three causes. The gate's fact rules don't change: numbers that follow from the facts (21 of the 23) are a later decision, fixed in the writer's facts, not by loosening the gate (decision 1 showed why).
+
+| Option | Change |
+|---|---|
+| as is | nothing |
+| **1. person names** | a person whose whole name is one English function word ("nothing", "none", "nobody", ... a closed list in `agents.py`) isn't a name the text can be said to use. Function words that are also first names (Will, May, June, Bill) stay names. A dictionary is too wide: 89 of the block's 8,299 people have a one-word name in /usr/share/dict/words, most of them first names (Frank, Mark, Tom, Anna) |
+| **2. `used` list** | an entry counts if, with `[n]` indices dropped, every dotted part is a key somewhere in the facts (`files[0].path`, `bug_fixes`, `evidence`). A value (a date, a symbol) still fails |
+| **both** | 1 and 2 |
+
+Test: the 816 answers in `llm_cache/` gated again ($0). The 45 replies the person check kept as the redacted marker have no text, so they're asked again (about $0.10) and stored only if the new check passes them.
+
+Rule: adopt an option only if all of these hold. Otherwise keep as is.
+1. The 7 texts judged wrong in decision 5 are still rejected.
+2. Every test passes unchanged, the decision-1 corpus sweep among them (2,000 / 2,000 caught), and every person test in `test_agents.py`.
+3. No newly accepted text names a person: each one that has a skipped name in it is read, and the name is an ordinary word there.
+Of the options that pass, the one that accepts the most texts. Reported: each model's pass rate before and after. The writer's comparison isn't redone: its pick stands under the rules it was run with.
+
+Result (Nov 11): **both, adopted**, now in `agents.py` (`FUNCTION_WORDS` in `names()`, `_a_fact` in `parse()`). The 45 redacted replies were asked again ($0.10); the other 771 were gated again from the cache.
+
+| Model | As run | With 5b |
+|---|---:|---:|
+| Gemini 3.8 Flash | 80.4% | **98.0%** |
+| Llama 4 Scout | 54.4% | **93.1%** |
+| Gemma 4 26B A4B | 65.2% | **92.2%** |
+| Llama 4 Maverick | 74.0% | **90.7%** |
+
+1. All 7 texts judged wrong in decision 5 are still rejected.
+2. Every test passes unchanged (186 in test_agents, test_fact_gate, test_jev, test_views, test_diffs and test_llm), and the decision-1 sweep is unchanged: article catches 2,000 / 2,000 with 0 / 2,000 false rejects.
+3. The one person name skipped on this block is NOTHING. 19 accepted texts have the word, all read by hand: 16 "blocked by nothing and is blocking nothing", 3 "nothing blocks them". In every one it's the ordinary word.
+
+Under 5b the cheapest model within 2 points of the best (98.0%) is still Gemini 3.8 Flash: the others are 4.9 points or more behind. What's left is the gate's 21 numbers that follow from the facts, and the writer's facts are where they get fixed.
 
 ## The writer, Nov 9: settings, not tests
 

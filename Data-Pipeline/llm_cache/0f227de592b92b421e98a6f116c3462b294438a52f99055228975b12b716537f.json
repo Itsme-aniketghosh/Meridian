@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00026475,
+ "facts_hash": "162bb180f9357f78",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 10 call sites of 'url' in django_extensions/admin/__init__.py:55, django_extensions/admin/__init__.py:63, tests/management/commands/test_show_urls.py:3, tests/management/commands/test_show_urls.py:26, tests/management/commands/test_show_urls.py:27, tests/management/commands/test_show_urls.py:28, tests/testapp/urls.py:19, tests/testapp/urls.py:27, tests/testapp/urls.py:28, tests/testapp/urls.py:29 across the codebase.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 303,
+ "tokens_out": 138
+}

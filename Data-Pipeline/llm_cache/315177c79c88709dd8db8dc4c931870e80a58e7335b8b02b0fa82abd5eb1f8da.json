@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.003489,
+ "facts_hash": "63ada199964a5a16",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"Team pennersr/django-allauth has 50 call sites left to migrate: allauth/account/urls.py (14 sites, 0 bug fixes), allauth/socialaccount/providers/draugiem/urls.py (3 sites, 0 bug fixes), allauth/socialaccount/providers/facebook/urls.py (2 sites, 0 bug fixes), allauth/socialaccount/providers/oauth/urls.py (4 sites, 0 bug fixes), allauth/socialaccount/providers/oauth2/urls.py (4 sites, 0 bug fixes), allauth/socialaccount/providers/openid/urls.py (3 sites, 0 bug fixes), allauth/socialaccount/providers/persona/urls.py (2 sites, 0 bug fixes), allauth/socialaccount/providers/steam/urls.py (3 sites, 0 bug fixes), allauth/socialaccount/providers/telegram/urls.py (2 sites, 0 bug fixes), allauth/socialaccount/urls.py (5 sites, 0 bug fixes), allauth/urls.py (3 sites, 0 bug fixes), and example/example/urls.py (5 sites, 0 bug fixes). The team is blocked by none and blocks none.\", \"used\": [\"team\", \"left\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 826,
+ "tokens_out": 300
+}

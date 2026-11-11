@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.54e-05,
+ "facts_hash": "1a78ab032873c023",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ungettext at django/contrib/auth/password_validation.py:15, django/contrib/auth/password_validation.py:102, django/contrib/auth/password_validation.py:112 for contrib.auth.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 264,
+ "tokens_out": 93
+}
