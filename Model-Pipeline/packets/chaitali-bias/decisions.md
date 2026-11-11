@@ -306,3 +306,11 @@ By task: ugettext 0.951 (267 lines), `url()` 0.495 (1,236), neither flagged. Own
 **The two flags are accepted** (`[llm_bias] accepted`). Utkarsh's decision 11 scored every `url()` style on all 20 packages, so on both flagged slices: the best single style gives 49.5%, and each repo's own best style, known only afterwards, about 68%. The LLM path can add at most 20 lines (1.6 points). The fixes were tried and written down, and none closes the gap. The cause is that each real migration chose its own style, so this is codemod output, not an LLM's. Oscar's numbers under the other styles aren't published per repo. The report says so.
 
 **(b) changed after its first runner run, and why.** As first written, (b) refit the committed candidate and failed unless the refit equalled the committed `val` scores to 1e-9. On the runner it failed at train (#63, run 42943059501). Those scores were made on a laptop, and the image (Linux) doesn't reproduce them that exactly. In (a)'s run the same check passed, because there it compared against scores made in the same run. So (b) is now `train.py --retrain logreg forest lgbm`: `--tune` without the search, fitting each kind with its committed `tuning_<kind>.json` best params, then scoring, picking and saving on the same machine, as S8 says the numbers should be made. On the laptop: 25 s, the same forest, the gate passes. It's Rachna's file, so she's told.
+
+(b) as `--retrain`, on the runner: **pipeline step 63 s** (#63, run 42944525502; the job about 4 min with the image build), green. Runs 2 and 3 for the median go here.
+
+## PASS-BARS §6.5 runs
+
+- Green: #63, run 42944525502 (retrain), and run 42939195787 (full search). Both stop at the gate, as PRs must: the registry steps were skipped.
+- Red at the gate on a planted bad model: #64 (`chaitali-planted-bad`, shuffled train labels, never merged), run 42944590671. "FAILED at gate": bar 0.1744 vs lines × files 0.3191, and bias with 2 open flags (`component=Pandas API on Spark` and `Structured Streaming`, false-positive rate). Nothing was registered.
+- Slack: no `MERIDIAN_SLACK_WEBHOOK` in the repo yet, so these runs posted to their summaries only. A fail, a done and a push message from real runs are still to come.
