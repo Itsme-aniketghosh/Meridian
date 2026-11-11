@@ -293,3 +293,12 @@ airflow_url = ""                      # e.g. https://airflow.example.com. "" = d
 airflow_dag_id = "meridian_update"
 airflow_user_env = "MERIDIAN_AIRFLOW_USER"          # the secret holding the Airflow API user
 airflow_password_env = "MERIDIAN_AIRFLOW_PASSWORD"  # ... and its password
+
+# ───────────── the LLM client ─────────────
+
+[llm]                                 # meridian.llm.Client: how it calls, never what a row says (the cache key does)
+project_env = "MERIDIAN_GCP_PROJECT"  # the environment variable holding the GCP project every model is called through
+max_usd = 25.0                        # the client stops itself here, per process: under the $150 account alert
+retries = 3                           # on 408, 429, 5xx and dropped connections, backing off 1, 2, 4 s
+timeout_s = 120
+ollama = "http://localhost:11434"     # Phi-4-mini, local (Jev only)
