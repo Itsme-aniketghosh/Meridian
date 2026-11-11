@@ -73,7 +73,7 @@ class Plan(unittest.TestCase):
     def test_refit_only_changes_the_train_step(self):
         full, refit = steps(), steps(refit=True)
         self.assertEqual([s[0] for s in full], [s[0] for s in refit])
-        self.assertEqual(dict((s[0], s[3]) for s in refit)["train"], ["--save-model"])
+        self.assertEqual(dict((s[0], s[3]) for s in refit)["train"], ["--retrain", "logreg", "forest", "lgbm"])
         self.assertEqual([s for s in full if s[0] != "train"], [s for s in refit if s[0] != "train"])
 
     def test_seed_noise_reads_the_picked_candidate(self):
