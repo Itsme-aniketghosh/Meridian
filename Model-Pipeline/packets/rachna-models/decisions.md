@@ -46,6 +46,7 @@ Common terms:
 |---|---|---|
 | Nov 6 | `age` is below 0 on 8 of 41,163 rows of the c5118 table (train 6, val 1, test 1), min −1.94 days. Found by the first real `--untuned` run: `log1p` of the one value below −1 made a NaN, and logistic regression stopped | `feature_matrix` reads `age` below 0 as 0 for every model: "days since the files last changed" can't be negative, and under 2 days below 0 is author dates out of order (rebases, cherry-picks). `check_table` now refuses a negative count or flag, and `--check` reports the negative `age` rows. Told Utkarsh, who owns the table |
 | Nov 7 | Tuned logistic regression scored 0.382 on `val`, below untuned (0.390). Tuning maximises the mean over the folds inside train (2020–2022), not 2023 | Kept as measured, not re-tuned on `val` (that would leak it). A small sign that 2023 differs from earlier years: decision 5 (training window) tests it |
+| Nov 11 | Aniket's recall-first models (`model.recall`, GAPS.md gap 19): each kind tuned on the train folds to flag the fewest commits for 90% recall, class weighting searched. Best: logistic regression flags 46.9% of val commits against the champion's 48.6%, a difference of −4.6 to +3.0 points | A tie: the champion stays (decision 1's rule is unchanged). The same ceiling either way: the data, not the model family |
 
 ## Options considered and not run
 
