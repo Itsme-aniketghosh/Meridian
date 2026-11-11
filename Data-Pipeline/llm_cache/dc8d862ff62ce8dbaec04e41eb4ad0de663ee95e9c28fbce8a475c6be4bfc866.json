@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00040605,
+ "facts_hash": "63ada199964a5a16",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"The team pennersr/django-allauth has 50 url call sites left to migrate: allauth/account/urls.py (14), allauth/socialaccount/providers/draugiem/urls.py (3), allauth/socialaccount/providers/facebook/urls.py (2), allauth/socialaccount/providers/oauth/urls.py (4), allauth/socialaccount/providers/oauth2/urls.py (4), allauth/socialaccount/providers/openid/urls.py (3), allauth/socialaccount/providers/persona/urls.py (2), allauth/socialaccount/providers/steam/urls.py (3), allauth/socialaccount/providers/telegram/urls.py (2), allauth/socialaccount/urls.py (5), allauth/urls.py (3), and example/example/urls.py (5). There were 0 bug fixes for each file.\",\n \"used\": [\n  \"pennersr/django-allauth\",\n  \"50\",\n  \"url\",\n  \"allauth/account/urls.py\",\n  \"14\",\n  \"allauth/socialaccount/providers/draugiem/urls.py\",\n  \"3\",\n  \"allauth/socialaccount/providers/facebook/urls.py\",\n  \"2\",\n  \"allauth/socialaccount/providers/oauth/urls.py\",\n  \"4\",\n  \"allauth/socialaccount/providers/oauth2/urls.py\",\n  \"allauth/socialaccount/providers/openid/urls.py\",\n  \"allauth/socialaccount/providers/persona/urls.py\",\n  \"allauth/socialaccount/providers/steam/urls.py\",\n  \"allauth/socialaccount/providers/telegram/urls.py\",\n  \"allauth/socialaccount/urls.py\",\n  \"5\",\n  \"allauth/urls.py\",\n  \"example/example/urls.py\",\n  \"0\"\n ]\n}\n```",
+ "tokens_in": 839,
+ "tokens_out": 467
+}

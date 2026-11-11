@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0012645,
+ "facts_hash": "ce3d1ae4c783b3d7",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team contrib.admindocs has 1 call site left to migrate for symbol ugettext. The file django/contrib/admindocs/views.py has 1 call site and 0 bug fixes with fix keys []. The team has blocked_by [] and is blocking [].\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 278,
+ "tokens_out": 113
+}

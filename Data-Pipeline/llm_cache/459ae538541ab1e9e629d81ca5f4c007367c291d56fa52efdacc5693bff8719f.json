@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000111,
+ "facts_hash": "24251817645df636",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext at django/views/csrf.py:4, django/views/debug.py:15, django/views/generic/dates.py:10, django/views/generic/detail.py:4, django/views/generic/list.py:5, and django/views/static.py:18 for views.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 284,
+ "tokens_out": 114
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001335,
+ "facts_hash": "35b16bc067ad6e29",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team contrib.syndication's migration of ugettext_lazy has had no change since 2014-01-04T21:49:35Z, and 1 call site is left. Possible reasons: Never notified (evidence: 1), Test gap (evidence: 1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 310,
+ "tokens_out": 116
+}

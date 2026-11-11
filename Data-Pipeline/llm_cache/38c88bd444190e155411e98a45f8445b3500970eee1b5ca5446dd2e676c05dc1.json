@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000103,
+ "facts_hash": "75c17f66d9417591",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Create a new ticket to track migration of symbol 'ugettext' in file 'django/contrib/flatpages/forms.py' at lines 4, 29, and 36 for team 'contrib.flatpages'.\", \"used\": [\"symbol\", \"sites\", \"team\", \"count\"]}",
+ "tokens_in": 230,
+ "tokens_out": 65
+}

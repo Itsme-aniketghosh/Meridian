@@ -1,0 +1,10 @@
+{
+ "cost_usd": 0.0024775,
+ "facts_hash": "bd313a2e7ddefae3",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "redacted": "a person",
+ "reply": null,
+ "tokens_in": 1759,
+ "tokens_out": 1619
+}

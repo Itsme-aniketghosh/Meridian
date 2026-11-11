@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00010245,
+ "facts_hash": "7dbec4f98aee2413",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.gis has 1 call site of ugettext left to migrate in django/contrib/gis/views.py. This file had 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\",\n  \"fix_keys\"\n ]\n}\n```",
+ "tokens_in": 287,
+ "tokens_out": 99
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 7.515e-05,
+ "facts_hash": "45b133f141a4f1ef",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext at django/contrib/humanize/templatetags/humanize.py:12 for contrib.humanize\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 237,
+ "tokens_out": 66
+}

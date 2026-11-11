@@ -1,0 +1,9 @@
+{
+ "cost_usd": 7.425e-05,
+ "facts_hash": "26510cdb57f5b546",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext at django/contrib/contenttypes/views.py:6 for team contrib.contenttypes.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 231,
+ "tokens_out": 66
+}

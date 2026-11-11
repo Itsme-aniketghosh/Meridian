@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.915e-05,
+ "facts_hash": "35660c3b98174a99",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.sitemaps has 1 call site of ugettext_lazy left to migrate in django/contrib/sitemaps/apps.py. There were 0 bug fixes.\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"sites\",\n  \"path\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 293,
+ "tokens_out": 92
+}

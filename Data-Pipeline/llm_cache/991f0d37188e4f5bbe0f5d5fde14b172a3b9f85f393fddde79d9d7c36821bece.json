@@ -1,0 +1,10 @@
+{
+ "cost_usd": 0.001212,
+ "facts_hash": "9961bad3c1afecda",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "redacted": "a person",
+ "reply": null,
+ "tokens_in": 323,
+ "tokens_out": 97
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001431,
+ "facts_hash": "fc944df6a433788c",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The migration of url by team django-guardian/django-guardian has had no change since 2018-09-11T19:53:53Z, and 25 call sites are left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1), Test gap (evidence: 4).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 334,
+ "tokens_out": 124
+}

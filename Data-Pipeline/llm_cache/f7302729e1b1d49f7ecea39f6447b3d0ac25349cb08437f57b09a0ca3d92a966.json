@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.007218,
+ "facts_hash": "c65cf9cfd40e6067",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Team iMerica/dj-rest-auth must migrate 51 call sites of url at demo/demo/urls.py:1, demo/demo/urls.py:15, demo/demo/urls.py:16, demo/demo/urls.py:18, demo/demo/urls.py:21, demo/demo/urls.py:23, demo/demo/urls.py:25, demo/demo/urls.py:28, demo/demo/urls.py:32, demo/demo/urls.py:35, demo/demo/urls.py:38, demo/demo/urls.py:44, demo/demo/urls.py:48, demo/demo/urls.py:49, demo/demo/urls.py:50, demo/demo/urls.py:51, demo/demo/urls.py:52, demo/demo/urls.py:53, dj_rest_auth/tests/django_urls.py:3, dj_rest_auth/tests/django_urls.py:26, dj_rest_auth/tests/django_urls.py:27, dj_rest_auth/tests/django_urls.py:28, dj_rest_auth/tests/django_urls.py:29, dj_rest_auth/tests/django_urls.py:30, dj_rest_auth/tests/django_urls.py:31, dj_rest_auth/tests/django_urls.py:32, dj_rest_auth/tests/django_urls.py:36, dj_rest_auth/tests/django_urls.py:41, dj_rest_auth/tests/django_urls.py:46, dj_rest_auth/tests/django_urls.py:47, dj_rest_auth/tests/django_urls.py:48, dj_rest_auth/tests/django_urls.py:49, dj_rest_auth/tests/django_urls.py:50, dj_rest_auth/tests/urls.py:3, dj_rest_auth/tests/urls.py:77, dj_rest_auth/tests/urls.py:78, dj_rest_auth/tests/urls.py:79, dj_rest_auth/tests/urls.py:83, dj_rest_auth/tests/urls.py:87, dj_rest_auth/tests/urls.py:88, dj_rest_auth/tests/urls.py:89, dj_rest_auth/tests/urls.py:90, dj_rest_auth/tests/urls.py:91, dj_rest_auth/tests/urls.py:92, dj_rest_auth/tests/urls.py:93, dj_rest_auth/tests/urls.py:94, dj_rest_auth/tests/urls.py:95, dj_rest_auth/tests/urls.py:99, dj_rest_auth/tests/urls.py:100, dj_rest_auth/tests/urls.py:101, dj_rest_auth/tests/urls.py:102. The migration is done when all 51 call sites are migrated.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 932,
+ "tokens_out": 776
+}

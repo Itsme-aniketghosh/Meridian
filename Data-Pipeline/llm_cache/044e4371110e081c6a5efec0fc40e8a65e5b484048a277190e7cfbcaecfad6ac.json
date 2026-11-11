@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001566,
+ "facts_hash": "854f456c6d012cc8",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"The cookiecutter/cookiecutter-django team has 16 call sites of url left to migrate. These are located in {{cookiecutter.project_slug}}/config/urls.py (11 sites) and {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py (5 sites). No bug fixes were recorded for these files.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"{{cookiecutter.project_slug}}/config/urls.py\",\n  \"sites\",\n  \"{{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 352,
+ "tokens_out": 173
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00021205,
+ "facts_hash": "6b22cbfe36f9aa74",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The graphql-python/graphene-django team still has to migrate 13 call sites. The call sites are in the following files: examples/cookbook-plain/cookbook/urls.py (3 sites, no bug fixes), examples/cookbook/cookbook/urls.py (3 sites, no bug fixes), graphene_django/tests/urls.py (3 sites, no bug fixes), graphene_django/tests/urls_inherited.py (2 sites, no bug fixes), graphene_django/tests/urls_pretty.py (2 sites, no bug fixes). No files are blocked and none are blocking.\", \"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 431,
+ "tokens_out": 149
+}

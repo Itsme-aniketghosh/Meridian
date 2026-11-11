@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014765,
+ "facts_hash": "bc70464e2aad5f03",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The iMerica/dj-rest-auth team's migration of the symbol 'url' has had no change since 2021-11-25T17:42:49Z. There are 51 call sites left. Possible reasons are: 'Never notified' (1), 'Orphaned owner' (1), 'Test gap' (2).\", \"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"]}",
+ "tokens_in": 305,
+ "tokens_out": 102
+}

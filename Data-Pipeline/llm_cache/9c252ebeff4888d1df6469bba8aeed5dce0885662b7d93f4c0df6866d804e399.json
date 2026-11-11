@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0009122,
+ "facts_hash": "05e46d13103118ad",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The django-oscar/django-oscar team still has to migrate 247 call sites of 'url' across the codebase. The remaining call sites are in the following files: sandbox/urls.py (10), src/oscar/apps/basket/apps.py (6), src/oscar/apps/catalogue/apps.py (6), src/oscar/apps/catalogue/reviews/apps.py (5), src/oscar/apps/checkout/apps.py (10), src/oscar/apps/communication/app.py (11), src/oscar/apps/customer/apps.py (41), src/oscar/apps/dashboard/apps.py (16), src/oscar/apps/dashboard/catalogue/apps.py (27), src/oscar/apps/dashboard/communications/apps.py (3), src/oscar/apps/dashboard/offers/apps.py (12), src/oscar/apps/dashboard/orders/apps.py (7), src/oscar/apps/dashboard/pages/apps.py (5), src/oscar/apps/dashboard/partners/apps.py (10), src/oscar/apps/dashboard/ranges/apps.py (7), src/oscar/apps/dashboard/reports/apps.py (2), src/oscar/apps/dashboard/reviews/apps.py (4), src/oscar/apps/dashboard/shipping/apps.py (8), src/oscar/apps/dashboard/users/apps.py (7), src/oscar/apps/dashboard/vouchers/apps.py (11), src/oscar/apps/offer/apps.py (3), src/oscar/apps/search/apps.py (2), src/oscar/config.py (13), src/oscar/test/factories/urls.py (6), tests/_site/apps/catalogue/apps.py (2), tests/_site/urls.py (5), tests/unit/core/test_application.py (3), tests/unit/dashboard/test_nav.py (5). None of these files had bug fixes. The migration is not blocked by or blocking any other team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 1338,
+ "tokens_out": 386
+}

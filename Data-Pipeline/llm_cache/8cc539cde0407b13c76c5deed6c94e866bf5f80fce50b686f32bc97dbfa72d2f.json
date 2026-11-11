@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001146,
+ "facts_hash": "54f089a5a04fc594",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The views team still has to migrate 2 call sites. The sites are in django/views/static.py with 0 bug fixes (no ticket keys). No other teams are blocked by them, but they are not blocking anyone either.\", \"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 254,
+ "tokens_out": 73
+}

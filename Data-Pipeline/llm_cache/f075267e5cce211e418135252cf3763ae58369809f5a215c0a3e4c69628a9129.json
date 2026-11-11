@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00021875,
+ "facts_hash": "f16445d73ab0a7ab",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The views team still has to migrate 6 call sites. The files to migrate are: django/views/csrf.py with 1 call site and no bug fixes, django/views/debug.py with 1 call site and no bug fixes, django/views/generic/dates.py with 1 call site and no bug fixes, django/views/generic/detail.py with 1 call site and no bug fixes, django/views/generic/list.py with 1 call site and no bug fixes, and django/views/static.py with 1 call site and no bug fixes. There are no tickets blocking the views team and they do not block any other team.\",\n\"used\": [\"left\", \"team\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 441,
+ "tokens_out": 155
+}

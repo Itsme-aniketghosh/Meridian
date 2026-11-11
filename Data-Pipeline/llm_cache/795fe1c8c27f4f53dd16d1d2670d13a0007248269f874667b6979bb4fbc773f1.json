@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00048555,
+ "facts_hash": "8128d3737ffa7106",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate 29 sites for ungettext in django/contrib/humanize/templatetags/humanize.py:12, django/contrib/humanize/templatetags/humanize.py:59, django/contrib/humanize/templatetags/humanize.py:60, django/contrib/humanize/templatetags/humanize.py:63, django/contrib/humanize/templatetags/humanize.py:64, django/contrib/humanize/templatetags/humanize.py:67, django/contrib/humanize/templatetags/humanize.py:68, django/contrib/humanize/templatetags/humanize.py:71, django/contrib/humanize/templatetags/humanize.py:72, django/contrib/humanize/templatetags/humanize.py:75, django/contrib/humanize/templatetags/humanize.py:76, django/contrib/humanize/templatetags/humanize.py:79, django/contrib/humanize/templatetags/humanize.py:80, django/contrib/humanize/templatetags/humanize.py:83, django/contrib/humanize/templatetags/humanize.py:84, django/contrib/humanize/templatetags/humanize.py:87, django/contrib/humanize/templatetags/humanize.py:88, django/contrib/humanize/templatetags/humanize.py:91, django/contrib/humanize/templatetags/humanize.py:92, django/contrib/humanize/templatetags/humanize.py:95, django/contrib/humanize/templatetags/humanize.py:96, django/contrib/humanize/templatetags/humanize.py:99, django/contrib/humanize/templatetags/humanize.py:100, django/contrib/humanize/templatetags/humanize.py:205, django/contrib/humanize/templatetags/humanize.py:212, django/contrib/humanize/templatetags/humanize.py:219, django/contrib/humanize/templatetags/humanize.py:233, django/contrib/humanize/templatetags/humanize.py:240, django/contrib/humanize/templatetags/humanize.py:247 for contrib.humanize.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 777,
+ "tokens_out": 615
+}

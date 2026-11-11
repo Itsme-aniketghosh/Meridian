@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00020175,
+ "facts_hash": "ce3d1ae4c783b3d7",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.admindocs team still has to migrate 1 call site of ugettext in django/contrib/admindocs/views.py, which had 0 bug fixes (ticket keys: []). It is not blocked by any other migration and does not block any other migration.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"bug_fixes\", \"fix_keys\", \"path\", \"sites\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 261,
+ "tokens_out": 96
+}

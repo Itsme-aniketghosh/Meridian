@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001891,
+ "facts_hash": "3fcaf96d8a67ad1c",
+ "model": "llama-4-maverick",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The contrib.humanize team's migration of the ugettext_lazy symbol has had no change since 2014-01-04T21:49:35Z and 1 call site is left. Possible reasons: Never notified (1), Test gap (1).\", \"used\": [\"team\", \"symbol\", \"since\", \"left\", \"reasons\"]}",
+ "tokens_in": 284,
+ "tokens_out": 78
+}

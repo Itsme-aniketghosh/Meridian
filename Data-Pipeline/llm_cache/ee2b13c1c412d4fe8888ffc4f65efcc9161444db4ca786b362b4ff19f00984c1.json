@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0060975,
+ "facts_hash": "cb1a5035de22f4d3",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team yourlabs/django-autocomplete-light has 67 call sites left to migrate for symbol url. The files are: src/dal_queryset_sequence/fields.py (2 sites, 0 bug fixes), src/dal_select2_queryset_sequence/fields.py (2 sites, 0 bug fixes), test_project/custom_select2/urls.py (2 sites, 0 bug fixes), test_project/forward_different_fields/urls.py (2 sites, 0 bug fixes), test_project/linked_data/urls.py (2 sites, 0 bug fixes), test_project/rename_forward/urls.py (2 sites, 0 bug fixes), test_project/secure_data/urls.py (2 sites, 0 bug fixes), test_project/select2_djhacker_formfield/urls.py (2 sites, 0 bug fixes), test_project/select2_foreign_key/urls.py (2 sites, 0 bug fixes), test_project/select2_generic_foreign_key/urls.py (2 sites, 0 bug fixes), test_project/select2_generic_m2m/urls.py (3 sites, 0 bug fixes), test_project/select2_gm2m/urls.py (3 sites, 0 bug fixes), test_project/select2_list/urls.py (3 sites, 0 bug fixes), test_project/select2_many_to_many/urls.py (3 sites, 0 bug fixes), test_project/select2_nestedadmin/urls.py (2 sites, 0 bug fixes), test_project/select2_one_to_one/urls.py (3 sites, 0 bug fixes), test_project/select2_outside_admin/urls.py (2 sites, 0 bug fixes), test_project/select2_tagging/urls.py (2 sites, 0 bug fixes), test_project/select2_taggit/urls.py (2 sites, 0 bug fixes), test_project/tests/test_widgets.py (2 sites, 0 bug fixes), and test_project/urls.py (22 sites, 0 bug fixes). None are blocked and none are blocking.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 1305,
+ "tokens_out": 552
+}

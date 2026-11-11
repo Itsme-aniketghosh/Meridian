@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0016545,
+ "facts_hash": "ec211791222f03e5",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n  \"text\": \"Team django-tenants/django-tenants has 6 call sites of url left to migrate. In examples/tenant_tutorial/tenant_tutorial/urls_public.py, there are 3 sites and 0 bug fixes (fix keys: none). In examples/tenant_tutorial/tenant_tutorial/urls_tenants.py, there are 3 sites and 0 bug fixes (fix keys: none). Blocked by: none. Blocking: none.\",\n  \"used\": [\n    \"blocked_by\",\n    \"blocking\",\n    \"files\",\n    \"left\",\n    \"symbol\",\n    \"team\"\n  ]\n}\n```",
+ "tokens_in": 338,
+ "tokens_out": 153
+}

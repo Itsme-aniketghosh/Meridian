@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0009105,
+ "facts_hash": "8e41b64b243a9f94",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.syndication has count 1 call site to migrate: symbol ugettext_lazy at sites django/contrib/syndication/apps.py:2.\",\n \"used\": [\n  \"count\",\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 222,
+ "tokens_out": 77
+}

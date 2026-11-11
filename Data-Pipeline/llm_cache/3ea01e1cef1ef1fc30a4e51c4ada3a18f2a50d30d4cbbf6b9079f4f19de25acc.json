@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.9e-05,
+ "facts_hash": "d502bd7142cafc16",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"The forms team has 3 call sites of ungettext left to migrate. The sites are in django/forms/formsets.py, which had 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 284,
+ "tokens_out": 94
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001883,
+ "facts_hash": "25359fd9b62a9620",
+ "model": "llama-4-maverick",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The contrib.auth team's migration of ugettext_noop has had no change since 2011-12-24T19:38:37Z and 1 call site is left. Possible reasons: Never notified (1), Orphaned owner (1).\", \"used\": [\"team\", \"symbol\", \"since\", \"left\", \"reasons\"]}",
+ "tokens_in": 285,
+ "tokens_out": 77
+}

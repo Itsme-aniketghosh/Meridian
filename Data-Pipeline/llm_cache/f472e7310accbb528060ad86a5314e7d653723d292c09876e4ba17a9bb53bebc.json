@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.915e-05,
+ "facts_hash": "54f089a5a04fc594",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"The views team still has to migrate 2 call sites of ugettext_lazy. These are in django/views/static.py, which had 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 285,
+ "tokens_out": 94
+}

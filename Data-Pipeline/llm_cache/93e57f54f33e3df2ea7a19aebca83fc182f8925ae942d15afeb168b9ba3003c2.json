@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00015155,
+ "facts_hash": "81850abc4d900f40",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.redirects team still has 2 call sites to migrate. The call sites are in django/contrib/redirects/apps.py (1 site, with 0 bug fixes and no associated ticket keys) and django/contrib/redirects/models.py (1 site, with 0 bug fixes and no associated ticket keys). No ticket keys are blocking them and they do not block any other tickets.\", \n\"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 301,
+ "tokens_out": 109
+}

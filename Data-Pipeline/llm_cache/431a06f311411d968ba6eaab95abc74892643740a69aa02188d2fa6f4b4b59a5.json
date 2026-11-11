@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00025725,
+ "facts_hash": "a2ae121fac759435",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.postgres has 9 call sites of ugettext_lazy left to migrate: django/contrib/postgres/apps.py (1 site, 0 bug fixes), django/contrib/postgres/fields/array.py (1 site, 0 bug fixes), django/contrib/postgres/fields/hstore.py (1 site, 0 bug fixes), django/contrib/postgres/fields/jsonb.py (1 site, 0 bug fixes), django/contrib/postgres/forms/array.py (1 site, 0 bug fixes), django/contrib/postgres/forms/hstore.py (1 site, 0 bug fixes), django/contrib/postgres/forms/jsonb.py (1 site, 0 bug fixes), django/contrib/postgres/forms/ranges.py (1 site, 0 bug fixes), and django/contrib/postgres/validators.py (1 site, 0 bug fixes).\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 683,
+ "tokens_out": 258
+}

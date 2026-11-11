@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002376,
+ "facts_hash": "3bc77b1977cd8c7e",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"The django-guardian/django-guardian team has 25 url call sites left to migrate. The files are: example_project/articles/urls.py (6 sites, 0 bug fixes), example_project/posts/urls.py (3 sites, 0 bug fixes), example_project/urls.py (7 sites, 0 bug fixes), guardian/admin.py (4 sites, 0 bug fixes), guardian/compat.py (1 site, 0 bug fixes), and guardian/testapp/tests/urls.py (4 sites, 0 bug fixes).\",\n \"used\": [\n  \"django-guardian/django-guardian\",\n  \"25\",\n  \"url\",\n  \"example_project/articles/urls.py\",\n  \"6\",\n  \"0\",\n  \"example_project/posts/urls.py\",\n  \"3\",\n  \"example_project/urls.py\",\n  \"7\",\n  \"guardian/admin.py\",\n  \"4\",\n  \"guardian/compat.py\",\n  \"1\",\n  \"guardian/testapp/tests/urls.py\"\n ]\n}\n```",
+ "tokens_in": 516,
+ "tokens_out": 267
+}

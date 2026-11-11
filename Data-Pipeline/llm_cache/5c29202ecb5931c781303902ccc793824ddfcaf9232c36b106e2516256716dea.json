@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000102,
+ "facts_hash": "45c1bc61f6deeda4",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/contrib/flatpages/admin.py:4, django/contrib/flatpages/apps.py:2, django/contrib/flatpages/forms.py:4, and django/contrib/flatpages/models.py:5 for contrib.flatpages.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 272,
+ "tokens_out": 102
+}

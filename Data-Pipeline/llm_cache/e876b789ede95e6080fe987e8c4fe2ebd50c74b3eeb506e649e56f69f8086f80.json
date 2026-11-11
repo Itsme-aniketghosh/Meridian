@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001991,
+ "facts_hash": "fe25ee7aabf44167",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.flatpages team still has to migrate 3 call sites of ugettext: django/contrib/flatpages/forms.py (3 sites), which had 0 bug fixes ([]). This migration is not blocked by any team and does not block any team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 260,
+ "tokens_out": 94
+}

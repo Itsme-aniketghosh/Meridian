@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014835,
+ "facts_hash": "3f5d05945073144b",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The migration of symbol 'url' by team django-extensions/django-extensions has seen no change since 2019-03-06T16:30:27Z. There are 10 call sites left. Possible reasons are: 'Never notified' (1), 'Orphaned owner' (1), 'Test gap' (2).\", \n\"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"]}",
+ "tokens_in": 305,
+ "tokens_out": 103
+}

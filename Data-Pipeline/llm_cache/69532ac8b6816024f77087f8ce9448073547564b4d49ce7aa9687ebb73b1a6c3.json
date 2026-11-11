@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001263,
+ "facts_hash": "081b09e3707a9cef",
+ "model": "gemma-4",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The jazzband/django-silk migration of the symbol url has had no change since 2020-10-01T04:57:20Z. There are 28 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1), Test gap (evidence: 4).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 346,
+ "tokens_out": 124
+}

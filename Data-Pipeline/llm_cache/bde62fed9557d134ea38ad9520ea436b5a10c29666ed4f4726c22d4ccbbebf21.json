@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000121,
+ "facts_hash": "fe25ee7aabf44167",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.flatpages team still has to migrate 3 call sites. The sites are in django/contrib/flatpages/forms.py, which had 0 bug fixes with no associated ticket keys. This work is not blocked by any teams, but blocks no teams.\", \"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 260,
+ "tokens_out": 80
+}

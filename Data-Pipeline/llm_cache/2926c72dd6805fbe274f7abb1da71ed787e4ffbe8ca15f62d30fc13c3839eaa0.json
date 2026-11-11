@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001134,
+ "facts_hash": "1a78ab032873c023",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.auth must migrate 3 ungettext call sites: django/contrib/auth/password_validation.py:15, django/contrib/auth/password_validation.py:102, django/contrib/auth/password_validation.py:112.\",\n \"used\": [\n  \"team\",\n  \"count\",\n  \"symbol\",\n  \"sites\"\n ]\n}\n```",
+ "tokens_in": 251,
+ "tokens_out": 101
+}

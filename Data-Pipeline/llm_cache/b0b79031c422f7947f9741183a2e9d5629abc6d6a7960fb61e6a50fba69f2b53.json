@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001194,
+ "facts_hash": "b56de03cceeed145",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext in django/forms/forms.py:19, django/forms/formsets.py:9, django/forms/models.py:21, django/forms/models.py:722, django/forms/models.py:726, django/forms/models.py:731, django/forms/models.py:741 for forms.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 296,
+ "tokens_out": 125
+}

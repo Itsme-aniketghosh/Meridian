@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.235e-05,
+ "facts_hash": "44fa5aa34b20f1e8",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"The contrib.humanize team's call site in django/contrib/humanize/apps.py:2 uses ugettext_lazy and needs migration.\", \"used\": [\"symbol\", \"sites\", \"team\"]}",
+ "tokens_in": 209,
+ "tokens_out": 43
+}

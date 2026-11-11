@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0014565,
+ "facts_hash": "bc70464e2aad5f03",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team iMerica/dj-rest-auth's migration of the symbol url has had no change since 2021-11-25T17:42:49Z, with 51 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1), Test gap (evidence: 2).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 336,
+ "tokens_out": 127
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001655,
+ "facts_hash": "4ea0663fd61ee240",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The django-extensions/django-extensions team still has to migrate 10 call sites. The sites are in the following files: django_extensions/admin/__init__.py (2 sites), tests/management/commands/test_show_urls.py (4 sites), tests/testapp/urls.py (4 sites). No bug fixes have been applied to these files (fix keys: ). The team is blocked by: . The team blocks: .\", \n\"used\": [\"team\", \"files\", \"left\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 340,
+ "tokens_out": 115
+}

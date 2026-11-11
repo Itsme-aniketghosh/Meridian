@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001881,
+ "facts_hash": "1ce702c6ae1f6b87",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"jazzband/django-two-factor-auth has 37 url call sites left to migrate: example/urls.py (11 sites, 0 bug fixes), tests/urls.py (10 sites, 0 bug fixes), tests/urls_admin.py (2 sites, 0 bug fixes), tests/urls_otp_admin.py (2 sites, 0 bug fixes), two_factor/gateways/twilio/urls.py (2 sites, 0 bug fixes), and two_factor/urls.py (10 sites, 0 bug fixes).\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 522,
+ "tokens_out": 183
+}

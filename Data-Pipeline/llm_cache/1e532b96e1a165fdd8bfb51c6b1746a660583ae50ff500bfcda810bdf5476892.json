@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00011445,
+ "facts_hash": "9e98e9c1536ed1a1",
+ "model": "gemma-4",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The carltongibson/django-filter migration of the symbol url has had no change since 2017-05-16T19:05:52Z and 7 call sites are left. Possible reasons: Never notified (1), Test gap (2).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 323,
+ "tokens_out": 110
+}

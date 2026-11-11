@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002132,
+ "facts_hash": "9961bad3c1afecda",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.sites team still has to migrate 2 call sites of ugettext_lazy: django/contrib/sites/apps.py (line not specified) with 0 bug fixes [] and django/contrib/sites/models.py (line not specified) with 0 bug fixes []. The migration is not blocked by any team and does not block any team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 297,
+ "tokens_out": 95
+}

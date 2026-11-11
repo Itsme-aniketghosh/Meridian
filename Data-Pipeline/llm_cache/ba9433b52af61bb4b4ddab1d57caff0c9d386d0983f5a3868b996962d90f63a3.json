@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00013245,
+ "facts_hash": "ec211791222f03e5",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"django-tenants/django-tenants has 6 call sites of url left to migrate. The files are: examples/tenant_tutorial/tenant_tutorial/urls_public.py (3 sites, 0 bug fixes) and examples/tenant_tutorial/tenant_tutorial/urls_tenants.py (3 sites, 0 bug fixes).\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 351,
+ "tokens_out": 133
+}

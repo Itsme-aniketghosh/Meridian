@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001227,
+ "facts_hash": "26510cdb57f5b546",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 'ugettext' at django/contrib/contenttypes/views.py:6 to the new API when contrib.contenttypes team is done.\", \"used\": [\"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 206,
+ "tokens_out": 44
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00028985,
+ "facts_hash": "13a2aa93e1cafd87",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"The django-guardian/django-guardian team has 25 call sites for the 'url' symbol that need migration. The sites are: example_project/articles/urls.py:1, example_project/articles/urls.py:7, example_project/articles/urls.py:9, example_project/articles/urls.py:11, example_project/articles/urls.py:13, example_project/articles/urls.py:15, example_project/posts/urls.py:1, example_project/posts/urls.py:6, example_project/posts/urls.py:7, example_project/urls.py:1, example_project/urls.py:12, example_project/urls.py:13, example_project/urls.py:14, example_project/urls.py:15, example_project/urls.py:19, example_project/urls.py:22, guardian/admin.py:12, guardian/admin.py:93, guardian/admin.py:97, guardian/admin.py:101, guardian/compat.py:2, guardian/testapp/tests/urls.py:2, guardian/testapp/tests/urls.py:15, guardian/testapp/tests/urls.py:16, guardian/testapp/tests/urls.py:17. Migration is considered done when all sites are updated.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 409,
+ "tokens_out": 268
+}

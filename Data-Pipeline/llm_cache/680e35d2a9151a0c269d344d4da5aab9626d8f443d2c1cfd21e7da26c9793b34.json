@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014595,
+ "facts_hash": "d2674c77e546809f",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"iMerica/dj-rest-auth has 51 url call sites left to migrate. The files are: demo/demo/urls.py (18 sites, 0 bug fixes), dj_rest_auth/tests/django_urls.py (15 sites, 0 bug fixes), and dj_rest_auth/tests/urls.py (18 sites, 0 bug fixes).\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 393,
+ "tokens_out": 145
+}

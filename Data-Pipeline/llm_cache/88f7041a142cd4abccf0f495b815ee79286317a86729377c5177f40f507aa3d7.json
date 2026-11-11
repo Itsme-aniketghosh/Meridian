@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001014,
+ "facts_hash": "f2784dc685f4b11a",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"tests has 8 call sites of ungettext_lazy left to migrate. The remaining sites are in tests/i18n/tests.py, which had 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 288,
+ "tokens_out": 97
+}

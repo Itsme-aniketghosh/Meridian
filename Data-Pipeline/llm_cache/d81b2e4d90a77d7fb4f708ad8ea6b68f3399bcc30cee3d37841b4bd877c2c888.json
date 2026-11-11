@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001305,
+ "facts_hash": "fe851faaf1a24c13",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/contrib/auth/admin.py:19, django/contrib/auth/apps.py:4, django/contrib/auth/base_user.py:14, django/contrib/auth/forms.py:18, django/contrib/auth/models.py:10, django/contrib/auth/validators.py:5, and django/contrib/auth/views.py:24 for contrib.auth.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 310,
+ "tokens_out": 140
+}

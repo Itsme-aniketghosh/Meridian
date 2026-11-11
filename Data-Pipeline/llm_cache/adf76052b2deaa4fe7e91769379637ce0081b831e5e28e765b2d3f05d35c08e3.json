@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.45e-05,
+ "facts_hash": "363aa922dd8277b6",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"utils has 7 call sites of ungettext_lazy left to migrate in django/utils/timesince.py. This file had 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"sites\",\n  \"symbol\",\n  \"path\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 286,
+ "tokens_out": 86
+}

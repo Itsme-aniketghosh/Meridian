@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0014715,
+ "facts_hash": "882dd0b4a7aa2122",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The migration of url by team django-tastypie/django-tastypie has had no change since 2017-07-12T15:46:50Z, with 31 call sites left. Possible reasons are: Never notified with evidence 1, Orphaned owner with evidence 2, and Test gap with evidence 12.\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 341,
+ "tokens_out": 128
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00010035,
+ "facts_hash": "f9d0458883cb332d",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.auth has 3 call sites of ungettext left to migrate. django/contrib/auth/password_validation.py has 3 sites and 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 289,
+ "tokens_out": 95
+}

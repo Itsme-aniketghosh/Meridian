@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0013425,
+ "facts_hash": "9e98e9c1536ed1a1",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team carltongibson/django-filter's migration of symbol url has had no change since 2017-05-16T19:05:52Z, and 7 call sites are left. Possible reasons: Never notified (evidence: 1), Test gap (evidence: 2).\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"since\",\n  \"left\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 310,
+ "tokens_out": 117
+}

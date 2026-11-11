@@ -1,0 +1,9 @@
+{
+ "cost_usd": 7.365e-05,
+ "facts_hash": "8e41b64b243a9f94",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/contrib/syndication/apps.py:2 for contrib.syndication.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 235,
+ "tokens_out": 64
+}

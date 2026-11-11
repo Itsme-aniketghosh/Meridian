@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00072,
+ "facts_hash": "e524156bd312c168",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Team contrib.auth has 1 site left to migrate for symbol ugettext_noop at django/contrib/auth/hashers.py:18.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 220,
+ "tokens_out": 52
+}

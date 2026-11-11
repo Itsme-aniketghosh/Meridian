@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001299,
+ "facts_hash": "6589f7d03af52c82",
+ "model": "gemma-4",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The migration of the symbol url by team pennersr/django-allauth has had no change since 2018-10-26T22:10:23Z. There are 50 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 4), Test gap (evidence: 12).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 350,
+ "tokens_out": 129
+}

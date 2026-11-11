@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.64e-05,
+ "facts_hash": "b1e062548a26d24d",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ungettext at django/forms/formsets.py:9, django/forms/formsets.py:344, django/forms/formsets.py:351 for forms.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 252,
+ "tokens_out": 81
+}

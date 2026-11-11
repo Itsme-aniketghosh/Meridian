@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00013355,
+ "facts_hash": "708e63369456b93f",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The contrib.humanize team's migration of the ugettext symbol has had no change since 2015-01-28T12:35:27Z. There is 1 call site left. Possible reasons are: Never notified (1 evidence), Orphaned owner (1 evidence).\", \"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"]}",
+ "tokens_in": 285,
+ "tokens_out": 89
+}

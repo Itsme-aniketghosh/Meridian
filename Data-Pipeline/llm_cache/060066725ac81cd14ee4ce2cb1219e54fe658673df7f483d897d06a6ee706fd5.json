@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00010875,
+ "facts_hash": "ceec9dfff73f7d9d",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext at django/utils/dateformat.py:23, django/utils/text.py:12, django/utils/timesince.py:6, django/utils/timesince.py:58, django/utils/timesince.py:69 for utils. Total count: 5.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\",\n  \"count\"\n ]\n}\n```",
+ "tokens_in": 273,
+ "tokens_out": 113
+}

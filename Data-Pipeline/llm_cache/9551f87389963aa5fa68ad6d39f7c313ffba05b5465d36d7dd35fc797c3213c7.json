@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0010893,
+ "facts_hash": "6d42404403e5c161",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 247 call sites of url across the codebase to the new API. Affected files include sandbox/urls.py, src/oscar/apps/basket/apps.py, src/oscar/apps/catalogue/apps.py, and many others. The migration is done when all call sites are updated.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 2856,
+ "tokens_out": 78
+}
