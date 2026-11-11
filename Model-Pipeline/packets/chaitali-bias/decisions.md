@@ -238,3 +238,23 @@ Picked: **2√2 sd** (`[gate] noise_sds = 2.83`), the only option that gets both
 ## The gate on the final pick
 
 `python -m model.gate`: 5 of 5 checks pass (inputs, agree, bar +0.087, bias 0 open flags, champion: none yet, so the first model). `run_all --fake` now runs the gate too: 6 steps in 22 s.
+
+---
+
+# Nov 10: the rules for decisions 7 and 8, before the runs
+
+## 7. What CI trains
+
+Options: (a) the full search, `run_all` as it is: `train.py --tune logreg forest lgbm` with Rachna's trial counts, then seed noise, evaluate, bias, gate, registry. (b) The committed candidate: `train.py --save-model` refits `reports/candidate.json`'s kind and params on the train rows, and fails unless the refit's `val` scores equal the committed ones (Rachna's decision 9, to 1e-9). Then seed noise, evaluate, bias, gate and registry, as in (a).
+
+Test: wall time of each, on this laptop (8 cores) and on the GitHub runner (4 cores), from the real runs.
+
+Rule: PASS-BARS §6.5 gives a PR run at most 15 minutes. (a) on every run if it fits. If (a) takes more than 15 minutes on the laptop, it can't fit on a runner with half the cores, so (b) runs on PRs and pushes, and (a) runs only when started by hand (`workflow_dispatch`, `retune: true`), since tuning belongs to Rachna's runs (packet). (b) still has to come in under 15 minutes on the runner, measured as the median of 3 runs.
+
+## 8. When CI runs
+
+Options: every push to any branch; PRs only; PRs plus pushes to main.
+
+Test: commits touching `Model-Pipeline/**` per day from `git log`, over Nov 5–9, times the run length from decision 7.
+
+Rule: main must run, because it registers and pushes, and only main can sign in to Google Cloud. PRs must run, because the gate has to judge a change before it merges. So it's PRs plus main unless the count shows main and PR runs together can't be run daily. Every option is filtered to `Model-Pipeline/**` and the workflow file, and `workflow_dispatch` is added for a run by hand (Rochan).
