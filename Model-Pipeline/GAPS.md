@@ -52,6 +52,7 @@ The same goes for the defect labels: the LLM may audit them (gap 6), but it neve
 | 19 | ✓ | **Recall-first models** | `model.recall`: all three kinds tuned to flag the fewest commits for 90% recall, class weighting searched | **Aniket**; Rachna notes it in her decisions | Best: logreg 46.9% against the champion's 48.6%, interval −4.6 to +3.0 points: a tie. The ceiling is the data | Nov 11 |
 | 20 | ✓ | **The agent cycle wasn't one command** | `meridian.agents --jev`: stalls → served policy → Jev → writer → fact gate | **Aniket** | Without an LLM the rows are byte-identical to the rules (tested, PR #68) | Nov 11 |
 | 21 | ✓ | **PASS-BARS §2 had no data sign-off** | Signed | **Utkarsh** | PR #67 merged | Nov 11 |
+| 22 |  | **No policy writer.** The only challenger is the hand-written v1, so exploring has little to try | An agent (coding mid → large, already in Jev's table) writes a new stall policy as code from the champion's losses in the match log. Policy tests must pass. A person reviews and merges it, then it explores: shadow on every stall, served ε of the time, judged by Elo. It replaces the champion (the exploit choice) only through the guard. **Starts only after gap 9:** every new challenger is another chance for a lucky promotion while the guard is loose | **Rochan** | Guard at ≤ 5% false promotions first. Then one LLM-written policy merged by a person and playing matches | After Nov 15 |
 
 ## Why the model tops out: it's the data
 
