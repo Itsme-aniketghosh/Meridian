@@ -76,5 +76,6 @@ mlartifacts/
 !Model-Pipeline/tests/contracts/*.csv
 !Model-Pipeline/reports/*_val_scores.csv
 
-# The saved model: the registry pushes it to Artifact Registry; too big for git
+# The models train.py saves in reports/: too big to keep each one in git. The champion's is in registry/, in git
+# (GAPS 8), and the registry pushes it to Artifact Registry
 Model-Pipeline/reports/*.joblib

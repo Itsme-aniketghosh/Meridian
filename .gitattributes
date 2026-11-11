@@ -5,6 +5,8 @@
 *.pdf binary
 *.png binary
 *.sqlite binary
+# A model file is checked by md5 (registry/champion.json records it), so git must never touch its bytes
+*.joblib binary
 
 # A hand-check sheet committed with CRLF before this file existed: left as it is, not rewritten
 week1/pair2/merged/links_hand_check_50.csv -text
