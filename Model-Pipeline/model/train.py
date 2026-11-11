@@ -114,7 +114,11 @@ def rows(df, *splits):
 
 def fit_rows(df):
     """The only rows any fit, transformer or calibrator may see."""
-    return rows(df, "train")
+    # PLANTED, never merge (Chaitali, PASS-BARS §6.5): shuffled train labels, decision 6's first bad model.
+    # model.yml on this branch must go red at the gate.
+    train = rows(df, "train").copy()
+    train["label"] = np.random.default_rng(1).permutation(train["label"].to_numpy())
+    return train
 
 
 # Baselines: scores, no training. Higher means riskier.
