@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014005,
+ "facts_hash": "9961bad3c1afecda",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.sites team still has to migrate 2 call sites. The call sites are in django/contrib/sites/apps.py with 0 bug fixes and django/contrib/sites/models.py with 0 bug fixes. No ticket keys are associated with bug fixes in these files. The team is blocked by no one and blocks no one.\", \"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 297,
+ "tokens_out": 94
+}

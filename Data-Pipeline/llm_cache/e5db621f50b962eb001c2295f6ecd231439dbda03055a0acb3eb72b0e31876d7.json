@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002511,
+ "facts_hash": "854f456c6d012cc8",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The cookiecutter/cookiecutter-django team still has to migrate 16 call sites of 'url': 11 in {{cookiecutter.project_slug}}/config/urls.py and 5 in {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py. The files had 0 bug fixes each with ticket keys []. The migration is not blocked by any team and does not block any team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 310,
+ "tokens_out": 124
+}

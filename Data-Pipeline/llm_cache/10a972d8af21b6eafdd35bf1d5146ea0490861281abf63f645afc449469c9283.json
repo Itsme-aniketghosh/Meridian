@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001605,
+ "facts_hash": "d491fbd9a76b57f1",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\"text\": \"Team utils has 5 call sites left to migrate for ugettext_lazy: 1 call site in django/utils/dates.py (0 bug fixes), 1 call site in django/utils/ipv6.py (0 bug fixes), 2 call sites in django/utils/text.py (0 bug fixes), and 1 call site in django/utils/translation/__init__.py (0 bug fixes). Team utils is blocked by nothing and is blocking nothing.\", \"used\": [\"blocked_by\", \"blocking\", \"files\", \"left\", \"symbol\", \"team\"]}\n```",
+ "tokens_in": 410,
+ "tokens_out": 132
+}

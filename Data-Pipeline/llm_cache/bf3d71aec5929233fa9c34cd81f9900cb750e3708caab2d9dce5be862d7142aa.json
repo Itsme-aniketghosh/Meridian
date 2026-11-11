@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00016595,
+ "facts_hash": "14399f94a32e04e4",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 3 call sites of 'ungettext_lazy' in django/contrib/postgres/validators.py:9, django/contrib/postgres/validators.py:13, django/contrib/postgres/validators.py:20 when contrib.postgres team completes their migration.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 231,
+ "tokens_out": 74
+}

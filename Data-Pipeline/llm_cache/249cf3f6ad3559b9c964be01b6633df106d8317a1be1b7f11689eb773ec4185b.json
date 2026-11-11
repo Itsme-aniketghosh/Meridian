@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0020595,
+ "facts_hash": "5ef83e3d8d856c18",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"Team jazzband/django-debug-toolbar has 29 call sites left to migrate for symbol url across the following files: debug_toolbar/panels/sql/panel.py has 4 sites and 0 bug fixes, debug_toolbar/panels/staticfiles.py has 1 sites and 0 bug fixes, debug_toolbar/panels/templates/panel.py has 2 sites and 0 bug fixes, debug_toolbar/toolbar.py has 2 sites and 0 bug fixes, example/urls.py has 7 sites and 0 bug fixes, and tests/urls.py has 13 sites and 0 bug fixes. It is blocked by nothing and is blocking nothing.\", \"used\": [\"blocked_by\", \"blocking\", \"files\", \"left\", \"symbol\", \"team\"]}",
+ "tokens_in": 508,
+ "tokens_out": 173
+}

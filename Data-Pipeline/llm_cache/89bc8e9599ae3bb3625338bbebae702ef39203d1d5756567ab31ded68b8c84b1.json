@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.61e-05,
+ "facts_hash": "69feac4240925d88",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Create a new ticket to track migration of ugettext_lazy in contrib.admindocs at django/contrib/admindocs/apps.py:2\", \"used\": [\"symbol\", \"sites\", \"team\", \"count\"]}",
+ "tokens_in": 210,
+ "tokens_out": 48
+}

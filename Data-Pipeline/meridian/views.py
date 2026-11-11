@@ -47,6 +47,7 @@ from meridian import auditor as A
 from meridian.common import CONFIG, h, handoff, load_config, log
 from meridian.llm_cache import Cache
 from meridian.pushcheck import NAMES as CHECKS, kb_queries
+from meridian.writer import missing_indexes
 
 VIEWS = ("staff", "owner", "consumer", "push", "tickets")
 FIXTURE_NOTE = "fixture acme/shop (KNOWLEDGE-BASE.md): a made-up repo that tells 02-product's story, not real data"
@@ -494,6 +495,9 @@ def main(argv=None):
             db = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, check_same_thread=False)
             dbs.append(db)
             if a.serve is not None:  # the log is stdout: --path prints only the page's JSON there
+                if missing := missing_indexes(db):  # a block written before them starts several times slower
+                    log(f"the block has no {', '.join(missing)}: add them with "
+                        f"python -m meridian.writer --run-id {a.run_id} --index --db {path}")
                 log(f"run {a.run_id}: writing the texts, templates or the committed cache (the LLM is off here)")
             site = Site(Block(db, cfg, a.run_id, cache=Cache()), fixture)
             for v in VIEWS if a.serve is not None else ():  # decision 8's measure, logged on every start

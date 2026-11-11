@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00039325,
+ "facts_hash": "5ef83e3d8d856c18",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The team jazzband/django-debug-toolbar has 29 call sites of 'url' left to migrate across the codebase. The remaining call sites are in the following files: debug_toolbar/panels/sql/panel.py (4), debug_toolbar/panels/staticfiles.py (1), debug_toolbar/panels/templates/panel.py (2), debug_toolbar/toolbar.py (2), example/urls.py (7), tests/urls.py (13). The files had the following number of bug fixes: debug_toolbar/panels/sql/panel.py (0, []), debug_toolbar/panels/staticfiles.py (0, []), debug_toolbar/panels/templates/panel.py (0, []), debug_toolbar/toolbar.py (0, []), example/urls.py (0, []), tests/urls.py (0, []). The migration is not blocked by any team and does not block any team.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 450,
+ "tokens_out": 205
+}

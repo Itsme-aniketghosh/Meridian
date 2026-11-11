@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001464,
+ "facts_hash": "ee7e7344959a7b74",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The encode/django-rest-framework team's migration of the symbol url has had no change since 2020-04-09T17:10:50Z, with 182 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 8), Test gap (evidence: 26).\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"since\",\n  \"left\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 336,
+ "tokens_out": 128
+}

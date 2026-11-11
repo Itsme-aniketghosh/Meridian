@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001434,
+ "facts_hash": "a84ce9e6a597e8ac",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team contrib.admin has 5 call sites left to migrate for symbol ungettext: 3 sites in django/contrib/admin/options.py (0 bug fixes, fix keys: none) and 2 sites in django/contrib/admin/utils.py (0 bug fixes, fix keys: none). Blocked by: none. Blocking: none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 321,
+ "tokens_out": 127
+}

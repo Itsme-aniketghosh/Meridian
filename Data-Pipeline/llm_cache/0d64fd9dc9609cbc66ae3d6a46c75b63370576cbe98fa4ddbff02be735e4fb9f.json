@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00011355,
+ "facts_hash": "b80cfef84a81a999",
+ "model": "gemma-4",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The template migration of ugettext_lazy has had no change since 2015-04-15T21:01:11Z and 2 call sites are left. Possible reasons: Never notified (evidence 1), Orphaned owner (evidence 1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 321,
+ "tokens_out": 109
+}

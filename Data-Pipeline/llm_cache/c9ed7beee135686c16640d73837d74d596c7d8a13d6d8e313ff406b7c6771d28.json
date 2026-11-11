@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00078365,
+ "facts_hash": "cb1a5035de22f4d3",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The yourlabs/django-autocomplete-light team still has to migrate 67 call sites of url across the codebase. The files with call sites are: test_project/urls.py (22), test_project/select2_one_to_one/urls.py (3), test_project/select2_list/urls.py (3), test_project/select2_gm2m/urls.py (3), test_project/select2_generic_m2m/urls.py (3), test_project/select2_many_to_many/urls.py (3), test_project/select2_generic_foreign_key/urls.py (2), test_project/select2_foreign_key/urls.py (2), test_project/select2_djhacker_formfield/urls.py (2), test_project/secure_data/urls.py (2), test_project/rename_forward/urls.py (2), test_project/linked_data/urls.py (2), test_project/forward_different_fields/urls.py (2), test_project/custom_select2/urls.py (2), test_project/select2_outside_admin/urls.py (2), test_project/select2_nestedadmin/urls.py (2), test_project/select2_tagging/urls.py (2), test_project/select2_taggit/urls.py (2), test_project/tests/test_widgets.py (2), src/dal_queryset_sequence/fields.py (2), src/dal_select2_queryset_sequence/fields.py (2). None of the files had bug fixes. The migration is not blocked by or blocking any other migration.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"bug_fixes\", \"fix_keys\", \"path\", \"sites\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 1089,
+ "tokens_out": 350
+}

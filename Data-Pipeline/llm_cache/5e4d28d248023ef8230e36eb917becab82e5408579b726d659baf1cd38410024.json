@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0017715,
+ "facts_hash": "d6f03321803c7e88",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team db still has 4 call sites left to migrate: django/db/models/base.py has 1 site and 0 bug fixes, django/db/models/fields/__init__.py has 1 site and 0 bug fixes, django/db/models/fields/files.py has 1 site and 0 bug fixes, and django/db/models/fields/related.py has 1 site and 0 bug fixes. There are no blocking items and no blocked items.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 421,
+ "tokens_out": 152
+}

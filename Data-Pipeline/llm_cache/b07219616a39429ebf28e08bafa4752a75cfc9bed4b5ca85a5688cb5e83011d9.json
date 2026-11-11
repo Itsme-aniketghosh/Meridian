@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000128,
+ "facts_hash": "e524156bd312c168",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate the call to ugettext_noop at django/contrib/auth/hashers.py:18 to the new API by the time contrib.auth is done.\", \"used\": [\"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 208,
+ "tokens_out": 48
+}

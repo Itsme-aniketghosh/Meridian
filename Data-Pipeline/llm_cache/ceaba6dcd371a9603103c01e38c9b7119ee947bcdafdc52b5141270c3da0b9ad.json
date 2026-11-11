@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0015075,
+ "facts_hash": "737d73b389d35c08",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team django-import-export/django-import-export needs to migrate 7 call sites of symbol url at import_export/admin.py:6, import_export/admin.py:93, import_export/admin.py:96, import_export/admin.py:368, tests/urls.py:3, tests/urls.py:12, tests/urls.py:13. The ticket is done when all 7 sites are migrated.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 280,
+ "tokens_out": 145
+}

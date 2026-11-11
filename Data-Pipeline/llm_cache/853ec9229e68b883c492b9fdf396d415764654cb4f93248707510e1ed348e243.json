@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001332,
+ "facts_hash": "688a631cf8cd1871",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\"text\": \"Team carltongibson/django-filter has 7 call sites left to migrate for symbol url. The sites are in tests/rest_framework/test_integration.py (4 sites, 0 bug fixes, fix keys: none) and tests/urls.py (3 sites, 0 bug fixes, fix keys: none). Blocked by: none. Blocking: none.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}\n```",
+ "tokens_in": 323,
+ "tokens_out": 113
+}

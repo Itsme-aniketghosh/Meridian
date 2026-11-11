@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.225e-05,
+ "facts_hash": "75c17f66d9417591",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext at django/contrib/flatpages/forms.py:4, django/contrib/flatpages/forms.py:29, and django/contrib/flatpages/forms.py:36 for contrib.flatpages.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 259,
+ "tokens_out": 89
+}

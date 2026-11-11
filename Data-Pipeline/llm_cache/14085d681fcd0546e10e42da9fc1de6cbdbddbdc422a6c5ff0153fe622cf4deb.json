@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001421,
+ "facts_hash": "b1c9a71dd4dd949f",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.humanize team still has to migrate 1 call site in django/contrib/humanize/templatetags/humanize.py, which had 0 bug fixes. No ticket keys are associated with bug fixes in this file. This team's work is not blocked by any other team, but it blocks no other teams.\", \"used\": [\"team\", \"files\", \"left\", \"symbol\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 266,
+ "tokens_out": 108
+}

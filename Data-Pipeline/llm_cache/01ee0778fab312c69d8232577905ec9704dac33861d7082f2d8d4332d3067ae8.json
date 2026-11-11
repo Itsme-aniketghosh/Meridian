@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.465e-05,
+ "facts_hash": "0577e0d6048dbb95",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"The contrib.staticfiles team's call site in django/contrib/staticfiles/apps.py:4 of ugettext_lazy is not covered by a ticket and needs migration.\", \"used\": [\"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 207,
+ "tokens_out": 47
+}

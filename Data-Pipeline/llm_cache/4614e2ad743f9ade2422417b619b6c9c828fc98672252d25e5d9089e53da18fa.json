@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001335,
+ "facts_hash": "8010f9330fbfa8ab",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team contrib.admindocs's migration of symbol ugettext has had no change since 2007-07-04T12:11:04Z, and 1 call site is left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 310,
+ "tokens_out": 116
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002239,
+ "facts_hash": "7e4fff247b723c30",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"The django-tenants/django-tenants team needs to migrate 6 call sites of 'url' to the new API. The affected files are examples/tenant_tutorial/tenant_tutorial/urls_public.py and examples/tenant_tutorial/tenant_tutorial/urls_tenants.py at lines 1, 2, 5, 6, 8. A new ticket is required to track the migration.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 298,
+ "tokens_out": 104
+}

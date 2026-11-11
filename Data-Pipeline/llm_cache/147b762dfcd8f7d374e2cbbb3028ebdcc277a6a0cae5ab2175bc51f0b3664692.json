@@ -1,0 +1,9 @@
+{
+ "cost_usd": 7.125e-05,
+ "facts_hash": "34b1eeaf23d98826",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/contrib/messages/apps.py:2 for team contrib.messages.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 231,
+ "tokens_out": 61
+}

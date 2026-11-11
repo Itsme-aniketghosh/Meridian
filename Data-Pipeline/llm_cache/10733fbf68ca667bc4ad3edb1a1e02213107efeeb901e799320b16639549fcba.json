@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00015465,
+ "facts_hash": "95f8e99337c4e789",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"forms has 11 call sites of ugettext_lazy left to migrate. The sites are in django/forms/boundfield.py (1), django/forms/fields.py (1), django/forms/models.py (1), django/forms/utils.py (1), and django/forms/widgets.py (7). There were 0 bug fixes for these files.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 467,
+ "tokens_out": 141
+}

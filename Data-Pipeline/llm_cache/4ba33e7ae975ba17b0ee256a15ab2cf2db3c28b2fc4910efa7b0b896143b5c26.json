@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00020185,
+ "facts_hash": "bba1d9a94b68c812",
+ "model": "llama-4-maverick",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The contrib.redirects team's migration of ugettext_lazy has had no change since 2015-01-28T12:35:27Z and 2 call sites are left. Possible reasons are: Never notified (1), Orphaned owner (1), Test gap (1).\", \"used\": [\"team\", \"symbol\", \"since\", \"left\", \"reasons\"]}",
+ "tokens_in": 304,
+ "tokens_out": 83
+}

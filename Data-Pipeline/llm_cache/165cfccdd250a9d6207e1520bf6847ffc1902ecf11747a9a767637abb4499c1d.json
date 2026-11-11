@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000834,
+ "facts_hash": "e949a9e4a64fc983",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team views: migrate symbol ugettext_lazy across 2 sites: django/views/static.py:18, django/views/static.py:98.\",\n \"used\": [\"team\", \"symbol\", \"count\", \"sites\"]\n}\n```",
+ "tokens_in": 226,
+ "tokens_out": 66
+}

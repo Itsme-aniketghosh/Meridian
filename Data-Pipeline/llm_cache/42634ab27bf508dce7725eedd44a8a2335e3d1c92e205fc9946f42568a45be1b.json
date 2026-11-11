@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0021,
+ "facts_hash": "6b22cbfe36f9aa74",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team graphql-python/graphene-django still has 13 call sites of url to migrate across the following files: examples/cookbook-plain/cookbook/urls.py (3 sites, 0 bug fixes), examples/cookbook/cookbook/urls.py (3 sites, 0 bug fixes), graphene_django/tests/urls.py (3 sites, 0 bug fixes), graphene_django/tests/urls_inherited.py (2 sites, 0 bug fixes), and graphene_django/tests/urls_pretty.py (2 sites, 0 bug fixes). The team is blocked by none and is blocking none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 475,
+ "tokens_out": 185
+}

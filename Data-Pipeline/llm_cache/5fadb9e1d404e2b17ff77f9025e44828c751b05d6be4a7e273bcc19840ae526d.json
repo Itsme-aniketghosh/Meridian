@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.002565,
+ "facts_hash": "f8786a7733a90e07",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team django-haystack/django-haystack needs to migrate 13 call sites of url at haystack/urls.py:2, haystack/urls.py:6, test_haystack/core/urls.py:2, test_haystack/core/urls.py:13, test_haystack/core/urls.py:14, test_haystack/core/urls.py:15, test_haystack/core/urls.py:23, test_haystack/core/urls.py:27, test_haystack/results_per_page_urls.py:2, test_haystack/results_per_page_urls.py:12, test_haystack/results_per_page_urls.py:13, test_haystack/test_app_without_models/urls.py:2, test_haystack/test_app_without_models/urls.py:6. The work is done when all these sites are migrated.\",\n \"used\": [\n  \"team\",\n  \"count\",\n  \"symbol\",\n  \"sites\"\n ]\n}\n```",
+ "tokens_in": 400,
+ "tokens_out": 262
+}

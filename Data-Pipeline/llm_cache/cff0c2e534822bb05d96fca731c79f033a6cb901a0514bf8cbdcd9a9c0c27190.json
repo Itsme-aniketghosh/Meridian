@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001425,
+ "facts_hash": "bf0bcb7d5e176418",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"django-import-export/django-import-export has 7 url call sites left to migrate. There are 4 sites in import_export/admin.py and 3 sites in tests/urls.py. There were 0 bug fixes for these files.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"files[0].sites\",\n  \"files[0].path\",\n  \"files[0].bug_fixes\",\n  \"files[1].sites\",\n  \"files[1].path\",\n  \"files[1].bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 334,
+ "tokens_out": 154
+}

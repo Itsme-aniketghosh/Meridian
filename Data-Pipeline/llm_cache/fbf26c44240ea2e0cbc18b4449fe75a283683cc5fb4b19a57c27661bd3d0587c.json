@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001155,
+ "facts_hash": "b1419aadd5f26369",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"contrib.admindocs's migration of ugettext_lazy has had no change since 2014-01-04T21:49:35Z, and 1 call site is left. Possible reasons: Never notified (evidence: 1), Test gap (evidence: 1).\", \"used\": [\"team\", \"symbol\", \"since\", \"left\", \"reasons\"]}",
+ "tokens_in": 310,
+ "tokens_out": 92
+}

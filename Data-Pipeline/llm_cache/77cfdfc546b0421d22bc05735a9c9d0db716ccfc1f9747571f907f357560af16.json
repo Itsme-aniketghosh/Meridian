@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00016155,
+ "facts_hash": "f9b0ba6dc63fd0f0",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate 11 sites for ugettext_lazy in django/forms/boundfield.py:12, django/forms/fields.py:33, django/forms/models.py:21, django/forms/utils.py:9, django/forms/widgets.py:20, django/forms/widgets.py:361, django/forms/widgets.py:362, django/forms/widgets.py:363, django/forms/widgets.py:693, django/forms/widgets.py:694, django/forms/widgets.py:695 by forms.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 345,
+ "tokens_out": 183
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00011535,
+ "facts_hash": "e1deacebd22826dc",
+ "model": "gemma-4",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The migration of ungettext_lazy by utils has had no change since 2015-03-04T19:24:30Z and 7 call sites are left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 321,
+ "tokens_out": 112
+}

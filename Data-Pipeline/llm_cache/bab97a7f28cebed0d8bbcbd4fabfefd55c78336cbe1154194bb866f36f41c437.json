@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0025035,
+ "facts_hash": "4d7f21ce2624ed58",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate url for team django/channels across 18 call sites: tests/test_routing.py:4, tests/test_routing.py:62, tests/test_routing.py:63, tests/test_routing.py:64, tests/test_routing.py:65, tests/test_routing.py:66, tests/test_routing.py:67, tests/test_routing.py:110, tests/test_routing.py:111, tests/test_routing.py:116, tests/test_routing.py:117, tests/test_routing.py:218, tests/test_routing.py:221, tests/test_routing.py:221, tests/test_routing.py:223, tests/test_routing.py:235, tests/test_testing.py:5, tests/test_testing.py:101. It is done when all 18 sites are migrated.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 409,
+ "tokens_out": 252
+}

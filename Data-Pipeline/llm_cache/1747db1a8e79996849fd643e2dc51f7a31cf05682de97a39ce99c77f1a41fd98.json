@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001236,
+ "facts_hash": "45c1bc61f6deeda4",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n  \"text\": \"Team contrib.flatpages must migrate 4 call sites of symbol ugettext_lazy at django/contrib/flatpages/admin.py:4, django/contrib/flatpages/apps.py:2, django/contrib/flatpages/forms.py:4, django/contrib/flatpages/models.py:5. It is done when all 4 sites are migrated.\",\n  \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]\n}\n```",
+ "tokens_in": 259,
+ "tokens_out": 113
+}

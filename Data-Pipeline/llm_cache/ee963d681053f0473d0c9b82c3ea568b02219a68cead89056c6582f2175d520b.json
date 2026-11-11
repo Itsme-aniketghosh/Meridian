@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.115e-05,
+ "facts_hash": "561f8c97fe41be94",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Create a new ticket to track migration of ugettext in contrib.gis at django/contrib/gis/views.py:2.\", \"used\": [\"symbol\", \"team\", \"sites\"]}",
+ "tokens_in": 207,
+ "tokens_out": 42
+}

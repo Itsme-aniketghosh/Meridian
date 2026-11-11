@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0030885,
+ "facts_hash": "0a562473523d3dd6",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Team jazzband/django-silk must migrate 28 occurrences of url at sites: project/example_app/urls.py:1, project/example_app/urls.py:6, project/project/urls.py:2, project/project/urls.py:10, project/project/urls.py:14, project/project/urls.py:18, project/project/urls.py:27, project/tests/urlconf_without_silk.py:1, project/tests/urlconf_without_silk.py:5, silk/urls.py:1, silk/urls.py:18, silk/urls.py:19, silk/urls.py:20, silk/urls.py:25, silk/urls.py:30, silk/urls.py:35, silk/urls.py:40, silk/urls.py:45, silk/urls.py:50, silk/urls.py:55, silk/urls.py:60, silk/urls.py:65, silk/urls.py:70, silk/urls.py:75, silk/urls.py:80, silk/urls.py:85, silk/urls.py:86, silk/urls.py:87.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 484,
+ "tokens_out": 315
+}

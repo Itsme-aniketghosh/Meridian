@@ -1,10 +1,14 @@
 """P9 Defect risk with the champion model (step Q, Rachna). The push check calls `verdict` (meridian/pushcheck.py).
 
-When Model-Pipeline/registry/champion.json names a champion, its model file is next to it, the file's md5 is the one
-champion.json records, and the model loads, P9 scores the push with it: the push's Contract 1 features (Model-Pipeline
-packets/README.md) computed from the base block the way model/data.py computes them, then the model's risk against
-the threshold registry.py recorded on val (champion.json metrics.at_threshold). Otherwise P9 is lines × files above
-[push_check] defect_risk_threshold, as before, and when a champion was named but couldn't be used the finding says why.
+The model alone tops out at precision 0.70 on 30 val alerts, under the 0.80 bar, so P9 never alerts on the model
+alone. It uses the model only through decision 15b's rule (Model-Pipeline/model/p9rule.py, written before it ran):
+alert when the model's risk AND lines × files are both over their cutoffs, the cutoffs picked on val. When that rule
+was adopted (reports/p9_rule.json "adopted": its val precision reached 0.80), the champion named by
+Model-Pipeline/registry/champion.json is the model the rule was measured on (same md5), its model file is next to it
+with that md5, and it loads, P9 scores the push with it: the push's Contract 1 features (Model-Pipeline packets/
+README.md) computed from the base block the way model/data.py computes them. Otherwise P9 is lines × files above
+[push_check] defect_risk_threshold, as before. When a champion and an adopted rule were named but couldn't be used, the
+finding says why; a rule that wasn't adopted is today's rule by design, with nothing to explain.
 
 Templates only, no LLM, $0 a push. Read-only on the block, like the rest of the push check.
 
@@ -52,9 +56,6 @@ def load_champion(path):
     try:
         record = json.loads(path.read_text(encoding="utf-8"))
         name, md5 = record["model_file"], record["model_md5"]
-        if record["metrics"]["at_threshold"]["threshold"] is None:   # Rochan's decision 3: null = no model threshold
-            return None, None, "the champion has no alert threshold (no cutoff met the precision bar on val)"
-        float(record["metrics"]["at_threshold"]["threshold"])
     except (ValueError, KeyError, TypeError) as e:
         return None, None, f"champion.json doesn't read ({type(e).__name__})"
     model_path = path.parent / name
@@ -68,6 +69,26 @@ def load_champion(path):
     except Exception as e:      # a missing package (lightgbm), a corrupt file: never stops the push check
         return None, None, f"the model didn't load ({type(e).__name__})"
     return model, record, None
+
+
+def load_rule(path, champion_md5):
+    """(the adopted pick, None) when decision 15b's rule passed for this champion; (None, why) when it was named but
+    can't be used; (None, None) when there's no rule file or the rule wasn't adopted (lines × files, by design)."""
+    path = Path(path) if path else None
+    if path is None or not path.is_file():
+        return None, None
+    try:
+        rule = json.loads(path.read_text(encoding="utf-8"))
+        adopted, chosen = bool(rule["adopted"]), rule["pick"]
+        if adopted:
+            float(chosen["model_cutoff"]), float(chosen["lxf_cutoff"])
+    except (ValueError, KeyError, TypeError) as e:
+        return None, f"p9_rule.json doesn't read ({type(e).__name__})"
+    if not adopted:
+        return None, None
+    if rule.get("model_md5") != champion_md5:
+        return None, "p9_rule.json was measured on another model than the champion"
+    return chosen, None
 
 
 def _model_modules():
@@ -125,11 +146,18 @@ def model_repo():
     return cfg["data"]["repo"], int(cfg["data"]["prior_fix_days"])
 
 
-def verdict(db, repo, run_id, at, numstat, messages, author, key_regex, lines_x_files, threshold, champion):
+def verdict(db, repo, run_id, at, numstat, messages, author, key_regex, lines_x_files, threshold, champion,
+            rule=None):
     """P9 for the push. lines_x_files: (lines, files, lines × files) from p9_defect_risk; threshold: [push_check]
-    defect_risk_threshold; champion: the champion.json path, or None for no model."""
+    defect_risk_threshold; champion: the champion.json path, or None for no model; rule: decision 15b's p9_rule.json
+    path, or None. The model is used only through an adopted rule, never alone."""
     lines, files, risk = lines_x_files
     model, record, why = load_champion(champion)
+    chosen = None
+    if model is not None:
+        chosen, why = load_rule(rule, record["model_md5"])
+        if chosen is None:
+            model = None                       # no adopted rule: the model alone is under the bar
     if model is not None:
         trained_on, prior_fix_days = model_repo()
         if repo != trained_on:
@@ -142,12 +170,13 @@ def verdict(db, repo, run_id, at, numstat, messages, author, key_regex, lines_x_
         except Exception as e:                 # never stops the push check: say so, use today's rule
             model, why = None, f"the model couldn't score this push ({type(e).__name__})"
     if model is not None:
-        bar = float(record["metrics"]["at_threshold"]["threshold"])
+        cm, cl = float(chosen["model_cutoff"]), float(chosen["lxf_cutoff"])
+        both = score >= cm and (risk or 0) >= cl
         version = str(record.get("version", ""))[:10]
         kind = type(model[-1] if hasattr(model, "steps") else model).__name__
-        text = (f"defect risk {score:.2f} from the champion model ({kind}, version {version}), over its threshold "
-                f"{bar:.2f}; {lines} lines × {files} files")
-        return Verdict("model", score > bar, text)
+        text = (f"defect risk {score:.2f} from the champion model ({kind}, version {version}) and {lines} lines × "
+                f"{files} files = {risk}: both over their cutoffs ({cm:.2f} and {cl:.0f}, decision 15b)")
+        return Verdict("model", both, text)
     alert = risk is not None and risk > threshold
     text = f"{lines} lines × {files} files = {risk}, over {threshold}"
     if why:

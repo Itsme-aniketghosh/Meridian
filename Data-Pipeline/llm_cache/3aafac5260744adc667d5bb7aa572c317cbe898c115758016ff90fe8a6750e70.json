@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00010395,
+ "facts_hash": "2e23586ee056fc1c",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"core has 6 call sites of ungettext_lazy left to migrate in django/core/validators.py. django/core/validators.py had 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\",\n  \"fix_keys\"\n ]\n}\n```",
+ "tokens_in": 285,
+ "tokens_out": 102
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0005179,
+ "facts_hash": "c888fe06ed3d6de0",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The encode/django-rest-framework team still has to migrate 182 call sites across the codebase. The sites are located in the following files: tests/authentication/test_authentication.py (9), tests/browsable_api/auth_urls.py (3), tests/browsable_api/no_auth_urls.py (2), tests/browsable_api/test_browsable_nested_api.py (2), tests/schemas/test_coreapi.py (30), tests/schemas/test_managementcommand.py (2), tests/schemas/test_openapi.py (20), tests/test_api_client.py (8), tests/test_atomic_requests.py (2), tests/test_htmlrenderer.py (4), tests/test_lazy_hyperlinks.py (2), tests/test_middleware.py (3), tests/test_relations.py (2), tests/test_relations_hyperlink.py (9), tests/test_renderers.py (10), tests/test_request.py (4), tests/test_requests_client.py (5), tests/test_response.py (10), tests/test_reverse.py (2), tests/test_routers.py (11), tests/test_testing.py (6), tests/test_urlpatterns.py (10), tests/test_utils.py (7), tests/test_versioning.py (15), tests/test_viewsets.py (2), tests/urls.py (2). No bug fixes have been applied in any of these files (fix keys: ). The team is not blocked by any other team and does not block any other team.\", \"used\": [\"files\", \"left\", \"team\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 1198,
+ "tokens_out": 312
+}

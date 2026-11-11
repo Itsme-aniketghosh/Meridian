@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001869,
+ "facts_hash": "f16445d73ab0a7ab",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"views has 6 call sites of ugettext left to migrate: django/views/csrf.py (1 site, 0 bug fixes), django/views/debug.py (1 site, 0 bug fixes), django/views/generic/dates.py (1 site, 0 bug fixes), django/views/generic/detail.py (1 site, 0 bug fixes), django/views/generic/list.py (1 site, 0 bug fixes), and django/views/static.py (1 site, 0 bug fixes).\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\",\n  \"fix_keys\"\n ]\n}\n```",
+ "tokens_in": 514,
+ "tokens_out": 183
+}

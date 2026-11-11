@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001194,
+ "facts_hash": "13e6ca03d9618e20",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ungettext_lazy at django/core/validators.py:11, django/core/validators.py:362, django/core/validators.py:377, django/core/validators.py:397, django/core/validators.py:402, django/core/validators.py:407 for core. Count: 6.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\",\n  \"count\"\n ]\n}\n```",
+ "tokens_in": 288,
+ "tokens_out": 127
+}

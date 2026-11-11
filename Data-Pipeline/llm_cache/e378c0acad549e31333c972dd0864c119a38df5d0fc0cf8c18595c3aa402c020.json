@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00013825,
+ "facts_hash": "662843b5c0579f62",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The forms team's migration of the ugettext_lazy symbol has had no change since 2016-12-27T22:00:56Z. There are 11 call sites left. Possible reasons are: Never notified (1), Orphaned owner (5), Test gap (1).\", \"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"]}",
+ "tokens_in": 301,
+ "tokens_out": 90
+}

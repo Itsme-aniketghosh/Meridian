@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0005686,
+ "facts_hash": "680da6ad4c523e77",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 37 call sites of 'url' across the codebase to the new API by updating example/urls.py:2, example/urls.py:14, example/urls.py:19, example/urls.py:24, example/urls.py:29, example/urls.py:34, example/urls.py:39, example/urls.py:40, example/urls.py:41, example/urls.py:42, example/urls.py:48, tests/urls.py:1, tests/urls.py:11, tests/urls.py:16, tests/urls.py:21, tests/urls.py:28, tests/urls.py:36, tests/urls.py:40, tests/urls.py:44, tests/urls.py:49, tests/urls.py:50, tests/urls_admin.py:1, tests/urls_admin.py:7, tests/urls_otp_admin.py:1, tests/urls_otp_admin.py:10, two_factor/gateways/twilio/urls.py:1, two_factor/gateways/twilio/urls.py:6, two_factor/urls.py:1, two_factor/urls.py:9, two_factor/urls.py:14, two_factor/urls.py:19, two_factor/urls.py:24, two_factor/urls.py:29, two_factor/urls.py:34, two_factor/urls.py:39, two_factor/urls.py:47, two_factor/urls.py:52. The task is owned by the jazzband/django-two-factor-auth team.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 491,
+ "tokens_out": 345
+}

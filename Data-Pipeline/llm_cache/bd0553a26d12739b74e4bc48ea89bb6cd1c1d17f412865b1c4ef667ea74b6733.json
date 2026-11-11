@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002061,
+ "facts_hash": "ee7e7344959a7b74",
+ "model": "llama-4-maverick",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The encode/django-rest-framework team's migration of the 'url' symbol has had no change since 2020-04-09T17:10:50Z and 182 call sites are left. Possible reasons are: Never notified (1), Orphaned owner (8), Test gap (26).\", \"used\": [\"team\", \"symbol\", \"since\", \"left\", \"reasons\"]}",
+ "tokens_in": 303,
+ "tokens_out": 87
+}

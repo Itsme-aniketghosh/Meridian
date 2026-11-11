@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00021285,
+ "facts_hash": "1ce702c6ae1f6b87",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The jazzband/django-two-factor-auth team still has to migrate 37 call sites. The call sites are located in the following files: example/urls.py (11 sites), tests/urls.py (10 sites), tests/urls_admin.py (2 sites), tests/urls_otp_admin.py (2 sites), two_factor/gateways/twilio/urls.py (2 sites), two_factor/urls.py (10 sites). No bug fixes have been applied to these files (fix_keys: []). No files are blocked, and none are being blocked by this team.\", \"used\": [\"team\", \"files\", \"left\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 451,
+ "tokens_out": 143
+}

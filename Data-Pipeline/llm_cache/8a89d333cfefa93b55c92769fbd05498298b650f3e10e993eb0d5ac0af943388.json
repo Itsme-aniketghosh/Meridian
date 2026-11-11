@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001125,
+ "facts_hash": "65c9aff1c5400104",
+ "model": "gemma-4",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The migration of ugettext by contrib.contenttypes has had no change since 2012-02-04T21:01:11Z and 1 call sites are left. Possible reasons: Never notified (1), Orphaned owner (1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 322,
+ "tokens_out": 107
+}

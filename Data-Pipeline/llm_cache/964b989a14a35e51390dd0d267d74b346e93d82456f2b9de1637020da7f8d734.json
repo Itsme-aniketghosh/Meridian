@@ -1,0 +1,9 @@
+{
+ "cost_usd": 7.575e-05,
+ "facts_hash": "e524156bd312c168",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_noop at django/contrib/auth/hashers.py:18 for team contrib.auth.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 233,
+ "tokens_out": 68
+}

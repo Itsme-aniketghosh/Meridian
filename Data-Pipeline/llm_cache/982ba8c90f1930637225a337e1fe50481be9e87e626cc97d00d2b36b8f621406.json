@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001212,
+ "facts_hash": "51c3d388e2639284",
+ "model": "gemma-4",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The tests migration of ugettext has had no change since 2017-01-24T11:22:42Z and 24 call sites are left. Possible reasons: Never notified (evidence 1), Orphaned owner (evidence 5), Test gap (evidence 11).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 344,
+ "tokens_out": 116
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00018495,
+ "facts_hash": "b80cfef84a81a999",
+ "model": "llama-4-maverick",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The template team's migration of ugettext_lazy has had no change since 2015-04-15T21:01:11Z and 2 call sites are left. Possible reasons: Never notified (1), Orphaned owner (1).\", \"used\": [\"team\", \"symbol\", \"since\", \"left\", \"reasons\"]}",
+ "tokens_in": 282,
+ "tokens_out": 75
+}
