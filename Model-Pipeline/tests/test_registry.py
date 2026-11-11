@@ -343,6 +343,26 @@ class Promotion(Store):
         tags = self.register(self.files(0.40, model_bytes=b"one model"))
         self.assertEqual((tags["promoted"], self.aliases()["champion"]), ("true", 2))
 
+    def test_the_champions_model_file_is_next_to_champion_json(self):
+        """What P9 loads (Rachna, step Q): registry/<model_file> with the md5 champion.json records. A model that isn't
+        promoted leaves registry/ alone; the next champion replaces it."""
+        self.register(self.files(0.40, model_bytes=b"first"))
+        record, placed = reg.read_champion(self.champion), self.champion.parent / "model.joblib"
+        self.assertEqual(placed.read_bytes(), b"first")
+        self.assertEqual(hashlib.md5(placed.read_bytes()).hexdigest(), record["model_md5"])
+        self.register(self.files(0.30, model_bytes=b"worse"))
+        self.assertEqual(placed.read_bytes(), b"first")
+        self.register(self.files(0.45, model_bytes=b"better"))
+        self.assertEqual(placed.read_bytes(), b"better")
+        self.assertEqual(sorted(p.name for p in self.champion.parent.iterdir()), ["champion.json", "model.joblib"])
+
+    def test_the_champion_sent_again_puts_back_a_missing_model_file(self):
+        """champion.json from git, the model from train.py: registering it again puts the model where P9 looks."""
+        self.register(self.files(0.40, model_bytes=b"one model"))
+        (self.champion.parent / "model.joblib").unlink()
+        self.register(self.files(0.40, model_bytes=b"one model"))
+        self.assertEqual((self.champion.parent / "model.joblib").read_bytes(), b"one model")
+
     def test_the_model_must_be_the_one_train_py_judged(self):
         paths = self.files(0.40)
         (Path(paths["candidate"]).parent / "model.joblib").write_bytes(b"something else")
@@ -366,6 +386,15 @@ class Rollback(Store):
         self.assertEqual(reg.read_champion(self.champion), first)
         _, client = reg._client()
         self.assertIn("went back to version 1", client.get_model_version("defect-risk", "2").tags["rolled_back"])
+
+    def test_rollback_puts_the_previous_model_file_back_next_to_champion_json(self):
+        self.register(self.files(0.40, model_bytes=b"first"))
+        self.register(self.files(0.45, model_bytes=b"second"))
+        reg.rollback(self.s, self.champion, say=self.said.append)
+        record = reg.read_champion(self.champion)
+        placed = self.champion.parent / record["model_file"]
+        self.assertEqual(placed.read_bytes(), b"first")
+        self.assertEqual(hashlib.md5(placed.read_bytes()).hexdigest(), record["model_md5"])
 
     def test_previous_moves_back_a_step_too(self):
         for value in (0.40, 0.45, 0.50):
@@ -631,6 +660,7 @@ class NewStore(Store):
 
     def test_a_champion_from_another_table_needs_its_model_to_be_rescored(self):
         self.register(self.files(0.99, features_md5="f" * 32))
+        (self.champion.parent / "model.joblib").unlink()  # only champion.json came along
         self.new_store()
         with self.assertRaisesRegex(SystemExit, "re-scores its model on today's val, and its model.joblib isn't"):
             self.register(self.files(0.30, features_md5=hashlib.md5(FEATURES.read_bytes()).hexdigest()))
@@ -651,6 +681,22 @@ class NewStore(Store):
                                                                                 indent=2) + "\n").encode()}
             self.register(self.files(0.40, model_bytes=b"one model"), push=True, runner=first)
         self.assertEqual(first.uploads(), [("champion", first.uploads()[0][1], "champion.json")])
+
+    def test_a_champion_from_another_table_is_rescored_from_the_model_next_to_champion_json(self):
+        """CI with registry/ from git: the store is new, and the model file next to champion.json is the champion's."""
+        import joblib
+        from model import train
+        df = train.load_features(FEATURES)
+        model, _, _ = train.fit_and_score(df, "logreg", 1)
+        path = self.dir / "logreg.joblib"
+        joblib.dump(model, path)
+        self.register(self.files(0.99, features_md5="f" * 32, model_bytes=path.read_bytes()))
+        self.new_store()
+        tags = self.register(self.files(0.30, features_md5=hashlib.md5(FEATURES.read_bytes()).hexdigest()))
+        val = train.rows(df, "val")
+        self.assertIn("re-scored on today's val (N = 4,113)", tags["compared"])
+        self.assertAlmostEqual(float(tags["champion_pr_auc"]),
+                               train.pr_auc(val["label"].to_numpy(), train.score_with(model, val)), places=12)
 
     def test_rollback_needs_the_store_that_holds_the_previous_version(self):
         self.register(self.files(0.40))
