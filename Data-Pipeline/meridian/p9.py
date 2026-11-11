@@ -52,6 +52,8 @@ def load_champion(path):
     try:
         record = json.loads(path.read_text(encoding="utf-8"))
         name, md5 = record["model_file"], record["model_md5"]
+        if record["metrics"]["at_threshold"]["threshold"] is None:   # Rochan's decision 3: null = no model threshold
+            return None, None, "the champion has no alert threshold (no cutoff met the precision bar on val)"
         float(record["metrics"]["at_threshold"]["threshold"])
     except (ValueError, KeyError, TypeError) as e:
         return None, None, f"champion.json doesn't read ({type(e).__name__})"
