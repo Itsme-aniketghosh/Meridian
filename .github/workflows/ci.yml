@@ -12,6 +12,8 @@ permissions:
 
 jobs:
   test:
+    env:  # PLANTED (PASS-BARS 6.5, never merge): an LLM key in a job
+      MERIDIAN_GCP_PROJECT: ${{ secrets.MERIDIAN_GCP_PROJECT }}
     strategy:
       fail-fast: false
       matrix:
