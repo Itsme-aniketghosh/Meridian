@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.010994,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"no\", \"reason\": \"The blamed commit merely renamed the variable `resolvedNoOuter` to `resolvedBasic`, while the bug (failing to handle a Filter over an Aggregate) predates this change.\"}\n```",
+ "tokens_in": 2353,
+ "tokens_out": 524
+}

@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.018584,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"yes\", \"reason\": \"The blamed commit introduced the `plan.collect` logic to find commands, which contained the bug of failing to traverse CTE relations inside `UnresolvedWith` nodes.\"}\n```",
+ "tokens_in": 3664,
+ "tokens_out": 938
+}

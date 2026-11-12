@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.01237,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\n  \"verdict\": \"no\",\n  \"reason\": \"The blamed commit is simply a revert of an earlier, flawed attempt to fix the same issue, meaning the actual bug predates it.\"\n}\n```",
+ "tokens_in": 2003,
+ "tokens_out": 697
+}

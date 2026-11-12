@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.01247,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"yes\", \"reason\": \"The blamed commit introduced the flawed `saslTimeoutSeen` boolean logic that incorrectly reset the retry count to zero, which the fix replaces with a proper `saslRetryCount` integer.\"}\n```",
+ "tokens_in": 3307,
+ "tokens_out": 488
+}

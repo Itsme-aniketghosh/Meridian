@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.008222,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\n  \"verdict\": \"yes\",\n  \"reason\": \"The blamed commit introduced the call to 'clear()', which failed to cancel pending allocation requests and was replaced by the fix with an explicit loop setting the target executor counts to 0.\"\n}\n```",
+ "tokens_in": 1897,
+ "tokens_out": 369
+}

@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.011074,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"no\", \"reason\": \"The blamed commit was just a refactoring of the file, which was later entirely deleted and moved to another rule by the fix commit to resolve a rule ordering bug introduced by an earlier, different PR.\"}\n```",
+ "tokens_in": 3443,
+ "tokens_out": 349
+}

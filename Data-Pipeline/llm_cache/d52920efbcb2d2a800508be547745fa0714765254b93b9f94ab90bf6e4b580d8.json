@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.016846,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\n  \"verdict\": \"no\",\n  \"reason\": \"The blamed commit did not introduce a bug; the fix is a broader refactoring that changes `UnresolvedHint` to accept `Expression` objects instead of raw values, making the blamed commit's value extraction logic obsolete.\"\n}\n```",
+ "tokens_in": 1709,
+ "tokens_out": 1119
+}

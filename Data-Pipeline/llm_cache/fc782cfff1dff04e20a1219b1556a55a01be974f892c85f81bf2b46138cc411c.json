@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.013222,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"yes\", \"reason\": \"The blamed commit introduced the `client.releaseSession()` call in `close()`, which caused the method to hang on repeated calls by attempting to use an already-shutdown client.\"}\n```",
+ "tokens_in": 1733,
+ "tokens_out": 813
+}

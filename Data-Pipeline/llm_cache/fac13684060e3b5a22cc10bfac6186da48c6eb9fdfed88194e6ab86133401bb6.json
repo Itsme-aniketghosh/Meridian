@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.035638,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"no\", \"reason\": \"The blamed commit merely reformatted the existing `__dict__` check that incorrectly caught inherited namedtuples, so the bug predates these changes.\"}\n```",
+ "tokens_in": 3545,
+ "tokens_out": 2379
+}

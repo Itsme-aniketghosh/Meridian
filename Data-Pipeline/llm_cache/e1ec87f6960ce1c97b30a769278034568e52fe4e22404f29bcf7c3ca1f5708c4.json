@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.010386,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"yes\", \"reason\": \"The blamed commit introduced the `typedlit` feature and the underlying `HashMap` that failed to preserve map insertion order, which the fix corrects by switching to `LinkedHashMap`.\"}\n```",
+ "tokens_in": 891,
+ "tokens_out": 717
+}

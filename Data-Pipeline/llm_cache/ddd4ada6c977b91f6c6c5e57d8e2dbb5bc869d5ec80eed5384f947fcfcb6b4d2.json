@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.020944,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\n  \"verdict\": \"yes\",\n  \"reason\": \"The blamed commit introduced the hardcoded field deduplication logic in SparkConnectStreamHandler that the fix removes and replaces with a unified, configurable approach.\"\n}\n```",
+ "tokens_in": 4574,
+ "tokens_out": 983
+}

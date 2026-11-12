@@ -155,7 +155,7 @@ def audit(pairs, llm, model, cache, log=None, cache_only=False):
                 tokens_out=0 if hit else entry["tokens_out"], cost_usd=0.0 if hit else entry["cost_usd"],
                 cache_hit=hit, gate_pass=None, task="q2_audit", repo=REPO, facts_hash=k)
         out.append({"bucket": p["bucket"], "sha": p["sha"], "fix_sha": p["fix_sha"], "verdict": verdict,
-                    "reason": reason, "cost_usd": 0.0 if hit else entry["cost_usd"]})
+                    "reason": reason, "cost_usd": 0.0 if hit else entry["cost_usd"], "made_usd": entry["cost_usd"]})
     return out
 
 
@@ -192,7 +192,8 @@ def summary(answers, hand, model):
             "Q2": q2, "Q4": q4, "hand": {"judged": len(judged), "of": HAND_N, "agree_with_model": agree,
                                          "share": share(list(judged.values()))},
             "model_used": used, "agree_min": AGREE_MIN, "q2_noisier_than_q4": apart,
-            "cost_usd": round(sum(a["cost_usd"] for a in answers), 4),
+            # what the answers cost to make, cached or not
+            "cost_usd": round(sum(a.get("made_usd", a["cost_usd"]) for a in answers), 4),
             "note": "an estimate for the bias section: never a label, never training data (GAPS.md gap 6)"}
 
 

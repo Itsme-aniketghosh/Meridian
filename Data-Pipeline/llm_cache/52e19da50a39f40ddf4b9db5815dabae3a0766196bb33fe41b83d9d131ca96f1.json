@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.012376,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"no\", \"reason\": \"The blamed commit merely moved the code to a new file; the fix commit message explicitly states the bug originated in an earlier PR.\"}\n```",
+ "tokens_in": 3620,
+ "tokens_out": 428
+}

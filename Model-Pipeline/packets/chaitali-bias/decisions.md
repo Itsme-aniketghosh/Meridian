@@ -374,3 +374,24 @@ What would make it useful on the real block: bug-fix history for the package rep
 ## 11. The model, by the rule, before the run (Nov 11)
 
 Project `project-f571f85b-1ff1-48b9-9e4` (Chaitali's own, with billing). Claude can't be called from it: Vertex answers 429 "Quota exceeded … anthropic-claude-opus" (and the same for haiku). A new project's quota for partner models is 0. So by the rule the audit runs on **`gemini-pro`**. On Vertex today that's `gemini-3.1-pro-preview`, the newest Pro in the project's model list. `meridian.llm` had it as `gemini-pro-latest`, which Vertex doesn't serve (404), and with no price, so both are fixed in `llm.py`. Price from the Cloud Billing catalog (Vertex AI SKUs, global): $2 per 1M input tokens and $12 per 1M output, thinking included. First, 10 real prompts to measure the cost, as GAPS.md asks; then the rest. The model's answers aren't shown to the hand checker until the sheet is done.
+
+## 11. Results: the hand check decides, and it says 35%
+
+`python labels/q2_audit.py run --model gemini-pro --track`, then `summary`. Model `gemini-pro` (`gemini-3.1-pro-preview`), 153 (commit, fix) pairs: 53 for the 51 Q2 commits, 100 for the 50 Q4. All answered, 0 unusable replies. Cost **$2.52** (the 10-prompt pilot included). Every answer is cached in `Data-Pipeline/llm_cache/` and logged in MLflow `meridian-agents`. → `Model-Pipeline/reports/q2_label_audit.json`.
+
+**The model isn't used: it agrees with the hand check on 10 of 20, and the rule needs 15.** Where they part:
+
+| Hand check → model | Commits |
+|---|---:|
+| yes → yes | 4 |
+| yes → **no** | **9** |
+| no → no | 6 |
+| no → yes | 1 |
+
+The model is much harsher than the person. It calls 9 of the 13 labels she judged right wrong. Its own figures (Q2 "no" 37 of 51 = 0.73, Q4 28 of 50 = 0.56) are given for the record only, and aren't used.
+
+**Q2 label noise, from the hand check: 7 of 20 commits = 0.35 (Wilson 95% interval 0.18–0.57).** So about a third of Q2's positive labels may not be bug-inducing. That's a plausible part of why the model finds none of the 51, but it's not the whole reason: by the hand check, about two thirds of the labels hold. With 20 commits the interval is wide.
+
+**Q2 against Q4: can't be said.** The comparison needed the model's answers, and they fail the rule. No Q4 commit was hand-checked.
+
+For the bias section: the Q2 recall flag stays accepted (decision 5). The report gives the 35% with its interval and N, says the LLM audit was run and failed its agreement bar (10 of 20), and that **no label was changed and nothing was used for training**.
