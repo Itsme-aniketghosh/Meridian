@@ -370,3 +370,13 @@ Rule:
 **On the fixture** (`acme/shop`, which has bug-fix history): 5 teams, 6 files, 5 bug fixes. The ranking keeps all 5 bug fixes with 5 of the 6 files. A random order with the same files keeps 63% (seed 1, 100 orders). The ranking works where the signal exists, but at N = 6 files that shows the code works, not a result.
 
 What would make it useful on the real block: bug-fix history for the package repos (their GitHub issues and fix commits, as `file_bug_fixes` has for Spark's Jira), or a Spark migration. That goes in the report as an open gap.
+
+# Nov 11: GAPS.md gap 7, LLM bias on real texts: the rule, before computing
+
+Vishwa's writer ran the real block's 204 tasks (`70dd1dab`) on 4 models, each alone (gap 2, PR #77). The answers are in `llm_cache/`, and Gemini 3.8 Flash (`gemini-flash`) won his rule at 98.0% gate pass. His calls were logged on his machine, so here the writer replays each model from the cache (`--models <m> --strict-cache --calls`), with 0 paid calls and a miss stopping the run. That gives each answer's row (repo, team, task, `gate_pass`, `source`) under today's gate (his decision 5b).
+
+Rule, adding to decision 9:
+- **The bar is judged on the model the writer ships, `gemini-flash`.** One text per (agent, `facts_hash`), as `llm_bias.py` counts it. It fell back when its answer didn't pass the gate and the template shipped.
+- Slices: repo, owner team, task kind. `[bias] min_n` (30) and `max_gap` (0.10), harm upward. Every slice under 30 is listed with its N, not judged.
+- The other 3 models get the same slices, for the record only: they don't ship, so they don't decide the bar.
+- A flagged slice on `gemini-flash` is accepted only with a fix tried and written down (Vishwa's decision 5 and 5b are gate fixes, and count if they were scored on that slice). Otherwise it's an open flag, and the report says so.
