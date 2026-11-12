@@ -162,7 +162,7 @@ Proposed. The team agrees and commits them by Nov 6, like `notes/PASS-BARS-2026-
 |---|---|
 | Feature table and its schema | `Model-Pipeline/data/`, in git (no names, a few MB) |
 | Every training run, decision test and agent call | MLflow, local. The canonical runs are Aniket's final runs on Nov 12 |
-| The champion model | GCP Artifact Registry (`meridian-models`), mirrored in the local MLflow registry, with `Model-Pipeline/registry/champion.json` in git |
+| The champion model | GCP Artifact Registry (`meridian-models`), mirrored in the local MLflow registry, with `Model-Pipeline/registry/champion.json` and its `model.joblib` in git, where CI and P9 read them (GAPS 8) |
 | Bias report and charts, SHAP and sensitivity charts, model comparison charts | `Model-Pipeline/reports/` |
 | Model image | Built locally from `Model-Pipeline/Dockerfile`; `python -m model.run_all` inside it runs every step |
 | The product: views, API, agents, gate, auditor | `Data-Pipeline/meridian/`, run locally |
