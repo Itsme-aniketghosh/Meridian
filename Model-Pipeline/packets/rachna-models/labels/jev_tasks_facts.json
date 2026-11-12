@@ -1,0 +1,2046 @@
+[
+ {
+  "task_id": "0d4fa6de0349",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "tests",
+  "target": "tests",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "tests",
+    "left": 24,
+    "symbol": "ugettext",
+    "files": [
+     {
+      "path": "tests/auth_tests/test_forms.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/flatpages_tests/test_forms.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/humanize_tests/tests.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/commands/__init__.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/commands/code.sample",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/exclude/__init__.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/project_dir/__init__.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/project_dir/app_no_locale/models.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/project_dir/app_with_locale/models.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/test_compilation.py",
+      "sites": 5,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/tests.py",
+      "sites": 9,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:tests:ugettext"
+   }
+  }
+ },
+ {
+  "task_id": "17be09146ad7",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "tests",
+  "target": "tests",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "tests",
+    "left": 8,
+    "symbol": "ungettext",
+    "files": [
+     {
+      "path": "tests/i18n/commands/__init__.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/tests.py",
+      "sites": 6,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:tests:ungettext"
+   }
+  }
+ },
+ {
+  "task_id": "1ce702c6ae1f",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "jazzband/django-two-factor-auth",
+  "owner_team": "jazzband/django-two-factor-auth",
+  "target": "jazzband/django-two-factor-auth",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "jazzband/django-two-factor-auth",
+    "left": 37,
+    "symbol": "url",
+    "files": [
+     {
+      "path": "example/urls.py",
+      "sites": 11,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/urls.py",
+      "sites": 10,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/urls_admin.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/urls_otp_admin.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "two_factor/gateways/twilio/urls.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "two_factor/urls.py",
+      "sites": 10,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:jazzband/django-two-factor-auth:url"
+   }
+  }
+ },
+ {
+  "task_id": "1da1721ea658",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "contrib.admin",
+  "target": "contrib.admin",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.admin",
+    "left": 11,
+    "symbol": "ugettext_lazy",
+    "files": [
+     {
+      "path": "django/contrib/admin/actions.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/contrib/admin/apps.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/contrib/admin/filters.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/contrib/admin/forms.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/contrib/admin/helpers.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/contrib/admin/models.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/contrib/admin/sites.py",
+      "sites": 4,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:contrib.admin:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "2234dedc1eeb",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "template",
+  "target": "template",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "template",
+    "left": 2,
+    "symbol": "ugettext_lazy",
+    "files": [
+     {
+      "path": "django/template/base.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:template:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "2e23586ee056",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "core",
+  "target": "core",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "core",
+    "left": 6,
+    "symbol": "ungettext_lazy",
+    "files": [
+     {
+      "path": "django/core/validators.py",
+      "sites": 6,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:core:ungettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "2e5b052fe2b0",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "contrib.admindocs",
+  "target": "contrib.admindocs",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.admindocs",
+    "left": 1,
+    "symbol": "ugettext_lazy",
+    "files": [
+     {
+      "path": "django/contrib/admindocs/apps.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:contrib.admindocs:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "35660c3b9817",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "contrib.sitemaps",
+  "target": "contrib.sitemaps",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.sitemaps",
+    "left": 1,
+    "symbol": "ugettext_lazy",
+    "files": [
+     {
+      "path": "django/contrib/sitemaps/apps.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:contrib.sitemaps:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "4bcd8afe2b9d",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "contrib.messages",
+  "target": "contrib.messages",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.messages",
+    "left": 1,
+    "symbol": "ugettext_lazy",
+    "files": [
+     {
+      "path": "django/contrib/messages/apps.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:contrib.messages:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "5ef83e3d8d85",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "jazzband/django-debug-toolbar",
+  "owner_team": "jazzband/django-debug-toolbar",
+  "target": "jazzband/django-debug-toolbar",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "jazzband/django-debug-toolbar",
+    "left": 29,
+    "symbol": "url",
+    "files": [
+     {
+      "path": "debug_toolbar/panels/sql/panel.py",
+      "sites": 4,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "debug_toolbar/panels/staticfiles.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "debug_toolbar/panels/templates/panel.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "debug_toolbar/toolbar.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "example/urls.py",
+      "sites": 7,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/urls.py",
+      "sites": 13,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:jazzband/django-debug-toolbar:url"
+   }
+  }
+ },
+ {
+  "task_id": "688a631cf8cd",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "carltongibson/django-filter",
+  "owner_team": "carltongibson/django-filter",
+  "target": "carltongibson/django-filter",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "carltongibson/django-filter",
+    "left": 7,
+    "symbol": "url",
+    "files": [
+     {
+      "path": "tests/rest_framework/test_integration.py",
+      "sites": 4,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/urls.py",
+      "sites": 3,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:carltongibson/django-filter:url"
+   }
+  }
+ },
+ {
+  "task_id": "6a28d8a1abe4",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "core",
+  "target": "core",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "core",
+    "left": 2,
+    "symbol": "ugettext_lazy",
+    "files": [
+     {
+      "path": "django/core/paginator.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/core/validators.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:core:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "6b22cbfe36f9",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "graphql-python/graphene-django",
+  "owner_team": "graphql-python/graphene-django",
+  "target": "graphql-python/graphene-django",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "graphql-python/graphene-django",
+    "left": 13,
+    "symbol": "url",
+    "files": [
+     {
+      "path": "examples/cookbook-plain/cookbook/urls.py",
+      "sites": 3,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "examples/cookbook/cookbook/urls.py",
+      "sites": 3,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "graphene_django/tests/urls.py",
+      "sites": 3,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "graphene_django/tests/urls_inherited.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "graphene_django/tests/urls_pretty.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:graphql-python/graphene-django:url"
+   }
+  }
+ },
+ {
+  "task_id": "854f456c6d01",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "cookiecutter/cookiecutter-django",
+  "owner_team": "cookiecutter/cookiecutter-django",
+  "target": "cookiecutter/cookiecutter-django",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "cookiecutter/cookiecutter-django",
+    "left": 16,
+    "symbol": "url",
+    "files": [
+     {
+      "path": "{{cookiecutter.project_slug}}/config/urls.py",
+      "sites": 11,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "{{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py",
+      "sites": 5,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:cookiecutter/cookiecutter-django:url"
+   }
+  }
+ },
+ {
+  "task_id": "b6d1d425d6c6",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "contrib.contenttypes",
+  "target": "contrib.contenttypes",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.contenttypes",
+    "left": 1,
+    "symbol": "ugettext",
+    "files": [
+     {
+      "path": "django/contrib/contenttypes/views.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:contrib.contenttypes:ugettext"
+   }
+  }
+ },
+ {
+  "task_id": "d6f03321803c",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "db",
+  "target": "db",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "db",
+    "left": 4,
+    "symbol": "ugettext_lazy",
+    "files": [
+     {
+      "path": "django/db/models/base.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/db/models/fields/__init__.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/db/models/fields/files.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/db/models/fields/related.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:db:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "daba315a8d01",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "tests",
+  "target": "tests",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "tests",
+    "left": 43,
+    "symbol": "ugettext_lazy",
+    "files": [
+     {
+      "path": "tests/admin_utils/models.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/auth_tests/test_management.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/basic/tests.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/forms_tests/tests/test_i18n.py",
+      "sites": 4,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/forms_tests/tests/test_utils.py",
+      "sites": 3,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/models.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/patterns/urls/default.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/patterns/urls/namespace.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/patterns/urls/wrong.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/patterns/urls/wrong_namespace.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/tests.py",
+      "sites": 5,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/urls.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/i18n/urls_default_unprefixed.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/mail/tests.py",
+      "sites": 5,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/many_to_one/tests.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/messages_tests/base.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/migrations/test_writer.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/queryset_pickle/models.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/serializers/test_json.py",
+      "sites": 3,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/test_client_regress/tests.py",
+      "sites": 3,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/utils_tests/test_text.py",
+      "sites": 2,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "tests/view_tests/urls.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:tests:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "eb486ec7dc1d",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "contrib.flatpages",
+  "target": "contrib.flatpages",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.flatpages",
+    "left": 4,
+    "symbol": "ugettext_lazy",
+    "files": [
+     {
+      "path": "django/contrib/flatpages/admin.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/contrib/flatpages/apps.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/contrib/flatpages/forms.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/contrib/flatpages/models.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:contrib.flatpages:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "f16445d73ab0",
+  "split": "prompt",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "views",
+  "target": "views",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "views",
+    "left": 6,
+    "symbol": "ugettext",
+    "files": [
+     {
+      "path": "django/views/csrf.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/views/debug.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/views/generic/dates.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/views/generic/detail.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/views/generic/list.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     },
+     {
+      "path": "django/views/static.py",
+      "sites": 1,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:views:ugettext"
+   }
+  }
+ },
+ {
+  "task_id": "f2784dc685f4",
+  "split": "held_out",
+  "kind": "consumer",
+  "repo": "django/django",
+  "owner_team": "tests",
+  "target": "tests",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "tests",
+    "left": 8,
+    "symbol": "ungettext_lazy",
+    "files": [
+     {
+      "path": "tests/i18n/tests.py",
+      "sites": 8,
+      "bug_fixes": 0,
+      "fix_keys": []
+     }
+    ],
+    "blocked_by": [],
+    "blocking": []
+   },
+   "source": {
+    "files": "consumer_files:tests:ungettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "0a0b0bad171f",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "jazzband/django-debug-toolbar",
+  "owner_team": "jazzband/django-debug-toolbar",
+  "target": "jazzband/django-debug-toolbar",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "jazzband/django-debug-toolbar",
+    "symbol": "url",
+    "since": "2018-10-26T06:25:08Z",
+    "left": 29,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 5
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:863c1edf9ef10d51",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "2232664d7c70",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "contrib.sites",
+  "target": "contrib.sites",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.sites",
+    "symbol": "ugettext_lazy",
+    "since": "2014-02-26T21:48:20Z",
+    "left": 2,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:8b55aaba25f9badf",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "3552d1c2668b",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "graphql-python/graphene-django",
+  "owner_team": "graphql-python/graphene-django",
+  "target": "graphql-python/graphene-django",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "graphql-python/graphene-django",
+    "symbol": "url",
+    "since": "2018-07-19T23:51:33Z",
+    "left": 13,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 4
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 5
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:7effaa7392c4c1c9",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "51c3d388e263",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "tests",
+  "target": "tests",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "tests",
+    "symbol": "ugettext",
+    "since": "2017-01-24T11:22:42Z",
+    "left": 24,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 5
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 11
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:1670503013f7aaa2",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "56887189bd6f",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "django-haystack/django-haystack",
+  "owner_team": "django-haystack/django-haystack",
+  "target": "django-haystack/django-haystack",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "django-haystack/django-haystack",
+    "symbol": "url",
+    "since": "2018-06-18T18:05:12Z",
+    "left": 13,
+    "reasons": [
+     {
+      "reason": "Test gap",
+      "evidence": 4
+     },
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:e50341322e053ff4",
+    "policy": "stall-v1"
+   }
+  }
+ },
+ {
+  "task_id": "662843b5c057",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "forms",
+  "target": "forms",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "forms",
+    "symbol": "ugettext_lazy",
+    "since": "2016-12-27T22:00:56Z",
+    "left": 11,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 5
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:fb11cd08b93a3443",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "66ce70678996",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "contrib.admin",
+  "target": "contrib.admin",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.admin",
+    "symbol": "ugettext_lazy",
+    "since": "2015-11-23T10:46:19Z",
+    "left": 11,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 7
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 3
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:cf4e6205c9bc1fbc",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "69132e9cfab0",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django-import-export/django-import-export",
+  "owner_team": "django-import-export/django-import-export",
+  "target": "django-import-export/django-import-export",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "django-import-export/django-import-export",
+    "symbol": "url",
+    "since": "2018-11-05T07:59:12Z",
+    "left": 7,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:ca900ad255dff2f5",
+    "policy": "stall-v1"
+   }
+  }
+ },
+ {
+  "task_id": "708e63369456",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "contrib.humanize",
+  "target": "contrib.humanize",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.humanize",
+    "symbol": "ugettext",
+    "since": "2015-01-28T12:35:27Z",
+    "left": 1,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:56406c2192516796",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "7197d9ec47d5",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "contrib.flatpages",
+  "target": "contrib.flatpages",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.flatpages",
+    "symbol": "ugettext",
+    "since": "2013-06-05T18:55:05Z",
+    "left": 3,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:753da080e2c65dc4",
+    "policy": "stall-v1"
+   }
+  }
+ },
+ {
+  "task_id": "9280931ff2b8",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "forms",
+  "target": "forms",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "forms",
+    "symbol": "ugettext",
+    "since": "2016-03-28T22:33:29Z",
+    "left": 7,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 3
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:d6bd118329008f4a",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "9d86fa5d8ade",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "forms",
+  "target": "forms",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "forms",
+    "symbol": "ungettext_lazy",
+    "since": "2013-01-30T20:29:39Z",
+    "left": 2,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:bd6367697a6584e4",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "b80cfef84a81",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "template",
+  "target": "template",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "template",
+    "symbol": "ugettext_lazy",
+    "since": "2015-04-15T21:01:11Z",
+    "left": 2,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:a3f51693e6723ca7",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "bba1d9a94b68",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "contrib.redirects",
+  "target": "contrib.redirects",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.redirects",
+    "symbol": "ugettext_lazy",
+    "since": "2015-01-28T12:35:27Z",
+    "left": 2,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:5a64340298fd86ef",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "bc70464e2aad",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "iMerica/dj-rest-auth",
+  "owner_team": "iMerica/dj-rest-auth",
+  "target": "iMerica/dj-rest-auth",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "iMerica/dj-rest-auth",
+    "symbol": "url",
+    "since": "2021-11-25T17:42:49Z",
+    "left": 51,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 2
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:eb8b23bcce1ce638",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "da4bccf7914c",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "tests",
+  "target": "tests",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "tests",
+    "symbol": "ugettext_lazy",
+    "since": "2017-01-20T09:20:53Z",
+    "left": 43,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 17
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 17
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:85252b5d32660b4b",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "de9bcaa0a15f",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "templatetags",
+  "target": "templatetags",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "templatetags",
+    "symbol": "ugettext",
+    "since": "2015-05-31T14:20:19Z",
+    "left": 3,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:79756de135185cd3",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "e1deacebd228",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "utils",
+  "target": "utils",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "utils",
+    "symbol": "ungettext_lazy",
+    "since": "2015-03-04T19:24:30Z",
+    "left": 7,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:5012a06fc5a2a852",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "fc944df6a433",
+  "split": "prompt",
+  "kind": "stall_reason",
+  "repo": "django-guardian/django-guardian",
+  "owner_team": "django-guardian/django-guardian",
+  "target": "django-guardian/django-guardian",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "django-guardian/django-guardian",
+    "symbol": "url",
+    "since": "2018-09-11T19:53:53Z",
+    "left": 25,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     },
+     {
+      "reason": "Test gap",
+      "evidence": 4
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:34d4ec373ba0c56c",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "fef32090864e",
+  "split": "held_out",
+  "kind": "stall_reason",
+  "repo": "django/django",
+  "owner_team": "contrib.postgres",
+  "target": "contrib.postgres",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.postgres",
+    "symbol": "ungettext_lazy",
+    "since": "2015-01-28T12:35:27Z",
+    "left": 3,
+    "reasons": [
+     {
+      "reason": "Never notified",
+      "evidence": 1
+     },
+     {
+      "reason": "Orphaned owner",
+      "evidence": 1
+     }
+    ]
+   },
+   "source": {
+    "stall": "stall:de36f2e27a91a44c",
+    "policy": "stall-v0"
+   }
+  }
+ },
+ {
+  "task_id": "0a562473523d",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "jazzband/django-silk",
+  "owner_team": "jazzband/django-silk",
+  "target": "jazzband/django-silk",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "jazzband/django-silk",
+    "symbol": "url",
+    "count": 28,
+    "sites": "project/example_app/urls.py:1, project/example_app/urls.py:6, project/project/urls.py:2, project/project/urls.py:10, project/project/urls.py:14, project/project/urls.py:18, project/project/urls.py:27, project/tests/urlconf_without_silk.py:1, project/tests/urlconf_without_silk.py:5, silk/urls.py:1, silk/urls.py:18, silk/urls.py:19, silk/urls.py:20, silk/urls.py:25, silk/urls.py:30, silk/urls.py:35, silk/urls.py:40, silk/urls.py:45, silk/urls.py:50, silk/urls.py:55, silk/urls.py:60, silk/urls.py:65, silk/urls.py:70, silk/urls.py:75, silk/urls.py:80, silk/urls.py:85, silk/urls.py:86, silk/urls.py:87"
+   },
+   "source": {
+    "sites": "maker_drafts:jazzband/django-silk:url"
+   }
+  }
+ },
+ {
+  "task_id": "13e6ca03d961",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "core",
+  "target": "core",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "core",
+    "symbol": "ungettext_lazy",
+    "count": 6,
+    "sites": "django/core/validators.py:11, django/core/validators.py:362, django/core/validators.py:377, django/core/validators.py:397, django/core/validators.py:402, django/core/validators.py:407"
+   },
+   "source": {
+    "sites": "maker_drafts:core:ungettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "14399f94a32e",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "contrib.postgres",
+  "target": "contrib.postgres",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.postgres",
+    "symbol": "ungettext_lazy",
+    "count": 3,
+    "sites": "django/contrib/postgres/validators.py:9, django/contrib/postgres/validators.py:13, django/contrib/postgres/validators.py:20"
+   },
+   "source": {
+    "sites": "maker_drafts:contrib.postgres:ungettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "26381b869e36",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "django-tastypie/django-tastypie",
+  "owner_team": "django-tastypie/django-tastypie",
+  "target": "django-tastypie/django-tastypie",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "django-tastypie/django-tastypie",
+    "symbol": "url",
+    "count": 31,
+    "sites": "tastypie/api.py:3, tastypie/api.py:112, tastypie/resources.py:13, tastypie/resources.py:341, tastypie/resources.py:342, tastypie/resources.py:343, tastypie/resources.py:344, tests/alphanumeric/urls.py:1, tests/alphanumeric/urls.py:5, tests/authorization/urls.py:1, tests/authorization/urls.py:15, tests/basic/urls.py:1, tests/basic/urls.py:5, tests/content_gfk/urls.py:1, tests/content_gfk/urls.py:5, tests/core/tests/api_urls.py:1, tests/core/tests/api_urls.py:11, tests/core/tests/manual_urls.py:1, tests/core/tests/manual_urls.py:8, tests/core/tests/resource_urls.py:1, tests/core/tests/resource_urls.py:36, tests/gis/urls.py:1, tests/gis/urls.py:5, tests/namespaced/api/urls.py:2, tests/namespaced/api/urls.py:17, tests/profilingtests/urls.py:1, tests/profilingtests/urls.py:13, tests/slashless/api/urls.py:1, tests/slashless/api/urls.py:11, tests/validation/api/urls.py:1, tests/validation/api/urls.py:15"
+   },
+   "source": {
+    "sites": "maker_drafts:django-tastypie/django-tastypie:url"
+   }
+  }
+ },
+ {
+  "task_id": "364ba1d6c479",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "cookiecutter/cookiecutter-django",
+  "owner_team": "cookiecutter/cookiecutter-django",
+  "target": "cookiecutter/cookiecutter-django",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "cookiecutter/cookiecutter-django",
+    "symbol": "url",
+    "count": 16,
+    "sites": "{{cookiecutter.project_slug}}/config/urls.py:2, {{cookiecutter.project_slug}}/config/urls.py:9, {{cookiecutter.project_slug}}/config/urls.py:10, {{cookiecutter.project_slug}}/config/urls.py:16, {{cookiecutter.project_slug}}/config/urls.py:18, {{cookiecutter.project_slug}}/config/urls.py:22, {{cookiecutter.project_slug}}/config/urls.py:32, {{cookiecutter.project_slug}}/config/urls.py:37, {{cookiecutter.project_slug}}/config/urls.py:42, {{cookiecutter.project_slug}}/config/urls.py:47, {{cookiecutter.project_slug}}/config/urls.py:52, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:1, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:7, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:8, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:9, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py:10"
+   },
+   "source": {
+    "sites": "maker_drafts:cookiecutter/cookiecutter-django:url"
+   }
+  }
+ },
+ {
+  "task_id": "45b133f141a4",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "contrib.humanize",
+  "target": "contrib.humanize",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.humanize",
+    "symbol": "ugettext",
+    "count": 1,
+    "sites": "django/contrib/humanize/templatetags/humanize.py:12"
+   },
+   "source": {
+    "sites": "maker_drafts:contrib.humanize:ugettext"
+   }
+  }
+ },
+ {
+  "task_id": "4ab456a6b721",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "templatetags",
+  "target": "templatetags",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "templatetags",
+    "symbol": "ugettext",
+    "count": 3,
+    "sites": "django/templatetags/i18n.py:16, django/templatetags/i18n.py:151, django/templatetags/i18n.py:270"
+   },
+   "source": {
+    "sites": "maker_drafts:templatetags:ugettext"
+   }
+  }
+ },
+ {
+  "task_id": "561f8c97fe41",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "contrib.gis",
+  "target": "contrib.gis",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.gis",
+    "symbol": "ugettext",
+    "count": 1,
+    "sites": "django/contrib/gis/views.py:2"
+   },
+   "source": {
+    "sites": "maker_drafts:contrib.gis:ugettext"
+   }
+  }
+ },
+ {
+  "task_id": "5634deb199ef",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "contrib.auth",
+  "target": "contrib.auth",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.auth",
+    "symbol": "ugettext",
+    "count": 7,
+    "sites": "django/contrib/auth/admin.py:19, django/contrib/auth/admin.py:147, django/contrib/auth/forms.py:18, django/contrib/auth/forms.py:30, django/contrib/auth/forms.py:35, django/contrib/auth/forms.py:38, django/contrib/auth/password_validation.py:15"
+   },
+   "source": {
+    "sites": "maker_drafts:contrib.auth:ugettext"
+   }
+  }
+ },
+ {
+  "task_id": "5c27452b5cc4",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "tests",
+  "target": "tests",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "tests",
+    "symbol": "ugettext",
+    "count": 24,
+    "sites": "tests/auth_tests/test_forms.py:20, tests/flatpages_tests/test_forms.py:104, tests/humanize_tests/tests.py:10, tests/i18n/commands/__init__.py:1, tests/i18n/commands/code.sample:1, tests/i18n/commands/code.sample:4, tests/i18n/exclude/__init__.py:6, tests/i18n/project_dir/__init__.py:2, tests/i18n/project_dir/app_no_locale/models.py:1, tests/i18n/project_dir/app_with_locale/models.py:1, tests/i18n/test_compilation.py:18, tests/i18n/test_compilation.py:170, tests/i18n/test_compilation.py:171, tests/i18n/test_compilation.py:177, tests/i18n/test_compilation.py:178, tests/i18n/tests.py:27, tests/i18n/tests.py:994, tests/i18n/tests.py:996, tests/i18n/tests.py:998, tests/i18n/tests.py:1000, tests/i18n/tests.py:1226, tests/i18n/tests.py:1271, tests/i18n/tests.py:1299, tests/i18n/tests.py:1514"
+   },
+   "source": {
+    "sites": "maker_drafts:tests:ugettext"
+   }
+  }
+ },
+ {
+  "task_id": "674327c14570",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "jazzband/django-debug-toolbar",
+  "owner_team": "jazzband/django-debug-toolbar",
+  "target": "jazzband/django-debug-toolbar",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "jazzband/django-debug-toolbar",
+    "symbol": "url",
+    "count": 29,
+    "sites": "debug_toolbar/panels/sql/panel.py:6, debug_toolbar/panels/sql/panel.py:131, debug_toolbar/panels/sql/panel.py:132, debug_toolbar/panels/sql/panel.py:133, debug_toolbar/panels/staticfiles.py:34, debug_toolbar/panels/templates/panel.py:7, debug_toolbar/panels/templates/panel.py:165, debug_toolbar/toolbar.py:9, debug_toolbar/toolbar.py:131, example/urls.py:2, example/urls.py:7, example/urls.py:8, example/urls.py:9, example/urls.py:10, example/urls.py:11, example/urls.py:17, tests/urls.py:1, tests/urls.py:9, tests/urls.py:10, tests/urls.py:11, tests/urls.py:12, tests/urls.py:13, tests/urls.py:14, tests/urls.py:15, tests/urls.py:16, tests/urls.py:17, tests/urls.py:18, tests/urls.py:19, tests/urls.py:20"
+   },
+   "source": {
+    "sites": "maker_drafts:jazzband/django-debug-toolbar:url"
+   }
+  }
+ },
+ {
+  "task_id": "69feac424092",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "contrib.admindocs",
+  "target": "contrib.admindocs",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.admindocs",
+    "symbol": "ugettext_lazy",
+    "count": 1,
+    "sites": "django/contrib/admindocs/apps.py:2"
+   },
+   "source": {
+    "sites": "maker_drafts:contrib.admindocs:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "737d73b389d3",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "django-import-export/django-import-export",
+  "owner_team": "django-import-export/django-import-export",
+  "target": "django-import-export/django-import-export",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "django-import-export/django-import-export",
+    "symbol": "url",
+    "count": 7,
+    "sites": "import_export/admin.py:6, import_export/admin.py:93, import_export/admin.py:96, import_export/admin.py:368, tests/urls.py:3, tests/urls.py:12, tests/urls.py:13"
+   },
+   "source": {
+    "sites": "maker_drafts:django-import-export/django-import-export:url"
+   }
+  }
+ },
+ {
+  "task_id": "79a0848121e0",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "carltongibson/django-filter",
+  "owner_team": "carltongibson/django-filter",
+  "target": "carltongibson/django-filter",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "carltongibson/django-filter",
+    "symbol": "url",
+    "count": 7,
+    "sites": "tests/rest_framework/test_integration.py:4, tests/rest_framework/test_integration.py:114, tests/rest_framework/test_integration.py:115, tests/rest_framework/test_integration.py:116, tests/urls.py:1, tests/urls.py:13, tests/urls.py:14"
+   },
+   "source": {
+    "sites": "maker_drafts:carltongibson/django-filter:url"
+   }
+  }
+ },
+ {
+  "task_id": "7e6abea96700",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "contrib.redirects",
+  "target": "contrib.redirects",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.redirects",
+    "symbol": "ugettext_lazy",
+    "count": 2,
+    "sites": "django/contrib/redirects/apps.py:2, django/contrib/redirects/models.py:3"
+   },
+   "source": {
+    "sites": "maker_drafts:contrib.redirects:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "8128d3737ffa",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "contrib.humanize",
+  "target": "contrib.humanize",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.humanize",
+    "symbol": "ungettext",
+    "count": 29,
+    "sites": "django/contrib/humanize/templatetags/humanize.py:12, django/contrib/humanize/templatetags/humanize.py:59, django/contrib/humanize/templatetags/humanize.py:60, django/contrib/humanize/templatetags/humanize.py:63, django/contrib/humanize/templatetags/humanize.py:64, django/contrib/humanize/templatetags/humanize.py:67, django/contrib/humanize/templatetags/humanize.py:68, django/contrib/humanize/templatetags/humanize.py:71, django/contrib/humanize/templatetags/humanize.py:72, django/contrib/humanize/templatetags/humanize.py:75, django/contrib/humanize/templatetags/humanize.py:76, django/contrib/humanize/templatetags/humanize.py:79, django/contrib/humanize/templatetags/humanize.py:80, django/contrib/humanize/templatetags/humanize.py:83, django/contrib/humanize/templatetags/humanize.py:84, django/contrib/humanize/templatetags/humanize.py:87, django/contrib/humanize/templatetags/humanize.py:88, django/contrib/humanize/templatetags/humanize.py:91, django/contrib/humanize/templatetags/humanize.py:92, django/contrib/humanize/templatetags/humanize.py:95, django/contrib/humanize/templatetags/humanize.py:96, django/contrib/humanize/templatetags/humanize.py:99, django/contrib/humanize/templatetags/humanize.py:100, django/contrib/humanize/templatetags/humanize.py:205, django/contrib/humanize/templatetags/humanize.py:212, django/contrib/humanize/templatetags/humanize.py:219, django/contrib/humanize/templatetags/humanize.py:233, django/contrib/humanize/templatetags/humanize.py:240, django/contrib/humanize/templatetags/humanize.py:247"
+   },
+   "source": {
+    "sites": "maker_drafts:contrib.humanize:ungettext"
+   }
+  }
+ },
+ {
+  "task_id": "a98bf064db06",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "contrib.postgres",
+  "target": "contrib.postgres",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.postgres",
+    "symbol": "ugettext_lazy",
+    "count": 9,
+    "sites": "django/contrib/postgres/apps.py:5, django/contrib/postgres/fields/array.py:9, django/contrib/postgres/fields/hstore.py:8, django/contrib/postgres/fields/jsonb.py:10, django/contrib/postgres/forms/array.py:10, django/contrib/postgres/forms/hstore.py:5, django/contrib/postgres/forms/jsonb.py:4, django/contrib/postgres/forms/ranges.py:6, django/contrib/postgres/validators.py:9"
+   },
+   "source": {
+    "sites": "maker_drafts:contrib.postgres:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "b1e062548a26",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "forms",
+  "target": "forms",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "forms",
+    "symbol": "ungettext",
+    "count": 3,
+    "sites": "django/forms/formsets.py:9, django/forms/formsets.py:344, django/forms/formsets.py:351"
+   },
+   "source": {
+    "sites": "maker_drafts:forms:ungettext"
+   }
+  }
+ },
+ {
+  "task_id": "d2126c5d544a",
+  "split": "prompt",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "contrib.admin",
+  "target": "contrib.admin",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "contrib.admin",
+    "symbol": "ugettext_lazy",
+    "count": 11,
+    "sites": "django/contrib/admin/actions.py:12, django/contrib/admin/actions.py:87, django/contrib/admin/apps.py:4, django/contrib/admin/filters.py:18, django/contrib/admin/forms.py:3, django/contrib/admin/helpers.py:16, django/contrib/admin/models.py:11, django/contrib/admin/sites.py:13, django/contrib/admin/sites.py:39, django/contrib/admin/sites.py:42, django/contrib/admin/sites.py:45"
+   },
+   "source": {
+    "sites": "maker_drafts:contrib.admin:ugettext_lazy"
+   }
+  }
+ },
+ {
+  "task_id": "e949a9e4a64f",
+  "split": "held_out",
+  "kind": "ticket_draft",
+  "repo": "django/django",
+  "owner_team": "views",
+  "target": "views",
+  "target_kind": "team",
+  "facts": {
+   "facts": {
+    "team": "views",
+    "symbol": "ugettext_lazy",
+    "count": 2,
+    "sites": "django/views/static.py:18, django/views/static.py:98"
+   },
+   "source": {
+    "sites": "maker_drafts:views:ugettext_lazy"
+   }
+  }
+ }
+]
