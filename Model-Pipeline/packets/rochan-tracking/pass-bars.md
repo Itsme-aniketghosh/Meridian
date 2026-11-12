@@ -57,6 +57,7 @@ PR-AUC means average precision, as in Rachna's `train.py`, so there is one defin
 | Seeded ε | The share of challenger picks is within ±2% of ε over **10,000** seeded draws, at ε = 0.2 and at 0.1 | `test_auditor.py` |
 | No look-ahead | A replay never reads a row whose `known_at` is after the stall: 0 rows. The fixture has rows on both sides of the stall time | `test_auditor.py` |
 | Promotion guard | Blocks at 29 live matches and at +49 Elo. Replay matches never count toward the 30. A policy written by an LLM is never promoted without a person | `test_auditor.py` |
+| Luck doesn't promote (added Nov 11: GAPS 9's bar, as decision 12's rule, committed before the sweep) | In the simulation, a policy no better than the champion is promoted in at most 5% of 2,000 runs of 600 matches, and one 200 Elo better is promoted within 600 matches in at least 95% | `auditor_sim.py --decide 12` |
 | Runs | Runs on the fixture and on replay. With no live matches, the output says so | `test_auditor.py` |
 
 Why two of these differ from a first reading of 05-test (simulated on Nov 5, before any auditor code exists):
@@ -117,7 +118,7 @@ Only the rows today's code can meet. Seeded ε and the promotion guard come with
 | Bar | Result |
 |---|---|
 | Seeded ε | ✅ Over 10,000 seeded draws the challenger share is 19.36% at ε = 0.2 and 9.88% at ε = 0.1, within ±2 points (`test_auditor.py`, `Epsilon`) |
-| Promotion guard | ✅ for what it checks (`test_auditor.py`, `Promotion`). It blocks at 29 live matches and at +49.9 Elo. 100 replay wins plus 29 live ones are still blocked, and the 30th live win passes. An LLM's policy is blocked until a person approves it. But the guard as 04 writes it promotes a policy no better than v0 by luck in 87% of simulated runs: decisions.md 10, raised for the team. This row stays as written until the team changes the guard |
+| Promotion guard | ✅ for what it checks (`test_auditor.py`, `Promotion`). It blocks at 29 live matches and at +49.9 Elo. 100 replay wins plus 29 live ones are still blocked, and the 30th live win passes. An LLM's policy is blocked until a person approves it. But the guard as 04 writes it promotes a policy no better than v0 by luck in 87% of simulated runs: decisions.md 10, raised for the team. This row stays as written until the team changes the guard. **Changed Nov 11 (GAPS 9): see Auditor, Nov 11** |
 | Runs | Fixture: the stall job runs. Three stalls ended between R1 and R2, and no rule fires for them, so each waits for a person. With a verdict added, the policies play live matches. v1 block (70dd1dabfed544b8): 68 stalls served, 60 with v0's ranking and 8 with v1's, in 80 s. That block holds one run, so no stall can have ended. Replay comes Nov 10 |
 | No look-ahead | Comes with replay, Nov 10 |
 
@@ -134,3 +135,25 @@ Only the rows today's code can meet. Seeded ε and the promotion guard come with
 |---|---|
 | No look-ahead | ⚠️ The Nov 9 row overstated it. Ticket maps are cut by their ticket's creation date only, not by the run that made them: as of an earlier run, a map made from the block's run's call sites and ticket text is read early. No effect on the v1 block, which has no ticket-to-call-site maps and one run. The fix is written down in decisions.md. Every other table: as on Nov 9 |
 | Runs | ✅ A replay match is dated when it's played, so the log before then, and the ratings and promotions it gave, stay as they were (`test_auditor.py`, `Replay`; the test fails with the old dating) |
+
+### Auditor, Nov 11 (GAPS 9: the promotion guard)
+
+| Bar | Result |
+|---|---|
+| Luck doesn't promote | ✅ With the luck test (decision 12), a policy no better than the others is promoted in 3.7% of 201-match runs and 4.0% of 600-match runs, seeds 1–2,000, against 87.0% and 95.8% under 04 §9's guard alone. v1, 200 Elo better, is promoted in 100% of runs, at a median of 69 matches instead of 45 (`auditor_sim.py --decide 12`; MLflow `meridian-auditor`, `decision=rochan-12`, run be39aa4f) |
+| Promotion guard | ✅ As on Nov 7 under 04 §9's numbers, plus the luck test (`test_auditor.py`, `Promotion`): see below |
+
+More on the luck bar, from `--decide 12`'s printout after its table. These aren't in the MLflow run, which holds the rule's table:
+- **Longer runs:** over 3,000 matches, the luck test is still at 4.0%, against 99.1% for 04 §9's guard.
+- **Draws:** with 30–70% of matches drawn, v1 is still promoted within 600 matches in 94–100% of runs, and luck stays at 3.2–3.9%.
+- **First promotions only:** v2 is never the first promotion. The table counts each run's first promotion only.
+
+The guard's tests:
+- A 20–10 record against v0 is blocked (likelihood ratio 2.82, needs 20), and 24–6 passes. 22–8 passes with one challenger but not with two, which need 40.
+- 10 wins, 60 draws and no loss passes: draws don't count.
+- The record that counts is the one against the champion of the day.
+- A policy written later doesn't undo a promotion already given, and one created at the moment of a check counts in it.
+- Settings the test can't run on stop the run.
+- For one challenger (a bar of 20), the chance that luck ever gets a no-better policy past it is computed exactly: 4.22%, under 5%.
+
+Decisions 9–11 still run under 04 §9's guard, and give their tables again. Decision 10's luck column is 87.0% and 89.7%.
