@@ -76,7 +76,7 @@ The planted models are shuffled labels (0.154), size only (0.388) and half the f
 
 `model.yml` runs on every pull request and push to main that touches `Model-Pipeline/`. It builds the model's Docker image, runs data check → train → seed noise → evaluate → bias → gate → LLM bias inside it, and, on main only, registers and pushes the model to Artifact Registry. Main signs in to Google Cloud without a key, through Workload Identity trusted for this repo's main branch. Pull requests stop at the gate and never push.
 
-**What CI trains (decision 7):** the full Optuna search took 5.2 minutes on a laptop but **27.7 minutes** on a GitHub runner, over the 15-minute bar for PR feedback. So PRs and pushes **retrain** each model with its committed best parameters, which takes 63 seconds and reproduces the same forest. The full search is a run started by hand. An earlier version compared a refit with the laptop's committed scores to 1e-9, and failed on the Linux runner, since the runner doesn't reproduce a laptop's floats that exactly. So the scores and the check are now made on the same machine.
+**What CI trains (decision 7):** the full Optuna search took 5.2 minutes on a laptop but **27.7 minutes** on a GitHub runner, over the 15-minute bar for PR feedback. So PRs and pushes **retrain** each model with its committed best parameters, which reproduces the same forest. A PR's whole run then takes **4.0 minutes** (median of the first 3 green runs; 24 runs across 15 branches range 3.4–5.3 minutes), against the 15-minute bar. About two thirds of that is building the image, and the pipeline itself takes about a minute. The full search is a run started by hand. An earlier version compared a refit with the laptop's committed scores to 1e-9, and failed on the Linux runner, since the runner doesn't reproduce a laptop's floats that exactly. So the scores and the check are now made on the same machine.
 
 **When it runs (decision 8):** on PRs plus main. At most about 40 runs a day, and the repo is public, so runner time is free.
 
@@ -98,6 +98,5 @@ GAPS gap 16 asked for each stalled team's files ranked by risk, cut where 90% of
 
 - **Slack:** the repo has no `MERIDIAN_SLACK_WEBHOOK` secret, so CI's fail, done and push messages have gone to each run's summary, not to Slack. The guideline's notification bar isn't shown on a real channel yet.
 - **Not run on a real fork:** that a fork's PR gets no secrets. The workflow handles it, and says so in the summary, but no fork PR has run.
-- **The feedback-time bar** asks for the median of 3 runs. One retrain run was timed (63 s, about 4 minutes with the image build).
 - **Small slices.** Most modules, components and every owner team are too small to judge at N ≥ 30, so the bias report can rarely tell a fair slice from an unfair one.
 - **Q2's 35% label noise** rests on 20 hand-checked commits (interval 0.18–0.57). Q4 wasn't hand-checked, so whether small commits are labelled worse than large ones can't be said.
