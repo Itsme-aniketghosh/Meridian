@@ -41,13 +41,15 @@ class Model:
 
 
 # The names on the left are what ladders, cache keys and logged rows carry. Claude's prices: GAPS.md (list rates,
-# Nov 11). The rest are marked None until someone checks them on the Vertex pricing page and fills them in.
+# Nov 11). gemini-pro: Vertex has no "-latest" alias (404), so the id is the newest Pro its model list has; its price
+# is the Cloud Billing catalog's (Vertex AI SKUs "Gemini 3.0 Pro / 3.1 Pro - Text Input/Output - Predictions",
+# global, Nov 11; thinking tokens bill as output). The rest are marked None until someone checks them the same way.
 MODELS = {
     "claude-haiku-5-5": Model("claude", "claude-haiku-5-5", 0.10, 0.50),
     "claude-sonnet-5-5": Model("claude", "claude-sonnet-5-5", 2.00, 10.00),
     "claude-opus-5-5": Model("claude", "claude-opus-5-5", 4.00, 20.00),
     "gemini-flash": Model("gemini", "gemini-flash-latest", None, None),
-    "gemini-pro": Model("gemini", "gemini-pro-latest", None, None),
+    "gemini-pro": Model("gemini", "gemini-3.1-pro-preview", 2.00, 12.00),
     "mistral-medium": Model("mistral", "mistral-medium-3", None, None, "us-central1"),
     "llama-4-maverick": Model("maas", "meta/llama-4-maverick-17b-128e-instruct-maas", None, None, "us-east5"),
     "llama-4-scout": Model("maas", "meta/llama-4-scout-17b-16e-instruct-maas", None, None, "us-east5"),

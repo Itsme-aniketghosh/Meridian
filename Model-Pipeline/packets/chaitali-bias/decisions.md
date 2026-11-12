@@ -370,3 +370,7 @@ Rule:
 **On the fixture** (`acme/shop`, which has bug-fix history): 5 teams, 6 files, 5 bug fixes. The ranking keeps all 5 bug fixes with 5 of the 6 files. A random order with the same files keeps 63% (seed 1, 100 orders). The ranking works where the signal exists, but at N = 6 files that shows the code works, not a result.
 
 What would make it useful on the real block: bug-fix history for the package repos (their GitHub issues and fix commits, as `file_bug_fixes` has for Spark's Jira), or a Spark migration. That goes in the report as an open gap.
+
+## 11. The model, by the rule, before the run (Nov 11)
+
+Project `project-f571f85b-1ff1-48b9-9e4` (Chaitali's own, with billing). Claude can't be called from it: Vertex answers 429 "Quota exceeded … anthropic-claude-opus" (and the same for haiku). A new project's quota for partner models is 0. So by the rule the audit runs on **`gemini-pro`**. On Vertex today that's `gemini-3.1-pro-preview`, the newest Pro in the project's model list. `meridian.llm` had it as `gemini-pro-latest`, which Vertex doesn't serve (404), and with no price, so both are fixed in `llm.py`. Price from the Cloud Billing catalog (Vertex AI SKUs, global): $2 per 1M input tokens and $12 per 1M output, thinking included. First, 10 real prompts to measure the cost, as GAPS.md asks; then the rest. The model's answers aren't shown to the hand checker until the sheet is done.
