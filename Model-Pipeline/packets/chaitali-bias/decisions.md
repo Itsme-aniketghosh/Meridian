@@ -416,3 +416,17 @@ The plants, on `chaitali-planted-product`, one commit at a time, each run left t
 3. **LLM key:** `ci.yml`'s `test` job gets `MERIDIAN_GCP_PROJECT` from a secret.
 
 Rule: each plant passes the bar only if its own `ci.yml` run is red, failing on that plant's test on both Linux and Windows. A green run is a failed bar, and the report says so. The branch is never merged, and its draft PR is closed after the third run.
+
+## Product failures: results: all three plants red
+
+On `chaitali-planted-product` (#87, a draft, never merged), one plant at a time, each run finished before the next push. Each run failed only `ci.yml`'s `test` job, on both Linux and Windows, at the unit-test step. Every other job (`model`, `gx`, `pushcheck`, `airflow`) was green. The runs' logs need a GitHub sign-in, so which tests failed was checked by running the same suite on the same commit locally. Each plant failed only its own test:
+
+| Plant | Commit | Run | `test` job, Linux / Windows | Failing tests (local, same commit) |
+|---|---|---|---|---|
+| 1. A view that raises with the LLM off | 66585fa | 43294003464 | red / red | 16 errors, all in `test_views` |
+| 2. A cache miss ships the template | 83aaa3a | 43296868897 | red / red | 1: `test_agents` `test_a_miss_with_strict_cache_stops_the_run` |
+| 3. `MERIDIAN_GCP_PROJECT` in `ci.yml` | 7b6357c | 43300353924 | red / red | 1: `test_ci_keys` `test_no_workflow_has_an_llm_key` |
+
+**The bar passes for all three.** Without the plants (#86), every job is green, and `test_ci_keys` passes on today's workflows.
+
+Limits: plant 3 shows a key *named* in a workflow is caught. It's a text check, so a key added some other way (an org-level variable, a credentials file) wouldn't be. Main's Workload Identity sign-in is allowed because it comes after every LLM step. Whether `meridian-ci`'s roles could call Vertex AI wasn't checked.

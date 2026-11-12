@@ -80,7 +80,7 @@ The planted models are shuffled labels (0.154), size only (0.388) and half the f
 
 **When it runs (decision 8):** on PRs plus main. At most about 40 runs a day, and the repo is public, so runner time is free.
 
-**Shown on real runs:** green on a PR, end to end. **Red at the gate on a planted bad model** (shuffled labels, a draft PR never merged): the bar failed at 0.174 against 0.319, and bias failed with 2 open flags. On main, the registry pushed the champion to Artifact Registry, and Rochan committed the same bytes to `registry/`.
+**Shown on real runs:** green on a PR, end to end. **Red at the gate on a planted bad model** (shuffled labels, a draft PR never merged): the bar failed at 0.174 against 0.319, and bias failed with 2 open flags. On main, the registry pushed the champion to Artifact Registry, and Rochan committed the same bytes to `registry/`. **The product jobs fail when they should:** three failures planted one at a time on a draft PR each turned `ci.yml` red on Linux and Windows. They were a view that breaks with the LLM off, a cache miss that ships the template instead of stopping, and an LLM key in a job, which a new test checks every workflow for.
 
 ## LLM bias
 
@@ -97,7 +97,7 @@ GAPS gap 16 asked for each stalled team's files ranked by risk, cut where 90% of
 ## Not done, and limits
 
 - **Slack:** the repo has no `MERIDIAN_SLACK_WEBHOOK` secret, so CI's fail, done and push messages have gone to each run's summary, not to Slack. The guideline's notification bar isn't shown on a real channel yet.
-- **Not run on a real fork or a planted product failure:** that a fork's PR gets no secrets (the workflow handles it, and says so in the summary), and that the product jobs fail on a view that breaks with the LLM off or on a cache miss (their tests exist and run in CI).
+- **Not run on a real fork:** that a fork's PR gets no secrets. The workflow handles it, and says so in the summary, but no fork PR has run.
 - **The feedback-time bar** asks for the median of 3 runs. One retrain run was timed (63 s, about 4 minutes with the image build).
 - **Small slices.** Most modules, components and every owner team are too small to judge at N ≥ 30, so the bias report can rarely tell a fair slice from an unfair one.
 - **Q2's 35% label noise** rests on 20 hand-checked commits (interval 0.18–0.57). Q4 wasn't hand-checked, so whether small commits are labelled worse than large ones can't be said.
