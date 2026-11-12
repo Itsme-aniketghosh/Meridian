@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.0,
+ "model": "phi4-mini",
+ "prompt_version": "eafe3eeacbc1",
+ "reply": "{\"agent\": \"writer\", \"model\": \"claude-haiku-5-5\", \"reason\": \"Stall reason with orphaned owner, test gap, never notified since 2015\"}",
+ "tokens_in": 365,
+ "tokens_out": 42
+}

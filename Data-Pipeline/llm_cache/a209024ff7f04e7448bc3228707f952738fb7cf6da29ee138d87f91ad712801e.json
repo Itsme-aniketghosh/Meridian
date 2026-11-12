@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.0,
+ "model": "phi4-mini",
+ "prompt_version": "eafe3eeacbc1",
+ "reply": "{\n  \"agent\": \"writer\",\n  \"model\": \"claude-haiku-5-5\",\n  \"reason\": \"Task is simple and fits the haiku format well.\"\n}",
+ "tokens_in": 368,
+ "tokens_out": 40
+}

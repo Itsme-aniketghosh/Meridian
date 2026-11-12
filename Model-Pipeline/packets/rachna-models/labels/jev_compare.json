@@ -1,0 +1,225 @@
+{
+ "decisions": {
+  "13": {
+   "jev_model": "phi4-mini",
+   "picked": "rules",
+   "rule": "Jev only if more right than the rules and no more cost per pick ($0)"
+  },
+  "14": {
+   "picked": "gemma-4",
+   "rule": "the cheapest hosted (gemma-4) unless another gets >= 3 more right"
+  },
+  "21": {
+   "picked": "phi4-mini",
+   "rule": "local if within 3 of the best hosted (29) and p95 <= 10 s"
+  }
+ },
+ "labels": {
+  "large": 1,
+  "small": 29
+ },
+ "models": {
+  "gemini-flash": {
+   "lean": {
+    "right": 26,
+    "too big": 3,
+    "too small": 1
+   },
+   "model": "gemini-flash",
+   "p95_s": 11.61,
+   "paid_calls": 30,
+   "picks": [
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "mid",
+    "small",
+    "small",
+    "mid",
+    "small",
+    "small",
+    "mid",
+    "small",
+    "small"
+   ],
+   "refused": 11,
+   "right": 26,
+   "same_twice": true,
+   "tasks": 30,
+   "usd": 0.052029,
+   "usd_per_pick": 0.001734,
+   "why_refused": {
+    "refused: outside the table": 10,
+    "refused: the reason says something not in the facts": 1
+   }
+  },
+  "gemma-4": {
+   "lean": {
+    "right": 29,
+    "too small": 1
+   },
+   "model": "gemma-4",
+   "p95_s": 2.65,
+   "paid_calls": 30,
+   "picks": [
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small"
+   ],
+   "refused": 19,
+   "right": 29,
+   "same_twice": true,
+   "tasks": 30,
+   "usd": 0.002934,
+   "usd_per_pick": 9.8e-05,
+   "why_refused": {
+    "refused: outside the table": 19
+   }
+  },
+  "llama-4-maverick": {
+   "error": "HTTPError: HTTP 404: [{\n  \"error\": {\n    \"code\": 404,\n    \"message\": \"Publisher model `projects/918216179653/locations/us-east5/publishers/meta/models/llama-4-maverick-17b",
+   "model": "llama-4-maverick"
+  },
+  "llama-4-scout": {
+   "error": "HTTPError: HTTP 404: [{\n  \"error\": {\n    \"code\": 404,\n    \"message\": \"Publisher model `projects/918216179653/locations/us-east5/publishers/meta/models/llama-4-scout-17b-16",
+   "model": "llama-4-scout"
+  },
+  "phi4-mini": {
+   "lean": {
+    "right": 29,
+    "too small": 1
+   },
+   "model": "phi4-mini",
+   "p95_s": 2.27,
+   "paid_calls": 30,
+   "picks": [
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small",
+    "small"
+   ],
+   "refused": 4,
+   "right": 29,
+   "same_twice": true,
+   "tasks": 30,
+   "usd": 0.0,
+   "usd_per_pick": 0.0,
+   "why_refused": {
+    "refused: outside the table": 4
+   }
+  }
+ },
+ "rules": {
+  "model": "rules",
+  "p95_s": 0.0,
+  "picks": [
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small",
+   "small"
+  ],
+  "refused": 0,
+  "right": 29,
+  "same_twice": true,
+  "tasks": 30,
+  "usd": 0.0,
+  "usd_per_pick": 0.0
+ }
+}

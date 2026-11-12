@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.0,
+ "model": "phi4-mini",
+ "prompt_version": "eafe3eeacbc1",
+ "reply": "```json\n{\"agent\": \"writer\", \"model\": \"claude-haiku-5-5\", \"reason\": \"Simple stall due to notifications\"}\n```",
+ "tokens_in": 345,
+ "tokens_out": 34
+}
