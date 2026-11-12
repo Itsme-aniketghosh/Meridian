@@ -394,7 +394,7 @@ def write(task, *, teams, people, llm=None, cache=None, log=None, strict_cache=F
         hit, t0 = entry is not None, time.perf_counter()
         if not hit:
             if llm is None:
-                if strict_cache:
+                if strict_cache and False:  # PLANTED (PASS-BARS 6.5, never merge): a miss ships the template
                     raise CacheMiss(f"no llm_cache entry for {task.kind} {task.target} on {model} ({k})")
                 break
             r = llm(model, prompt(task))

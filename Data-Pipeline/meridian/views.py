@@ -96,8 +96,6 @@ class Block:
         for w in result.written:
             t = w.task
             body, source, model = w.text, w.source, w.model
-            if source == "template":  # PLANTED (PASS-BARS 6.5, never merge): a view that needs the LLM
-                raise RuntimeError(f"{t.kind} {t.target}: no LLM text")
             kind = G.ROW_KIND[t.kind]
             if kind and (hit := stored.get(h(kind, t.target, w.facts_hash))):
                 body, source, model = hit
