@@ -76,6 +76,21 @@ class Rule(unittest.TestCase):
         self.assertFalse(repo["a"]["flagged"])
 
 
+class Ship(unittest.TestCase):
+    def test_the_bar_judges_the_shipped_model_and_lists_the_others(self):
+        good = calls([("writer", f"h{i}", "r", "a", "rewrite", "llm") for i in range(40)]).assign(model="flash")
+        bad = calls([("writer", f"h{i}", "r", "a", "rewrite", "template") for i in range(40)]).assign(model="gemma")
+        rep = llm_bias.build(pd.concat([good, bad]), DIFFS, B, ship="flash")
+        self.assertEqual((rep["ship"], rep["fallback"]["texts"]), ("flash", 40))
+        self.assertEqual(rep["fallback"]["by"]["task"]["overall"]["k"], 0)
+        self.assertEqual(rep["others"]["gemma"]["by"]["task"]["overall"]["k"], 40)
+
+    def test_a_shipped_model_with_no_calls_is_refused(self):
+        good = calls([("writer", "h", "r", "a", "rewrite", "llm")]).assign(model="flash")
+        with self.assertRaises(ValueError):
+            llm_bias.build(good, DIFFS, B, ship="pro")
+
+
 class Report(unittest.TestCase):
     def test_the_published_counts(self):
         rep = llm_bias.build(None, DIFFS, B)

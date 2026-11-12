@@ -380,3 +380,22 @@ Rule, adding to decision 9:
 - Slices: repo, owner team, task kind. `[bias] min_n` (30) and `max_gap` (0.10), harm upward. Every slice under 30 is listed with its N, not judged.
 - The other 3 models get the same slices, for the record only: they don't ship, so they don't decide the bar.
 - A flagged slice on `gemini-flash` is accepted only with a fix tried and written down (Vishwa's decision 5 and 5b are gate fixes, and count if they were scored on that slice). Otherwise it's an open flag, and the report says so.
+
+## Gap 7: results: no fallback slice flagged, N > 0
+
+Replayed from `llm_cache/` with 0 paid calls (`python -m meridian.agents --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite --models <m> --strict-cache --calls <m>.jsonl --quiet`, one run per model), then `python -m model.llm_bias --calls <the 4 files> --ship gemini-flash`. The replay gives Vishwa's own pass rate for the shipped model (98.0%), so it reproduces his run.
+
+**The shipped model, `gemini-flash`: 4 of 204 texts fell back to the template (0.020). No slice is flagged.**
+
+| Slice | Judged (N ≥ 30) | Fallback | 95% interval | Power at a 0.15 gap |
+|---|---|---:|---|---:|
+| repo `django/django` | 144 texts | 1 (0.007) | 0.001–0.038 | 0.48 |
+| task `consumer` | 68 | 3 (0.044) | 0.015–0.122 | 0.26 |
+| task `stall_reason` | 68 | 0 (0.000) | 0.000–0.053 | 0.26 |
+| task `ticket_draft` | 68 | 1 (0.015) | 0.003–0.079 | 0.26 |
+
+Not judged (decision 9: listed with N): the other 20 repos (60 texts between them) and all 43 owner teams (none reaches 30). So **the bar passes, but it can say little**: the judged slices' power is 0.26–0.48, so a true 0.15 gap would be missed more often than caught. And teams, the slice the bar names, can't be judged on this block at all.
+
+The other models, for the record (they don't ship): Gemma 4 0.078, Llama 4 Scout 0.069, Llama 4 Maverick 0.093. None has a flagged slice. Their worst judged slice is `consumer` (Gemma 4: 12 of 68 = 0.176), the same task kind that's worst for `gemini-flash`.
+
+Diff match is unchanged from Nov 10: oscar and `(other)` flagged and accepted. `reports/llm_bias.json` passes, with 0 open flags.

@@ -15,6 +15,8 @@ Writes reports/llm_bias.json and reports/llm_bias_match.png. `pass` is false whi
 
     python -m model.llm_bias                 # every meridian-agents run in the store, and the diff counts
     python -m model.llm_bias --run-id <id>   # one agents run
+    python -m model.llm_bias --calls <jsonl>... --ship gemini-flash   # rows from `meridian.agents --calls`; the bar is
+                                             # judged on the shipped model, every other model is listed for the record
 """
 import argparse
 import json
@@ -92,10 +94,19 @@ def match(diffs, b):
             "sources": sorted(set(diffs["source"]))}
 
 
-def build(calls, diffs, b, accepted=()):
-    """The whole report as a dict."""
-    rep = {"settings": {k: b[k] for k in ("min_n", "max_gap", "power_gap")},
+def build(calls, diffs, b, accepted=(), ship=None):
+    """The whole report as a dict. ship: the model whose texts the bar judges, when calls holds several (each run
+    alone, as gap 2 runs them); the others go under "others", for the record only."""
+    others = {}
+    if ship is not None and calls is not None and len(calls):
+        if ship not in set(calls["model"]):
+            raise ValueError(f"no calls for the shipped model {ship!r} (models: {sorted(set(calls['model']))})")
+        others = {m: fallback(texts(c), b) for m, c in sorted(calls.groupby("model")) if m != ship}
+        calls = calls[calls["model"] == ship]
+    rep = {"settings": {k: b[k] for k in ("min_n", "max_gap", "power_gap")}, "ship": ship,
            "fallback": fallback(texts(calls), b), "match": match(diffs, b)}
+    if others:
+        rep["others"] = others
     flags = [{"rate": r, "slice": f"{dim}={g}", "value": e["value"], "n": e["n"], "ci": e["ci"],
               "overall": rep[r]["by"][dim]["overall"]["value"]}
              for r in ("fallback", "match") for dim, s in rep[r]["by"].items()
@@ -152,6 +163,8 @@ def main(argv=None):
     p.add_argument("--config", default=str(MODEL_TOML))
     p.add_argument("--out", default=str(REPORTS))
     p.add_argument("--no-calls", action="store_true", help="don't read MLflow (as if no agent had run)")
+    p.add_argument("--calls", nargs="+", help="call rows from meridian.agents --calls, instead of MLflow")
+    p.add_argument("--ship", help="with --calls: the model the writer ships, which the bar judges")
     p.add_argument("--no-charts", action="store_true")
     a = p.parse_args(argv)
     from model.data import load_config
@@ -160,9 +173,12 @@ def main(argv=None):
         b = bias_settings(cfg)
     except ValueError as e:
         sys.exit(str(e))
-    calls, why = (None, "--no-calls") if a.no_calls else load_calls(a.run_id)
+    if a.calls:
+        calls, why = pd.concat([pd.read_json(f, lines=True) for f in a.calls], ignore_index=True), ""
+    else:
+        calls, why = (None, "--no-calls") if a.no_calls else load_calls(a.run_id)
     diffs = pd.read_csv(a.diffs)
-    rep = build(calls, diffs, b, cfg.get("llm_bias", {}).get("accepted", []))
+    rep = build(calls, diffs, b, cfg.get("llm_bias", {}).get("accepted", []), a.ship)
     if why and not rep["fallback"]["note"]:
         rep["fallback"]["note"] = why
     out = Path(a.out)
