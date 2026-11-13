@@ -441,3 +441,16 @@ On `chaitali-planted-product` (#87, a draft, never merged), one plant at a time,
 **The bar passes for all three.** Without the plants (#86), every job is green, and `test_ci_keys` passes on today's workflows.
 
 Limits: plant 3 shows a key *named* in a workflow is caught. It's a text check, so a key added some other way (an org-level variable, a credentials file) wouldn't be. Main's Workload Identity sign-in is allowed because it comes after every LLM step. Whether `meridian-ci`'s roles could call Vertex AI wasn't checked.
+
+---
+
+# Nov 13: the report's numbers on the shipped champion: the rule, before computing
+
+Aniket's integration check (Nov 12): the champion CI built and committed (`registry/champion.json`, `model.joblib` md5 `2a0c9cc6…`) has `val` PR-AUC 0.4067. The `reports/` files in git, which the bias section quoted, are from the laptop's forest, at 0.4058. They're the same kind and the same params, and they differ by 0.0009, under one seed SD (0.0021). The report should quote the model that ships.
+
+What's run: `registry/model.joblib` is scored as it is on today's `val` rows (`registry.rescore`'s path, no refit, S6). Its scores go through `model.bias` unchanged, into `reports/champion/`. The laptop's `reports/bias_report.json` stays as the record of the bias run judged on Nov 9.
+
+Rule:
+- The report's overall numbers, slice table and Bonferroni count become the champion's.
+- If the champion is flagged on the same 5 slices as the laptop forest, `[bias] accepted` stands as it is. The mitigation table stays the laptop forest's, said so in the report. Its re-sampling options refit, and a refit to get scores isn't done.
+- If any flag is new, it's an open flag. The bias report fails on it, and the report says so. Nothing is accepted after seeing it.
