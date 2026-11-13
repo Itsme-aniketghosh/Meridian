@@ -63,7 +63,8 @@ SMALL, MID, LARGE = "claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"
 LADDER = (SMALL, MID, LARGE)  # 04 §6 and rachna-models README: the writer is general small -> mid -> large
 ROUTE = "rules"               # who picked the model: the fixed ladder, until Jev
 KINDS = ("rewrite", "ticket_draft", "stall_reason", "consumer")
-ROW_KIND = {"rewrite": "rewrite", "ticket_draft": "ticket_draft", "stall_reason": "stall_reason", "consumer": None}
+ROW_KIND = {"rewrite": "rewrite", "ticket_draft": "ticket_draft", "stall_reason": "stall_reason", "consumer": None,
+            "walk": None}   # walk: the graph walkers' findings (orchestrator, GAPS 17), a team note like consumer
 # the templates' fixed product phrases that can share a word with a team (the real block has a team named Bug):
 # the gate reads them as words, for the templates and the LLM's text alike (02-product: "Bug fixes", never "incidents")
 VOCAB = ("bug fix", "bug fixes")
@@ -102,6 +103,8 @@ PROMPTS = {
                     "evidence it has. Don't pick one or say which is likelier.",
     "consumer": "Tell the team what it still has to migrate: how many call sites, where, how many bug fixes each file "
                 "had (with their ticket keys), what blocks them and whom they block.",
+    "walk": "Tell the stalled team what the graph shows beyond its own files: which teams were looked at, which "
+            "sites wait on which, and the reasons found at each team. Say only what the facts say.",
 }
 FACTS_FORMAT = "json, sorted keys, indent 1"  # decision 4 may change this: it's part of the prompt version
 FRAME = "{system}\n\nTask: {task}\n\nFacts:\n{facts}"
@@ -246,6 +249,19 @@ def stall_tasks(db, cfg, run_id, at):
                         {"facts": facts, "source": {"stall": f"stall:{x.task_id}", "policy": pid}},
                         "\n".join(lines), pid if pid in known else None))
     return out
+
+
+def walk_task(stall, walked):
+    """The writer's task for what the graph walkers found past a stalled team's own files (GAPS 17), from a stall_reason
+    task and walkers.Walk.facts(). Built by meridian.orchestrator only when the walkers ran; a team note, no row."""
+    f = walked["facts"]
+    lines = [f"{f['team'].title()} is stalled. Beyond its own files, the graph was walked through "
+             f"{_join(f['walked'])}."]
+    lines += [f"- {a}'s {site} waits on {b}'s {blocker}" for a, site, blocker, b in f["path"]]
+    lines += [f"- {team}: {_join(sorted(labels))}" for team, labels in sorted(f["found"].items())]
+    if not f["path"] and not f["found"]:
+        lines.append("No reason was found there either.")
+    return Task("walk", "team", stall.target, stall.owner_team, stall.repo, walked, "\n".join(lines))
 
 
 def consumer_tasks(db, q, repo, symbol):

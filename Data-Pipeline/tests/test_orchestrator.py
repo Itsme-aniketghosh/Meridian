@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from dataclasses import replace
+from unittest import mock
 
 from meridian import agents as G
 from meridian import orchestrator as O
@@ -83,6 +84,34 @@ class ModelPlan(unittest.TestCase):
     def test_workers_plan_the_same(self):
         llm = answer(first_reason, ["stall_reason", "consumer"])
         self.assertEqual(go(Fake(llm)), go(Fake(llm), workers=4))
+
+
+class Walkers(unittest.TestCase):
+    def written(self, walk):
+        db, plans = K.build(), []
+        teams, people = G.names(db)
+        orch = O.Orchestrator(teams=teams, people=people)
+        result = G.run(db, CFG, "R2", AT, plan=lambda todo: orch.select(todo, plans, walk=walk(db)))
+        return plans, [w for w in result.written if w.task.kind == "walk"]
+
+    def test_a_walk_is_one_more_task_for_that_stall_and_its_template_passes_the_gate(self):
+        found = {"facts": {"team": "billing", "walked": ["billing"], "path": [], "found": {}},
+                 "source": {"team": "stall:x"}}
+        plans, walks = self.written(lambda db: lambda stall, mine: found if stall.owner_team == "billing" else None)
+        self.assertEqual([p.team for p in plans if p.walk], ["billing"])
+        self.assertEqual([(w.task.owner_team, w.source, w.template_misses) for w in walks],
+                         [("billing", "template", ())])
+
+    def test_the_context_builder_fails_and_the_walkers_find_the_cause_upstream(self):
+        def down(facts):
+            raise RuntimeError("context builder down")
+        with mock.patch.object(O.context, "cut", down):
+            plans, walks = self.written(lambda db: O.graph_walk(db, CFG, "R2", AT, {}))
+        self.assertEqual(sum(p.walk for p in plans), len(plans))          # every stall's tool failed: all walked
+        fulfillment = next(w for w in walks if w.task.owner_team == "fulfillment")
+        self.assertEqual(fulfillment.task.facts["facts"]["found"]["platform"], {"Test gap": [["shared.client"]]})
+        self.assertIn("platform: Test gap", fulfillment.text)
+        self.assertTrue(all(w.template_misses == () for w in walks))      # the gate passes every walk template
 
 
 class Bounds(unittest.TestCase):
