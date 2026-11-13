@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.005691,
+ "facts_hash": "8128d3737ffa7106",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Team contrib.humanize must migrate ungettext at 29 sites: django/contrib/humanize/templatetags/humanize.py:12, django/contrib/humanize/templatetags/humanize.py:59, django/contrib/humanize/templatetags/humanize.py:60, django/contrib/humanize/templatetags/humanize.py:63, django/contrib/humanize/templatetags/humanize.py:64, django/contrib/humanize/templatetags/humanize.py:67, django/contrib/humanize/templatetags/humanize.py:68, django/contrib/humanize/templatetags/humanize.py:71, django/contrib/humanize/templatetags/humanize.py:72, django/contrib/humanize/templatetags/humanize.py:75, django/contrib/humanize/templatetags/humanize.py:76, django/contrib/humanize/templatetags/humanize.py:79, django/contrib/humanize/templatetags/humanize.py:80, django/contrib/humanize/templatetags/humanize.py:83, django/contrib/humanize/templatetags/humanize.py:84, django/contrib/humanize/templatetags/humanize.py:87, django/contrib/humanize/templatetags/humanize.py:88, django/contrib/humanize/templatetags/humanize.py:91, django/contrib/humanize/templatetags/humanize.py:92, django/contrib/humanize/templatetags/humanize.py:95, django/contrib/humanize/templatetags/humanize.py:96, django/contrib/humanize/templatetags/humanize.py:99, django/contrib/humanize/templatetags/humanize.py:100, django/contrib/humanize/templatetags/humanize.py:205, django/contrib/humanize/templatetags/humanize.py:212, django/contrib/humanize/templatetags/humanize.py:219, django/contrib/humanize/templatetags/humanize.py:233, django/contrib/humanize/templatetags/humanize.py:240, django/contrib/humanize/templatetags/humanize.py:247. It is done when all 29 call sites are migrated.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 764,
+ "tokens_out": 606
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00018855,
+ "facts_hash": "5ef83e3d8d856c18",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"The jazzband/django-debug-toolbar team has 29 url call sites left to migrate: debug_toolbar/panels/sql/panel.py (4 sites, 0 bug fixes), debug_toolbar/panels/staticfiles.py (1 site, 0 bug fixes), debug_toolbar/panels/templates/panel.py (2 sites, 0 bug fixes), debug_toolbar/toolbar.py (2 sites, 0 bug fixes), example/urls.py (7 sites, 0 bug fixes), and tests/urls.py (13 sites, 0 bug fixes).\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 521,
+ "tokens_out": 184
+}

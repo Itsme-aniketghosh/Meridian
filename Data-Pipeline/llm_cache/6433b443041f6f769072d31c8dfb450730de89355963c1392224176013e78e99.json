@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.008366,
+ "facts_hash": "c3bde676b857719724dbd56e0622d80d004aaf4ea6ab88b90e9576dde9ecc7a4",
+ "model": "gemini-pro",
+ "prompt_version": "e1500ebee86f",
+ "reply": "```json\n{\"text\": \"        return storage.staticfiles_storage.url(self.path)\", \"used\": []}\n```",
+ "tokens_in": 445,
+ "tokens_out": 623
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00538,
+ "facts_hash": "7428346d6a06cf245bb07a3ba968a727f2cb4da5e8f7f06e2a3bcee56709ef4b",
+ "model": "gemini-pro",
+ "prompt_version": "e1500ebee86f",
+ "reply": "```json\n{\"text\": \"    path('accounts/login/', LoginView.as_view(template_name='blank.html')),\", \"used\": [\"url\"]}\n```",
+ "tokens_in": 458,
+ "tokens_out": 372
+}

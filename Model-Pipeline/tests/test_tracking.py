@@ -18,6 +18,7 @@ from unittest import mock
 import mlflow
 
 from model import tracking
+from tests import mlflow_uri
 
 BLOCK = "c5118b019d642a9b"
 FEATURES = b"not really parquet: only its bytes are hashed"
@@ -28,7 +29,7 @@ _tmp = None
 def setUpModule():
     global _env, _tmp
     _tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)  # Windows: SQLAlchemy keeps mlflow.db open
-    _env = mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{_tmp.name}/mlflow.db"})
+    _env = mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": mlflow_uri(_tmp.name)})
     _env.start()
 
 

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00022965,
+ "facts_hash": "874350ae167e34a8",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 8 call sites of 'ungettext' in tests/i18n/commands/__init__.py:1, tests/i18n/commands/__init__.py:12, tests/i18n/tests.py:28, tests/i18n/tests.py:60, tests/i18n/tests.py:61, tests/i18n/tests.py:62, tests/i18n/tests.py:63, tests/i18n/tests.py:1527 across the codebase.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 275,
+ "tokens_out": 116
+}

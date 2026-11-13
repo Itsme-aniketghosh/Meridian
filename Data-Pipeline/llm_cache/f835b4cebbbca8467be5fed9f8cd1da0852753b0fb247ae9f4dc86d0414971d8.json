@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0014355,
+ "facts_hash": "c4dfa0a3f463d1c0",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The jazzband/django-two-factor-auth migration of url has had no change since 2020-05-24T20:32:21Z and has 37 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1), Test gap (evidence: 3).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 337,
+ "tokens_out": 124
+}

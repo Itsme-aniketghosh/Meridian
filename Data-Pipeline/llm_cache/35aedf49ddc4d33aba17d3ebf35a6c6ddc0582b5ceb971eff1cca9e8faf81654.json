@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00017575,
+ "facts_hash": "d2126c5d544aaa49",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Create a new ticket to track migration of symbol 'ugettext_lazy' in team 'contrib.admin' at sites: django/contrib/admin/actions.py:12, django/contrib/admin/actions.py:87, django/contrib/admin/apps.py:4, django/contrib/admin/filters.py:18, django/contrib/admin/forms.py:3, django/contrib/admin/helpers.py:16, django/contrib/admin/models.py:11, django/contrib/admin/sites.py:13, django/contrib/admin/sites.py:39, django/contrib/admin/sites.py:42, django/contrib/admin/sites.py:45\", \n\"used\": [\"symbol\", \"sites\", \"team\", \"count\"]}",
+ "tokens_in": 297,
+ "tokens_out": 145
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00315,
+ "facts_hash": "a2ae121fac759435",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"Team contrib.postgres has 9 call sites left to migrate. The files are: django/contrib/postgres/apps.py (1 call site, 0 bug fixes, ticket keys: none), django/contrib/postgres/fields/array.py (1 call site, 0 bug fixes, ticket keys: none), django/contrib/postgres/fields/hstore.py (1 call site, 0 bug fixes, ticket keys: none), django/contrib/postgres/fields/jsonb.py (1 call site, 0 bug fixes, ticket keys: none), django/contrib/postgres/forms/array.py (1 call site, 0 bug fixes, ticket keys: none), django/contrib/postgres/forms/hstore.py (1 call site, 0 bug fixes, ticket keys: none), django/contrib/postgres/forms/jsonb.py (1 call site, 0 bug fixes, ticket keys: none), django/contrib/postgres/forms/ranges.py (1 call site, 0 bug fixes, ticket keys: none), and django/contrib/postgres/validators.py (1 call site, 0 bug fixes, ticket keys: none). Blocked by: none. Blocking: none.\", \"used\": [\"blocked_by\", \"blocking\", \"files\", \"left\", \"team\"]}",
+ "tokens_in": 670,
+ "tokens_out": 286
+}

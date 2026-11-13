@@ -44,8 +44,10 @@ import json
 import re
 import sqlite3
 import sys
+import threading
 import time
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing, nullcontext
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -61,10 +63,26 @@ SMALL, MID, LARGE = "claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"
 LADDER = (SMALL, MID, LARGE)  # 04 §6 and rachna-models README: the writer is general small -> mid -> large
 ROUTE = "rules"               # who picked the model: the fixed ladder, until Jev
 KINDS = ("rewrite", "ticket_draft", "stall_reason", "consumer")
-ROW_KIND = {"rewrite": "rewrite", "ticket_draft": "ticket_draft", "stall_reason": "stall_reason", "consumer": None}
+ROW_KIND = {"rewrite": "rewrite", "ticket_draft": "ticket_draft", "stall_reason": "stall_reason", "consumer": None,
+            "walk": None}   # walk: the graph walkers' findings (orchestrator, GAPS 17), a team note like consumer
 # the templates' fixed product phrases that can share a word with a team (the real block has a team named Bug):
 # the gate reads them as words, for the templates and the LLM's text alike (02-product: "Bug fixes", never "incidents")
 VOCAB = ("bug fix", "bug fixes")
+# Decision 5b: a person whose whole name is one of these isn't a name a text can use: on block 70dd1dab a git author
+# named NOTHING made "nothing blocks them" name a person. Function words only, a closed list; the ones that are also
+# first names (will, may, june, bill, ...) are left out, so those people stay names. A dictionary is too wide: most
+# of its one-word matches among the block's people are first names (Frank, Mark, Tom).
+FUNCTION_WORDS = frozenset("""
+a about above after again against all also an and any anybody anyone anything anywhere are as at be because been
+before being below between both but by can cannot could did do does doing done down during each either else
+enough every everybody everyone everything everywhere few for from further had has have having he her here hers
+herself him himself his how however i if in into is it its itself just least less many me might mine more most
+much must my myself neither never no nobody none noone nor not nothing now nowhere of off often on once one only
+or other others otherwise our ours ourselves out over own per rather same she should since so some somebody
+someone something sometimes somewhere still such than that the their theirs them themselves then there these they
+this those though through thus to too under until up upon us very via was we were what whatever when where
+whether which while who whoever whom whose why with within without would yet you your yours yourself yourselves
+""".split())
 REDACTED = {"redacted": "a person"}  # a cached reply that named a person, kept as this so a rerun makes 0 calls
 
 SYSTEM = """You write one short text for a tool that tracks a code migration across teams.
@@ -85,6 +103,8 @@ PROMPTS = {
                     "evidence it has. Don't pick one or say which is likelier.",
     "consumer": "Tell the team what it still has to migrate: how many call sites, where, how many bug fixes each file "
                 "had (with their ticket keys), what blocks them and whom they block.",
+    "walk": "Tell the stalled team what the graph shows beyond its own files: which teams were looked at, which "
+            "sites wait on which, and the reasons found at each team. Say only what the facts say.",
 }
 FACTS_FORMAT = "json, sorted keys, indent 1"  # decision 4 may change this: it's part of the prompt version
 FRAME = "{system}\n\nTask: {task}\n\nFacts:\n{facts}"
@@ -196,7 +216,9 @@ def rewrite_tasks(found, repo):
 def draft_tasks(db, q, repo, symbol):
     out = []
     for team, count, sites in db.execute(q["maker_drafts"]).fetchall():
-        facts = {"team": team, "symbol": symbol, "count": count, "sites": sites}
+        per_file = Counter(s.rsplit(":", 1)[0] for s in sites.split(", "))  # in site order (decision 5c)
+        facts = {"team": team, "symbol": symbol, "count": count, "sites": sites, "files_n": len(per_file),
+                 "files": [{"path": p, "sites": n} for p, n in per_file.items()], "done_when_left": 0}
         text = "\n".join([f"Draft ticket for {team}: migrate {_n(count, 'untracked call site')} off {symbol}",
                           f"- {sites}", f"- No ticket covers {'this site' if count == 1 else 'these sites'} yet",
                           f"- Done when {'it no longer calls' if count == 1 else 'none of them calls'} {symbol}"])
@@ -231,6 +253,19 @@ def stall_tasks(db, cfg, run_id, at):
     return out
 
 
+def walk_task(stall, walked):
+    """The writer's task for what the graph walkers found past a stalled team's own files (GAPS 17), from a stall_reason
+    task and walkers.Walk.facts(). Built by meridian.orchestrator only when the walkers ran; a team note, no row."""
+    f = walked["facts"]
+    lines = [f"{f['team'].title()} is stalled. Beyond its own files, the graph was walked through "
+             f"{_join(f['walked'])}."]
+    lines += [f"- {a}'s {site} waits on {b}'s {blocker}" for a, site, blocker, b in f["path"]]
+    lines += [f"- {team}: {_join(sorted(labels))}" for team, labels in sorted(f["found"].items())]
+    if not f["path"] and not f["found"]:
+        lines.append("No reason was found there either.")
+    return Task("walk", "team", stall.target, stall.owner_team, stall.repo, walked, "\n".join(lines))
+
+
 def consumer_tasks(db, q, repo, symbol):
     out = []
     for team, left, *_ in db.execute(q["owner_teams"]).fetchall():
@@ -247,8 +282,8 @@ def consumer_tasks(db, q, repo, symbol):
             blocked[(by_team, by_path)] += 1
         blocked_by = [{"team": t, "path": p, "sites": n} for (t, p), n in sorted(blocked.items())]
         blocking = [{"team": t, "sites": n} for t, n in db.execute(q["consumer_blocking"], {"team": team})]
-        facts = {"team": team, "left": left, "symbol": symbol, "files": files, "blocked_by": blocked_by,
-                 "blocking": blocking}
+        facts = {"team": team, "left": left, "symbol": symbol, "files": files, "files_n": len(files),
+                 "blocked_by": blocked_by, "blocking": blocking}  # files_n: "across 3 files" (decision 5c)
         lines = [f"{team.title()}, {_n(left, symbol + ' call site')} remaining."]
         for f in files:
             fixes = (f", {_n(f['bug_fixes'], 'bug fix', 'bug fixes')} in the last year ({', '.join(f['fix_keys'])})"
@@ -287,7 +322,7 @@ def names(db):
     teams = {r[0] for r in db.execute("SELECT team FROM team_map UNION SELECT owner_team FROM call_site") if r[0]}
     people = {r[0] for r in db.execute(
         "SELECT p.name FROM person p WHERE NOT p.is_bot AND EXISTS (SELECT 1 FROM person_alias a "
-        "WHERE a.person_id = p.person_id AND NOT a.generic)") if r[0]}
+        "WHERE a.person_id = p.person_id AND NOT a.generic)") if r[0] and r[0].strip().lower() not in FUNCTION_WORDS}
     return sorted(teams), sorted(people)
 
 
@@ -306,7 +341,7 @@ _FENCE = re.compile(r"^```(?:json)?\s*\n(.*)\n```\s*$", re.S)
 
 def parse(reply, facts):
     """The text of a reply that is {"text": str, "used": [fact names]}, else None (bad JSON). A reply in one
-    ```json fence is read inside it."""
+    ```json fence is read inside it. A fact name can be nested (decision 5b)."""
     if not isinstance(reply, str):
         return None
     fenced = _FENCE.match(reply.strip())
@@ -317,9 +352,34 @@ def parse(reply, facts):
     if not isinstance(obj, dict) or not isinstance(obj.get("text"), str) or not obj["text"].strip():
         return None
     used = obj.get("used")
-    if not isinstance(used, list) or not all(isinstance(u, str) and u in facts["facts"] for u in used):
+    keys = _keys(facts["facts"])
+    if not isinstance(used, list) or not all(isinstance(u, str) and _a_fact(u, keys) for u in used):
         return None
     return obj["text"].strip()
+
+
+_INDEX = re.compile(r"\[\d+\]")
+
+
+def _keys(obj, out=None):
+    """Every dict key anywhere in the facts, nested ones too (files -> path, reasons -> evidence)."""
+    out = set() if out is None else out
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            out.add(k)
+            _keys(v, out)
+    elif isinstance(obj, list):
+        for v in obj:
+            _keys(v, out)
+    return out
+
+
+def _a_fact(name, keys):
+    """Decision 5b: a `used` entry names a fact if, with [n] indices dropped, every dotted part is a key somewhere in
+    the facts: "team", "files[0].path", "bug_fixes". A value ("2016-04-22", a symbol) isn't a fact's name. `used` is
+    bookkeeping: the gate checks the text itself either way."""
+    parts = _INDEX.sub("", name).split(".")
+    return all(part in keys for part in parts) and bool(name)
 
 
 def names_a_person(text, people):
@@ -416,26 +476,51 @@ def _table(db, name):
 
 
 def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False, router=None, ladder=None,
-        limit=None):
+        limit=None, workers=1, plan=None):
     """Every task written. Rows are offered once: a suggestion_id already in the block isn't offered again. A block
     from before schema v1.3 has no suggestion table, so no rows so far. router: Jev (meridian.jev.Router), which
     picks each task's starting model; None is the fixed rules. A task naming a person is skipped before Jev sees it.
     ladder: the models every task tries without a router (default LADDER): the model comparison runs one model at a
     time this way (GAPS.md gap 2), so LADDER and every run_id stay as they are. limit: the first n tasks only (the 10
-    real prompts measured before a full run)."""
+    real prompts measured before a full run). workers: tasks written at once (live LLM calls wait on the network);
+    the texts and rows are the same as one at a time. plan: picks which tasks run (meridian.orchestrator's select);
+    None runs them all."""
     teams, people = names(db)
     written, skipped = [], []
-    fixed = ladder
-    for t in tasks(db, cfg, run_id, at)[:limit]:
+    todo = tasks(db, cfg, run_id, at)[:limit]
+    if plan is not None:
+        todo = plan(todo)
+
+    def one(t):
         try:
-            ladder, route = fixed, ROUTE
+            lad, route = ladder, ROUTE
             if router is not None:
                 person_check(t, teams, people)  # Jev's prompt carries the facts: never one that names a person
-                ladder, route = router.ladder(t)
-            written.append(write(t, teams=teams, people=people, llm=llm, cache=cache, log=log,
-                                 strict_cache=strict_cache, ladder=ladder, route=route))
+                lad, route = router.ladder(t)
+            return write(t, teams=teams, people=people, llm=llm, cache=cache, log=log, strict_cache=strict_cache,
+                         ladder=lad, route=route)
         except NamesAPerson as e:
-            skipped.append((t.kind, t.target, str(e)))
+            return e
+
+    # Tasks of one kind with the same facts share a cache key: one after another, so the second is the first's hit
+    # and never a second call whose different answer the cache would refuse.
+    groups = {}
+    for i, t in enumerate(todo):
+        groups.setdefault((t.kind, facts_hash(t.facts)), []).append(i)
+    done = {}
+
+    def group(idx):
+        for i in idx:
+            done[i] = one(todo[i])
+
+    with ThreadPoolExecutor(max(1, workers)) as pool:
+        for f in [pool.submit(group, idx) for idx in groups.values()]:
+            f.result()  # a failure (over budget, a strict-cache miss) stops the run, as it did in a loop
+    for i, t in enumerate(todo):
+        if isinstance(done[i], NamesAPerson):
+            skipped.append((t.kind, t.target, str(done[i])))
+        else:
+            written.append(done[i])
     before = []
     if _table(db, "suggestion"):
         cols = [r[1] for r in db.execute("PRAGMA table_info(suggestion)")]
@@ -476,11 +561,12 @@ def fallback_counts(written):
 def _tee(log, path):
     """log, and each row appended to path as one JSON line: what meridian.writer_compare reads."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    lock = threading.Lock()  # run(workers=) logs from several threads: one whole line at a time
 
     def both(**row):
         if log is not None:
             log(**row)
-        with open(path, "a", encoding="utf-8", newline="\n") as f:
+        with lock, open(path, "a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(row, sort_keys=True) + "\n")
     return both
 
@@ -501,6 +587,7 @@ def main(argv=None):
                     help="call models live (meridian.llm.Client, $MERIDIAN_GCP_PROJECT); a cache hit makes no call")
     ap.add_argument("--models", help="comma-separated ladder for every task, smallest first (default: LADDER)")
     ap.add_argument("--limit", type=int, help="write the first n tasks only")
+    ap.add_argument("--workers", type=int, default=8, help="tasks written at once (default 8; 1: one at a time)")
     ap.add_argument("--max-usd", type=float, help="the client's spend cap for this run (default settings.toml [llm])")
     ap.add_argument("--calls", type=Path, help="append every answer's logged row (counts and labels) to this jsonl")
     ap.add_argument("--jev", action="store_true", help="Jev (meridian.jev) picks each task's agent and model; "
@@ -537,7 +624,7 @@ def main(argv=None):
             teams, people = names(db)
             router = Router(llm=llm, cache=cache, log=log, teams=teams, people=people)
         result = run(db, cfg, a.run_id, at, llm=llm, cache=cache, log=log, strict_cache=a.strict_cache,
-                     router=router, ladder=ladder, limit=a.limit)
+                     router=router, ladder=ladder, limit=a.limit, workers=a.workers)
     if llm is not None:
         say(f"{llm.calls} calls, ${llm.spent:.4f}")
     rep = report(result)

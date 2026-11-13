@@ -14,6 +14,7 @@ import pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 from model import evaluate as ev
+from tests import mlflow_uri
 from tests.contracts import make_rochan
 
 CONTRACTS = Path(__file__).resolve().parent / "contracts"
@@ -345,7 +346,7 @@ class Command(unittest.TestCase):
 
     def test_logged_to_mlflow(self):
         store = Path(tempfile.mkdtemp(dir=self.dir))
-        with mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{store / 'mlflow.db'}"}):
+        with mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": mlflow_uri(store)}):
             out = Path(tempfile.mkdtemp(dir=self.dir))
             args = ["--config", str(self.config), "--features", str(self.features), "--candidate",
                     str(self.dir / "candidate.json"), "--out", str(out), "--no-charts"]

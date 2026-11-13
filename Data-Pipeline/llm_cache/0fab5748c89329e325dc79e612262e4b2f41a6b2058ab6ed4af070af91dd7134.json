@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0004524,
+ "facts_hash": "00dc7039a74e880e",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"The django-tastypie/django-tastypie team has 31 call sites for url left to migrate: tastypie/api.py (2 sites, 0 bug fixes), tastypie/resources.py (5 sites, 0 bug fixes), tests/alphanumeric/urls.py (2 sites, 0 bug fixes), tests/authorization/urls.py (2 sites, 0 bug fixes), tests/basic/urls.py (2 sites, 0 bug fixes), tests/content_gfk/urls.py (2 sites, 0 bug fixes), tests/core/tests/api_urls.py (2 sites, 0 bug fixes), tests/core/tests/manual_urls.py (2 sites, 0 bug fixes), tests/core/tests/resource_urls.py (2 sites, 0 bug fixes), tests/gis/urls.py (2 sites, 0 bug fixes), tests/namespaced/api/urls.py (2 sites, 0 bug fixes), tests/profilingtests/urls.py (2 sites, 0 bug fixes), tests/slashless/api/urls.py (2 sites, 0 bug fixes), and tests/validation/api/urls.py (2 sites, 0 bug fixes).\",\n \"used\": [\n  \"django-tastypie/django-tastypie\",\n  \"31\",\n  \"url\",\n  \"tastypie/api.py\",\n  \"2\",\n  \"0\",\n  \"tastypie/resources.py\",\n  \"5\",\n  \"tests/alphanumeric/urls.py\",\n  \"tests/authorization/urls.py\",\n  \"tests/basic/urls.py\",\n  \"tests/content_gfk/urls.py\",\n  \"tests/core/tests/api_urls.py\",\n  \"tests/core/tests/manual_urls.py\",\n  \"tests/core/tests/resource_urls.py\",\n  \"tests/gis/urls.py\",\n  \"tests/namespaced/api/urls.py\",\n  \"tests/profilingtests/urls.py\",\n  \"tests/slashless/api/urls.py\",\n  \"tests/validation/api/urls.py\"\n ]\n}\n```",
+ "tokens_in": 908,
+ "tokens_out": 527
+}

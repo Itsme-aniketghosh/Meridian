@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00017565,
+ "facts_hash": "d0415cbb8453b752",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The templatetags team still has to migrate 3 call sites of ugettext in django/templatetags/i18n.py. This file had 0 bug fixes [].\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\"]}",
+ "tokens_in": 262,
+ "tokens_out": 73
+}

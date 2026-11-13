@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000933,
+ "facts_hash": "8fab61da9f418809d8897128b97b77ee0a584c2efac0b079c8dedfe16f762dd3",
+ "model": "gemini-flash",
+ "prompt_version": "e1500ebee86f",
+ "reply": "{\"text\": \"    re_path(r'^permission_required/', TestClassRedirectView.as_view()),\", \"used\": [\"new\", \"symbols\"]}",
+ "tokens_in": 452,
+ "tokens_out": 34
+}

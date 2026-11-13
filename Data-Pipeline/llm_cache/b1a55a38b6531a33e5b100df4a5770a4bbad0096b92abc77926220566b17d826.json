@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001915,
+ "facts_hash": "4bcd8afe2b9dd757",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.messages team still has to migrate 1 call site of ugettext_lazy at django/contrib/messages/apps.py:1. The file had 0 bug fixes []. It is not blocked by anything and does not block anything.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 258,
+ "tokens_out": 88
+}

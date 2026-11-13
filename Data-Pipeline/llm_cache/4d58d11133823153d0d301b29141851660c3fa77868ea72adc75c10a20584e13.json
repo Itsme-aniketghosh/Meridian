@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0133845,
+ "facts_hash": "4f978c7b3670acc364ea0c5311d32e4d0f90e73b1537f50ab34e2028d028c342",
+ "model": "gemini-flash",
+ "prompt_version": "e1500ebee86f",
+ "reply": "```json\n{\"text\": \"    path('', include('posts.urls')),\", \"used\": [\"before\", \"examples\"]}\n```",
+ "tokens_in": 443,
+ "tokens_out": 1696
+}

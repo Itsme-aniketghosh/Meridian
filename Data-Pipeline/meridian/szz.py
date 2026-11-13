@@ -12,6 +12,11 @@
   fix's Bug ticket, the smallest if it names several.
 - file_bug_fixes: per path, the fix commits that touched it in the 365 days up to snapshot_at (authored_at, start
   excluded), every file, tests too. path is as in that commit; a file renamed inside the window counts under both names.
+  A repo with no ticket tracker in the block (no commit_ticket row: the Django-ecosystem repos) has no Bug tickets, so
+  for this table only, its fixes are read from the subject ([szz] fix_message: "Fixed #123 -- ...", "fix ...",
+  "closes #45"), keyed by their #N references (GAPS 24). bug_inducing keeps the ticket rule: a subject word is too weak
+  for the model's labels. A repo pinned at a commit older than the window is counted over the 365 days up to its own
+  pinned commit, the last year it has (the packages are pinned at their 2017-2022 migrations).
 - Cache (settings.toml [cache] szz, off by default): a fix commit blamed in an earlier run keeps its blame, from
   snapshots/_cache/szz/<repo>.json; only new fix commits are blamed. Which commits are fixes, their key, and
   file_bug_fixes (its 365-day window moves) are worked out again every run. Same bytes either way.
@@ -73,11 +78,16 @@ def ranges(lines):
     return out
 
 
-def blame(co, rev, path, lines, code):
-    """Counter {inducing sha: lines}, blank and comment-only lines skipped."""
+MOVES = ("-M", "-C")   # GAPS 13, measured only: follow lines moved within or copied across files to where they were
+#                        written, so a commit that only moved code isn't blamed. Off in the pipeline.
+
+
+def blame(co, rev, path, lines, code, moves=False):
+    """Counter {inducing sha: lines}, blank and comment-only lines skipped. moves: blame past moved and copied
+    lines (git blame -M -C)."""
     args = [a for r in ranges(sorted(set(lines))) for a in ("-L", r)]
     out, sha, skip = Counter(), None, code[1][path.rsplit(".", 1)[-1]]
-    for line in git(co, "blame", "-w", "--porcelain", *args, rev, "--", path).split("\n"):
+    for line in git(co, "blame", "-w", *(MOVES if moves else ()), "--porcelain", *args, rev, "--", path).split("\n"):
         if SHA_LINE.match(line):
             sha = line[:40]
         elif line.startswith("\t"):
@@ -87,19 +97,19 @@ def blame(co, rev, path, lines, code):
     return out
 
 
-def szz(co, fix, parent, code):
+def szz(co, fix, parent, code, moves=False):
     """{blamed path: Counter {inducing sha: lines}} for one fix commit. code = code_rules(cfg)."""
     out = {}
     for path, lines in sorted(changed(co, parent, fix, code).items()):
-        c = blame(co, parent, path, lines, code)
+        c = blame(co, parent, path, lines, code, moves)
         if c:
             out[path] = c
     return out
 
 
-def _szz(code, job):
+def _szz(code, job, moves=False):
     co, fix, parent = job
-    return fix, szz(co, fix, parent, code)
+    return fix, szz(co, fix, parent, code, moves)
 
 
 def fixes(commits, tickets, commit_ticket, rule, since):
@@ -115,7 +125,7 @@ def fixes(commits, tickets, commit_ticket, rule, since):
     return {k: (by[k], sorted(v)) for k, v in out.items()}
 
 
-def bug_inducing(fix_rows, co_of, run_id, code, workers=None, cache_of=None):
+def bug_inducing(fix_rows, co_of, run_id, code, workers=None, cache_of=None, moves=False):
     """cache_of ([cache] szz): repo -> common.Cache of each fix's {path: inducing SHAs}, keyed on its SHA, this code,
     the code rules and git's version. A commit's SHA fixes its parent and their history, so its blame never changes.
     key (the fix's ticket) is never cached: which tickets a commit fixes can change from run to run."""
@@ -129,10 +139,11 @@ def bug_inducing(fix_rows, co_of, run_id, code, workers=None, cache_of=None):
         cache, done = cache_of and cache_of(repo), {}
         if cache:
             base = cache_key(source_hash(__file__), code[0].pattern, sorted(code[1].items()),
-                             git(co_of(repo), "version"))
+                             git(co_of(repo), "version"), *(("moves",) if moves else ()))
             done = {fix: hit for _, fix, _ in jobs if (hit := cache.get(cache_key(base, fix))) is not None}
         with ProcessPoolExecutor(workers) as pool:
-            for fix, files in pool.map(partial(_szz, code), [j for j in jobs if j[1] not in done], chunksize=8):
+            for fix, files in pool.map(partial(_szz, code, moves=moves), [j for j in jobs if j[1] not in done],
+                                       chunksize=8):
                 done[fix] = {path: sorted(c) for path, c in files.items()}
                 if cache:
                     cache.put(cache_key(base, fix), done[fix])
@@ -149,23 +160,51 @@ def bug_inducing(fix_rows, co_of, run_id, code, workers=None, cache_of=None):
     return rows
 
 
-def file_bug_fixes(fix_rows, files, snapshot_at, days, run_id, fmt):
-    end = datetime.strptime(snapshot_at, fmt).replace(tzinfo=timezone.utc)
-    start = (end - timedelta(days=days)).strftime(fmt)
+def message_fixes(commits, tracked, pattern, since):
+    """{(repo, sha): (commit row, [#N keys])} for repos with no ticket tracker (not in tracked): first-parent,
+    non-merge, from fix_since on, not a revert, and a subject matching [szz] fix_message."""
+    rx = re.compile(pattern, re.IGNORECASE)
+    return {(c["repo"], c["sha"]): (c, sorted(set(re.findall(r"#\d+", c["subject"]))))
+            for c in commits if c["repo"] not in tracked and c["first_parent"] and not c["is_merge"]
+            and c["authored_at"] >= since and not c["subject"].startswith('Revert "') and rx.search(c["subject"])}
+
+
+def windows(commits, pins, snapshot_at, days, fmt):
+    """{repo: (start, end)}: the 365 days up to snapshot_at, or up to the repo's pinned commit when that is older
+    than the window's start."""
+    def back(t):
+        return (datetime.strptime(t, fmt).replace(tzinfo=timezone.utc) - timedelta(days=days)).strftime(fmt)
+    start = back(snapshot_at)
+    pinned = {c["repo"]: c["authored_at"] for c in commits if pins.get(c["repo"]) == c["sha"]}
+    return {repo: (back(at), at) if at <= start else (start, snapshot_at) for repo, at in pinned.items()} | \
+        {"": (start, snapshot_at)}
+
+
+def file_bug_fixes(fix_rows, files, snapshot_at, days, run_id, fmt, win=None):
+    """win: {repo: (start, end)} from windows(); without it, every repo's window is the 365 days up to snapshot_at."""
+    win = win or windows([], {}, snapshot_at, days, fmt)
     shas, keys = defaultdict(set), defaultdict(set)
     for f in files:
         fx = fix_rows.get((f["repo"], f["sha"]))
-        if fx and start < fx[0]["authored_at"] <= snapshot_at:
+        start, end = win.get(f["repo"], win[""])
+        if fx and start < fx[0]["authored_at"] <= end:
             shas[(f["repo"], f["path"])].add(f["sha"])
             keys[(f["repo"], f["path"])].update(fx[1])
     return [{"run_id": run_id, "repo": repo, "path": path, "bug_fixes": len(s), "fix_keys": jlist(keys[(repo, path)]),
-             "window_start": start, "window_end": snapshot_at} for (repo, path), s in shas.items()]
+             "window_start": win.get(repo, win[""])[0], "window_end": win.get(repo, win[""])[1]}
+            for (repo, path), s in shas.items()]
 
 
 def build(commits, files, d4, manifest, cfg, run_id, co_of, workers=None, cache_of=None):
     """{table: rows} for bug_inducing and file_bug_fixes."""
     s = cfg["szz"]
     fx = fixes(commits, d4["ticket"], d4["commit_ticket"], s["fix"], s["fix_since"])
+    fmt = cfg["run"]["time_format"]
+    history_fixes = dict(fx)
+    if s.get("fix_message"):
+        tracked = {r["repo"] for r in d4["commit_ticket"]}
+        history_fixes |= message_fixes(commits, tracked, s["fix_message"], s["fix_since"])
+    win = windows(commits, manifest["repos"], manifest["snapshot_at"], s["bug_fixes_window_days"], fmt)
     return {"bug_inducing": bug_inducing(fx, co_of, run_id, code_rules(cfg), workers, cache_of),
-            "file_bug_fixes": file_bug_fixes(fx, files, manifest["snapshot_at"], s["bug_fixes_window_days"], run_id,
-                                             cfg["run"]["time_format"])}
+            "file_bug_fixes": file_bug_fixes(history_fixes, files, manifest["snapshot_at"],
+                                             s["bug_fixes_window_days"], run_id, fmt, win)}

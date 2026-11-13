@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00019415,
+ "facts_hash": "7dbec4f98aee2413",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.gis team still has to migrate 1 call site of ugettext at django/contrib/gis/views.py. The file had 0 bug fixes with ticket keys []. It is not blocked by anything and does not block anything.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 259,
+ "tokens_out": 90
+}

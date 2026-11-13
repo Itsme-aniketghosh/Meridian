@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0012375,
+ "facts_hash": "2e5b052fe2b06c20",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team contrib.admindocs has 1 call site left to migrate for symbol ugettext_lazy in django/contrib/admindocs/apps.py (1 site, 0 bug fixes, fix keys: none). Blocked by: none. Blocking: none.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"blocked_by\",\n  \"blocking\"\n ]\n}\n```",
+ "tokens_in": 280,
+ "tokens_out": 109
+}

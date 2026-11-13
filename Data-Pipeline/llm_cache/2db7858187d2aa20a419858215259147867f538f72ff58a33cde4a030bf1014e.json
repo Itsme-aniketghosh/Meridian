@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00020225,
+ "facts_hash": "2513d0b2618f6374",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 5 call sites of 'ungettext' across the codebase to the new API by updating django/contrib/admin/options.py:46, django/contrib/admin/options.py:1612, django/contrib/admin/options.py:1644, django/contrib/admin/utils.py:18, django/contrib/admin/utils.py:274. The task is done when all call sites are updated.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 246,
+ "tokens_out": 101
+}

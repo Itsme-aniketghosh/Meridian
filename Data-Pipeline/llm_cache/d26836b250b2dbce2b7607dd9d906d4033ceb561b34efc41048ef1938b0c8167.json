@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001188,
+ "facts_hash": "54f089a5a04fc594",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team views has 2 call sites left to migrate for ugettext_lazy. In django/views/static.py, there are 2 sites and 0 bug fixes with ticket keys []. The team is blocked by [] and blocking [].\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 272,
+ "tokens_out": 104
+}

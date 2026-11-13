@@ -11,6 +11,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import time
 import os
 import re
 import sqlite3
@@ -257,6 +258,15 @@ class WithLLM(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.cache = Cache(self.tmp.name)
         self.addCleanup(self.tmp.cleanup)
+
+    def test_workers_write_the_same_texts_and_rows_with_the_same_calls(self):
+        one, many = Fake(good), Fake(lambda m, f: (time.sleep(0.01), good(m, f))[1])  # slow, so threads overlap
+        (w1, rows1), _ = run(llm=one, cache=Cache(Path(self.tmp.name) / "one"))
+        (w8, rows8), _ = run(llm=many, cache=Cache(Path(self.tmp.name) / "many"), workers=8)
+        self.assertEqual([(w.task.kind, w.task.target, w.text) for w in w1],
+                         [(w.task.kind, w.task.target, w.text) for w in w8])
+        self.assertEqual(json.dumps(rows1, sort_keys=True), json.dumps(rows8, sort_keys=True))
+        self.assertEqual(sorted(one.calls), sorted(many.calls))  # a shared cache key is still one call
 
     def test_a_good_reply_ships_and_a_warm_cache_makes_0_calls(self):
         llm = Fake(good)
@@ -512,6 +522,34 @@ class HandOff(unittest.TestCase):
         self.assertEqual(set(table["facts_hash"]), {w.facts_hash for w in written})
         self.assertTrue(table["cache_hit"].all())
         self.assertEqual(set(table["source"]), {"llm"})
+
+
+class Decision5b(unittest.TestCase):
+    """The person check and the `used` list, as measured on the real block (decisions.md, decision 5b)."""
+
+    FACTS = {"facts": {"team": "billing", "left": 1, "files": [{"path": "a.py", "sites": 1, "bug_fixes": 0}],
+                       "reasons": [{"reason": "Never notified", "evidence": 1}]}}
+
+    def reply(self, used):
+        return json.dumps({"text": "billing has 1 call site left in a.py.", "used": used})
+
+    def test_used_may_name_a_fact_inside_another(self):
+        for used in (["team"], ["files[0].path", "left"], ["files.bug_fixes"], ["sites"], ["reasons[0].evidence"]):
+            self.assertIsNotNone(G.parse(self.reply(used), self.FACTS), used)
+
+    def test_used_may_not_name_a_value_or_an_unknown_field(self):
+        for used in (["2016-04-22T17:39:13Z"], ["billing"], ["files[0].owner"], [""], "team"):
+            self.assertIsNone(G.parse(self.reply(used), self.FACTS), used)
+
+    def test_a_person_named_a_function_word_is_not_a_name_but_a_first_name_still_is(self):
+        db = K.build()
+        person(db, "p_nothing", "NOTHING", "nothing@example.com")
+        person(db, "p_will", "Will", "will@example.com")
+        _, people = G.names(db)
+        self.assertNotIn("NOTHING", people)
+        self.assertIn("Will", people)
+        self.assertFalse(G.names_a_person("billing is blocked by nothing.", people))
+        self.assertTrue(G.names_a_person("Ask Will to review it.", people))
 
 
 if __name__ == "__main__":

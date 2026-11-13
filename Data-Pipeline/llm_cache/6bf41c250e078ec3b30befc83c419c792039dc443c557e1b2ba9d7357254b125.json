@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00021785,
+ "facts_hash": "79a0848121e03c51",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 7 call sites of 'url' to the new API: tests/rest_framework/test_integration.py:4, tests/rest_framework/test_integration.py:114, tests/rest_framework/test_integration.py:115, tests/rest_framework/test_integration.py:116, tests/urls.py:1, tests/urls.py:13, tests/urls.py:14. Done when carltongibson/django-filter team completes migration.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 261,
+ "tokens_out": 110
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00020465,
+ "facts_hash": "b1c9a71dd4dd949f",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.humanize team still has to migrate 1 call site of ugettext in django/contrib/humanize/templatetags/humanize.py. This file had 0 bug fixes with ticket keys []. It is not blocked by anything and does not block anything.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 266,
+ "tokens_out": 97
+}

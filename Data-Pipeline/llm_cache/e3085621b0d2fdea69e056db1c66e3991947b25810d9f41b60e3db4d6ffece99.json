@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.99e-05,
+ "facts_hash": "e2944dc5f75c4bf3",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.auth has 1 call site of ugettext_noop left to migrate in django/contrib/auth/hashers.py. There were 0 bug fixes.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"path\",\n  \"sites\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 290,
+ "tokens_out": 94
+}

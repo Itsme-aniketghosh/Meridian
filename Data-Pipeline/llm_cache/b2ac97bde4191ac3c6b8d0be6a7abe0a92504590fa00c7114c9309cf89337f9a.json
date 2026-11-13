@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00011745,
+ "facts_hash": "9e7ac1614c183463",
+ "model": "gemma-4",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The migration of ugettext_lazy by contrib.staticfiles has had no change since 2014-01-04T21:49:35Z. There is 1 call site left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 323,
+ "tokens_out": 115
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 7.665e-05,
+ "facts_hash": "e949a9e4a64fc983",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/views/static.py:18 and django/views/static.py:98 for views.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 239,
+ "tokens_out": 68
+}

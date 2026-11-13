@@ -307,7 +307,18 @@ By task: ugettext 0.951 (267 lines), `url()` 0.495 (1,236), neither flagged. Own
 
 **(b) changed after its first runner run, and why.** As first written, (b) refit the committed candidate and failed unless the refit equalled the committed `val` scores to 1e-9. On the runner it failed at train (#63, run 42943059501). Those scores were made on a laptop, and the image (Linux) doesn't reproduce them that exactly. In (a)'s run the same check passed, because there it compared against scores made in the same run. So (b) is now `train.py --retrain logreg forest lgbm`: `--tune` without the search, fitting each kind with its committed `tuning_<kind>.json` best params, then scoring, picking and saving on the same machine, as S8 says the numbers should be made. On the laptop: 25 s, the same forest, the gate passes. It's Rachna's file, so she's told.
 
-(b) as `--retrain`, on the runner: **pipeline step 63 s** (#63, run 42944525502; the job about 4 min with the image build), green. Runs 2 and 3 for the median go here.
+(b) as `--retrain`, on the runner: **pipeline step 63 s** (#63, run 42944525502; the job about 4 min with the image build), green.
+
+**(b)'s median of 3 (Nov 12).** Which runs count was fixed before computing: the first three green PR runs of (b), in order, so none is picked. Every later green PR run is listed for the record. Times are from GitHub's API (`actions/runs/<id>/jobs`): the run from start to finish, which is what a PR waits for, with the pipeline step and the image build inside it.
+
+| Run | PR branch | Whole run | Pipeline step | Image build |
+|---|---|---:|---:|---:|
+| 42944525502 | chaitali-ci | 242 s | 63 s | 153 s |
+| 42945332188 | chaitali-ci | 207 s | 46 s | 136 s |
+| 42946298156 | chaitali-ci | 246 s | 67 s | 159 s |
+| **Median of 3** | | **242 s (4.0 min)** | **63 s** | **153 s** |
+
+**The bar passes: 4.0 minutes against 15.** All 24 green PR runs of (b) from Nov 11 to 12, across 15 branches: median 250 s, range 206–317 s (5.3 min), pipeline step 44–74 s. The image build is about two thirds of every run. Runs that were cancelled (a newer push) or stopped at the gate on purpose (#64) aren't timed.
 
 ## PASS-BARS §6.5 runs
 
@@ -395,3 +406,119 @@ The model is much harsher than the person. It calls 9 of the 13 labels she judge
 **Q2 against Q4: can't be said.** The comparison needed the model's answers, and they fail the rule. No Q4 commit was hand-checked.
 
 For the bias section: the Q2 recall flag stays accepted (decision 5). The report gives the 35% with its interval and N, says the LLM audit was run and failed its agreement bar (10 of 20), and that **no label was changed and nothing was used for training**.
+# Nov 11: GAPS.md gap 7, LLM bias on real texts: the rule, before computing
+
+Vishwa's writer ran the real block's 204 tasks (`70dd1dab`) on 4 models, each alone (gap 2, PR #77). The answers are in `llm_cache/`, and Gemini 3.8 Flash (`gemini-flash`) won his rule at 98.0% gate pass. His calls were logged on his machine, so here the writer replays each model from the cache (`--models <m> --strict-cache --calls`), with 0 paid calls and a miss stopping the run. That gives each answer's row (repo, team, task, `gate_pass`, `source`) under today's gate (his decision 5b).
+
+Rule, adding to decision 9:
+- **The bar is judged on the model the writer ships, `gemini-flash`.** One text per (agent, `facts_hash`), as `llm_bias.py` counts it. It fell back when its answer didn't pass the gate and the template shipped.
+- Slices: repo, owner team, task kind. `[bias] min_n` (30) and `max_gap` (0.10), harm upward. Every slice under 30 is listed with its N, not judged.
+- The other 3 models get the same slices, for the record only: they don't ship, so they don't decide the bar.
+- A flagged slice on `gemini-flash` is accepted only with a fix tried and written down (Vishwa's decision 5 and 5b are gate fixes, and count if they were scored on that slice). Otherwise it's an open flag, and the report says so.
+
+## Gap 7: results: no fallback slice flagged, N > 0
+
+Replayed from `llm_cache/` with 0 paid calls (`python -m meridian.agents --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite --models <m> --strict-cache --calls <m>.jsonl --quiet`, one run per model), then `python -m model.llm_bias --calls <the 4 files> --ship gemini-flash`. The replay gives Vishwa's own pass rate for the shipped model (98.0%), so it reproduces his run.
+
+**The shipped model, `gemini-flash`: 4 of 204 texts fell back to the template (0.020). No slice is flagged.**
+
+| Slice | Judged (N ≥ 30) | Fallback | 95% interval | Power at a 0.15 gap |
+|---|---|---:|---|---:|
+| repo `django/django` | 144 texts | 1 (0.007) | 0.001–0.038 | 0.48 |
+| task `consumer` | 68 | 3 (0.044) | 0.015–0.122 | 0.26 |
+| task `stall_reason` | 68 | 0 (0.000) | 0.000–0.053 | 0.26 |
+| task `ticket_draft` | 68 | 1 (0.015) | 0.003–0.079 | 0.26 |
+
+Not judged (decision 9: listed with N): the other 20 repos (60 texts between them) and all 43 owner teams (none reaches 30). So **the bar passes, but it can say little**: the judged slices' power is 0.26–0.48, so a true 0.15 gap would be missed more often than caught. And teams, the slice the bar names, can't be judged on this block at all.
+
+The other models, for the record (they don't ship): Gemma 4 0.078, Llama 4 Scout 0.069, Llama 4 Maverick 0.093. None has a flagged slice. Their worst judged slice is `consumer` (Gemma 4: 12 of 68 = 0.176), the same task kind that's worst for `gemini-flash`.
+
+Diff match is unchanged from Nov 10: oscar and `(other)` flagged and accepted. `reports/llm_bias.json` passes, with 0 open flags.
+
+---
+
+# Nov 12: PASS-BARS §6.5 "product jobs fail when they should": the rule, before the runs
+
+The bar: a view that breaks with the LLM off fails the job, a cache miss in CI fails the job, and no job has an LLM key. Each is planted once on a branch.
+
+What exists, looked at before writing this. `ci.yml` runs every Data-Pipeline test, and they run with the LLM off: `tests/test_views.py` renders every page that way, and `tests/test_agents.py` and `tests/test_diffs.py` check that `strict_cache` raises `CacheMiss`. Nothing checks the workflows for LLM keys. The only cloud sign-in in any workflow is `model.yml`'s, on main, after every step that could reach an LLM, for the registry push.
+
+What's added: `tests/test_ci_keys.py`. It fails when any workflow names an LLM credential (`settings.toml [llm] project_env`, which is `MERIDIAN_GCP_PROJECT`, or a provider's API key variable), or when a step that runs an agent or `llm_bias` comes after the cloud sign-in.
+
+The plants, on `chaitali-planted-product`, one commit at a time, each run left to finish before the next. Each commit undoes the one before, so every red run has one cause:
+1. **LLM off:** `views.py` raises on a text whose source is the template, which is every text with the LLM off.
+2. **Cache miss:** `agents.write` ignores `strict_cache` and ships the template on a miss.
+3. **LLM key:** `ci.yml`'s `test` job gets `MERIDIAN_GCP_PROJECT` from a secret.
+
+Rule: each plant passes the bar only if its own `ci.yml` run is red, failing on that plant's test on both Linux and Windows. A green run is a failed bar, and the report says so. The branch is never merged, and its draft PR is closed after the third run.
+
+## Product failures: results: all three plants red
+
+On `chaitali-planted-product` (#87, a draft, never merged), one plant at a time, each run finished before the next push. Each run failed only `ci.yml`'s `test` job, on both Linux and Windows, at the unit-test step. Every other job (`model`, `gx`, `pushcheck`, `airflow`) was green. The runs' logs need a GitHub sign-in, so which tests failed was checked by running the same suite on the same commit locally. Each plant failed only its own test:
+
+| Plant | Commit | Run | `test` job, Linux / Windows | Failing tests (local, same commit) |
+|---|---|---|---|---|
+| 1. A view that raises with the LLM off | 66585fa | 43294003464 | red / red | 16 errors, all in `test_views` |
+| 2. A cache miss ships the template | 83aaa3a | 43296868897 | red / red | 1: `test_agents` `test_a_miss_with_strict_cache_stops_the_run` |
+| 3. `MERIDIAN_GCP_PROJECT` in `ci.yml` | 7b6357c | 43300353924 | red / red | 1: `test_ci_keys` `test_no_workflow_has_an_llm_key` |
+
+**The bar passes for all three.** Without the plants (#86), every job is green, and `test_ci_keys` passes on today's workflows.
+
+Limits: plant 3 shows a key *named* in a workflow is caught. It's a text check, so a key added some other way (an org-level variable, a credentials file) wouldn't be. Main's Workload Identity sign-in is allowed because it comes after every LLM step. Whether `meridian-ci`'s roles could call Vertex AI wasn't checked.
+
+---
+
+# Nov 13: the report's numbers on the shipped champion: the rule, before computing
+
+Aniket's integration check (Nov 12): the champion CI built and committed (`registry/champion.json`, `model.joblib` md5 `2a0c9cc6…`) has `val` PR-AUC 0.4067. The `reports/` files in git, which the bias section quoted, are from the laptop's forest, at 0.4058. They're the same kind and the same params, and they differ by 0.0009, under one seed SD (0.0021). The report should quote the model that ships.
+
+What's run: `registry/model.joblib` is scored as it is on today's `val` rows (`registry.rescore`'s path, no refit, S6). Its scores go through `model.bias` unchanged, into `reports/champion/`. The laptop's `reports/bias_report.json` stays as the record of the bias run judged on Nov 9.
+
+Rule:
+- The report's overall numbers, slice table and Bonferroni count become the champion's.
+- If the champion is flagged on the same 5 slices as the laptop forest, `[bias] accepted` stands as it is. The mitigation table stays the laptop forest's, said so in the report. Its re-sampling options refit, and a refit to get scores isn't done.
+- If any flag is new, it's an open flag. The bias report fails on it, and the report says so. Nothing is accepted after seeing it.
+
+## The shipped champion: results: the same 5 flags, nothing new
+
+`registry/model.joblib` (md5 `2a0c9cc6…`), scored on today's `val` rows (features md5 `9c0ab220…`, the same as `champion.json`'s): PR-AUC **0.406668**, equal to `champion.json`'s. `python -m model.bias --scores reports/champion/champion_val_scores.csv --column forest --out reports/champion`:
+
+| | Laptop forest (Nov 9) | Champion (CI) |
+|---|---:|---:|
+| PR-AUC | 0.406 | 0.407 |
+| Recall / false-positive rate at 634 alerts | 0.516 / 0.106 | 0.519 / 0.105 |
+| Q2 recall, PR-AUC | 0.000, 0.161 | 0.000, 0.151 |
+| Q3 recall, false-positive rate, PR-AUC | 0.096, 0.032, 0.220 | 0.096, 0.034, 0.219 |
+| Q4 recall, false-positive rate, PR-AUC | 0.803, 0.488, 0.499 | 0.806, 0.485, 0.500 |
+| Flags (of 62 judged tests); under Bonferroni | 5; 3 | 5; 3 |
+| Newcomers caught (of 16) | 9 | 9 |
+
+**The same 5 size flags and none new, so `[bias] accepted` stands, and the bias report passes (0 open flags).** The 3 that survive Bonferroni are the same: Q2 recall, Q3 recall, Q4 false-positive rate. Power at a 0.15 recall gap: 0.10–0.56. The report section now quotes the champion. Its mitigation table stays the laptop forest's, and says so.
+
+---
+
+# Nov 13: GAPS.md gap 16 again, with gap 24's history: the rule, before computing
+
+Gap 24 (Utkarsh, PR #92) gives the package repos bug-fix history, read from commit subjects (`[szz] fix_message`, `file_bug_fixes` only). Its rows land "in the next block built", and none has been built yet. So this is a **preview**, made the way Utkarsh measured gap 24: `szz.file_bug_fixes` with today's `[szz]`, over the real block's own `out/70dd1dabfed544b8/` files (`git_commit`, `commit_file`, `commit_ticket`, `ticket`) and its manifest. Its rows replace `file_bug_fixes` in a scratch copy of `published/70dd1dabfed544b8.sqlite`, and `meridian.context` runs on that copy. Nothing else in the block changes, and the published block isn't touched. The script is `packets/chaitali-bias/context_preview.py`.
+
+Rule: decision 12, unchanged (cover 90%, at least 1 file, the same measures and the same random-order comparison, seed 1, 100 orders). Added for the switch-on question, which decision 12 left for after gap 2:
+- It's **recommended for switching on** if, over the teams with any bug fix, the ranking keeps at least 90% of their bug fixes, and beats the random order with the same number of files by at least 10 points. Otherwise it isn't, and the report says why.
+- The numbers are a preview until a block is built with gap 24's code. Then `meridian.context` reruns on that block, and those numbers replace these.
+- Switching it on stays Vishwa's call (it changes every consumer cache key), so this recommends, it doesn't switch.
+
+## Gap 16 with gap 24's history: results (preview): 96.4% of bug fixes kept, 23 points over random
+
+`cd Data-Pipeline && python ../Model-Pipeline/packets/chaitali-bias/context_preview.py --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite --scratch <a scratch file>` → `reports/context_cut_preview.json` (15 s).
+
+`file_bug_fixes`: 1,492 rows (Spark only) → 3,248, in 19 repos. The packages match Utkarsh's preview on c5118: Django 1,326 files, wagtail 138, allauth 78, cookiecutter 45, DRF 44. Spark keeps its 1,492 files and their fix keys, but 26 of them count fewer fix commits than the published block does (same keys: 8 → 7, 4 → 2, …). No call site is in Spark, so the cut doesn't change. Utkarsh is told, since the code changed after the block was built.
+
+| Real block, 68 consumer tasks | All | Kept | Kept share |
+|---|---:|---:|---:|
+| Files | 367 | 127 | 34.6% |
+| Call sites | 1,526 | 495 | 32.4% |
+| Facts characters | 40,996 | 21,920 | 53.5% |
+| Bug fixes | 591 | 570 | **96.4%** |
+
+48 of the 68 teams have a file with bug fixes (it was 0). 36 teams are cut, and 32 keep all their files. A random order with the same number of files keeps **73.3%** (seed 1, 100 orders). The facts are longer than on Nov 11 (40,996 characters against 36,676), because the files now carry their fix keys.
+
+**By the rule: 96.4% ≥ 90%, and +23.1 points over random ≥ 10, so switching it on is recommended.** It cuts the consumer facts by 46%. It isn't switched on here: that's Vishwa's call, since it changes every consumer cache key, and the numbers are a preview until a block is built with gap 24's code.

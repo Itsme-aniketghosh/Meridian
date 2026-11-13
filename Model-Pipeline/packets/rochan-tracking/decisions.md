@@ -303,7 +303,7 @@ A bigger margin or more matches helps less than you'd expect:
 | 60, +100 | 51% / 86% | 90 |
 | 90, +150 | 8% / 39% | 135 |
 
-The better policy is always found, and the worst one is never promoted. The problem is promotion by luck. Fixing it needs a guard that tests the head-to-head record against chance, allowing for being checked every run (a sequential test). That changes 04 §9 and the promotion row of PASS-BARS.md §3, so it's for the team, not this decision. Nothing can be promoted in phase 2 anyway: there are no live matches without users.
+The better policy is always found, and the worst one is never promoted. The problem is promotion by luck. Fixing it needs a guard that tests the head-to-head record against chance, allowing for being checked every run (a sequential test). That changes 04 §9 and the promotion row of PASS-BARS.md §3, so it's for the team, not this decision. Nothing can be promoted in phase 2 anyway: there are no live matches without users. **Decided Nov 11, for GAPS 9: decision 12.**
 
 ### 11. Replay weight
 
@@ -385,3 +385,103 @@ A review of #50 (registry) and #51 (replay, explore) once both were on main. Wha
 - **The bias report and seed noise name the candidate by column**, not by model md5, so a stale report for the same column isn't caught.
 - **`radar_deprecated_with_callers` counts calls, not distinct callers**, and counts each call once per deprecation marker on the function. Nothing is nominated on the real block yet (gap G3), so it changes nothing today.
 - **Decision 6 tries every order of the seeds**: 120 at Rachna's 5, too slow past about 9.
+
+## Auditor: decision 12, the promotion guard (GAPS 9, Nov 11)
+
+Decision 10 found that 04 §9's guard promotes a policy no better than v0 in 87% of 201-match runs and 96% of 600-match runs. GAPS.md gap 9: sweep stricter guards in the same simulation and keep the loosest one with at most 5% false promotions. The options, test and rule below were committed before the sweep ran.
+
+### 12. Promotion guard
+
+Options:
+- **04 §9's guard with bigger numbers.** At least N live matches, at least +M Elo over the champion, and a winning live record against v0. N is 30, 60, 90, 120 or 150, and M is 50, 100, 150, 200 or 250: 25 options, 04's (30, +50) among them.
+- **04 §9's guard plus a luck test.** The challenger's live record against the champion must be one that luck gives at most 5% of the time, however often the guard is checked. The test weighs two explanations of the record, "it's G Elo better" and "it's no better", and passes when the first is (challengers ÷ 5%) times likelier: 40 in the simulation, which has two challengers. A draw counts half a win. A policy no better than the champion reaches that bar with chance at most 5% ÷ challengers, over any number of checks (Ville's inequality), so at most 5% for any of them. G is 200, the gap of the simulation's better policy, or 100, to see what looking for smaller gains costs: 2 options.
+
+Test: decision 10's worlds, seeds 1–2,000, the guard checked after every stall, as the auditor checks it after every run.
+- Same skill (all three at 1500): the share of seeds where any policy is promoted within 201 and within 600 matches. Every promotion here is luck.
+- 200 apart (v1 1700, v0 1500, v2 1300): the share of seeds where v1 is promoted within 600 matches, the median match at which it is, and the share where the first promotion is v2.
+
+Rule:
+1. Out: an option that promotes in more than 5% of the same-skill seeds within 600 matches.
+2. Out: an option that promotes v1 in fewer than 95% of the 200-apart seeds within 600 matches, or whose first promotion is ever v2. A guard that never promotes can't fail rule 1, so it has to find the better policy too.
+3. Of the rest, the loosest: the lowest median match at which v1 is promoted.
+4. Within one stall (3 matches) of each other: a guard with bigger numbers over one with the luck test, since it's the smaller change to 04 §9. Then fewer matches, then the smaller margin or G.
+5. If every option is out, none is picked: 04 §9's guard stays, and gap 9 goes into the report as open.
+
+Result (run Nov 11; 87 s for 2,000 seeds). Under no option was v2 ever the first promotion:
+
+| Guard | Same skill: promoted by luck within 201 matches | within 600 | 200 apart: v1 promoted within 600 | at match (median) | Rule |
+|---|---|---|---|---|---|
+| 30, +50 (04) | 87.0% | 95.8% | 100.0% | 45 | out (1) |
+| 30, +100 | 64.2% | 89.1% | 100.0% | 45 | out (1) |
+| 30, +150 | 24.3% | 49.2% | 100.0% | 48 | out (1) |
+| 30, +200 | 4.6% | 8.4% | 100.0% | 87 | out (1) |
+| 30, +250 | 0.6% | 0.8% | 96.1% | 189 | in |
+| 60, +50 | 79.3% | 94.4% | 100.0% | 90 | out (1) |
+| 60, +100 | 51.4% | 85.5% | 100.0% | 90 | out (1) |
+| 60, +150 | 13.6% | 42.1% | 100.0% | 90 | out (1) |
+| 60, +200 | 1.4% | 5.3% | 100.0% | 108 | out (1) |
+| 60, +250 | 0.0% | 0.2% | 95.5% | 204 | in |
+| 90, +50 | 69.7% | 92.8% | 100.0% | 135 | out (1) |
+| 90, +100 | 36.5% | 82.4% | 100.0% | 135 | out (1) |
+| 90, +150 | 8.3% | 38.7% | 100.0% | 135 | out (1) |
+| 90, +200 | 0.8% | 4.9% | 100.0% | 144 | in |
+| 90, +250 | 0.0% | 0.2% | 95.0% | 225 | in |
+| 120, +50 | 48.5% | 91.2% | 100.0% | 180 | out (1) |
+| 120, +100 | 19.5% | 79.6% | 100.0% | 180 | out (1) |
+| 120, +150 | 3.9% | 36.0% | 100.0% | 180 | out (1) |
+| 120, +200 | 0.4% | 4.5% | 100.0% | 186 | in |
+| 120, +250 | 0.0% | 0.2% | 94.0% | 255 | out (2) |
+| 150, +50 | 0.0% | 90.2% | 100.0% | 225 | out (1) |
+| 150, +100 | 0.0% | 76.8% | 100.0% | 225 | out (1) |
+| 150, +150 | 0.0% | 33.2% | 100.0% | 225 | out (1) |
+| 150, +200 | 0.0% | 4.2% | 99.9% | 228 | in |
+| 150, +250 | 0.0% | 0.2% | 92.7% | 285 | out (2) |
+| **30, +50, luck test G 200** | 3.7% | 4.0% | 100.0% | 69 | in |
+| 30, +50, luck test G 100 | 2.0% | 3.4% | 100.0% | 96 | in |
+
+Seeds 1–20 alone pick the same option. A second run of the 2,000 seeds, after the review fixes below, gives the same table.
+
+Not part of the rule: the same simulation with more in it. `--decide 12` prints these after the table.
+- **Longer runs, to 3,000 matches.** With the same skill, 04 §9's guard promotes by luck in 99.1% of seeds. The luck test is still at 4.0%.
+- **Smaller gains.** v1 only 60, 80 or 100 Elo better than v0. The share of seeds where it's promoted within 3,000 matches, and the median match at which it is:
+
+| v1 better by | Luck test, G 200 (picked) | Luck test, G 100 | 90, +200 |
+|---|---|---|---|
+| 60 | 21.9%, at 144 | 89.6%, at 543 | 78.4%, at 1,044 |
+| 80 | 49.5%, at 192 | 99.7%, at 327 | 95.5%, at 699 |
+| 100 | 86.9%, at 225 | 100%, at 225 | 99.7%, at 444 |
+
+- **Draws.** In the real stall job, two policies that put the stall's reason in the same place draw. The world above has no draws, so here a share of matches is made into draws. The table shows v1 (200 better) promoted within 600 matches, then a same-skill policy promoted by luck:
+
+| Draws | Luck test, G 200: v1 / luck | 04 §9's guard: v1 / luck |
+|---|---|---|
+| 30% | 100% / 3.9% | 100% / 94.9% |
+| 50% | 99.5% / 3.4% | 99.9% / 93.5% |
+| 70% | 94.4% / 3.2% | 99.7% / 85.2% |
+
+Picked: **04 §9's guard plus the luck test, G 200.**
+- **The bigger-number guards.** Six pass: (30, +250), (60, +250), (90, +200), (90, +250), (120, +200) and (150, +200). The fastest, (90, +200), needs a median of 144 matches, and it's at 4.9% by 600. They keep climbing as a run gets longer, since every check is another chance for luck.
+- **The luck test** doesn't climb: 4.0% by 600 matches, and still 4.0% by 3,000. With it, v1 is promoted at a median of 69 matches, 24 more than under 04's guard. G 100 takes 96.
+
+What the 5% means: the chance that luck ever gets a policy no better than the champion past it, however often the guard is checked. With one challenger (a bar of 20), coin-flip wins and losses reach it with chance exactly 4.22%, the same at 600, 1,200 or 3,000 matches (`test_auditor.py` computes it). With the simulation's two (a bar of 40), it's 2.04% each. The bound holds for each champion: once a challenger is promoted, the challengers against the new one start a new 5%. The table counts each run's first promotion only, so "never v2" means v2 is never the first.
+
+What it costs:
+- **Smaller gains.** G 200 is tuned to the simulation's 200-Elo gap. Below about 100 better, it finds a better policy mostly through early luck: in 49.5% of runs at 80 better, and 21.9% at 60. G 100 finds 80 better in 99.7% and 60 better in 89.6%, for 27 more matches on a 200-Elo gain. If the team expects smaller gains, for instance from gap 22's LLM-written policies, `[auditor] promote_gain = 100` switches to it. The rule picked G 200, so that's the default.
+- **The better policy arrives later.** This is decision 9's 67-stall run under the new guard (`--decide 9 10 --guard default`):
+  - v1 is champion at a median of 69 matches instead of 45, and isn't champion within those 201 matches in 70 of 2,000 seeds, instead of 0;
+  - a worse policy is champion in 42.0% of stalls, instead of 23.1%;
+  - the team sees a worse ranking than v1's in 44.9% of stalls, instead of 28.7%.
+
+  Decisions 9 and 10 still pick the same options: 04's ε schedule, and 04's K. K is now picked the way decision 10's rule meant, since both K options pass its luck check (3.7% each).
+
+Changed after review (Nov 11; a second look at the branch, commit 2a5b41d):
+- **Draws don't count in the luck test.** The option above counted a draw as half a win. That made a draw evidence against a gain, so a better policy whose matches are mostly draws could hardly pass. On the code before the change, in the draws world above, v1 was promoted within 600 matches in 36.0% of runs at 50% draws, and 0.4% at 70%. Now the test reads wins and losses only. For a policy no better, a match that isn't a draw is won at most half the time, so the 5% bound still holds. The sweep's world has no draws, so its table is the same. "Beats v0" still counts a draw as half, as 04 §9 reads it.
+- **The 5% is split over the policies that existed at the check.** It used to be split over every policy in today's code. The log is replayed every run, so a policy written later raised the bar for checks already made, and could undo a promotion. In the simulation every policy exists from the start, so its table is the same.
+- **Settings the test can't run on now stop the run.** `promote_luck` must be 0 or a share between 0 and 1, and `promote_gain` above 0 and at most 2,000. Past 2,000, the expected score it implies rounds to 1.
+
+In the code:
+- **Settings.** `DEFAULTS` has `promote_luck = 0.05` and `promote_gain = 200`. `meridian.toml [auditor]` can change either, and `promote_luck = 0` turns the test off, giving 04 §9's original guard.
+- **The 5% is split** over the challengers at each check: two in the simulation (a bar of 40), and one today, v1 (a bar of 20). An LLM-written policy that no person has approved yet counts too, which only makes the bar stricter. Over a long series of new policies, as gap 22 would add, the total can pass 5%. Written down, not changed.
+- **Docs.** 04 §9's promotion line now names the test. PASS-BARS.md §3's promotion row still holds as written: the guard still blocks at 29 matches and at +49 Elo.
+
+The run is in MLflow, `meridian-auditor`, tagged `decision=rochan-12`: run be39aa4f, at commit 2a5b41d, with `git_dirty` false. An earlier run with the same numbers was logged from a tree with uncommitted changes; it's tagged `superseded_by` the new one.

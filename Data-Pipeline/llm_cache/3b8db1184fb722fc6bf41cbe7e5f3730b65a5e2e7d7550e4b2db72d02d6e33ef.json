@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00015925,
+ "facts_hash": "25aa04bb298e2d26",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.gis team still has to migrate 3 call sites. The call sites are in django/contrib/gis/apps.py (1 site, no bug fixes), django/contrib/gis/db/models/fields.py (1 site, no bug fixes), and django/contrib/gis/forms/fields.py (1 site, no bug fixes). No bug fixes are blocked or blocking.\", \"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 343,
+ "tokens_out": 105
+}

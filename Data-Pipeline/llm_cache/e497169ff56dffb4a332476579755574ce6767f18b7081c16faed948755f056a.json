@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.555e-05,
+ "facts_hash": "471605b466bfe6af",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"forms has 2 call sites of ungettext_lazy left to migrate. The sites are in django/forms/fields.py, which had 0 bug fixes.\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"sites\",\n  \"path\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 285,
+ "tokens_out": 88
+}

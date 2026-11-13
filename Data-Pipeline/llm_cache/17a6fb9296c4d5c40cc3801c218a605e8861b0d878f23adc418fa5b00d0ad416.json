@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.013012,
+ "facts_hash": "79a0848121e03c51",
+ "model": "gemini-pro",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\n  \"text\": \"Team carltongibson/django-filter needs to migrate url. It is done when 7 call sites are migrated at tests/rest_framework/test_integration.py:4, tests/rest_framework/test_integration.py:114, tests/rest_framework/test_integration.py:115, tests/rest_framework/test_integration.py:116, tests/urls.py:1, tests/urls.py:13, tests/urls.py:14.\",\n  \"used\": [\n    \"team\",\n    \"symbol\",\n    \"count\",\n    \"sites\"\n  ]\n}",
+ "tokens_in": 296,
+ "tokens_out": 1035
+}

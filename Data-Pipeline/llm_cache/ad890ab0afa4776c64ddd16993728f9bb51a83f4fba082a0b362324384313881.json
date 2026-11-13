@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014135,
+ "facts_hash": "0a0b0bad171fa0e6",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The jazzband/django-debug-toolbar team's migration of the url symbol has had no change since 2018-10-26T06:25:08Z. There are 29 call sites left. Possible reasons are: Never notified (1), Orphaned owner (1), Test gap (5).\", \"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"]}",
+ "tokens_in": 305,
+ "tokens_out": 93
+}

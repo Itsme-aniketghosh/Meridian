@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.001824,
+ "model": "gemini-flash",
+ "prompt_version": "eafe3eeacbc1",
+ "reply": "{\"agent\": \"diff_drafter\", \"model\": \"claude-haiku-5-5\", \"reason\": \"The migration scope is small and straightforward with few changes needed.\"}",
+ "tokens_in": 371,
+ "tokens_out": 169
+}

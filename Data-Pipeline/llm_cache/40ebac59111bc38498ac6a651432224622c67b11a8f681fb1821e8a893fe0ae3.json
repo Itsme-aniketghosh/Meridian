@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.003862,
+ "facts_hash": "cdc6c8a5dbbabb3a7109af165335365bf2226c76ce48c12734f0a239d7f722d2",
+ "model": "gemini-pro",
+ "prompt_version": "e1500ebee86f",
+ "reply": "```json\n{\"text\": \"    path('logout/', LogoutView.as_view(next_page='/'), name='logout'),\", \"used\": []}\n```",
+ "tokens_in": 455,
+ "tokens_out": 246
+}

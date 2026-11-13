@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0012315,
+ "facts_hash": "fe25ee7aabf44167",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team contrib.flatpages still has 3 call sites left to migrate for symbol ugettext. The file django/contrib/flatpages/forms.py has 3 sites and 0 bug fixes with keys []. The team is blocked by [] and is blocking [].\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 276,
+ "tokens_out": 109
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001458,
+ "facts_hash": "7bd46ed156146c89",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team utils has 5 call sites left to migrate: 1 site in django/utils/dateformat.py with 0 bug fixes, 1 site in django/utils/text.py with 0 bug fixes, and 3 sites in django/utils/timesince.py with 0 bug fixes. It is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 362,
+ "tokens_out": 122
+}

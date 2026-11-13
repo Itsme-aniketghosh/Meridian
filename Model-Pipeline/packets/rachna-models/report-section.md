@@ -55,6 +55,10 @@ Aniket's `model.recall` asked a different question: if an LLM agent reviews ever
 
 The champion is saved with joblib only after a refit is shown to be the judged model: every val prediction matches its scores file to 2.2e-16. Its md5 is recorded for the registry and P9. `python -m model.run_all` runs data check, training, seed noise, evaluation and bias in order and stops at the first failing step; its fake mode runs every step on a synthetic table in 22 s on every pull request. No test-year row can reach any fit: the code refuses it, and tests check it.
 
+## Jev, the LLM router
+
+Jev picks which model starts each LLM task. Only picks from an allowed table count, and its one-line reason goes through the same fact gate as every LLM text. If anything fails, the rules pick (always start on the smallest model), so a run always completes. To test it, 60 real writer tasks from the block were labelled by hand with the model a person would start on, and the labels were committed before any model ran (decision 19). On the 30 held-out tasks, a person picked the smallest model 29 times. So the rules are already right on 29 of 30 for $0, and no router can beat them: Phi-4-mini running locally ties (29/30, $0, 2.3 s a pick), Gemma 4 ties (29/30), and Gemini 3.8 Flash does worse (26/30), over-picking big models three times, the costly kind of mistake. Every model gave the same picks when asked twice. By the rules written before the run, the rules route, with Phi-4-mini as Jev's model when a router is used (decisions 13, 14, 21). The whole comparison cost $0.055, and its answers are cached, so a rerun is free.
+
 ## Not done, and next
 
 - Decision 2's size ablation (the model without size features against lines × files) isn't run. It's the most direct test of the question above.

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00030505,
+ "facts_hash": "1ce702c6ae1f6b87",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The jazzband/django-two-factor-auth team still has to migrate 37 call sites of 'url': 11 in example/urls.py, 10 in tests/urls.py, 2 in tests/urls_admin.py, 2 in tests/urls_otp_admin.py, 2 in two_factor/gateways/twilio/urls.py, 10 in two_factor/urls.py. None of the files had bug fixes. The migration is not blocked by or blocking any other migration.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 451,
+ "tokens_out": 128
+}

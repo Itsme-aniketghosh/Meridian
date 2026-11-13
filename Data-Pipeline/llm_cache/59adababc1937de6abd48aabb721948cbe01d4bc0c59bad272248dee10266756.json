@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00012895,
+ "facts_hash": "ce3d1ae4c783b3d7",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.admindocs team still has to migrate 1 call site. The call site is in django/contrib/admindocs/views.py, which had 0 bug fixes with no associated ticket keys. No other teams are blocked by contrib.admindocs, but contrib.admindocs is not blocking any teams either.\", \"used\": [\"team\", \"files\", \"left\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 261,
+ "tokens_out": 91
+}

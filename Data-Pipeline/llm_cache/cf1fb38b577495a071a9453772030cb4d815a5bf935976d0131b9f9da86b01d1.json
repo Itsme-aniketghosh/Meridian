@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.835e-05,
+ "facts_hash": "0b75025107579ac22875f7c6edcf6483d2226049c59950095bd1bffeb83f72c1",
+ "model": "gemma-4",
+ "prompt_version": "e1500ebee86f",
+ "reply": "```json\n{\"text\": \"    path('article/', include('articles.urls', namespace='articles')),\", \"used\": [\"url\"]}\n```",
+ "tokens_in": 461,
+ "tokens_out": 32
+}

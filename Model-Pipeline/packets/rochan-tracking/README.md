@@ -73,6 +73,7 @@ The GCP repo, once, on the trial project (no Terraform until phase 3):
 - [x] Verdict rules: block removed ≤ 7 days before resumption, ticket created ≤ 14 days before, new author resumed, ticket reopened. Else a person picks. None: no match
 - [x] Replay matches: past stalls, rows with `known_at` ≤ stall time only, half K
 - [x] Promotion guard: ≥ 30 live matches, +50 Elo, beats v0. LLM-written policies are never promoted without a person
+- [x] GAPS 9: the guard's luck test. Luck gets a no-better policy past each champion at most 5% of the time, however often the guard is checked (decision 12)
 - [x] Runs on the fixture and on replay. With no users there are no live matches, and the output says so
 
 ## Decisions
@@ -92,12 +93,13 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 | 9 | Auditor ε schedule | 04's 0.2 then 0.1, a fixed 0.1 | Simulation: 3 policies with known skill, 200 matches, 20 seeds. Matches until the best is champion, and how often a worse one is | Too little exploration and a better policy never gets tried. Too much and the team sees worse rankings for longer |
 | 10 | Elo K | 04's 32 then 16, 24 flat | Same simulation: rank error after 30, 60, 100 matches | K sets how fast Elo moves. Too high and one lucky match promotes a policy |
 | 11 | Replay weight | half K (04), full K, no replay | Simulation with replay matches that are noisier than live ones | Replay is cheap but its verdicts are weaker. It should speed learning without steering it |
+| 12 | Promotion guard (GAPS 9) | 04's guard with bigger numbers (25), 04's guard plus a luck test (G 200, G 100) | Same simulation: luck promotions with the same skill, within 201 and 600 matches; when a policy 200 better is promoted | 04's guard promotes a no-better policy by luck in 87% of runs. Every lucky promotion serves the team a policy that's no better |
 
 ## Tests
 
 - [x] `test_evaluate.py`: PR-AUC, F1 and recall at 20% match a hand calculation. Same seed, same interval. Every number in `metrics.json` has an N. A perfect score gives 1.0, a random one about the positive rate. `--split test` refuses unless allowed
 - [x] `test_registry.py`, against a temp local store: a better model takes `champion` and `previous` points at the old one; a worse one is registered, not promoted; one better only within seed noise isn't promoted; a failed bias report blocks promotion; `--rollback` restores; the first model ever is promoted if it passes; `--push` without credentials skips and says so
-- [x] `test_auditor.py`, the 05-test Auditor bars: the Elo simulation with known skill ranks right; recomputing from the log twice gives the same ratings; seeded ε within ±2% over 1,000 draws; a replay never reads a row with `known_at` after the stall; the promotion guard blocks at 29 matches and at +49 Elo. Ticket maps are the one gap in the look-ahead check (pass-bars.md, Nov 10)
+- [x] `test_auditor.py`, the 05-test Auditor bars: the Elo simulation with known skill ranks right; recomputing from the log twice gives the same ratings; seeded ε within ±2% over 1,000 draws; a replay never reads a row with `known_at` after the stall; the promotion guard blocks at 29 matches and at +49 Elo, and its luck test blocks a record luck could give, leaves draws out, and holds at 5%, computed exactly (decision 12). Ticket maps are the one gap in the look-ahead check (pass-bars.md, Nov 10)
 - [x] Once on the real repo: push, roll back, and check the versions in Artifact Registry
 
 ## Done when
@@ -106,5 +108,5 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 - [ ] `metrics.json` on `val`, then on `test` once on Nov 12
 - [ ] `registry.py` in CI on main, with a real push and a rollback tried
 - [x] The auditor passes its simulation tests and runs on the fixture
-- [x] Decisions 1–11 written down with their numbers
+- [x] Decisions 1–12 written down with their numbers
 - [ ] Your report section: tracking, metrics, results, registry and rollback, auditor

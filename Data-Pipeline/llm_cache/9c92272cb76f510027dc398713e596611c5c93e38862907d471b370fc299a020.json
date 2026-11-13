@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00013365,
+ "facts_hash": "d0cd3b63efc47596",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 2 call sites of 'ungettext_lazy' in django/forms/fields.py:33, django/forms/fields.py:537 by forms team.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 211,
+ "tokens_out": 52
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00056955,
+ "facts_hash": "cbacdff81a846a88",
+ "model": "gemma-4",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n  \"text\": \"Migrate 240 call sites for url.\",\n  \"used\": [\n    \"count\",\n    \"symbol\",\n    \"sites\"\n  ]\n}\n```",
+ "tokens_in": 3597,
+ "tokens_out": 50
+}

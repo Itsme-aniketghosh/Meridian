@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.005916,
+ "facts_hash": "cbacdff81a846a88",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Team wagtail/wagtail: migrate 240 call sites of url across wagtail/admin/api/urls.py:1 through wagtail/users/wagtail_hooks.py:20. Done when all 240 sites are migrated.\", \"used\": [\"team\", \"count\", \"symbol\"]}",
+ "tokens_in": 3584,
+ "tokens_out": 72
+}

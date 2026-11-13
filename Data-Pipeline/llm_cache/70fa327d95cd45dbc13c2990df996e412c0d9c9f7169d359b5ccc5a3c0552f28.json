@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001188,
+ "facts_hash": "471605b466bfe6af",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team forms still has 2 call sites left to migrate for ungettext_lazy: django/forms/fields.py has 2 sites and had 0 bug fixes (fix keys: none). Team forms is blocked by none and is blocking none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 272,
+ "tokens_out": 104
+}

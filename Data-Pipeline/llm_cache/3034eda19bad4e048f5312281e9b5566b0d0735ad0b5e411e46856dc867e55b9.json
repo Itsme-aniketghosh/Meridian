@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00012915,
+ "facts_hash": "25aa04bb298e2d26",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.gis has 3 call sites of ugettext_lazy left to migrate: 1 in django/contrib/gis/apps.py (0 bug fixes), 1 in django/contrib/gis/db/models/fields.py (0 bug fixes), and 1 in django/contrib/gis/forms/fields.py (0 bug fixes).\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\"\n ]\n}\n```",
+ "tokens_in": 389,
+ "tokens_out": 118
+}

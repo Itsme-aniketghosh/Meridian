@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00014405,
+ "facts_hash": "edfad75c79f3f081",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.sessions team still has to migrate 2 call sites. The sites are in django/contrib/sessions/apps.py (1 site, with 0 bug fixes and no ticket keys) and django/contrib/sessions/base_session.py (1 site, with 0 bug fixes and no ticket keys). No ticket keys are blocking and none are being blocked.\", \"used\": [\"team\", \"left\", \"files\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 299,
+ "tokens_out": 99
+}

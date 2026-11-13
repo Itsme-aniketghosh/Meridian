@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0043785,
+ "facts_hash": "5cec9b328543171f730225fac6e92eb24d5affffa21ae885f1b09b88570817c2",
+ "model": "gemini-flash",
+ "prompt_version": "e1500ebee86f",
+ "reply": "```json\n{\n \"text\": \"                re_path(r'^(?P<object_pk>.+)/permissions/user-manage/(?P<user_id>\\\\-?\\\\d+)/$',\",\n \"used\": [\n  \"before\",\n  \"new\",\n  \"symbols\"\n ]\n}\n```",
+ "tokens_in": 464,
+ "tokens_out": 491
+}

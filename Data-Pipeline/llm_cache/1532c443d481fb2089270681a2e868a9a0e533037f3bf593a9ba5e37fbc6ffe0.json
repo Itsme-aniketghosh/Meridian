@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001878,
+ "facts_hash": "54f089a5a04fc594",
+ "model": "llama-4-maverick",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The views team still has to migrate 2 call sites of ugettext_lazy: 2 in django/views/static.py. This file had 0 bug fixes []. It is not blocked by anything and does not block anything.\", \"used\": [\"team\", \"left\", \"symbol\", \"files\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 254,
+ "tokens_out": 86
+}

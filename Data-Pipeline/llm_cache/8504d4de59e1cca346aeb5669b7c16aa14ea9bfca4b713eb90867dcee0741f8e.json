@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.975e-05,
+ "facts_hash": "2e5b052fe2b06c20",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"contrib.admindocs has 1 call site of ugettext_lazy left to migrate in django/contrib/admindocs/apps.py. This file had 0 bug fixes.\",\n \"used\": [\n  \"left\",\n  \"symbol\",\n  \"team\",\n  \"sites\",\n  \"path\",\n  \"bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 293,
+ "tokens_out": 93
+}

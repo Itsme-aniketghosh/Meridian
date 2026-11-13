@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.58e-05,
+ "facts_hash": "71a565908d14243efdc60091e0e68a5b0aaefe95d617969a3c53516143f701f3",
+ "model": "gemma-4",
+ "prompt_version": "e1500ebee86f",
+ "reply": "```json\n{\"text\": \"    path('admin/', admin.site.urls),\", \"used\": [\"url\"]}\n```",
+ "tokens_in": 460,
+ "tokens_out": 28
+}

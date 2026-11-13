@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0011985,
+ "facts_hash": "4ab456a6b721e802",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team templatetags: migrate symbol ugettext at sites django/templatetags/i18n.py:16, django/templatetags/i18n.py:151, django/templatetags/i18n.py:270 (count: 3).\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 254,
+ "tokens_out": 109
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001254,
+ "facts_hash": "81850abc4d900f40",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\"text\": \"Team contrib.redirects has 2 call sites of ugettext_lazy left to migrate: 1 site in django/contrib/redirects/apps.py (0 bug fixes) and 1 site in django/contrib/redirects/models.py (0 bug fixes). The team is blocked by none and is blocking none.\", \"used\": [\"blocked_by\", \"blocking\", \"files\", \"left\", \"symbol\", \"team\"]}\n```",
+ "tokens_in": 326,
+ "tokens_out": 102
+}

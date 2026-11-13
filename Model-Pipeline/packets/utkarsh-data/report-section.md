@@ -35,16 +35,16 @@ A commit is positive if a `bug_inducing` row names it, and that row's fix was au
 
 **The share slides by year.** The positive share falls from 30.8% (2015) to 7.5% (2024) under every window. It follows the number of fix commits per year (1,309 with blame in 2015, 340 in 2022), not the window. A model can learn "old means buggy" from this, which is why splits are by time and val and test are judged on their own years.
 
-**Hand checks.** **[TODO]** _ of 20 random positives are real (bar: 16 or more). _ of 10 from 2015 against _ of 10 from 2022, which settles decision 2 (2015 stays if at most 2 are wrong).
+**Label checks, by an AI model, not a person.** For each pair it read the fix's ticket, both commits, and the lines blamed on the inducing commit next to the fix's replacement. **9 of 20 random positives are real (45%; 95% interval 26–66%), against a bar of 16: the label-precision bar fails.** It matches SZZ's 44% on the Defects4J labels: most positives name a commit that didn't bring the bug in (refactors, reverts, incidental lines). For decision 2, 2015 got 4 of 10 right and 2022 7 of 10. By the written rule (at most 2 of 10 wrong) the start year moves to 2016, but 2022 fails the same bar, the gap isn't significant on 10 each (p = 0.37), and it lands after the freeze. 2015 stays unless Aniket moves it.
 
-**v1 vs c5118.** **[TODO, or "not done: the v1 block wasn't available"]**
+**v1 vs c5118.** Not done: the v1 block wasn't on this machine, and c5118 was available from day 1.
 
 ## 4. Decisions
 
 | # | Decision | Pick | Deciding number |
 |---|---|---|---|
 | 1 | Label window | 365 days | rule not met (54% / 72% / 80% at about 988 days); fallback |
-| 2 | Start year | 2015 [TODO] | hand check |
+| 2 | Start year | 2015, for now | AI check: 6 of 10 from 2015 wrong (rule says 2016); 2022 3 of 10; p = 0.37; Aniket's call |
 | 3 | Author identity | merged person | 65.8% of train commits come from authors with 2+ emails; raw emails would mislabel about 11% of newcomers |
 | 4 | `[MINOR]` commits | keep, with `is_minor` | 3.5% of train, 3.9% positive |
 | 5 | Module slices | second level inside `sql/` | top-level `sql` is 41.8% of test, over the 40% bar |
@@ -73,6 +73,13 @@ The codemod drafts one line per site line: rename rules, the owner's import orde
 - **Django:** 254 of 267 lines match the real after-line at `c651331b34` (95.1%), which clears 05-test's 90%.
 - **Packages:** 58.6% on the 12 finished repos at the parent commit. Owners chose their own `url()` style, and nothing at the parent shows which. Reading the owner's style from their first migrated files (decision 13), and drafting a call over several lines as one statement, joined when it fits the repo's line limit (decision 14), gives **73.2%** on the files the drafter wasn't shown, against 58.1% for the default style on the same lines. Of the 244 lines still missed, only 14 are the owner doing more than migrating. The rest are owners choosing line by line (`path` here, `re_path` there; joined here, kept there), which nothing at the parent shows. The 90% bar isn't met. In the product the drafter doesn't guess a `url()` style (decision 15): it waits for the owner's first migrated file, copies its style, learns from the owner's edits of earlier diffs, and never re-offers a diff they rejected. Learning from edits is built and tested on a fixture, with no real outcomes yet.
 - **The LLM path** follows 04 §6. It only tries a line the codemod refused, with 2 or more same-shape examples, never inside `except`. Models go coding small → mid → large. Each answer goes through Vishwa's cache and the fact gate, then the same apply, parse and resolve checks, and is logged with `log_llm_call`. The gate checks only what a draft adds, since a regex reads as numbers and paths (decision 12). On the team run the codemod refuses just 20 of the 1,236 package lines, so the LLM path can add at most 1.6 points. The packages' gap is the choice of style, not lines the codemod can't write. The Nov 9 hand-off test (`test_handoff_diffs.py`) runs it on the fixture with a warm cache and 0 API calls. **[TODO: a real LLM run on the 20 lines, or "not run: no key".]**
+
+## 7b. Late gaps (GAPS 24, 13 and 17, Nov 12)
+
+- **Bug-fix history for the packages (gap 24).** `file_bug_fixes` was Spark-only, because only Spark has a ticket tracker and the window was the year before the snapshot, while the packages are pinned in 2017–2022. Repos with no tracker now read fixes from the commit subject (`Fixed #N`, `fix …`), for this table only, counted over each repo's own last year. Spark's rows are byte-identical; every package and Django now have rows, and 115 of 1,237 package call sites sit in a file with fixes. They're in block `bb6b5f4e32a4bee7`, built Nov 13 from the team config with this code: 0 errors, Spark identical, 367 of 1,526 migration call sites now carry a bug-fix count.
+- **A cleaner SZZ (gap 13).** Whitespace, blank, comment and test lines were already skipped. The variant also follows moved and copied lines (`git blame -M -C`). It changes about 1 in 10 fix → inducing pairs, and val PR-AUC with the champion's forest goes from 0.4058 to 0.4002: no gain, so nothing changes. The Defects4J pick rate wasn't measured: the Defects4J repositories aren't on this machine.
+
+- **Graph walkers (gap 17).** When the orchestrator's tools fail (by code: an error, a hang, nothing usable, or two fact-gate misses), walkers query the graph themselves. They run the eight stall queries from the stalled team and follow `blocked_by` to the teams that block it. They're read-only, capped in time, rows and queries, and cached, so a rerun makes 0 queries. On the fixture they find a cause in the upstream team that the stalled team's own context can't show. On the real block a walk takes about 0.5 s.
 
 ## 8. What didn't work, and why it's reported
 

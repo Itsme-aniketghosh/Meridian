@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00012835,
+ "facts_hash": "16f2cb7eaccacac8",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 'ugettext' at django/contrib/admindocs/views.py:23 to the new API when contrib.admindocs team completes the task.\", \"used\": [\"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 209,
+ "tokens_out": 48
+}

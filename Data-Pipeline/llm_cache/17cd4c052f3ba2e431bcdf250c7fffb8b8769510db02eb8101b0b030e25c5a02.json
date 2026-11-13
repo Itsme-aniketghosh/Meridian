@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0002091,
+ "facts_hash": "536494bf8321f08d",
+ "model": "llama-4-maverick",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The django-cms/django-cms team's migration of the 'url' symbol has had no change since 2018-09-03T16:06:43Z and 160 call sites are left. Possible reasons are: Never notified (1), Orphaned owner (3), Test gap (31).\", \"used\": [\"team\", \"symbol\", \"since\", \"left\", \"reasons\"]}",
+ "tokens_in": 305,
+ "tokens_out": 89
+}

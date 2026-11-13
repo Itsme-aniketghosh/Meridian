@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.005985,
+ "facts_hash": "daba315a8d014806",
+ "model": "gemini-flash",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"Team tests has 43 call sites left to migrate: tests/admin_utils/models.py (1 call site, 0 bug fixes), tests/auth_tests/test_management.py (1 call site, 0 bug fixes), tests/basic/tests.py (2 call sites, 0 bug fixes), tests/forms_tests/tests/test_i18n.py (4 call sites, 0 bug fixes), tests/forms_tests/tests/test_utils.py (3 call sites, 0 bug fixes), tests/i18n/models.py (1 call site, 0 bug fixes), tests/i18n/patterns/urls/default.py (1 call site, 0 bug fixes), tests/i18n/patterns/urls/namespace.py (1 call site, 0 bug fixes), tests/i18n/patterns/urls/wrong.py (1 call site, 0 bug fixes), tests/i18n/patterns/urls/wrong_namespace.py (1 call site, 0 bug fixes), tests/i18n/tests.py (5 call sites, 0 bug fixes), tests/i18n/urls.py (1 call site, 0 bug fixes), tests/i18n/urls_default_unprefixed.py (1 call site, 0 bug fixes), tests/mail/tests.py (5 call sites, 0 bug fixes), tests/many_to_one/tests.py (2 call sites, 0 bug fixes), tests/messages_tests/base.py (2 call sites, 0 bug fixes), tests/migrations/test_writer.py (1 call site, 0 bug fixes), tests/queryset_pickle/models.py (1 call site, 0 bug fixes), tests/serializers/test_json.py (3 call sites, 0 bug fixes), tests/test_client_regress/tests.py (3 call sites, 0 bug fixes), tests/utils_tests/test_text.py (2 call sites, 0 bug fixes), and tests/view_tests/urls.py (1 call site, 0 bug fixes). Blocked by: none. Blocking: none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"left\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 1310,
+ "tokens_out": 536
+}

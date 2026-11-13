@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00013875,
+ "facts_hash": "dd64b276f4336cf7",
+ "model": "llama-4-scout",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"The contrib.auth team's migration of the ugettext symbol has had no change since 2016-12-27T22:00:56Z. There are 7 call sites left. Possible reasons are: Never notified (1), Orphaned owner (3), Semantics unclear (1).\", \"used\": [\"since\", \"symbol\", \"team\", \"left\", \"reasons\", \"evidence\", \"reason\"]}",
+ "tokens_in": 303,
+ "tokens_out": 90
+}

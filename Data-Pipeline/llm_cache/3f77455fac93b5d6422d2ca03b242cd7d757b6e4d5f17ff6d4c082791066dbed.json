@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00013805,
+ "facts_hash": "4650a107642ee8d9",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.postgres team still has to migrate 3 call sites. The django/contrib/postgres/validators.py file has 3 call sites and had 0 bug fixes. No ticket keys are associated with bug fixes in this file. This file does not block or is blocked by other teams or files.\", \"used\": [\"team\", \"files\", \"left\", \"symbol\", \"path\", \"sites\", \"bug_fixes\", \"fix_keys\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 261,
+ "tokens_out": 104
+}

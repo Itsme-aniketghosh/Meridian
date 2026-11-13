@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001479,
+ "facts_hash": "63863ebb0b3f4295",
+ "model": "gemma-4",
+ "prompt_version": "271b69057be0",
+ "reply": "```json\n{\n \"text\": \"django/channels has 18 url call sites left to migrate: 16 in tests/test_routing.py and 2 in tests/test_testing.py. There were 0 bug fixes for tests/test_routing.py and 0 bug fixes for tests/test_testing.py.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"files[0].sites\",\n  \"files[0].path\",\n  \"files[0].bug_fixes\",\n  \"files[1].sites\",\n  \"files[1].path\",\n  \"files[1].bug_fixes\"\n ]\n}\n```",
+ "tokens_in": 330,
+ "tokens_out": 164
+}

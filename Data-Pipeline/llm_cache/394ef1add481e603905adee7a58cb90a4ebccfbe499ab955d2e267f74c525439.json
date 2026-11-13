@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00022115,
+ "facts_hash": "f8786a7733a90e07",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Create a new ticket to track migration of url across 13 call sites: haystack/urls.py:2, haystack/urls.py:6, test_haystack/core/urls.py:2, test_haystack/core/urls.py:13, test_haystack/core/urls.py:14, test_haystack/core/urls.py:15, test_haystack/core/urls.py:23, test_haystack/core/urls.py:27, test_haystack/results_per_page_urls.py:2, test_haystack/results_per_page_urls.py:12, test_haystack/results_per_page_urls.py:13, test_haystack/test_app_without_models/urls.py:2, test_haystack/test_app_without_models/urls.py:6 for django-haystack/django-haystack team.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 347,
+ "tokens_out": 192
+}

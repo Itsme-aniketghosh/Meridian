@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0001334,
+ "facts_hash": "0577e0d6048dbb95",
+ "model": "llama-4-maverick",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 'ugettext_lazy' in django/contrib/staticfiles/apps.py:4 to the new API by updating the call site as part of the contrib.staticfiles team's migration task.\", \"used\": [\"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 207,
+ "tokens_out": 53
+}

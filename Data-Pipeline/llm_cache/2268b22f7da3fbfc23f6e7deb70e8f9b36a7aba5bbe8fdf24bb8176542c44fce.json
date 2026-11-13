@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001017,
+ "facts_hash": "7e6abea96700b099",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n  \"text\": \"Team contrib.redirects has count 2 call sites to migrate symbol ugettext_lazy: django/contrib/redirects/apps.py:2, django/contrib/redirects/models.py:3.\",\n  \"used\": [\n    \"count\",\n    \"sites\",\n    \"symbol\",\n    \"team\"\n  ]\n}\n```",
+ "tokens_in": 233,
+ "tokens_out": 89
+}

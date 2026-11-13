@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0009855,
+ "facts_hash": "ce4908fed1d4f875",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.sessions has 2 call sites to migrate for symbol ugettext_lazy at django/contrib/sessions/apps.py:2, django/contrib/sessions/base_session.py:6.\",\n \"used\": [\n  \"count\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 232,
+ "tokens_out": 85
+}

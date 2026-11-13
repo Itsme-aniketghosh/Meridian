@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00016335,
+ "facts_hash": "4d7f21ce2624ed58",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"The django/channels team has 18 call sites for the 'url' symbol that need migration. The sites are located in tests/test_routing.py at lines 4, 62, 63, 64, 65, 66, 67, 110, 111, 116, 117, 218, 221, 221, 223, 235 and in tests/test_testing.py at lines 5, 101.\", \"used\": [\"count\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 337,
+ "tokens_out": 113
+}

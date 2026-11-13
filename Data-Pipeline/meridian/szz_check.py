@@ -34,7 +34,7 @@ def history(co, parent, paths):
     return [tuple(c) for c in out]
 
 
-def defects4j(d4j, labels, code):
+def defects4j(d4j, labels, code, moves=False):
     repos = {r[0]: r[1].rsplit("/", 1)[1] + ".git"
              for r in csv.reader(open(d4j / "project_repos" / "repos.csv", encoding="utf-8", newline=""))}
     fixed = {}
@@ -53,7 +53,7 @@ def defects4j(d4j, labels, code):
         past = history(co, parent, paths) if paths else []
         when = {s: at for s, at, _ in past}
         blamed = Counter()
-        for c in szz(co, fix, parent, code).values():
+        for c in szz(co, fix, parent, code, moves).values():
             blamed.update(c)
         truth = r["bic_d4j_v3"]
         picks = {
@@ -118,10 +118,10 @@ def fragility(db, snapshot_at, cfg):
         log(f"            churn baseline, top {len(risky)} files by churn -> {sc}, lift {lc}")
 
 
-def main(run_id, d4j, config=CONFIG, root=None):
+def main(run_id, d4j, config=CONFIG, root=None, moves=False):
     cfg = load_config(config)
     labels = list(csv.DictReader(open(HERE.parent / cfg["szz"]["answer_key"], encoding="utf-8", newline="")))
-    defects4j(Path(d4j), labels, code_rules(cfg))
+    defects4j(Path(d4j), labels, code_rules(cfg), moves)
     db = sqlite3.connect(handoff(cfg, run_id, root) / "meridian.sqlite")
     (snapshot_at,) = db.execute("SELECT snapshot_at FROM run WHERE run_id = ?", (run_id,)).fetchone()
     fragility(db, snapshot_at, cfg)
@@ -130,5 +130,6 @@ def main(run_id, d4j, config=CONFIG, root=None):
 if __name__ == "__main__":
     ap = parser(__doc__)
     ap.add_argument("--d4j", required=True, help="folder with framework/projects and project_repos (Defects4J v3)")
+    ap.add_argument("--moves", action="store_true", help="blame past moved and copied lines (GAPS 13, measured only)")
     a = ap.parse_args()
-    main(a.run_id, a.d4j, a.config)
+    main(a.run_id, a.d4j, a.config, moves=a.moves)

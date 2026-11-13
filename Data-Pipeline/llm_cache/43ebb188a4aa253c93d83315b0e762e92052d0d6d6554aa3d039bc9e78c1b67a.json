@@ -1,0 +1,9 @@
+{
+ "cost_usd": 8.26e-05,
+ "facts_hash": "9127da5055854ed3",
+ "model": "llama-4-scout",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Create a new ticket to migrate ugettext_lazy in contrib.sitemaps at django/contrib/sitemaps/apps.py:2.\", \"used\": [\"symbol\", \"team\", \"sites\"]}",
+ "tokens_in": 210,
+ "tokens_out": 43
+}

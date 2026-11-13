@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00012425,
+ "facts_hash": "7dbec4f98aee2413",
+ "model": "llama-4-scout",
+ "prompt_version": "271b69057be0",
+ "reply": "{\"text\": \"The contrib.gis team still has 1 call site to migrate, in django/contrib/gis/views.py, which had 0 bug fixes. No ticket keys are associated with bug fixes in this file. This work is not blocked by other teams, but it blocks no other teams.\", \"used\": [\"team\", \"files\", \"left\", \"symbol\", \"blocked_by\", \"blocking\"]}",
+ "tokens_in": 259,
+ "tokens_out": 85
+}

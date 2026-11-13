@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0013515,
+ "facts_hash": "56887189bd6f41b8",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team django-haystack/django-haystack's migration of symbol url has had no change since 2018-06-18T18:05:12Z, and 13 call sites are left. The possible reasons are: Test gap with evidence 4, and Never notified with evidence 1.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"since\",\n  \"left\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 311,
+ "tokens_out": 118
+}

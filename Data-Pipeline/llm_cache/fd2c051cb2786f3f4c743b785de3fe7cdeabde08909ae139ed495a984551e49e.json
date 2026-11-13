@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.0,
+ "model": "phi4-mini",
+ "prompt_version": "eafe3eeacbc1",
+ "reply": "{\"agent\": \"writer\", \"model\": \"claude-haiku-5-5\", \"reason\": \"Task is small and simple\"}",
+ "tokens_in": 302,
+ "tokens_out": 30
+}
