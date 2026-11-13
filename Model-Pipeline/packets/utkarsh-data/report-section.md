@@ -35,16 +35,16 @@ A commit is positive if a `bug_inducing` row names it, and that row's fix was au
 
 **The share slides by year.** The positive share falls from 30.8% (2015) to 7.5% (2024) under every window. It follows the number of fix commits per year (1,309 with blame in 2015, 340 in 2022), not the window. A model can learn "old means buggy" from this, which is why splits are by time and val and test are judged on their own years.
 
-**Hand checks.** **[TODO]** _ of 20 random positives are real (bar: 16 or more). _ of 10 from 2015 against _ of 10 from 2022, which settles decision 2 (2015 stays if at most 2 are wrong).
+**Label checks, by an AI model, not a person.** For each pair it read the fix's ticket, both commits, and the lines blamed on the inducing commit next to the fix's replacement. **9 of 20 random positives are real (45%; 95% interval 26–66%), against a bar of 16: the label-precision bar fails.** It matches SZZ's 44% on the Defects4J labels: most positives name a commit that didn't bring the bug in (refactors, reverts, incidental lines). For decision 2, 2015 got 4 of 10 right and 2022 7 of 10. By the written rule (at most 2 of 10 wrong) the start year moves to 2016, but 2022 fails the same bar, the gap isn't significant on 10 each (p = 0.37), and it lands after the freeze. 2015 stays unless Aniket moves it.
 
-**v1 vs c5118.** **[TODO, or "not done: the v1 block wasn't available"]**
+**v1 vs c5118.** Not done: the v1 block wasn't on this machine, and c5118 was available from day 1.
 
 ## 4. Decisions
 
 | # | Decision | Pick | Deciding number |
 |---|---|---|---|
 | 1 | Label window | 365 days | rule not met (54% / 72% / 80% at about 988 days); fallback |
-| 2 | Start year | 2015 [TODO] | hand check |
+| 2 | Start year | 2015, for now | AI check: 6 of 10 from 2015 wrong (rule says 2016); 2022 3 of 10; p = 0.37; Aniket's call |
 | 3 | Author identity | merged person | 65.8% of train commits come from authors with 2+ emails; raw emails would mislabel about 11% of newcomers |
 | 4 | `[MINOR]` commits | keep, with `is_minor` | 3.5% of train, 3.9% positive |
 | 5 | Module slices | second level inside `sql/` | top-level `sql` is 41.8% of test, over the 40% bar |
