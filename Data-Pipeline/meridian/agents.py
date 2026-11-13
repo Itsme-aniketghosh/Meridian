@@ -458,17 +458,20 @@ def _table(db, name):
 
 
 def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False, router=None, ladder=None,
-        limit=None, workers=1):
+        limit=None, workers=1, plan=None):
     """Every task written. Rows are offered once: a suggestion_id already in the block isn't offered again. A block
     from before schema v1.3 has no suggestion table, so no rows so far. router: Jev (meridian.jev.Router), which
     picks each task's starting model; None is the fixed rules. A task naming a person is skipped before Jev sees it.
     ladder: the models every task tries without a router (default LADDER): the model comparison runs one model at a
     time this way (GAPS.md gap 2), so LADDER and every run_id stay as they are. limit: the first n tasks only (the 10
     real prompts measured before a full run). workers: tasks written at once (live LLM calls wait on the network);
-    the texts and rows are the same as one at a time."""
+    the texts and rows are the same as one at a time. plan: picks which tasks run (meridian.orchestrator's select);
+    None runs them all."""
     teams, people = names(db)
     written, skipped = [], []
     todo = tasks(db, cfg, run_id, at)[:limit]
+    if plan is not None:
+        todo = plan(todo)
 
     def one(t):
         try:
