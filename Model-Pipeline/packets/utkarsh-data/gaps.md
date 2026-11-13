@@ -1,4 +1,4 @@
-# GAPS 24 and 13 (Nov 12)
+# GAPS 24, 13 and 17 (Nov 12)
 
 ## Gap 24: bug-fix history for the package repos
 
@@ -36,3 +36,24 @@ What gap 13 asks to skip is mostly already skipped. `szz.py` blames with `git di
 **Defects4J pick rate (against 44%): not measured.** It needs the Defects4J project repositories, which aren't on this machine. Week 1 ran it from a Docker image built from a Defects4J clone (`week1/pair3/defects4j/runall.sh`). Once they're here it's one command each, today's rule and the variant: `python -m meridian.szz_check --run-id … --d4j <dir>` and the same with `--moves`.
 
 **Tests:** `tests/test_szz.py::Moves`: a line written in one commit, moved in a second and fixed in a third is blamed on the second today and on the first with the variant.
+
+## Gap 17: graph walkers
+
+**Why.** A stalled team's context (`meridian.context`) holds only its own files. A cause somewhere else, like the team that blocks it, never reaches the writer. When the orchestrator's tools fail, it needs something that looks further.
+
+**What** (`meridian/walkers.py`):
+- `walk` starts at the stalled team and runs KNOWLEDGE-BASE.md's eight `stall_*` queries as of the stall's moment (the auditor's `point`). It follows `blocked_by` to each blocking team, up to 2 hops, and returns what it finds as a Contract 5 facts object for the writer. The writer's fact gate still checks every text.
+- `failed` decides "the tool failed" by code: it raised or hung, it returned nothing usable, or the writer's text failed the gate twice. `fallback(tool, …)` runs the tool, gives up on it after `tool_seconds` without waiting for it, and calls the walkers when it failed.
+- **Guardrails:**
+  - the block is opened read-only;
+  - each query is capped at 200 rows and 2 s;
+  - 24 query lookups and 3 teams per stall;
+  - only named KNOWLEDGE-BASE.md queries, never SQL written on the fly;
+  - every result is cached by (run_id, moment, repo, symbol, query), so a rerun makes 0 queries;
+  - no person is a fact (`stall_orphaned_owner`'s person id is dropped).
+
+**Done when (GAPS 17), `tests/test_walkers.py`:** on the fixture, fulfillment is stalled by `S_shared`, which platform owns. With the context builder made to fail, the walkers walk fulfillment → platform and find platform's test gap on `shared.client`, which is outside fulfillment's files. A rerun with the same cache makes 0 queries and gives the same facts. The tests also cover failure by code, a hung tool, every cap, the read-only block and no person in the facts.
+
+**On the real block:** six stalls in the package repos took about 0.5 s each, hit no caps, and reran with 0 queries. None of the six has a cross-team blocker, so each walk stayed on its own team.
+
+**Left for Aniket (gap 15):** wiring `fallback` into the orchestrator, with the context builder as the tool.
