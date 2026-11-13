@@ -307,7 +307,18 @@ By task: ugettext 0.951 (267 lines), `url()` 0.495 (1,236), neither flagged. Own
 
 **(b) changed after its first runner run, and why.** As first written, (b) refit the committed candidate and failed unless the refit equalled the committed `val` scores to 1e-9. On the runner it failed at train (#63, run 42943059501). Those scores were made on a laptop, and the image (Linux) doesn't reproduce them that exactly. In (a)'s run the same check passed, because there it compared against scores made in the same run. So (b) is now `train.py --retrain logreg forest lgbm`: `--tune` without the search, fitting each kind with its committed `tuning_<kind>.json` best params, then scoring, picking and saving on the same machine, as S8 says the numbers should be made. On the laptop: 25 s, the same forest, the gate passes. It's Rachna's file, so she's told.
 
-(b) as `--retrain`, on the runner: **pipeline step 63 s** (#63, run 42944525502; the job about 4 min with the image build), green. Runs 2 and 3 for the median go here.
+(b) as `--retrain`, on the runner: **pipeline step 63 s** (#63, run 42944525502; the job about 4 min with the image build), green.
+
+**(b)'s median of 3 (Nov 12).** Which runs count was fixed before computing: the first three green PR runs of (b), in order, so none is picked. Every later green PR run is listed for the record. Times are from GitHub's API (`actions/runs/<id>/jobs`): the run from start to finish, which is what a PR waits for, with the pipeline step and the image build inside it.
+
+| Run | PR branch | Whole run | Pipeline step | Image build |
+|---|---|---:|---:|---:|
+| 42944525502 | chaitali-ci | 242 s | 63 s | 153 s |
+| 42945332188 | chaitali-ci | 207 s | 46 s | 136 s |
+| 42946298156 | chaitali-ci | 246 s | 67 s | 159 s |
+| **Median of 3** | | **242 s (4.0 min)** | **63 s** | **153 s** |
+
+**The bar passes: 4.0 minutes against 15.** All 24 green PR runs of (b) from Nov 11 to 12, across 15 branches: median 250 s, range 206–317 s (5.3 min), pipeline step 44–74 s. The image build is about two thirds of every run. Runs that were cancelled (a newer push) or stopped at the gate on purpose (#64) aren't timed.
 
 ## PASS-BARS §6.5 runs
 
