@@ -104,6 +104,36 @@ def ticket(key, typ="Bug", res="Fixed", bulk=0):
     return {"key": key, "effective_type": typ, "resolution": res, "bulk_closed": bulk}
 
 
+class Moves(unittest.TestCase):
+    """GAPS 13: with moves, blame looks past a commit that only moved the line to the one that wrote it."""
+
+    def test_a_moved_line_is_blamed_on_who_wrote_it(self):
+        root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root, True)
+        repo = root / "r"
+        repo.mkdir()
+        env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
+               "GIT_AUTHOR_NAME": "a", "GIT_AUTHOR_EMAIL": "a@x", "GIT_COMMITTER_NAME": "a",
+               "GIT_COMMITTER_EMAIL": "a@x"}
+
+        def commit(msg, text):
+            (repo / "app.py").write_text(text)
+            subprocess.run(["git", "-C", str(repo), "add", "app.py"], check=True, env=env)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", msg], check=True, env=env)
+            return common.git(repo, "rev-parse", "HEAD").strip()
+
+        subprocess.run(["git", "init", "-q", str(repo)], check=True, env=env)
+        body = "".join(f"    x{i} = compute_value_number_{i}(alpha, beta, gamma)\n" for i in range(4))
+        big = "def b():\n" + "".join(f"    y{i} = other_function_called_{i}(delta, epsilon)\n" for i in range(12))
+        wrote = commit("write", "def a():\n" + body + "\n\n" + big)            # a above b
+        moved = commit("move", big + "\n\ndef a():\n" + body)                    # a moved below b, unchanged
+        fix = commit("fix", big + "\n\ndef a():\n" + body.replace("number_2", "number_22"))
+        plain = S.szz(repo, fix, moved, CODE)
+        follow = S.szz(repo, fix, moved, CODE, moves=True)
+        self.assertEqual(set(plain["app.py"]), {moved})                     # today: the move is blamed
+        self.assertEqual(set(follow["app.py"]), {wrote})                    # the variant: who wrote the line
+
+
 class Fixes(unittest.TestCase):
     RULE = {"effective_type": "Bug", "resolution": "Fixed"}
 
@@ -141,6 +171,33 @@ class Fixes(unittest.TestCase):
         self.assertEqual([(r["path"], r["bug_fixes"], r["fix_keys"]) for r in got],
                          [("a.py", 2, '["B-1","B-2"]'), ("b.py", 1, '["B-2"]')])  # compact, as tickets.jlist
         self.assertEqual((got[0]["window_start"], got[0]["window_end"]), ("2025-10-01T00:00:00Z", snap))
+
+    def test_a_repo_with_no_tracker_reads_its_fixes_from_the_subject(self):     # GAPS 24
+        rx = CFG["szz"]["fix_message"]
+        commits = [dict(commit(s, subject=subj), repo=repo) for s, subj, repo in [
+            ("dj", "Fixed #27258 -- Prohibited django.Template.render() with non-dict context.", "pkg"),
+            ("fx", "fix crash on empty querysets", "pkg"), ("cl", "Docs: closes #45", "pkg"),
+            ("ft", "Add a feature", "pkg"), ("pf", "Prefix the URL names", "pkg"),
+            ("rv", 'Revert "fix crash on empty querysets"', "pkg"),
+            ("tr", "fix the thing", "tracked")]]
+        got = {sha: keys for (_, sha), (_, keys) in S.message_fixes(commits, {"tracked"}, rx, "2015-01-01T00:00:00Z")
+               .items()}
+        self.assertEqual(got, {"dj": ["#27258"], "fx": [], "cl": ["#45"]})   # a tracked repo keeps the ticket rule
+
+    def test_a_repo_pinned_before_the_window_counts_its_own_last_year(self):
+        fmt = CFG["run"]["time_format"]
+        snap = "2026-10-01T00:00:00Z"
+        commits = [dict(commit("old", at="2019-06-01T00:00:00Z"), repo="pkg"),
+                   dict(commit("new", at="2026-09-20T00:00:00Z"), repo="spark")]
+        win = S.windows(commits, {"pkg": "old", "spark": "new"}, snap, 365, fmt)
+        self.assertEqual(win["pkg"], ("2018-06-01T00:00:00Z", "2019-06-01T00:00:00Z"))
+        self.assertEqual(win["spark"], ("2025-10-01T00:00:00Z", snap))       # a recent pin: the run's own window
+        fx = {("pkg", "f1"): (dict(commit("f1", at="2019-01-01T00:00:00Z"), repo="pkg"), ["#1"])}
+        rows = S.file_bug_fixes(fx, [{"repo": "pkg", "sha": "f1", "path": "urls.py"}], snap, 365, RUN, fmt, win)
+        self.assertEqual([(r["path"], r["bug_fixes"], r["window_end"]) for r in rows],
+                         [("urls.py", 1, "2019-06-01T00:00:00Z")])
+        self.assertEqual(S.file_bug_fixes(fx, [{"repo": "pkg", "sha": "f1", "path": "urls.py"}], snap, 365, RUN, fmt),
+                         [])                                                 # without win: the run's window, empty
 
 
 class Fragility(unittest.TestCase):
