@@ -415,13 +415,14 @@ WHERE s.status = 'present' AND (s.repo, s.path) NOT IN (SELECT repo, imported FR
 ORDER BY s.owner_team;
 ```
 
-Usual load = the team's commits in the 56 days before the last 14, per 14 days. Only teams that still own a call site: a busy team with none isn't stalled. The commits that touch a present site are listed once (`c.sha IN`), not looked up per commit: a correlated `EXISTS` on `commit_file` made SQLite build an index over all of it on every call, 1.4 s per (repo, symbol) on the real block's 849k rows and 35 of the writer's 46 s (`tests/test_kb.py`, `CompetingLoad`, checks the two give the same rows).
+Usual load = the team's commits in the 56 days before the last 14, per 14 days. Only teams that still own a call site: a busy team with none isn't stalled. The commits that touch a present site are listed once (`c.sha IN`), not looked up per commit: a correlated `EXISTS` on `commit_file` made SQLite build an index over all of it on every call, 1.4 s per (repo, symbol) on the real block's 849k rows and 35 of the writer's 46 s (`tests/test_kb.py`, `CompetingLoad`, checks the two give the same rows). `c` holds only the last 70 days' commits, the only ones a sum counts: an older commit adds 0 to every sum, and a team with only older ones fails `usual > 0`, so the rows are the same. Joining the whole history to people and teams was most of the auditors' stall time (block 70dd1dab, 50 (repo, symbol) pairs with the writer's indexes: 43.9 s before, rows and per-team counts identical after). The window compares text, which holds because every `authored_at` and `at` is `YYYY-MM-DDTHH:MM:SSZ`.
 
 ```sql
 -- name: stall_competing_load
 -- expect: [["checkout", 4, 2.0]]
-WITH c AS (SELECT DISTINCT g.sha, g.authored_at, t.team FROM git_commit g
-           JOIN person_alias p ON p.email = g.author_email JOIN team_map t ON t.subject_kind = 'person' AND t.subject = p.person_id),
+WITH c AS (SELECT DISTINCT g.sha, g.authored_at, t.team FROM git_commit g, asof a
+           JOIN person_alias p ON p.email = g.author_email JOIN team_map t ON t.subject_kind = 'person' AND t.subject = p.person_id
+           WHERE g.authored_at >= strftime('%Y-%m-%dT%H:%M:%SZ', a.at, '-70 days')),
      w AS (SELECT c.team,
                   sum(julianday(c.authored_at) > julianday(asof.at) - 14) AS recent,
                   sum(julianday(c.authored_at) BETWEEN julianday(asof.at) - 70 AND julianday(asof.at) - 14) / 4.0 AS usual,
