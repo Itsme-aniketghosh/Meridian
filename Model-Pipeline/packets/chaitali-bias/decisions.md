@@ -481,3 +481,20 @@ Rule: decision 12, unchanged (cover 90%, at least 1 file, the same measures and 
 - It's **recommended for switching on** if, over the teams with any bug fix, the ranking keeps at least 90% of their bug fixes, and beats the random order with the same number of files by at least 10 points. Otherwise it isn't, and the report says why.
 - The numbers are a preview until a block is built with gap 24's code. Then `meridian.context` reruns on that block, and those numbers replace these.
 - Switching it on stays Vishwa's call (it changes every consumer cache key), so this recommends, it doesn't switch.
+
+## Gap 16 with gap 24's history: results (preview): 96.4% of bug fixes kept, 23 points over random
+
+`cd Data-Pipeline && python ../Model-Pipeline/packets/chaitali-bias/context_preview.py --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite --scratch <a scratch file>` → `reports/context_cut_preview.json` (15 s).
+
+`file_bug_fixes`: 1,492 rows (Spark only) → 3,248, in 19 repos. The packages match Utkarsh's preview on c5118: Django 1,326 files, wagtail 138, allauth 78, cookiecutter 45, DRF 44. Spark keeps its 1,492 files and their fix keys, but 26 of them count fewer fix commits than the published block does (same keys: 8 → 7, 4 → 2, …). No call site is in Spark, so the cut doesn't change. Utkarsh is told, since the code changed after the block was built.
+
+| Real block, 68 consumer tasks | All | Kept | Kept share |
+|---|---:|---:|---:|
+| Files | 367 | 127 | 34.6% |
+| Call sites | 1,526 | 495 | 32.4% |
+| Facts characters | 40,996 | 21,920 | 53.5% |
+| Bug fixes | 591 | 570 | **96.4%** |
+
+48 of the 68 teams have a file with bug fixes (it was 0). 36 teams are cut, and 32 keep all their files. A random order with the same number of files keeps **73.3%** (seed 1, 100 orders). The facts are longer than on Nov 11 (40,996 characters against 36,676), because the files now carry their fix keys.
+
+**By the rule: 96.4% ≥ 90%, and +23.1 points over random ≥ 10, so switching it on is recommended.** It cuts the consumer facts by 46%. It isn't switched on here: that's Vishwa's call, since it changes every consumer cache key, and the numbers are a preview until a block is built with gap 24's code.

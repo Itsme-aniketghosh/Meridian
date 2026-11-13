@@ -90,9 +90,18 @@ Pretrained models need bias checks too. The writer's texts and the diff drafter'
 
 **Diff match** is the share of drafted lines equal to the real after-line, from Utkarsh's counts: 866 of 1,503 overall (0.576). Two slices are flagged: `django-oscar` (81 of 247, 0.33) and the 15 packages without published per-repo counts (140 of 488, 0.29). They're accepted because Utkarsh's decision 11 scored every `url()` style on all 20 packages. No single style closes the gap, since each real migration chose its own.
 
-## A context builder with nothing to rank
+## The context builder
 
-GAPS gap 16 asked for each stalled team's files ranked by risk, cut where 90% of the likely problems are covered. On the fixture, the ranking keeps every bug fix with 5 of 6 files, where a random order keeps 63%. **On the real block no file has a risk signal.** Bug-fix history (`file_bug_fixes`) exists only for Spark, every call site in the migration is in a Django-ecosystem repo, and the champion is Spark-only too. The cut would save 64% of the context with nothing behind it, so it isn't switched on. Bug-fix history for the package repos is an open gap.
+GAPS gap 16 asked for each stalled team's files ranked by risk, cut where 90% of the likely problems are covered. Risk is a file's bug fixes in the last year. The champion isn't used, since it's Spark-only and every call site in the migration is in a Django-ecosystem repo. At first the real block had no bug-fix history outside Spark, so there was nothing to rank. Gap 24 (Utkarsh) now reads the package repos' fixes from their commit subjects. Those rows land in the next block built, so the numbers below are a **preview**: gap 24's history recomputed from the real block's own files, on a copy of the block.
+
+| Real block, 68 consumer tasks | All | Kept | Kept share |
+|---|---:|---:|---:|
+| Files | 367 | 127 | 34.6% |
+| Call sites | 1,526 | 495 | 32.4% |
+| Facts characters | 40,996 | 21,920 | 53.5% |
+| Bug fixes covered (48 teams have any) | 591 | 570 | **96.4%** |
+
+**The ranking keeps 96.4% of the bug fixes with a third of the files. A random order with the same files keeps 73.3%.** That meets the bar written before the run (at least 90%, and at least 10 points over random), so switching it on is recommended. It would cut the consumer facts by 46%. Switching it on is Vishwa's call, since it changes every consumer cache key. The numbers get rerun on the first block built with gap 24's code.
 
 ## Not done, and limits
 
