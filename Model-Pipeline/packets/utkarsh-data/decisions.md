@@ -5,7 +5,7 @@ Each decision lists the test and the rule that picks an option, followed by the 
 | # | Decision | Pick | Status |
 |---|---|---|---|
 | 1 | Label window | 365 days | **The rule can't be met as written.** Aniket's OK, Nov 9 |
-| 2 | Start year | 2015, for now | AI check: 6 of 10 from 2015 wrong, so the rule says 2016; Aniket's call (below) |
+| 2 | Start year | 2015 | AI check: 6 of 10 from 2015 wrong, so the rule says 2016; Aniket kept 2015, since an unvalidated AI check doesn't meet a rule written for a person's (below) |
 | 3 | Author identity | merged person | settled |
 | 4 | `[MINOR]` commits | keep, with `is_minor` | settled |
 | 5 | Module for slices | second level inside `sql/` | settled |
@@ -113,6 +113,8 @@ Hand check (seed 1). To check each pair, run `git show <fix>` in `snapshots/c511
 - the rule was written for a person's check, and it lands after the code freeze, when a rebuild would change the table and the champion.
 
 **Pick: 2015 stays for now; the move is Aniket's call.** The report gives both the rule's outcome and these numbers.
+
+**Aniket's call (Nov 13): 2015 stays.** The rule was written for a person's check, and an AI check that no hand check has validated doesn't meet it (Chaitali's Q2 audit counts AI verdicts only after 15 of 20 agree with a person's), so the rule's outcome doesn't bind. Decision 5 measured the window directly: 2015–22 beats 2019–22 by 0.041 PR-AUC (interval −0.059 to −0.022). The report states the rule, what it would have done, and this.
 
 ## 3. Author identity for `exp`, `sexp`
 
