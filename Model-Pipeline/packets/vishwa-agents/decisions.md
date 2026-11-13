@@ -165,6 +165,24 @@ Written by Aniket's session for Vishwa's gap, to land before the code freeze. Th
 
 Reported: each model's pass rate before and after. Changed facts change the cache keys, so the 136 ticket draft and consumer tasks miss the cache until the live run asks again. On Gemini Flash that's about $0.30. Until then those tasks ship their templates. The writer's pick isn't redone.
 
+Result (Nov 13): **adopted**, now in `agents.py` (`draft_tasks`, `consumer_tasks`). All 816 answers were found under their old keys and gated against the new facts.
+
+| Model | With 5b | With 5c |
+|---|---:|---:|
+| Gemini 3.8 Flash | 98.0% | **100.0%** (204 / 204) |
+| Llama 4 Scout | 93.1% | **96.1%** |
+| Gemma 4 26B A4B | 92.2% | 92.2% |
+| Llama 4 Maverick | 90.7% | **91.7%** |
+
+1. **All 11 wrong texts are still rejected.** Exactly 12 texts are newly accepted, the 12 counts listed above, so none of decision 5's 7 wrong texts is among them.
+2. **Every test passes** (205 in test_agents, test_fact_gate, test_jev, test_views, test_diffs, test_llm, test_orchestrator and test_context). The one exception is test_llm's Claude refusal test, which needs `anthropic`, a package missing from this local env (CI installs it).
+   - The only fixture change is `Model-Pipeline/tests/contracts/facts.json` and `suggestions.json`, rebuilt with `make_vishwa`.
+   - facts.json gains the new keys. suggestions.json's rows reorder because their ids hash the facts.
+   - This is a shape change to Contract 5's examples, announced in the team chat (S10).
+3. **All 12 newly accepted texts were read.** Each states the file total or the 0 that the facts now hold.
+
+Left: 25 texts the gate rejects. 14 are right, all line lists written without their path, from Scout and Maverick only, and need the gate to read "path at lines a, b". 11 are wrong. The writer ships Gemini, which now passes everything on this block.
+
 ## The writer, Nov 9: settings, not tests
 
 These are design choices for `meridian/agents.py` and `llm_cache.py`, made Nov 9 before any LLM ran. None of them is a measured decision: decisions 3–6, 9 and 10 still measure the model, the prompt format, the templates and the cache once there's a key.

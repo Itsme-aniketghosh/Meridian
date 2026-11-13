@@ -11,6 +11,7 @@
      "sites": 1
     }
    ],
+   "files_n": 1,
    "left": 1,
    "symbol": "verify_token",
    "team": "billing"
@@ -79,6 +80,14 @@
  "ticket_draft": {
   "facts": {
    "count": 1,
+   "done_when_left": 0,
+   "files": [
+    {
+     "path": "billing/invoice.py",
+     "sites": 1
+    }
+   ],
+   "files_n": 1,
    "sites": "billing/invoice.py:12",
    "symbol": "verify_token",
    "team": "billing"
