@@ -439,23 +439,51 @@ class ScoreChampion(unittest.TestCase):
         self.assertEqual(list(out.iterdir()), [])
 
     def test_the_2024_run_end_to_end(self):
-        """Allowed and committed: the test scores, then evaluate's test run on them, its threshold from the champion's
-        own val scores."""
-        out, stop = self.score("--split", "test", config=self.allowed)
+        """Allowed and committed: the test scores (the model's own, on the test rows), then evaluate's test run on
+        them, its threshold from the champion's val scores. best_f1 here, so the threshold is a number, not None."""
+        import joblib
+
+        from model import train
+        best_f1 = self.dir / "allowed_best_f1.toml"
+        best_f1.write_text(CONFIG.format(allowed="true").replace('threshold = "precision"', 'threshold = "best_f1"'))
+        denied_f1 = self.dir / "denied_best_f1.toml"
+        denied_f1.write_text(CONFIG.format(allowed="false").replace('threshold = "precision"', 'threshold = "best_f1"'))
+        out, stop = self.score("--split", "test", config=best_f1)
         self.assertIsNone(stop)
         test = pd.read_csv(out / "champion_test_scores.csv")
-        self.assertEqual(test["sha"].tolist(), self.table[self.table["split"] == "test"]["sha"].tolist())
+        rows = self.table[self.table["split"] == "test"]
+        self.assertEqual(test["sha"].tolist(), rows["sha"].tolist())
+        np.testing.assert_allclose(test["forest"].to_numpy(), train.score_with(joblib.load(self.model), rows))
         common = ["--candidate", str(out / "champion_candidate.json"), "--features", str(self.features), "--no-mlflow",
                   "--no-charts"]
         with mock.patch("model.tracking.git_state", return_value=("abc", "false")), mock.patch("builtins.print"):
             m = ev.main(["--split", "test", "--scores", str(out / "champion_test_scores.csv"), "--config",
-                         str(self.allowed), "--out", str(out / "test"), *common])
-            v = ev.main(["--config", str(self.denied), "--out", str(out / "val"), *common])
+                         str(best_f1), "--out", str(out / "test"), *common])
+            v = ev.main(["--config", str(denied_f1), "--out", str(out / "val"), *common])
         self.assertEqual((m["split"], m["candidate"]["column"], m["n"]), ("test", "forest", len(test)))
-        self.assertEqual(m["models"]["forest"]["at_threshold"]["threshold"],
-                         v["models"]["forest"]["at_threshold"]["threshold"])
+        self.assertEqual((m["candidate"]["champion_version"], m["candidate"]["model_md5"]),
+                         (self.record["version"], self.record["model_md5"]))
+        threshold = v["models"]["forest"]["at_threshold"]["threshold"]
+        self.assertIsNotNone(threshold)
+        self.assertEqual(m["models"]["forest"]["at_threshold"]["threshold"], threshold)
         self.assertAlmostEqual(v["models"]["forest"]["pr_auc"]["value"], self.record["metrics"]["pr_auc"]["value"],
                                places=12)
+
+    def test_a_column_the_scores_file_already_has_is_refused(self):
+        for column in ("lines_x_files", "label"):
+            with self.subTest(column):
+                out = Path(tempfile.mkdtemp(dir=self.dir))
+                with self.assertRaises(SystemExit) as stop:
+                    ev.score_champion(self.champion, self.features, "val", column, out, ev._config(self.denied))
+                self.assertIn("already has", str(stop.exception))
+                self.assertEqual(list(out.iterdir()), [])
+
+    def test_called_directly_it_still_refuses_the_test_rows(self):
+        out = Path(tempfile.mkdtemp(dir=self.dir))
+        with self.assertRaises(SystemExit) as stop:
+            ev.score_champion(self.champion, self.features, "test", "forest", out, ev._config(self.denied))
+        self.assertIn("test_allowed = true", str(stop.exception))
+        self.assertEqual(list(out.iterdir()), [])
 
     def test_a_model_that_isnt_the_champions_is_refused(self):
         champion = self.write_champion({**self.record, "model_md5": "e" * 32})

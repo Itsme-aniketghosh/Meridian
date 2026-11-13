@@ -14,14 +14,14 @@ baseline, `reports/metrics.json` holds, each with N and the positive rate next t
     python -m model.evaluate                          # the candidate named in reports/candidate.json, on val
     python -m model.evaluate --scores reports/untuned_val_scores.csv --column lgbm
     python -m model.evaluate --split test --scores <2024 scores>        # refused unless [split] test_allowed
+    python -m model.evaluate --decide 1 2 3 4 5 --scores <val scores> --column lgbm    # the decision tests
 
 The one 2024 run scores the frozen champion (registry/champion.json and the model next to it), in two steps,
 both refused unless [split] test_allowed and the code is committed (packets/rochan-tracking/RUN-2024.md):
 
-    python -m model.evaluate --score-champion --column forest --split test
-    python -m model.evaluate --split test --candidate reports/champion_candidate.json \\
-        --scores reports/champion_test_scores.csv
-    python -m model.evaluate --decide 1 2 3 4 5 --scores <val scores> --column lgbm    # the decision tests
+    python -m model.evaluate --score-champion --column forest --split test --out reports/2024
+    python -m model.evaluate --split test --candidate reports/2024/champion_candidate.json \\
+        --scores reports/2024/champion_test_scores.csv --out reports/2024
 """
 import argparse
 import hashlib
@@ -607,17 +607,33 @@ def _p9_alert_rate(rows):
     return float((((rows["la"] + rows["ld"]) * rows["nf"]) > limit).mean()), limit
 
 
-def score_champion(champion, features, split, column, out):
-    """The frozen champion's scores for the one 2024 run: the model next to champion.json, md5-checked, and the
-    baselines, on val (always) and on test (with --split test, after the same refusals as evaluate's test run). Writes
-    champion_val_scores.csv, champion_test_scores.csv and champion_candidate.json into `out`, the candidate file
-    `--candidate` takes, so the threshold comes from the same model's val scores and the columns match.
+def test_refusal(cfg):
+    """Why the test rows can't be scored now, or None: model.toml [split] test_allowed, and committed code."""
+    if cfg["split"].get("test_allowed") is not True:
+        return ("refused: --split test needs model.toml [split] test_allowed = true. Nobody looks at 2024 before the "
+                "one run")
+    from model import tracking
+    if tracking.git_state()[1] == "true":
+        return ("refused: commit first. The 2024 run must come from committed code, so the pick, the threshold and the "
+                "bars are in git before 2024 is seen")
+    return None
 
-    Before any test row is read, the val scores must give the champion's own recorded val PR-AUC on its own table:
+
+def score_champion(champion, features, split, column, out, cfg):
+    """The frozen champion's scores for the one 2024 run: the model next to champion.json, md5-checked, and the
+    baselines, on val (always) and on test (with split "test", after test_refusal, checked here as well as in main).
+    Writes champion_val_scores.csv, champion_test_scores.csv and champion_candidate.json into `out`, the candidate
+    file `--candidate` takes, so the threshold comes from the same model's val scores and the columns match.
+
+    Before any test row is scored, the val scores must give the champion's own recorded val PR-AUC on its own table:
     the model scored is the one champion.json describes."""
     import joblib
 
     from model import registry, train
+    if split == "test" and (why := test_refusal(cfg)):
+        sys.exit(why)
+    if column in ("sha", "label", *BASELINES):
+        sys.exit(f"refused: --column {column} is a column the scores file already has: name the model's own column")
     try:
         rec = registry.read_champion(champion)
     except (registry.ContractError, OSError, json.JSONDecodeError) as e:
@@ -688,19 +704,14 @@ def main(argv=None):
     if a.split == "test":
         if a.decide:
             sys.exit("refused: decision tests run on val only")
-        if cfg["split"].get("test_allowed") is not True:
-            sys.exit("refused: --split test needs model.toml [split] test_allowed = true. Nobody looks at 2024 "
-                     "before the one run on Nov 12")
-        from model import tracking
-        if tracking.git_state()[1] == "true":
-            sys.exit("refused: commit first. The 2024 run must come from committed code, so the pick, the threshold "
-                     "and the bars are in git before 2024 is seen")
+        if why := test_refusal(cfg):
+            sys.exit(why)
         if not a.scores and not a.score_champion:
             sys.exit("--split test needs --scores: the candidate's scores on the test rows")
     if a.score_champion:
         if a.decide:
             sys.exit("refused: --score-champion only writes scores")
-        return score_champion(a.champion, a.features, a.split, a.column or "champion", a.out)
+        return score_champion(a.champion, a.features, a.split, a.column or "champion", a.out, cfg)
 
     cand = {"column": a.column}
     if Path(a.candidate).exists():
@@ -709,7 +720,9 @@ def main(argv=None):
         except (ScoresError, json.JSONDecodeError) as e:
             sys.exit(f"candidate: {e}")
         cand = {"column": a.column or c["column"], "kind": c.get("kind"), "params": c.get("params"),
-                "seed": c.get("seed"), "run_id": c.get("run_id"), "val_scores": c["scores_file"]}
+                "seed": c.get("seed"), "run_id": c.get("run_id"), "val_scores": c["scores_file"],
+                # --score-champion's candidate: the champion it scored, so metrics.json names it
+                **{k: c[k] for k in ("champion_version", "model_md5") if k in c}}
     if not cand["column"]:
         sys.exit(f"which column is the candidate? {a.candidate} doesn't exist: pass --column, or write candidate.json")
     val_scores = a.scores if a.split == "val" and a.scores else cand.get("val_scores")
