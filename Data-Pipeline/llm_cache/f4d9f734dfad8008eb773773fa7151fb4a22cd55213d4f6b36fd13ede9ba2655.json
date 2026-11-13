@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.005296,
+ "facts_hash": "8fab61da9f418809d8897128b97b77ee0a584c2efac0b079c8dedfe16f762dd3",
+ "model": "gemini-pro",
+ "prompt_version": "e1500ebee86f",
+ "reply": "```json\n{\"text\": \"    path('permission_required/', TestClassRedirectView.as_view()),\", \"used\": [\"examples\"]}\n```",
+ "tokens_in": 452,
+ "tokens_out": 366
+}

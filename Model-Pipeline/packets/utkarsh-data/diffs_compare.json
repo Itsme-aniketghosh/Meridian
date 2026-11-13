@@ -1,0 +1,45 @@
+{
+ "pick": "gemma-4",
+ "table": {
+  "gemini-flash": {
+   "calls": 12,
+   "drafted": 0,
+   "matched": 0,
+   "p95_ms": null,
+   "paid_calls": 0,
+   "pass_rate": 0.0,
+   "tried": 12,
+   "usd": 0,
+   "usd_per_match": null
+  },
+  "gemini-pro": {
+   "calls": 12,
+   "drafted": 0,
+   "matched": 0,
+   "p95_ms": null,
+   "paid_calls": 0,
+   "pass_rate": 0.0,
+   "tried": 12,
+   "usd": 0,
+   "usd_per_match": null
+  },
+  "gemma-4": {
+   "calls": 12,
+   "drafted": 0,
+   "matched": 0,
+   "p95_ms": 1250.387,
+   "paid_calls": 12,
+   "pass_rate": 0.0,
+   "tried": 12,
+   "usd": 0.00111,
+   "usd_per_match": null
+  },
+  "llama-4-maverick": {
+   "error": "HTTPError: HTTP 404: [{\n  \"error\": {\n    \"code\": 404,\n    \"message\": \"Publisher model `projects/110813074277/locations/us-east5/publishers/meta/models/llama-4-maverick-17b-128e-instruct-maas` was not found or yo"
+  },
+  "llama-4-scout": {
+   "error": "HTTPError: HTTP 404: [{\n  \"error\": {\n    \"code\": 404,\n    \"message\": \"Publisher model `projects/110813074277/locations/us-east5/publishers/meta/models/llama-4-scout-17b-16e-instruct-maas` was not found or your p"
+  }
+ },
+ "within": 2.0
+}

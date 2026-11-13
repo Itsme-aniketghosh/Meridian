@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000894,
+ "facts_hash": "71a565908d14243efdc60091e0e68a5b0aaefe95d617969a3c53516143f701f3",
+ "model": "gemini-pro",
+ "prompt_version": "e1500ebee86f",
+ "reply": "",
+ "tokens_in": 447,
+ "tokens_out": 0
+}
