@@ -363,6 +363,146 @@ class Command(unittest.TestCase):
             self.assertEqual([a.path for a in client.list_artifacts(run.info.run_id)], ["metrics.json"])
 
 
+class ScoreChampion(unittest.TestCase):
+    """--score-champion, the one 2024 run's first step (packets/rochan-tracking/RUN-2024.md): the frozen champion's
+    model, md5-checked against champion.json and its recorded val PR-AUC, scored with the baselines on val, and on test
+    only after the test run's own refusals. A made-up table and a small model fitted on it, as in Command."""
+
+    @classmethod
+    def setUpClass(cls):
+        import joblib
+
+        from model import train
+        from tests.fake_table import fake_table
+        cls.dir = Path(tempfile.mkdtemp(prefix="meridian-champion-"))
+        cls.table = fake_table(n=3000, seed=5)
+        cls.features = cls.dir / "features.parquet"
+        cls.table.to_parquet(cls.features, index=False)
+        model, _, _ = train.fit_and_score(cls.table, "logreg", 1)
+        cls.model = cls.dir / "model.joblib"
+        joblib.dump(model, cls.model)
+        val = cls.table[cls.table["split"] == "val"]
+        record = json.loads((CONTRACTS / "champion.json").read_text())
+        record.update(model_file="model.joblib", model_md5=ev.file_md5(cls.model))
+        record["metrics"]["features_md5"] = ev.file_md5(cls.features)
+        record["metrics"]["pr_auc"]["value"] = float(train.pr_auc(val["label"], train.score_with(model, val)))
+        cls.record = record
+        cls.champion = cls.write_champion(record)
+        cls.denied = Command.write_config(cls.dir / "denied.toml", "false")
+        cls.allowed = Command.write_config(cls.dir / "allowed.toml", "true")
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.dir, True)
+
+    @classmethod
+    def write_champion(cls, record):
+        """champion.json with the model next to it, in a folder of its own, like registry/."""
+        folder = Path(tempfile.mkdtemp(dir=cls.dir))
+        shutil.copyfile(cls.model, folder / "model.joblib")
+        (folder / "champion.json").write_text(json.dumps(record))
+        return folder / "champion.json"
+
+    def score(self, *extra, champion=None, config=None, committed=True):
+        """(out folder, SystemExit or None) for one --score-champion run."""
+        out = Path(tempfile.mkdtemp(dir=self.dir))
+        args = ["--score-champion", "--column", "forest", "--champion", str(champion or self.champion), "--config",
+                str(config or self.denied), "--features", str(self.features), "--out", str(out), "--no-mlflow", *extra]
+        with mock.patch("model.tracking.git_state", return_value=("abc", "false" if committed else "true")), \
+                mock.patch("builtins.print"):
+            try:
+                ev.main(args)
+            except SystemExit as e:
+                return out, e
+        return out, None
+
+    def test_val_scores_and_a_candidate_and_no_test_row(self):
+        out, stop = self.score()
+        self.assertIsNone(stop)
+        val = pd.read_csv(out / "champion_val_scores.csv")
+        rows = self.table[self.table["split"] == "val"]
+        self.assertEqual(list(val.columns), ["sha", "label", "lines_x_files", "churn", "bug_fixes", "forest"])
+        self.assertEqual(val["sha"].tolist(), rows["sha"].tolist())
+        candidate = json.loads((out / "champion_candidate.json").read_text())
+        self.assertEqual((candidate["column"], candidate["scores_file"], candidate["model_md5"]),
+                         ("forest", "champion_val_scores.csv", self.record["model_md5"]))
+        self.assertFalse((out / "champion_test_scores.csv").exists())
+
+    def test_test_scores_are_refused_unless_allowed(self):
+        out, stop = self.score("--split", "test")
+        self.assertIn("test_allowed = true", str(stop))
+        self.assertEqual(list(out.iterdir()), [])
+
+    def test_test_scores_are_refused_on_uncommitted_code(self):
+        out, stop = self.score("--split", "test", config=self.allowed, committed=False)
+        self.assertIn("commit first", str(stop))
+        self.assertEqual(list(out.iterdir()), [])
+
+    def test_the_2024_run_end_to_end(self):
+        """Allowed and committed: the test scores (the model's own, on the test rows), then evaluate's test run on
+        them, its threshold from the champion's val scores. best_f1 here, so the threshold is a number, not None."""
+        import joblib
+
+        from model import train
+        best_f1 = self.dir / "allowed_best_f1.toml"
+        best_f1.write_text(CONFIG.format(allowed="true").replace('threshold = "precision"', 'threshold = "best_f1"'))
+        denied_f1 = self.dir / "denied_best_f1.toml"
+        denied_f1.write_text(CONFIG.format(allowed="false").replace('threshold = "precision"', 'threshold = "best_f1"'))
+        out, stop = self.score("--split", "test", config=best_f1)
+        self.assertIsNone(stop)
+        test = pd.read_csv(out / "champion_test_scores.csv")
+        rows = self.table[self.table["split"] == "test"]
+        self.assertEqual(test["sha"].tolist(), rows["sha"].tolist())
+        np.testing.assert_allclose(test["forest"].to_numpy(), train.score_with(joblib.load(self.model), rows))
+        common = ["--candidate", str(out / "champion_candidate.json"), "--features", str(self.features), "--no-mlflow",
+                  "--no-charts"]
+        with mock.patch("model.tracking.git_state", return_value=("abc", "false")), mock.patch("builtins.print"):
+            m = ev.main(["--split", "test", "--scores", str(out / "champion_test_scores.csv"), "--config",
+                         str(best_f1), "--out", str(out / "test"), *common])
+            v = ev.main(["--config", str(denied_f1), "--out", str(out / "val"), *common])
+        self.assertEqual((m["split"], m["candidate"]["column"], m["n"]), ("test", "forest", len(test)))
+        self.assertEqual((m["candidate"]["champion_version"], m["candidate"]["model_md5"]),
+                         (self.record["version"], self.record["model_md5"]))
+        threshold = v["models"]["forest"]["at_threshold"]["threshold"]
+        self.assertIsNotNone(threshold)
+        self.assertEqual(m["models"]["forest"]["at_threshold"]["threshold"], threshold)
+        self.assertAlmostEqual(v["models"]["forest"]["pr_auc"]["value"], self.record["metrics"]["pr_auc"]["value"],
+                               places=12)
+
+    def test_a_column_the_scores_file_already_has_is_refused(self):
+        for column in ("lines_x_files", "label"):
+            with self.subTest(column):
+                out = Path(tempfile.mkdtemp(dir=self.dir))
+                with self.assertRaises(SystemExit) as stop:
+                    ev.score_champion(self.champion, self.features, "val", column, out, ev._config(self.denied))
+                self.assertIn("already has", str(stop.exception))
+                self.assertEqual(list(out.iterdir()), [])
+
+    def test_called_directly_it_still_refuses_the_test_rows(self):
+        out = Path(tempfile.mkdtemp(dir=self.dir))
+        with self.assertRaises(SystemExit) as stop:
+            ev.score_champion(self.champion, self.features, "test", "forest", out, ev._config(self.denied))
+        self.assertIn("test_allowed = true", str(stop.exception))
+        self.assertEqual(list(out.iterdir()), [])
+
+    def test_a_model_that_isnt_the_champions_is_refused(self):
+        champion = self.write_champion({**self.record, "model_md5": "e" * 32})
+        _, stop = self.score(champion=champion)
+        self.assertIn("isn't the model", str(stop))
+
+    def test_a_table_that_isnt_the_champions_is_refused(self):
+        champion = self.write_champion({**self.record, "metrics": {**self.record["metrics"], "features_md5": "f" * 32}})
+        _, stop = self.score(champion=champion)
+        self.assertIn("isn't the champion's feature table", str(stop))
+
+    def test_a_model_that_doesnt_give_its_recorded_val_pr_auc_is_refused_before_any_test_row(self):
+        pr_auc = {**self.record["metrics"]["pr_auc"], "value": 0.99}
+        champion = self.write_champion({**self.record, "metrics": {**self.record["metrics"], "pr_auc": pr_auc}})
+        out, stop = self.score("--split", "test", champion=champion, config=self.allowed)
+        self.assertIn("isn't the model the record describes", str(stop))
+        self.assertEqual(list(out.iterdir()), [])
+
+
 class MetricsExample(unittest.TestCase):
     """tests/contracts/metrics.json, the example gate.py and registry.py test against (packets/README.md, Integration
     tests). Written by main() from a run on the fake table: python -m tests.contracts.make_rochan."""
