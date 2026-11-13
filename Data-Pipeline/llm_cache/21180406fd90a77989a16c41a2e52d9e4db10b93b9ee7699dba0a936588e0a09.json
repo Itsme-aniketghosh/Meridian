@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000933,
+ "facts_hash": "9aca9c937025f287b46eb837a9874030d2d619e0076c3f22cb212fd758dfa3e0",
+ "model": "gemini-flash",
+ "prompt_version": "e1500ebee86f",
+ "reply": "{\"text\": \"    path('', views.post_list, name='posts_post_list'),\", \"used\": [\"examples\", \"new\", \"symbols\"]}",
+ "tokens_in": 452,
+ "tokens_out": 34
+}

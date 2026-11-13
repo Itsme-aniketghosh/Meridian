@@ -57,3 +57,26 @@ What gap 13 asks to skip is mostly already skipped. `szz.py` blames with `git di
 **On the real block:** six stalls in the package repos took about 0.5 s each, hit no caps, and reran with 0 queries. None of the six has a cross-team blocker, so each walk stayed on its own team.
 
 **Left for Aniket (gap 15):** wiring `fallback` into the orchestrator, with the context builder as the tool.
+
+## Gap 2: the diff drafter's model comparison (Nov 13)
+
+`meridian/diffs_compare.py` runs the LLM path with each model alone, through `llm_cache/`, and scores against the real after-lines. The rule was written before the run: the cheapest model within 2 points of the best pass rate wins, and ties go to the open-weights model. It ran on Utkarsh's GCP project, for about $0.003 in all.
+
+**Which lines.** Of the 20 package lines the codemod refuses, the LLM path tries **12**: 11 in django-guardian, 1 in debug-toolbar. The rest it skips by its own rules: 3 name a person in a comment, so they're never sent; 2 aren't Python; the others have fewer than 2 same-shape examples.
+
+| model | tried | drafted | matched | pass rate |
+|---|---:|---:|---:|---:|
+| Gemini 3.8 Flash | 12 | 0 | 0 | 0% |
+| Gemini 3.1 Pro | 12 | 0 | 0 | 0% |
+| Gemma 4 | 12 | 0 | 0 | 0% |
+| Llama 4 Maverick, Scout | unreachable: not enabled in the project's Model Garden (HTTP 404) | | | |
+
+**Why 0.** These aren't bad answers; the lines can't pass as one-line drafts:
+- django-guardian imports `url` from `guardian.compat`. A line rewritten to `path(...)` doesn't resolve until that import changes too, and the real migration changed both in one commit. The resolve check is right to refuse the line alone: applied by itself, it would break the file.
+- Gemma's JSON lists names like `"url"` under `used`, which aren't facts, so the writer's strict reader refuses every answer.
+
+**Diagnostic (the same cached answers, not the result):** skip the resolve check for the LLM's lines only, as if the import were migrated too, and Flash matches **6 of 12**, Pro 6 (7 with a lenient `used` reader), Gemma 6 with the lenient reader. So the models write the owner's line about half the time. The one-line rule is what stops them.
+
+**Pick.** By the rule, every reachable model ties at 0, so it goes to the open-weights model: **Gemma 4**. That pick says nothing, since no model gets a line through. The diff drafter stays codemod-only for the packages, and `LADDER` doesn't change. Gap 2 for diffs is closed as "no model clears the drafter's checks on these lines."
+
+**Rerun:** `python -m meridian.diffs_compare --run-id c5118b019d642a9b --models gemini-flash,gemini-pro,gemma-4` reads the committed cache, with 0 calls. Add `--llm` with `$MERIDIAN_GCP_PROJECT` to call live, for example once Llama 4 is enabled. Table: `diffs_compare.json`.

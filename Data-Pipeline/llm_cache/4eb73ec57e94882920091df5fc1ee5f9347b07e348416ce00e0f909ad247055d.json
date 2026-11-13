@@ -1,0 +1,9 @@
+{
+ "cost_usd": 9.24e-05,
+ "facts_hash": "d59ab96bff37868959067dea1865a15ea5f58368c18dc1ec5953317772304e1c",
+ "model": "gemma-4",
+ "prompt_version": "e1500ebee86f",
+ "reply": "```json\n{\"text\": \"                re_path(r'^(?P<object_pk>.+)/permissions/$',\", \"used\": [\"re_path\"]}\n```",
+ "tokens_in": 460,
+ "tokens_out": 39
+}
