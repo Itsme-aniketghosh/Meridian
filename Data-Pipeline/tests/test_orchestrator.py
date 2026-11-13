@@ -113,6 +113,22 @@ class Walkers(unittest.TestCase):
         self.assertIn("platform: Test gap", fulfillment.text)
         self.assertTrue(all(w.template_misses == () for w in walks))      # the gate passes every walk template
 
+    def test_the_tool_gets_the_stalls_own_consumer_task_not_the_teams_first(self):
+        db = K.build()
+        todo = G.tasks(db, CFG, "R2", AT)
+        stall = next(t for t in todo if t.kind == "stall_reason" and t.owner_team == "checkout")
+        own = next(t for t in todo if t.kind == "consumer" and t.owner_team == "checkout")
+        other = replace(own, repo="other/repo", facts={**own.facts, "facts": {**own.facts["facts"], "symbol": "x"}})
+        seen = []
+
+        def cut(facts):
+            seen.append(facts)
+            return {**facts, "files": [{**f, "bug_fixes": 1} for f in facts["files"]]}  # usable: no walk
+        with mock.patch.object(O.context, "cut", cut):
+            walked = O.graph_walk(db, CFG, "R2", AT, {})(stall, [stall, other, own])
+        self.assertIsNone(walked)
+        self.assertEqual(seen, [own.facts["facts"]])
+
 
 class Bounds(unittest.TestCase):
     def test_a_plan_can_never_hold_more_than_the_menu(self):

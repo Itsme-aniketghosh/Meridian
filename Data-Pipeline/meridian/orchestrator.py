@@ -215,7 +215,9 @@ def graph_walk(db, cfg, run_id, at, cache):
     It's usable only if the auditors found a reason and a kept file has bug fixes (a risk signal to rank by);
     otherwise walkers.fallback walks the graph. Returns the walkers' facts, or None when the tool was usable."""
     def walk(stall, mine):
-        consumer = next((t for t in mine if t.kind == "consumer"), None)
+        symbol = stall.facts["facts"]["symbol"]  # the stall's own consumer task, not the team's first in any repo
+        consumer = next((t for t in mine if t.kind == "consumer" and t.repo == stall.repo
+                         and t.facts["facts"]["symbol"] == symbol), None)
         reasons_found = bool(stall.facts["facts"]["reasons"])
 
         def tool():
