@@ -43,7 +43,7 @@ done
 python -m meridian.context --run-id bb6b5f4e32a4bee7 --db $MERIDIAN_DATA/out/bb6b5f4e32a4bee7/meridian.sqlite
 ```
 
-- **The run_id is the check:** collect should print `bb6b5f4e32a4bee7`. If it prints another, `Data-Pipeline` code or `meridian.toml` changed after `2b0606d`. Use the id it prints, and say so.
+- **The run_id is the check:** collect should print `bb6b5f4e32a4bee7`. It comes from the snapshot, the repo commits, the ticket data and `meridian.toml`'s hash, not from the code. If it prints another, one of those differs (most likely `meridian.toml` changed, or the caches aren't the team zip's). Use the id it prints, and say so.
 - **Byte check (md5 of `out/bb6b5f4e32a4bee7/…`):** `file_bug_fixes.jsonl` `a98e5d40d71d09d6642a211e606c91da`, `call_site.jsonl` `bf428a2fa11a19c9f0ad453574d17f27`, `bug_inducing.jsonl` `682abebd1cea5ef95b74009d82c91b9d`. `commit_file.jsonl` (`8a6dc499246b3671fa97127a7fda9c9a` here) can differ by git's rename detection (above), which doesn't change the first three.
 - `validate` raises a warning alert with 0 errors; it isn't a failure.
 - `publish` isn't run: the team's live block stays `c5118` unless Aniket says otherwise.
