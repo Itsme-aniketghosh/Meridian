@@ -1,0 +1,462 @@
+{
+ "decision": "rachna-15c",
+ "repo": "apache/spark",
+ "split": "val",
+ "threshold": 2000,
+ "seed": 1,
+ "drawn": {
+  "over": 45,
+  "under": 15
+ },
+ "real_pushes": {
+  "pushes": 60,
+  "checked": 60,
+  "skipped": 0,
+  "missing": 0,
+  "alerts": 45,
+  "true": 15,
+  "precision": 0.3333333333333333,
+  "interval": [
+   0.21358874934330035,
+   0.47929511690099574
+  ],
+  "meets_bar": false,
+  "disagree_with_table": [],
+  "per_push": [
+   {
+    "sha": "56c7cf33929d7d42b7d299c0bb7e895963241214",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 8551
+   },
+   {
+    "sha": "eca21c7ad582c9c374108518842ad816843e1224",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 4610
+   },
+   {
+    "sha": "42721120f3c7206a9fc22db5d0bb7cf40f0cacfd",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 3144
+   },
+   {
+    "sha": "6382a3be8f6a937412c4e23a92ab440f7ba80bdf",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 2504
+   },
+   {
+    "sha": "7b426acb5902960f70f1e9e3c336fd76fb8e3009",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 3047
+   },
+   {
+    "sha": "5225a3224f8339f13b1d917dc4ba7c63dd713552",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 13570
+   },
+   {
+    "sha": "839c56a8d96e0885821c492407dbe2801398f2b8",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 2400
+   },
+   {
+    "sha": "b5bf3326ded9b548d49045eb6280dd347f5413fe",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 41265
+   },
+   {
+    "sha": "cb463fb40e8f663b7e3019c8d8560a3490c241d0",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 2280
+   },
+   {
+    "sha": "fd500434031835be0122b35efac9f2acfdaa61ae",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 6180
+   },
+   {
+    "sha": "3c7ef7d6135a33448e9b08902f4b5582ae2d60c4",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 3136
+   },
+   {
+    "sha": "1e7e47d6220d1a578c2ddc6232a4a4e4d2f30b11",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 5520
+   },
+   {
+    "sha": "ec02224371fbb4ff4437cc449c45e88adde482d7",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 25376
+   },
+   {
+    "sha": "026dafdb6667e43bea67407cf9bd2ea4e5548c5c",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 42066
+   },
+   {
+    "sha": "a31ac0492a57e74aed42144aeb34d9c9f08a0595",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 14554
+   },
+   {
+    "sha": "f8751e2afeb5042a17d86763f965bc8f479784bf",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 8708
+   },
+   {
+    "sha": "217876916cd2160716f65efc09c706b66296b366",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 5264
+   },
+   {
+    "sha": "2e56821830019765bf8530e0e6a8a5abd6125293",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 2016
+   },
+   {
+    "sha": "2dd112ec1372346ff573e5c273cc5cb93bda033a",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 21536
+   },
+   {
+    "sha": "85f2cb03c62b9690ad8acae04a679722d59d829d",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 2380
+   },
+   {
+    "sha": "0e8e4ae47fbeb52247a0f963e3ce8d1d8bd60a9e",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 19264
+   },
+   {
+    "sha": "8c6a54d70a79ecbbca45610b5d7dbf788e1e696d",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 2080
+   },
+   {
+    "sha": "747db6675da86e79d04e2fcc531b3b72b22ebf04",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 7106
+   },
+   {
+    "sha": "64855fa55821332c4913ad06b2cf902d4c565a94",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 5235
+   },
+   {
+    "sha": "a6567fefbd4b7627dfdc9c83b786e3b5094a66dc",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 145740
+   },
+   {
+    "sha": "32a5db49e3e62891736a8544dba440d5399a12c4",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 23001
+   },
+   {
+    "sha": "10751dc285c5c639e3343a8abc26857407522822",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 15345
+   },
+   {
+    "sha": "67abc430140558e60c785b158e9199dc884fb15c",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 5080
+   },
+   {
+    "sha": "8ff6b7a04cbaef9c552789ad5550ceab760cb078",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 206955
+   },
+   {
+    "sha": "ce6b5f3751e9ea5d1cb4b63c8e14235914817766",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 13314
+   },
+   {
+    "sha": "9520087409d5bd7e6a2651dacf2c295d564d5559",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 2050
+   },
+   {
+    "sha": "0dda75f824d761f1ca89decb1501a1902ade7a24",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 5535
+   },
+   {
+    "sha": "9109d7037f44158e72d14019eb33f9c7b8838868",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 14214
+   },
+   {
+    "sha": "b70c88bbef0cedc6a4b591f92cbb7fcc869667d5",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 5984
+   },
+   {
+    "sha": "280f6b33110d707ebee6fec6e5bafa45b45213ae",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 2088
+   },
+   {
+    "sha": "d4ceedd8b2f99f83051575eeef7f2c03c7d3a67c",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 75208
+   },
+   {
+    "sha": "9f675c54a56e8165e24e84a83c186c949ced5be8",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 3822
+   },
+   {
+    "sha": "884f6f71172156ccc7d95ed022c8fb8baadc3c0a",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 6496
+   },
+   {
+    "sha": "6cb0cd5bcb502b07a6388ce4d831e152e90e534d",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 10276
+   },
+   {
+    "sha": "2430e87ac93952ae7e296faf49734f65af29f9ed",
+    "status": "checked",
+    "p9": true,
+    "label": 1,
+    "lxf": 4522
+   },
+   {
+    "sha": "1a73d52e7be55415a19e501e210efbcf1fadebe4",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 34336
+   },
+   {
+    "sha": "f9e69642d380db47fde5e52c5709e199ee4ae597",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 103155
+   },
+   {
+    "sha": "29db77653fe0e74668425fcaf85e9b11ed1c79e8",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 4210
+   },
+   {
+    "sha": "5ba6e106b858d2a1ac05bcc5c5ce11d4367cb9a7",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 13870
+   },
+   {
+    "sha": "ae9106370a9f3002979077662149ba9122d86cef",
+    "status": "checked",
+    "p9": true,
+    "label": 0,
+    "lxf": 9240
+   },
+   {
+    "sha": "58ce4b755c09b5a85812179e3e99eac74b78253a",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 18
+   },
+   {
+    "sha": "c10eb7c52fe35e94818e3f5427b7687e351c8c37",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 12
+   },
+   {
+    "sha": "961d5bd909744fea24e2391cd1a7aea3c96c418d",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 90
+   },
+   {
+    "sha": "d7128c32d645cdd795cae4b4120049007f1e50de",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 242
+   },
+   {
+    "sha": "bca28f87ae12ffe3b49c78503af580b503f120ee",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 62
+   },
+   {
+    "sha": "47d9fbd407d1b7148ae16c781facc2d9d663fc16",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 20
+   },
+   {
+    "sha": "73b0376ec1527197c215495c7957efbe9d3bfab7",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 128
+   },
+   {
+    "sha": "74c78970cd9e99aa750713574bf175fd1efac7c3",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 48
+   },
+   {
+    "sha": "804f741453fb146b5261084fa3baf26631badb79",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 2
+   },
+   {
+    "sha": "2e945d7a0692a1d6911d3f9ec74875092fb2cbc0",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 52
+   },
+   {
+    "sha": "0c1e9a5b19c4cfb77c86f3871998cf2673260b06",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 6
+   },
+   {
+    "sha": "69fa51cc21f63c7ec1edfb79a535bd6024546489",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 324
+   },
+   {
+    "sha": "0a7023f55ddc43ab9f0802b84b248fbc646a91aa",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 8
+   },
+   {
+    "sha": "a9127068194a48786df4f429ceb4f908c71f7138",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 2
+   },
+   {
+    "sha": "d56fe6c7b20244238a2d807a08bb646d8edcaf32",
+    "status": "checked",
+    "p9": false,
+    "label": 0,
+    "lxf": 30
+   }
+  ]
+ },
+ "table_all_val": {
+  "alerts": 634,
+  "true": 227,
+  "precision": 0.3580441640378549,
+  "interval": [
+   0.32168331791085364,
+   0.3961148943082106
+  ],
+  "of": 4113
+ },
+ "bar": {
+  "min_alerts": 30,
+  "precision": 0.8
+ }
+}
