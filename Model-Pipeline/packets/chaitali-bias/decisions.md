@@ -410,3 +410,34 @@ Not judged (decision 9: listed with N): the other 20 repos (60 texts between the
 The other models, for the record (they don't ship): Gemma 4 0.078, Llama 4 Scout 0.069, Llama 4 Maverick 0.093. None has a flagged slice. Their worst judged slice is `consumer` (Gemma 4: 12 of 68 = 0.176), the same task kind that's worst for `gemini-flash`.
 
 Diff match is unchanged from Nov 10: oscar and `(other)` flagged and accepted. `reports/llm_bias.json` passes, with 0 open flags.
+
+---
+
+# Nov 12: PASS-BARS §6.5 "product jobs fail when they should": the rule, before the runs
+
+The bar: a view that breaks with the LLM off fails the job, a cache miss in CI fails the job, and no job has an LLM key. Each is planted once on a branch.
+
+What exists, looked at before writing this. `ci.yml` runs every Data-Pipeline test, and they run with the LLM off: `tests/test_views.py` renders every page that way, and `tests/test_agents.py` and `tests/test_diffs.py` check that `strict_cache` raises `CacheMiss`. Nothing checks the workflows for LLM keys. The only cloud sign-in in any workflow is `model.yml`'s, on main, after every step that could reach an LLM, for the registry push.
+
+What's added: `tests/test_ci_keys.py`. It fails when any workflow names an LLM credential (`settings.toml [llm] project_env`, which is `MERIDIAN_GCP_PROJECT`, or a provider's API key variable), or when a step that runs an agent or `llm_bias` comes after the cloud sign-in.
+
+The plants, on `chaitali-planted-product`, one commit at a time, each run left to finish before the next. Each commit undoes the one before, so every red run has one cause:
+1. **LLM off:** `views.py` raises on a text whose source is the template, which is every text with the LLM off.
+2. **Cache miss:** `agents.write` ignores `strict_cache` and ships the template on a miss.
+3. **LLM key:** `ci.yml`'s `test` job gets `MERIDIAN_GCP_PROJECT` from a secret.
+
+Rule: each plant passes the bar only if its own `ci.yml` run is red, failing on that plant's test on both Linux and Windows. A green run is a failed bar, and the report says so. The branch is never merged, and its draft PR is closed after the third run.
+
+## Product failures: results: all three plants red
+
+On `chaitali-planted-product` (#87, a draft, never merged), one plant at a time, each run finished before the next push. Each run failed only `ci.yml`'s `test` job, on both Linux and Windows, at the unit-test step. Every other job (`model`, `gx`, `pushcheck`, `airflow`) was green. The runs' logs need a GitHub sign-in, so which tests failed was checked by running the same suite on the same commit locally. Each plant failed only its own test:
+
+| Plant | Commit | Run | `test` job, Linux / Windows | Failing tests (local, same commit) |
+|---|---|---|---|---|
+| 1. A view that raises with the LLM off | 66585fa | 43294003464 | red / red | 16 errors, all in `test_views` |
+| 2. A cache miss ships the template | 83aaa3a | 43296868897 | red / red | 1: `test_agents` `test_a_miss_with_strict_cache_stops_the_run` |
+| 3. `MERIDIAN_GCP_PROJECT` in `ci.yml` | 7b6357c | 43300353924 | red / red | 1: `test_ci_keys` `test_no_workflow_has_an_llm_key` |
+
+**The bar passes for all three.** Without the plants (#86), every job is green, and `test_ci_keys` passes on today's workflows.
+
+Limits: plant 3 shows a key *named* in a workflow is caught. It's a text check, so a key added some other way (an org-level variable, a credentials file) wouldn't be. Main's Workload Identity sign-in is allowed because it comes after every LLM step. Whether `meridian-ci`'s roles could call Vertex AI wasn't checked.
