@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.008412,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"yes\", \"reason\": \"The blamed commit introduced the bug by adding support for correlation under OFFSET without handling it correctly, which the fix disables until properly supported.\"}\n```",
+ "tokens_in": 1782,
+ "tokens_out": 404
+}

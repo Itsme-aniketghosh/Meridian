@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.01222,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"no\", \"reason\": \"The blamed commit is a refactoring that merely moved the code to a new file, so the bug predates this commit.\"}\n```",
+ "tokens_in": 3944,
+ "tokens_out": 361
+}

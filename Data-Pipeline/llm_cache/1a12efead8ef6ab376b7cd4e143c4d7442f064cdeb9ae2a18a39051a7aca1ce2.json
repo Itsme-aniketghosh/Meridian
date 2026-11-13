@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.00767,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"no\", \"reason\": \"The blamed commit was a pure refactoring that replaced 'view.filterKeys' with 'filter', while the fix extracts the config retention logic into a shared Analyzer function to fix a design issue affecting UDTVF resolution, which predates the blamed commit.\"}\n```",
+ "tokens_in": 2059,
+ "tokens_out": 296
+}

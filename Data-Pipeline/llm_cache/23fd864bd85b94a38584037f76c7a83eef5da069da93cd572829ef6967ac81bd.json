@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.011906,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"yes\", \"reason\": \"The blamed commit broke backward compatibility by removing the old constructor for NoSuchIndexException, which the fix restores.\"}\n```",
+ "tokens_in": 3433,
+ "tokens_out": 420
+}

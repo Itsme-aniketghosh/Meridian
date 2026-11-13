@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.010314,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\n  \"verdict\": \"no\",\n  \"reason\": \"The blamed commit merely relocated the StructField file to a new module, so the bug predates this change.\"\n}\n```",
+ "tokens_in": 3165,
+ "tokens_out": 332
+}

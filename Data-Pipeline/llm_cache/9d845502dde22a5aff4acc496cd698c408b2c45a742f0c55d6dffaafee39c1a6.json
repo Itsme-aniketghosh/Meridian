@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.018714,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\n  \"verdict\": \"no\",\n  \"reason\": \"The performance regression was caused by the code structure change in PR 41052, while the blamed commit was just a small functional follow-up whose lines were removed when the entire structural change was reverted.\"\n}\n```",
+ "tokens_in": 3099,
+ "tokens_out": 1043
+}

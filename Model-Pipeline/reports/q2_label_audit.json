@@ -1,0 +1,49 @@
+{
+  "model": "gemini-pro",
+  "prompt_version": "q2-audit-1",
+  "block": "70dd1dabfed544b8",
+  "split": "val",
+  "Q2": {
+    "no": 37,
+    "yes": 14,
+    "unclear": 0,
+    "n": 51,
+    "noise": 0.7254901960784313,
+    "ci": [
+      0.5905334923922092,
+      0.8288572476535512
+    ]
+  },
+  "Q4": {
+    "no": 28,
+    "yes": 22,
+    "unclear": 0,
+    "n": 50,
+    "noise": 0.56,
+    "ci": [
+      0.4230602802165686,
+      0.6883780078874284
+    ]
+  },
+  "hand": {
+    "judged": 20,
+    "of": 20,
+    "agree_with_model": 10,
+    "share": {
+      "no": 7,
+      "yes": 13,
+      "unclear": 0,
+      "n": 20,
+      "noise": 0.35,
+      "ci": [
+        0.1811918241010821,
+        0.5671457233147637
+      ]
+    }
+  },
+  "model_used": false,
+  "agree_min": 15,
+  "q2_noisier_than_q4": false,
+  "cost_usd": 2.5215,
+  "note": "an estimate for the bias section: never a label, never training data (GAPS.md gap 6)"
+}

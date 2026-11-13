@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.007822,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"yes\", \"reason\": \"The blamed commit introduced the `assign_issue` function with a strict type hint on the `jira` library, causing an unintended hard dependency that the fix removes.\"}\n```",
+ "tokens_in": 2159,
+ "tokens_out": 292
+}

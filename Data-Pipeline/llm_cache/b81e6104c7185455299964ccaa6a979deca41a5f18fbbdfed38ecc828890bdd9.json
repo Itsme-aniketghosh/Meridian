@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.00729,
+ "model": "gemini-pro",
+ "prompt_version": "q2-audit-1",
+ "reply": "```json\n{\"verdict\": \"yes\", \"reason\": \"The blamed commit introduced the bug by using `get()` instead of `getStatus()`, which acquired a lock and caused subsequent requests to freeze.\"}\n```",
+ "tokens_in": 2325,
+ "tokens_out": 220
+}
