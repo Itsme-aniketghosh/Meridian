@@ -1,5 +1,5 @@
-"""Fault 20: Auditor replay with a future row.
-Expected: The row is ignored.
+"""Fault 20: Auditor replay with a future call-site row.
+Expected: The row is ignored. Ticket maps known later are the one known gap (auditor decisions, Nov 10).
 Why: No `known_at` leak."""
 import unittest
 
