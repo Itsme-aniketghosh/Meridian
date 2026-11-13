@@ -28,6 +28,7 @@ it the diff drafter has no LLM rung and Jev routes nothing to it.
 import hashlib
 import json
 import re
+import threading
 import time
 from dataclasses import dataclass
 
@@ -125,10 +126,19 @@ class Router:
         self.spend_cap_usd, self.top_budget = spend_cap_usd, top_budget
         self.spent, self.top_used, self.calls = 0.0, 0, 0
         self.pv = prompt_version()
+        self._lock = threading.RLock()  # agents.run(workers=) routes from several threads: the budgets stay exact
 
     def _top(self, pick):
         ladder = TABLE[pick.agent]["ladder"]
         return bool(ladder) and pick.rung == len(ladder) - 1
+
+    def _take_top(self):
+        """One pick of an agent's largest model off the run's budget: False when it's spent."""
+        with self._lock:
+            if self.top_used >= self.top_budget:
+                return False
+            self.top_used += 1
+            return True
 
     def pick(self, task):
         """The agent and model to start `task` on. Never raises for a bad answer: anything wrong is a rules pick."""
@@ -143,7 +153,9 @@ class Router:
         if not hit:
             if self.llm is None:
                 return rules_pick(task.kind, "jev off")
-            if self.spent >= self.spend_cap_usd:
+            with self._lock:
+                over = self.spent >= self.spend_cap_usd
+            if over:
                 return rules_pick(task.kind, "over the spend cap")
             r = self.llm(self.model, prompt(task))
             entry = {"model": self.model, "prompt_version": self.pv, "reply": r["reply"],
@@ -151,8 +163,9 @@ class Router:
                      "cost_usd": float(r.get("cost_usd", 0.0))}
             if agents.names_a_person(str(r["reply"]), self.people):   # never into the committed cache
                 entry = {**entry, "reply": None, **agents.REDACTED}
-            self.spent += entry["cost_usd"]
-            self.calls += 1
+            with self._lock:
+                self.spent += entry["cost_usd"]
+                self.calls += 1
             if self.cache:
                 self.cache.put(k, entry)
         answer, gate_pass = parse(entry.get("reply")), None
@@ -170,11 +183,8 @@ class Router:
                 chosen = rules_pick(task.kind, "refused: the reason says something not in the facts")
             else:
                 chosen = Pick(agent, ladder.index(answer["model"]), answer["model"], "jev", "jev")
-                if self._top(chosen):
-                    if self.top_used >= self.top_budget:
-                        chosen = rules_pick(task.kind, "top-model budget spent")
-                    else:
-                        self.top_used += 1
+                if self._top(chosen) and not self._take_top():
+                    chosen = rules_pick(task.kind, "top-model budget spent")
         self._log(task, entry, hit, gate_pass, chosen.route, (time.perf_counter() - t0) * 1000)
         return chosen
 
@@ -185,10 +195,8 @@ class Router:
         if failure not in spec["retry_on"] or pick.model is None or pick.rung + 1 >= len(spec["ladder"]):
             return None
         up = Pick(pick.agent, pick.rung + 1, spec["ladder"][pick.rung + 1], pick.route, f"{failure}: one model up")
-        if self._top(up):
-            if self.top_used >= self.top_budget:
-                return None
-            self.top_used += 1
+        if self._top(up) and not self._take_top():
+            return None
         return up
 
     def ladder(self, task):
