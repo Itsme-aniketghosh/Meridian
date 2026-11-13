@@ -12,6 +12,7 @@ import pandas as pd
 
 from model.run_all import FAKE_SEARCH, MODEL_TOML, write_fake
 from model.train import main
+from tests import mlflow_uri
 
 
 class Retrain(unittest.TestCase):
@@ -19,7 +20,7 @@ class Retrain(unittest.TestCase):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:  # Windows: SQLAlchemy keeps mlflow.db open
             table, out = write_fake(d), Path(d) / "reports"
             io_args = ["--config", str(MODEL_TOML), "--features", str(table), "--out", str(out)]
-            env = {"MLFLOW_TRACKING_URI": f"sqlite:///{Path(d) / 'mlflow.db'}"}
+            env = {"MLFLOW_TRACKING_URI": mlflow_uri(d)}
             with mock.patch.dict(os.environ, env), contextlib.redirect_stdout(io.StringIO()):
                 main(["--tune", "logreg", "forest", "lgbm", *FAKE_SEARCH, *io_args])
                 searched = pd.read_csv(out / "tuned_val_scores.csv"), json.loads((out / "candidate.json").read_text())
