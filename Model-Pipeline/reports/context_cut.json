@@ -1,34 +1,34 @@
 {
-  "run_id": "70dd1dabfed544b8",
+  "run_id": "bb6b5f4e32a4bee7",
   "at": "2026-10-01T01:23:03Z",
   "cover": 0.9,
   "teams": 68,
-  "teams_with_bug_fixes": 0,
-  "teams_cut": 42,
+  "teams_with_bug_fixes": 48,
+  "teams_cut": 36,
   "total": {
     "files": {
       "all": 367,
-      "kept": 68,
-      "kept_share": 0.18528610354223432
+      "kept": 127,
+      "kept_share": 0.3460490463215259
     },
     "sites": {
       "all": 1526,
-      "kept": 444,
-      "kept_share": 0.290956749672346
+      "kept": 495,
+      "kept_share": 0.32437745740498036
     },
     "chars": {
-      "all": 36676,
-      "kept": 13170,
-      "kept_share": 0.3590904133493293
+      "all": 41821,
+      "kept": 22745,
+      "kept_share": 0.5438655221061189
     },
     "bug_fixes": {
-      "all": 0,
-      "kept": 0,
-      "kept_share": null
+      "all": 591,
+      "kept": 570,
+      "kept_share": 0.9644670050761421
     }
   },
-  "bug_fix_coverage": null,
-  "random_order_coverage": null,
+  "bug_fix_coverage": 0.9644670050761421,
+  "random_order_coverage": 0.7267851099830794,
   "per_team": [
     {
       "team": "carltongibson/django-filter",
@@ -37,8 +37,8 @@
       "kept": 1,
       "sites": 7,
       "sites_kept": 4,
-      "chars": 255,
-      "chars_kept": 220,
+      "chars": 267,
+      "chars_kept": 232,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -46,37 +46,37 @@
       "team": "contrib.admin",
       "symbol": "ugettext",
       "files": 9,
-      "kept": 1,
+      "kept": 7,
       "sites": 27,
-      "sites_kept": 15,
-      "chars": 838,
-      "chars_kept": 204,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 11,
+      "chars": 1174,
+      "chars_kept": 1000,
+      "bug_fixes": 49,
+      "bug_fixes_kept": 46
     },
     {
       "team": "contrib.admin",
       "symbol": "ugettext_lazy",
       "files": 7,
-      "kept": 1,
+      "kept": 4,
       "sites": 11,
-      "sites_kept": 4,
-      "chars": 658,
-      "chars_kept": 206,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 8,
+      "chars": 791,
+      "chars_kept": 574,
+      "bug_fixes": 23,
+      "bug_fixes_kept": 21
     },
     {
       "team": "contrib.admin",
       "symbol": "ungettext",
       "files": 2,
-      "kept": 1,
+      "kept": 2,
       "sites": 5,
-      "sites_kept": 3,
-      "chars": 254,
-      "chars_kept": 203,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 5,
+      "chars": 417,
+      "chars_kept": 417,
+      "bug_fixes": 21,
+      "bug_fixes_kept": 21
     },
     {
       "team": "contrib.admindocs",
@@ -85,10 +85,10 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 180,
-      "chars_kept": 180,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 227,
+      "chars_kept": 227,
+      "bug_fixes": 5,
+      "bug_fixes_kept": 5
     },
     {
       "team": "contrib.admindocs",
@@ -97,8 +97,8 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 184,
-      "chars_kept": 184,
+      "chars": 196,
+      "chars_kept": 196,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -106,25 +106,25 @@
       "team": "contrib.auth",
       "symbol": "ugettext",
       "files": 3,
-      "kept": 1,
+      "kept": 3,
       "sites": 7,
-      "sites_kept": 4,
-      "chars": 340,
-      "chars_kept": 198,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 7,
+      "chars": 485,
+      "chars_kept": 485,
+      "bug_fixes": 18,
+      "bug_fixes_kept": 18
     },
     {
       "team": "contrib.auth",
       "symbol": "ugettext_lazy",
       "files": 7,
-      "kept": 1,
+      "kept": 5,
       "sites": 7,
-      "sites_kept": 1,
-      "chars": 652,
-      "chars_kept": 203,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 5,
+      "chars": 910,
+      "chars_kept": 748,
+      "bug_fixes": 33,
+      "bug_fixes_kept": 30
     },
     {
       "team": "contrib.auth",
@@ -133,10 +133,10 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 177,
-      "chars_kept": 177,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 206,
+      "chars_kept": 206,
+      "bug_fixes": 3,
+      "bug_fixes_kept": 3
     },
     {
       "team": "contrib.auth",
@@ -145,10 +145,10 @@
       "kept": 1,
       "sites": 3,
       "sites_kept": 3,
-      "chars": 185,
-      "chars_kept": 185,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 232,
+      "chars_kept": 232,
+      "bug_fixes": 5,
+      "bug_fixes_kept": 5
     },
     {
       "team": "contrib.contenttypes",
@@ -157,10 +157,10 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 186,
-      "chars_kept": 186,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 206,
+      "chars_kept": 206,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "contrib.contenttypes",
@@ -169,10 +169,10 @@
       "kept": 1,
       "sites": 2,
       "sites_kept": 1,
-      "chars": 277,
-      "chars_kept": 218,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 306,
+      "chars_kept": 249,
+      "bug_fixes": 2,
+      "bug_fixes_kept": 2
     },
     {
       "team": "contrib.flatpages",
@@ -181,22 +181,22 @@
       "kept": 1,
       "sites": 3,
       "sites_kept": 3,
-      "chars": 180,
-      "chars_kept": 180,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 200,
+      "chars_kept": 200,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "contrib.flatpages",
       "symbol": "ugettext_lazy",
       "files": 4,
-      "kept": 1,
+      "kept": 2,
       "sites": 4,
-      "sites_kept": 1,
-      "chars": 434,
-      "chars_kept": 213,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 2,
+      "chars": 462,
+      "chars_kept": 325,
+      "bug_fixes": 3,
+      "bug_fixes_kept": 3
     },
     {
       "team": "contrib.gis",
@@ -205,8 +205,8 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 168,
-      "chars_kept": 168,
+      "chars": 180,
+      "chars_kept": 180,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -217,14 +217,26 @@
       "kept": 1,
       "sites": 3,
       "sites_kept": 1,
-      "chars": 344,
-      "chars_kept": 200,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 418,
+      "chars_kept": 286,
+      "bug_fixes": 8,
+      "bug_fixes_kept": 8
     },
     {
       "team": "contrib.humanize",
       "symbol": "ugettext",
+      "files": 1,
+      "kept": 1,
+      "sites": 1,
+      "sites_kept": 1,
+      "chars": 206,
+      "chars_kept": 206,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
+    },
+    {
+      "team": "contrib.humanize",
+      "symbol": "ugettext_lazy",
       "files": 1,
       "kept": 1,
       "sites": 1,
@@ -236,27 +248,15 @@
     },
     {
       "team": "contrib.humanize",
-      "symbol": "ugettext_lazy",
-      "files": 1,
-      "kept": 1,
-      "sites": 1,
-      "sites_kept": 1,
-      "chars": 182,
-      "chars_kept": 182,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
-    },
-    {
-      "team": "contrib.humanize",
       "symbol": "ungettext",
       "files": 1,
       "kept": 1,
       "sites": 29,
       "sites_kept": 29,
-      "chars": 197,
-      "chars_kept": 197,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 209,
+      "chars_kept": 209,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "contrib.messages",
@@ -265,8 +265,8 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 182,
-      "chars_kept": 182,
+      "chars": 194,
+      "chars_kept": 194,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -274,13 +274,13 @@
       "team": "contrib.postgres",
       "symbol": "ugettext_lazy",
       "files": 9,
-      "kept": 1,
+      "kept": 7,
       "sites": 9,
-      "sites_kept": 1,
-      "chars": 891,
-      "chars_kept": 210,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 7,
+      "chars": 1058,
+      "chars_kept": 908,
+      "bug_fixes": 21,
+      "bug_fixes_kept": 20
     },
     {
       "team": "contrib.postgres",
@@ -289,10 +289,10 @@
       "kept": 1,
       "sites": 3,
       "sites_kept": 3,
-      "chars": 189,
-      "chars_kept": 189,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 201,
+      "chars_kept": 201,
+      "bug_fixes": 2,
+      "bug_fixes_kept": 2
     },
     {
       "team": "contrib.redirects",
@@ -301,10 +301,10 @@
       "kept": 1,
       "sites": 2,
       "sites_kept": 1,
-      "chars": 268,
-      "chars_kept": 212,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 280,
+      "chars_kept": 226,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "contrib.sessions",
@@ -313,8 +313,8 @@
       "kept": 1,
       "sites": 2,
       "sites_kept": 1,
-      "chars": 271,
-      "chars_kept": 210,
+      "chars": 283,
+      "chars_kept": 222,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -325,8 +325,8 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 182,
-      "chars_kept": 182,
+      "chars": 194,
+      "chars_kept": 194,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -337,10 +337,10 @@
       "kept": 1,
       "sites": 2,
       "sites_kept": 1,
-      "chars": 256,
-      "chars_kept": 204,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 276,
+      "chars_kept": 226,
+      "bug_fixes": 3,
+      "bug_fixes_kept": 3
     },
     {
       "team": "contrib.staticfiles",
@@ -349,10 +349,10 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 188,
-      "chars_kept": 188,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 217,
+      "chars_kept": 217,
+      "bug_fixes": 2,
+      "bug_fixes_kept": 2
     },
     {
       "team": "contrib.syndication",
@@ -361,8 +361,8 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 188,
-      "chars_kept": 188,
+      "chars": 200,
+      "chars_kept": 200,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -373,8 +373,8 @@
       "kept": 1,
       "sites": 16,
       "sites_kept": 11,
-      "chars": 326,
-      "chars_kept": 231,
+      "chars": 338,
+      "chars_kept": 243,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -382,13 +382,13 @@
       "team": "core",
       "symbol": "ugettext_lazy",
       "files": 2,
-      "kept": 1,
+      "kept": 2,
       "sites": 2,
-      "sites_kept": 1,
-      "chars": 238,
-      "chars_kept": 191,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 2,
+      "chars": 302,
+      "chars_kept": 302,
+      "bug_fixes": 8,
+      "bug_fixes_kept": 8
     },
     {
       "team": "core",
@@ -397,22 +397,22 @@
       "kept": 1,
       "sites": 6,
       "sites_kept": 6,
-      "chars": 165,
-      "chars_kept": 165,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 221,
+      "chars_kept": 221,
+      "bug_fixes": 7,
+      "bug_fixes_kept": 7
     },
     {
       "team": "db",
       "symbol": "ugettext_lazy",
       "files": 4,
-      "kept": 1,
+      "kept": 4,
       "sites": 4,
-      "sites_kept": 1,
-      "chars": 412,
-      "chars_kept": 189,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 4,
+      "chars": 890,
+      "chars_kept": 890,
+      "bug_fixes": 60,
+      "bug_fixes_kept": 60
     },
     {
       "team": "django-cms/django-cms",
@@ -420,11 +420,11 @@
       "files": 35,
       "kept": 1,
       "sites": 160,
-      "sites_kept": 13,
-      "chars": 3279,
-      "chars_kept": 220,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 3,
+      "chars": 3299,
+      "chars_kept": 221,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "django-extensions/django-extensions",
@@ -433,8 +433,8 @@
       "kept": 1,
       "sites": 10,
       "sites_kept": 4,
-      "chars": 360,
-      "chars_kept": 232,
+      "chars": 372,
+      "chars_kept": 244,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -444,11 +444,11 @@
       "files": 6,
       "kept": 1,
       "sites": 25,
-      "sites_kept": 7,
-      "chars": 556,
-      "chars_kept": 209,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 4,
+      "chars": 568,
+      "chars_kept": 215,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "django-haystack/django-haystack",
@@ -457,8 +457,8 @@
       "kept": 1,
       "sites": 13,
       "sites_kept": 6,
-      "chars": 432,
-      "chars_kept": 211,
+      "chars": 444,
+      "chars_kept": 223,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -469,10 +469,10 @@
       "kept": 1,
       "sites": 7,
       "sites_kept": 4,
-      "chars": 251,
-      "chars_kept": 216,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 293,
+      "chars_kept": 258,
+      "bug_fixes": 3,
+      "bug_fixes_kept": 3
     },
     {
       "team": "django-oscar/django-oscar",
@@ -481,8 +481,8 @@
       "kept": 1,
       "sites": 247,
       "sites_kept": 41,
-      "chars": 2470,
-      "chars_kept": 215,
+      "chars": 2483,
+      "chars_kept": 228,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -493,8 +493,8 @@
       "kept": 1,
       "sites": 31,
       "sites_kept": 5,
-      "chars": 1160,
-      "chars_kept": 208,
+      "chars": 1173,
+      "chars_kept": 221,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -505,8 +505,8 @@
       "kept": 1,
       "sites": 6,
       "sites_kept": 3,
-      "chars": 315,
-      "chars_kept": 237,
+      "chars": 327,
+      "chars_kept": 249,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -517,8 +517,8 @@
       "kept": 1,
       "sites": 18,
       "sites_kept": 16,
-      "chars": 234,
-      "chars_kept": 191,
+      "chars": 246,
+      "chars_kept": 203,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -526,37 +526,37 @@
       "team": "encode/django-rest-framework",
       "symbol": "url",
       "files": 26,
-      "kept": 1,
+      "kept": 3,
       "sites": 182,
-      "sites_kept": 30,
-      "chars": 2116,
-      "chars_kept": 216,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 24,
+      "chars": 2158,
+      "chars_kept": 403,
+      "bug_fixes": 4,
+      "bug_fixes_kept": 4
     },
     {
       "team": "forms",
       "symbol": "ugettext",
       "files": 3,
-      "kept": 1,
+      "kept": 3,
       "sites": 7,
-      "sites_kept": 5,
-      "chars": 302,
-      "chars_kept": 185,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 7,
+      "chars": 483,
+      "chars_kept": 483,
+      "bug_fixes": 21,
+      "bug_fixes_kept": 21
     },
     {
       "team": "forms",
       "symbol": "ugettext_lazy",
       "files": 5,
-      "kept": 1,
+      "kept": 4,
       "sites": 11,
-      "sites_kept": 7,
-      "chars": 455,
-      "chars_kept": 192,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 10,
+      "chars": 878,
+      "chars_kept": 827,
+      "bug_fixes": 50,
+      "bug_fixes_kept": 49
     },
     {
       "team": "forms",
@@ -565,10 +565,10 @@
       "kept": 1,
       "sites": 3,
       "sites_kept": 3,
-      "chars": 160,
-      "chars_kept": 160,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 198,
+      "chars_kept": 198,
+      "bug_fixes": 3,
+      "bug_fixes_kept": 3
     },
     {
       "team": "forms",
@@ -577,10 +577,10 @@
       "kept": 1,
       "sites": 2,
       "sites_kept": 2,
-      "chars": 163,
-      "chars_kept": 163,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 264,
+      "chars_kept": 264,
+      "bug_fixes": 11,
+      "bug_fixes_kept": 11
     },
     {
       "team": "graphql-python/graphene-django",
@@ -589,8 +589,8 @@
       "kept": 1,
       "sites": 13,
       "sites_kept": 3,
-      "chars": 534,
-      "chars_kept": 225,
+      "chars": 546,
+      "chars_kept": 237,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -601,10 +601,10 @@
       "kept": 1,
       "sites": 51,
       "sites_kept": 18,
-      "chars": 325,
-      "chars_kept": 193,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 350,
+      "chars_kept": 218,
+      "bug_fixes": 2,
+      "bug_fixes_kept": 2
     },
     {
       "team": "jazzband/django-debug-toolbar",
@@ -613,8 +613,8 @@
       "kept": 1,
       "sites": 29,
       "sites_kept": 13,
-      "chars": 565,
-      "chars_kept": 198,
+      "chars": 577,
+      "chars_kept": 210,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -625,8 +625,8 @@
       "kept": 1,
       "sites": 28,
       "sites_kept": 19,
-      "chars": 396,
-      "chars_kept": 187,
+      "chars": 408,
+      "chars_kept": 199,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -637,8 +637,8 @@
       "kept": 1,
       "sites": 37,
       "sites_kept": 11,
-      "chars": 532,
-      "chars_kept": 202,
+      "chars": 544,
+      "chars_kept": 214,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     },
@@ -646,13 +646,13 @@
       "team": "pennersr/django-allauth",
       "symbol": "url",
       "files": 12,
-      "kept": 1,
+      "kept": 4,
       "sites": 50,
       "sites_kept": 14,
-      "chars": 1163,
-      "chars_kept": 203,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 1204,
+      "chars_kept": 507,
+      "bug_fixes": 4,
+      "bug_fixes_kept": 4
     },
     {
       "team": "template",
@@ -661,10 +661,10 @@
       "kept": 1,
       "sites": 7,
       "sites_kept": 7,
-      "chars": 171,
-      "chars_kept": 171,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 218,
+      "chars_kept": 218,
+      "bug_fixes": 5,
+      "bug_fixes_kept": 5
     },
     {
       "team": "template",
@@ -673,10 +673,10 @@
       "kept": 1,
       "sites": 2,
       "sites_kept": 2,
-      "chars": 166,
-      "chars_kept": 166,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 222,
+      "chars_kept": 222,
+      "bug_fixes": 6,
+      "bug_fixes_kept": 6
     },
     {
       "team": "template",
@@ -685,10 +685,10 @@
       "kept": 1,
       "sites": 3,
       "sites_kept": 3,
-      "chars": 172,
-      "chars_kept": 172,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 219,
+      "chars_kept": 219,
+      "bug_fixes": 5,
+      "bug_fixes_kept": 5
     },
     {
       "team": "templatetags",
@@ -697,10 +697,10 @@
       "kept": 1,
       "sites": 3,
       "sites_kept": 3,
-      "chars": 169,
-      "chars_kept": 169,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 181,
+      "chars_kept": 181,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "templatetags",
@@ -709,34 +709,34 @@
       "kept": 1,
       "sites": 1,
       "sites_kept": 1,
-      "chars": 170,
-      "chars_kept": 170,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 182,
+      "chars_kept": 182,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "tests",
       "symbol": "ugettext",
       "files": 11,
-      "kept": 1,
+      "kept": 4,
       "sites": 24,
-      "sites_kept": 9,
-      "chars": 999,
-      "chars_kept": 185,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 16,
+      "chars": 1306,
+      "chars_kept": 721,
+      "bug_fixes": 39,
+      "bug_fixes_kept": 37
     },
     {
       "team": "tests",
       "symbol": "ugettext_lazy",
       "files": 22,
-      "kept": 1,
+      "kept": 9,
       "sites": 43,
-      "sites_kept": 5,
-      "chars": 1841,
-      "chars_kept": 190,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 21,
+      "chars": 2510,
+      "chars_kept": 1452,
+      "bug_fixes": 77,
+      "bug_fixes_kept": 70
     },
     {
       "team": "tests",
@@ -745,10 +745,10 @@
       "kept": 1,
       "sites": 8,
       "sites_kept": 6,
-      "chars": 236,
-      "chars_kept": 183,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 400,
+      "chars_kept": 339,
+      "bug_fixes": 18,
+      "bug_fixes_kept": 17
     },
     {
       "team": "tests",
@@ -757,34 +757,34 @@
       "kept": 1,
       "sites": 8,
       "sites_kept": 8,
-      "chars": 160,
-      "chars_kept": 160,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 316,
+      "chars_kept": 316,
+      "bug_fixes": 17,
+      "bug_fixes_kept": 17
     },
     {
       "team": "utils",
       "symbol": "ugettext",
       "files": 3,
-      "kept": 1,
+      "kept": 3,
       "sites": 5,
-      "sites_kept": 3,
-      "chars": 306,
-      "chars_kept": 188,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 5,
+      "chars": 369,
+      "chars_kept": 369,
+      "bug_fixes": 8,
+      "bug_fixes_kept": 8
     },
     {
       "team": "utils",
       "symbol": "ugettext_lazy",
       "files": 4,
-      "kept": 1,
+      "kept": 3,
       "sites": 5,
-      "sites_kept": 2,
-      "chars": 387,
-      "chars_kept": 188,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 4,
+      "chars": 468,
+      "chars_kept": 425,
+      "bug_fixes": 13,
+      "bug_fixes_kept": 13
     },
     {
       "team": "utils",
@@ -793,22 +793,22 @@
       "kept": 1,
       "sites": 7,
       "sites_kept": 7,
-      "chars": 166,
-      "chars_kept": 166,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 186,
+      "chars_kept": 186,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "views",
       "symbol": "ugettext",
       "files": 6,
-      "kept": 1,
+      "kept": 4,
       "sites": 6,
-      "sites_kept": 1,
-      "chars": 535,
-      "chars_kept": 183,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 4,
+      "chars": 633,
+      "chars_kept": 501,
+      "bug_fixes": 16,
+      "bug_fixes_kept": 15
     },
     {
       "team": "views",
@@ -817,22 +817,22 @@
       "kept": 1,
       "sites": 2,
       "sites_kept": 2,
-      "chars": 162,
-      "chars_kept": 162,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "chars": 182,
+      "chars_kept": 182,
+      "bug_fixes": 1,
+      "bug_fixes_kept": 1
     },
     {
       "team": "wagtail/wagtail",
       "symbol": "url",
       "files": 44,
-      "kept": 1,
+      "kept": 5,
       "sites": 240,
-      "sites_kept": 33,
-      "chars": 3681,
-      "chars_kept": 204,
-      "bug_fixes": 0,
-      "bug_fixes_kept": 0
+      "sites_kept": 48,
+      "chars": 3715,
+      "chars_kept": 570,
+      "bug_fixes": 5,
+      "bug_fixes_kept": 5
     },
     {
       "team": "yourlabs/django-autocomplete-light",
@@ -841,8 +841,8 @@
       "kept": 1,
       "sites": 67,
       "sites_kept": 22,
-      "chars": 1946,
-      "chars_kept": 211,
+      "chars": 1959,
+      "chars_kept": 224,
       "bug_fixes": 0,
       "bug_fixes_kept": 0
     }
