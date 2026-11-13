@@ -60,12 +60,14 @@ def rows_for(push_sha, run_id, found):
 
 
 def replay(db_path, run_id, mirrors, cfg, settings, commits=None, check=None):
-    """[(repo, push_sha, status, rows)] for each push. status: 'checked', 'skipped' (over the scope limit) or
-    'missing' (no mirror). check: the push check (meridian.pushcheck.push_check, injectable for tests)."""
+    """[(repo, push_sha, status, rows)] for each push. commits: {repo: (parent, child)}, or a list of
+    (repo, (parent, child)) for several pushes in one repo (meridian/p9_precision.py). status: 'checked', 'skipped'
+    (over the scope limit) or 'missing' (no mirror). check: the push check (injectable for tests)."""
     if check is None:
         from meridian.pushcheck import push_check as check
     out = []
-    for repo, (parent, child) in (commits or next_commits(cfg)).items():
+    pushes = commits if commits is not None else next_commits(cfg)
+    for repo, (parent, child) in (pushes.items() if isinstance(pushes, dict) else pushes):
         mirror = Path(mirrors) / (repo.replace("/", "__") + ".git")
         if not mirror.is_dir():
             out.append((repo, None, "missing", []))
