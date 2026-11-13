@@ -23,9 +23,6 @@ class JevDown(unittest.TestCase):
     def test_jev_off_rules_pick_and_the_run_completes(self):
         self.run_with(None)
 
-    # Rachna (Jev): Router.pick doesn't catch its LLM's errors, so one failed call (after the client's retries)
-    # stops the whole writer run instead of falling back to the rules pick
-    @unittest.expectedFailure
     def test_jev_unreachable_rules_pick_and_the_run_completes(self):
         self.run_with(unreachable)
 

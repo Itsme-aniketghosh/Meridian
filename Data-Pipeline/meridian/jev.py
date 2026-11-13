@@ -157,7 +157,10 @@ class Router:
                 over = self.spent >= self.spend_cap_usd
             if over:
                 return rules_pick(task.kind, "over the spend cap")
-            r = self.llm(self.model, prompt(task))
+            try:
+                r = self.llm(self.model, prompt(task))
+            except Exception as e:  # Jev down (after the client's retries): the rules pick, the run goes on (fault 17)
+                return rules_pick(task.kind, f"jev down: {type(e).__name__}")
             entry = {"model": self.model, "prompt_version": self.pv, "reply": r["reply"],
                      "tokens_in": int(r.get("tokens_in", 0)), "tokens_out": int(r.get("tokens_out", 0)),
                      "cost_usd": float(r.get("cost_usd", 0.0))}
