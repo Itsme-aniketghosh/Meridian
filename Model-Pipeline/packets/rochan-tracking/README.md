@@ -105,7 +105,7 @@ Write the test and the rule that picks before you run it, in `decisions.md`. Tag
 ## Done when
 
 - [ ] The team logs through `tracking.py`, and Vishwa logs agent calls through it
-- [ ] `metrics.json` on `val`, then on `test` once on Nov 12
+- [ ] `metrics.json` on `val`, then on `test` once, on Nov 14: the steps are in [RUN-2024.md](RUN-2024.md)
 - [ ] `registry.py` in CI on main, with a real push and a rollback tried
 - [x] The auditor passes its simulation tests and runs on the fixture
 - [x] Decisions 1–12 written down with their numbers
