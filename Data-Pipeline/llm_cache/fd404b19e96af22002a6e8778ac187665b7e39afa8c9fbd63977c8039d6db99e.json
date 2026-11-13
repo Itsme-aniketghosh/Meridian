@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.007392,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n \"problems\": [\n  \"Never notified\",\n  \"Orphaned owner\"\n ],\n \"steps\": [\n  \"stall_reason\",\n  \"ticket_draft\",\n  \"consumer\"\n ],\n \"reason\": \"The group has not been informed and ownership is unassigned so a draft and details on remaining work are needed.\"\n}",
+ "tokens_in": 324,
+ "tokens_out": 562
+}

@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.011576,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Never notified\",\n    \"Orphaned owner\",\n    \"Semantics unclear\",\n    \"Fragility freeze\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The underlying issues must be resolved by investigating the root causes, creating a tracking issue, and detailing the remaining work.\"\n}",
+ "tokens_in": 370,
+ "tokens_out": 903
+}

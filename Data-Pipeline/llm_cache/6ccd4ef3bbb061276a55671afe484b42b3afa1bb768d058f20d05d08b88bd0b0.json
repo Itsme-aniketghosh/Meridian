@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00207,
+ "facts_hash": "b4166464bf8665f3",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team tests: migrate symbol ungettext_lazy across 1 files (8 sites: tests/i18n/tests.py:28, tests/i18n/tests.py:148, tests/i18n/tests.py:150, tests/i18n/tests.py:159, tests/i18n/tests.py:160, tests/i18n/tests.py:182, tests/i18n/tests.py:183, tests/i18n/tests.py:186). Done when left: 0.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"files_n\",\n  \"count\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 380,
+ "tokens_out": 200
+}

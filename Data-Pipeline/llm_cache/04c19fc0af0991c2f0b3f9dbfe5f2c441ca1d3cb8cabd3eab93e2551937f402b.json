@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001317,
+ "facts_hash": "1fc65817312049df",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext for team templatetags at sites django/templatetags/i18n.py:16, django/templatetags/i18n.py:151, django/templatetags/i18n.py:270. Done when 0 left.\",\n \"used\": [\n  \"symbol\",\n  \"team\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 313,
+ "tokens_out": 113
+}

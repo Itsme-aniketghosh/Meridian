@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0080535,
+ "facts_hash": "32236f5812e2af5f",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team tests still has 43 call sites of ugettext_lazy to migrate across 22 files. The migration is blocked by nothing and is blocking nothing. Call sites and bug fixes per file are: tests/i18n/tests.py has 5 sites and 17 bug fixes (#22383, #24423, #25920, #25933, #26212, #26705, #26744, #26746, #26747, #26945, #27063, #27067, #27256, #27402, #27463, #27579); tests/mail/tests.py has 5 sites and 15 bug fixes (#12666, #22561, #25986, #26210, #26747, #26802, #27007, #27036, #27131, #27210, #27333, #27368, #27469, #27696); tests/test_client_regress/tests.py has 3 sites and 8 bug fixes (#26175, #26747, #27463, #27516, #27622, #27698); tests/basic/tests.py has 2 sites and 6 bug fixes (#10506, #13793, #14891, #25201, #26620, #26747, #26787, #27718); tests/many_to_one/tests.py has 2 sites and 6 bug fixes (#10506, #13793, #14891, #20932, #25201, #25897, #26176, #26179, #26706, #27579); tests/migrations/test_writer.py has 1 site and 6 bug fixes (#26176, #26555, #27300, #27378, #27463, #27579); tests/auth_tests/test_management.py has 1 site and 5 bug fixes (#24075, #26089, #26315, #26470); tests/view_tests/urls.py has 1 site and 4 bug fixes (#19567, #26466, #26973); and tests/i18n/urls_default_unprefixed.py has 1 site and 3 bug fixes (#25933, #27063, #27402). Additionally, 22 call sites are in 13 other files.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 1384,
+ "tokens_out": 797
+}

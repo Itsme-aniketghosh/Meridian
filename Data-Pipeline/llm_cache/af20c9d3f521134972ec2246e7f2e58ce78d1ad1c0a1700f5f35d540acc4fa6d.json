@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.00773,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Orphaned owner\",\n    \"Test gap\",\n    \"Never notified\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The migration is stalled due to lacking ownership and gaps in testing that require notification and documentation.\"\n}",
+ "tokens_in": 349,
+ "tokens_out": 586
+}

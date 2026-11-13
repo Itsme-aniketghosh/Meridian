@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0010335,
+ "facts_hash": "b71d70af74562165",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.staticfiles must migrate symbol ugettext_lazy at django/contrib/staticfiles/apps.py:4. The migration is complete when done_when_left is 0.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 274,
+ "tokens_out": 83
+}

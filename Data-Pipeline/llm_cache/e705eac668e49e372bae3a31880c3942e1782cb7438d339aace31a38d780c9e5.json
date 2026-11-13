@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0012075,
+ "facts_hash": "89a2cb973b1079f4",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.contenttypes needs to migrate symbol ugettext_lazy across sites django/contrib/contenttypes/apps.py:5, django/contrib/contenttypes/models.py:6. The work is done when 0 sites are left.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 320,
+ "tokens_out": 97
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0010305,
+ "facts_hash": "4865369e794c6a8d",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.humanize needs to migrate ugettext_lazy at django/contrib/humanize/apps.py:2. The task is done when 0 sites are left.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 277,
+ "tokens_out": 82
+}

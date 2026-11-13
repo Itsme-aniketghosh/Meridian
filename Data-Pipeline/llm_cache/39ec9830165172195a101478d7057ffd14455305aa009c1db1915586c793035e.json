@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001386,
+ "facts_hash": "e56d8b450acfac1f",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team contrib.staticfiles has 1 call site left to migrate across 1 file. The file django/contrib/staticfiles/apps.py has 1 call site and had 2 bug fixes (#20189, #27661). Nothing blocks them, and they are blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_n\",\n  \"left\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 339,
+ "tokens_out": 117
+}

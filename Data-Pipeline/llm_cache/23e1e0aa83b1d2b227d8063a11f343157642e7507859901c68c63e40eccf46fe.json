@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0016035,
+ "facts_hash": "8a2900c83e8ae283",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.auth must migrate ungettext at sites django/contrib/auth/password_validation.py:15, django/contrib/auth/password_validation.py:102, django/contrib/auth/password_validation.py:112 across 1 files (django/contrib/auth/password_validation.py with 3 sites, total count 3). It is done when 0 left.\",\n \"used\": [\n  \"count\",\n  \"done_when_left\",\n  \"files\",\n  \"files_n\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 309,
+ "tokens_out": 152
+}

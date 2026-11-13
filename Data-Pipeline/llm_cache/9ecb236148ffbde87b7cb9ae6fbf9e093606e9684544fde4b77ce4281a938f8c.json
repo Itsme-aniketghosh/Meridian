@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0042225,
+ "facts_hash": "3f1c6ea432731331",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team tests still has 24 call sites left to migrate: 9 call sites in tests/i18n/tests.py (17 bug fixes: #22383, #24423, #25920, #25933, #26212, #26705, #26744, #26746, #26747, #26945, #27063, #27067, #27256, #27402, #27463, #27579), 1 call site in tests/auth_tests/test_forms.py (13 bug fixes: #20705, #21379, #23155, #25232, #26097, #26175, #26334, #26381, #26544, #26951, #27111), 5 call sites in tests/i18n/test_compilation.py (5 bug fixes: #26232, #26673, #26677, #26692), 1 call site in tests/humanize_tests/tests.py (2 bug fixes: #27327), and 8 call sites in 7 other files. The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"left\",\n  \"sites_cut\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 785,
+ "tokens_out": 406
+}

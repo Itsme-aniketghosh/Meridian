@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.011026,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n \"problems\": [\n  \"Never notified\",\n  \"Orphaned owner\",\n  \"Fragility freeze\",\n  \"Test gap\"\n ],\n \"steps\": [\n  \"stall_reason\",\n  \"ticket_draft\",\n  \"consumer\"\n ],\n \"reason\": \"Various migration blockers require recording the stall reasons along with drafting tickets and detailing remaining usages.\"\n}",
+ "tokens_in": 371,
+ "tokens_out": 857
+}

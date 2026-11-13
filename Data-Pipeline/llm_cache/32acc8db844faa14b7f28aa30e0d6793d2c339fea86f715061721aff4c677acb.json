@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0016875,
+ "facts_hash": "cc15feef37a3ba8a",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team django-tastypie/django-tastypie still has 31 call sites of url left to migrate across 14 files. There are 5 call sites in tastypie/resources.py, which had 0 bug fixes (tickets: none). Additionally, 26 call sites are in 13 other files. There is nothing blocked by or blocking this migration.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 345,
+ "tokens_out": 156
+}

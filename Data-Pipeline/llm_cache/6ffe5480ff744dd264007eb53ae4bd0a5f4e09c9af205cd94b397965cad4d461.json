@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0010125,
+ "facts_hash": "a536b316b4d25e52",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/contrib/admindocs/apps.py:2 for team contrib.admindocs. Done when 0 left.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 280,
+ "tokens_out": 79
+}

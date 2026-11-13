@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001059,
+ "facts_hash": "c381d03fa365eee7",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The team walked is contrib.admindocs. The path shows no sites waiting on other sites. Reasons found at contrib.admindocs are Never notified for 1 and Test gap for django.contrib.admindocs.apps.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 286,
+ "tokens_out": 84
+}

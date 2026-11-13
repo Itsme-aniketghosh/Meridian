@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.00828,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Never notified\",\n    \"Orphaned owner\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"Addressing the lack of notification and orphaned ownership requires drafting a new ticket and providing a consumer note to clarify remaining tasks.\"\n}",
+ "tokens_in": 324,
+ "tokens_out": 636
+}

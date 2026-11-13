@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.010292,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Fragility freeze\",\n    \"Never notified\",\n    \"Orphaned owner\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The group requires notification and a list of remaining occurrences to resume the migration process.\"\n}",
+ "tokens_in": 346,
+ "tokens_out": 800
+}

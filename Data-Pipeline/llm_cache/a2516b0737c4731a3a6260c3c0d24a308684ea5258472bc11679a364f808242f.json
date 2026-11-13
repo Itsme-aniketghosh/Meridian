@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0017115,
+ "facts_hash": "2995cdd661816a86",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"For team graphql-python/graphene-django, there are 13 call sites left to migrate for symbol url across 5 files. There are 3 call sites in examples/cookbook-plain/cookbook/urls.py, which had 0 bug fixes (fix keys: none). Additionally, 10 call sites are in 4 other files. Nothing is blocked by them, and they are not blocking anything.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 341,
+ "tokens_out": 160
+}

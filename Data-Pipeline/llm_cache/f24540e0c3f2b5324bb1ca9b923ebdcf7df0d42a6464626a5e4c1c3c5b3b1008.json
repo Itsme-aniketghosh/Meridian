@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0013725,
+ "facts_hash": "2bb818616855698d",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team template needs to migrate symbol ungettext at 3 call sites in 1 file: django/template/defaultfilters.py:22, django/template/defaultfilters.py:849, django/template/defaultfilters.py:866. This is done when 0 call sites are left.\",\n \"used\": [\n  \"count\",\n  \"done_when_left\",\n  \"files_n\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 295,
+ "tokens_out": 124
+}

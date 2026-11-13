@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001347,
+ "facts_hash": "80187500d91f9635",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team contrib.postgres still has to migrate 3 call sites of symbol ungettext_lazy across 1 file. The file django/contrib/postgres/validators.py has 3 sites and had 2 bug fixes. The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_n\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 318,
+ "tokens_out": 116
+}

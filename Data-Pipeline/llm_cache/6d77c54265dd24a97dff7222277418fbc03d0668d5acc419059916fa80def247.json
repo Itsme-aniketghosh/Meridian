@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0014685,
+ "facts_hash": "ecd71bc4d2d9bf3f",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\n  \"text\": \"For team core, migrate ungettext_lazy at django/core/validators.py:11, django/core/validators.py:362, django/core/validators.py:377, django/core/validators.py:397, django/core/validators.py:402, django/core/validators.py:407. Done when 0 left.\",\n  \"used\": [\n    \"team\",\n    \"symbol\",\n    \"sites\",\n    \"done_when_left\"\n  ]\n}",
+ "tokens_in": 329,
+ "tokens_out": 130
+}

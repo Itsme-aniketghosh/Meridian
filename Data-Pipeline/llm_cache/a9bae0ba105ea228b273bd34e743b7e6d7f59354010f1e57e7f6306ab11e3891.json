@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0025995,
+ "facts_hash": "488534b8a83accc5",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/contrib/admin/actions.py:12, django/contrib/admin/actions.py:87, django/contrib/admin/apps.py:4, django/contrib/admin/filters.py:18, django/contrib/admin/forms.py:3, django/contrib/admin/helpers.py:16, django/contrib/admin/models.py:11, django/contrib/admin/sites.py:13, django/contrib/admin/sites.py:39, django/contrib/admin/sites.py:42, django/contrib/admin/sites.py:45 for team contrib.admin. The task has 11 sites across 7 files, and it is done when 0 left.\",\n \"used\": [\n  \"count\",\n  \"done_when_left\",\n  \"files_n\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 578,
+ "tokens_out": 231
+}

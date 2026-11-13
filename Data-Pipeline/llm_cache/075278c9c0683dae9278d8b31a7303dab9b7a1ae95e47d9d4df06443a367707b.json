@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0027105,
+ "facts_hash": "10574d8f68822615",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team contrib.auth has 7 call sites left to migrate across 3 files. django/contrib/auth/forms.py has 4 call sites and had 11 bug fixes (#15667, #20705, #25187, #25966, #26097, #26334, #26381, #26951, #27111, #27136). django/contrib/auth/password_validation.py has 1 call site and had 5 bug fixes (#26544, #26909, #27020, #27467). django/contrib/auth/admin.py has 2 call sites and had 2 bug fixes (#26170). The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_n\",\n  \"left\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 557,
+ "tokens_out": 250
+}

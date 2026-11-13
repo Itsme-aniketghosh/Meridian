@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0011505,
+ "facts_hash": "c18884725145d12e",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\"text\": \"Team contrib.admindocs has 1 call site left to migrate across 1 file. In django/contrib/admindocs/apps.py, there is 1 call site and 0 bug fixes. The team is blocked by nothing and is blocking nothing.\", \"used\": [\"blocked_by\", \"blocking\", \"files\", \"files_n\", \"left\", \"team\"]}\n```",
+ "tokens_in": 322,
+ "tokens_out": 89
+}

@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.008354,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n\"problems\": [\"Never notified\", \"Orphaned owner\", \"Test gap\"],\n\"steps\": [\"stall_reason\", \"ticket_draft\", \"consumer\"],\n\"reason\": \"The group needs an explanation for the delay along with a new issue and a summary of remaining usages to proceed.\"\n}",
+ "tokens_in": 349,
+ "tokens_out": 638
+}

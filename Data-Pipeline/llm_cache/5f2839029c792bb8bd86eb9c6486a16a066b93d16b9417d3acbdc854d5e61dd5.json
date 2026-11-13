@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.01071,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Test gap\",\n    \"Never notified\",\n    \"Orphaned owner\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"Address the test gap and provide a ticket draft with consumer notes for the unmigrated sites.\"\n}",
+ "tokens_in": 351,
+ "tokens_out": 834
+}

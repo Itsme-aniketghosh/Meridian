@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0078,
+ "facts_hash": "609e3cf0f53d8ea1",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate 43 call sites of ugettext_lazy across 22 files for team tests at sites tests/admin_utils/models.py:2, tests/auth_tests/test_management.py:19, tests/basic/tests.py:12, tests/basic/tests.py:319, tests/forms_tests/tests/test_i18n.py:6, tests/forms_tests/tests/test_i18n.py:12, tests/forms_tests/tests/test_i18n.py:37, tests/forms_tests/tests/test_i18n.py:40, tests/forms_tests/tests/test_utils.py:7, tests/forms_tests/tests/test_utils.py:69, tests/forms_tests/tests/test_utils.py:87, tests/i18n/models.py:4, tests/i18n/patterns/urls/default.py:3, tests/i18n/patterns/urls/namespace.py:2, tests/i18n/patterns/urls/wrong.py:3, tests/i18n/patterns/urls/wrong_namespace.py:3, tests/i18n/tests.py:27, tests/i18n/tests.py:122, tests/i18n/tests.py:131, tests/i18n/tests.py:137, tests/i18n/tests.py:141, tests/i18n/urls.py:4, tests/i18n/urls_default_unprefixed.py:4, tests/mail/tests.py:29, tests/mail/tests.py:180, tests/mail/tests.py:859, tests/mail/tests.py:864, tests/mail/tests.py:929, tests/many_to_one/tests.py:8, tests/many_to_one/tests.py:434, tests/messages_tests/base.py:9, tests/messages_tests/base.py:103, tests/migrations/test_writer.py:27, tests/queryset_pickle/models.py:4, tests/serializers/test_json.py:12, tests/serializers/test_json.py:295, tests/serializers/test_json.py:300, tests/test_client_regress/tests.py:20, tests/test_client_regress/tests.py:157, tests/test_client_regress/tests.py:161, tests/utils_tests/test_text.py:7, tests/utils_tests/test_text.py:238, tests/view_tests/urls.py:6. It is done when 0 left.\",\n \"used\": [\n  \"count\",\n  \"files_n\",\n  \"symbol\",\n  \"team\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 1560,
+ "tokens_out": 728
+}

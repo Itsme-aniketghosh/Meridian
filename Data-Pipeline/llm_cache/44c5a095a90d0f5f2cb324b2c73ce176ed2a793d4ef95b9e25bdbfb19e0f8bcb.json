@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0021135,
+ "facts_hash": "e3a3f4f6f4f4a681",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate 7 call sites of url for carltongibson/django-filter across 2 files: tests/rest_framework/test_integration.py (4 sites) and tests/urls.py (3 sites). The sites are tests/rest_framework/test_integration.py:4, tests/rest_framework/test_integration.py:114, tests/rest_framework/test_integration.py:115, tests/rest_framework/test_integration.py:116, tests/urls.py:1, tests/urls.py:13, tests/urls.py:14. Done when 0 left.\",\n \"used\": [\n  \"count\",\n  \"symbol\",\n  \"team\",\n  \"files_n\",\n  \"files\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 379,
+ "tokens_out": 206
+}

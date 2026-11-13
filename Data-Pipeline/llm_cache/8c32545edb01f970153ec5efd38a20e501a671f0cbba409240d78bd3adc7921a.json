@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0016125,
+ "facts_hash": "5fe5412209a25b2c",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"For yourlabs/django-autocomplete-light, 67 call sites of url remain to be migrated across 21 files. In test_project/urls.py, there are 22 call sites and 0 bug fixes. Additionally, 45 call sites are in 20 other files. Nothing blocks this work, and it blocks nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 340,
+ "tokens_out": 147
+}

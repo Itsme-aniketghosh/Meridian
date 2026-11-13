@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0011715,
+ "facts_hash": "febef40f34783415",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team forms has 2 call sites of ungettext_lazy to migrate at django/forms/fields.py:33, django/forms/fields.py:537. The task is done when 0 call sites are left.\",\n \"used\": [\n  \"count\",\n  \"done_when_left\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 281,
+ "tokens_out": 100
+}

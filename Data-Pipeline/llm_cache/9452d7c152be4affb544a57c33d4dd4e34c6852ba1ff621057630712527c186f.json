@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0012765,
+ "facts_hash": "a40313ccc63dbb9c",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "{\"text\": \"The team walked is jazzband/django-two-factor-auth, and the path is empty. Reasons found at team jazzband/django-two-factor-auth: Never notified at 37; Orphaned owner at tests/urls.py line 2274; Test gap at tests.urls_admin, example.urls, and tests.urls_otp_admin.\", \"used\": [\"walked\", \"path\", \"found\"]}",
+ "tokens_in": 361,
+ "tokens_out": 98
+}

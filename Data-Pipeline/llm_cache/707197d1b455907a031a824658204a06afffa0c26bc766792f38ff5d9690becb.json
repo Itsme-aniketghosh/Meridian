@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.007932,
+ "facts_hash": "f8db2e206026594f",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\"text\": \"Migrate url across 240 sites in 44 files for team wagtail/wagtail. Done when left is 0.\", \"used\": [\"symbol\", \"count\", \"files_n\", \"team\", \"done_when_left\"]}\n```",
+ "tokens_in": 4978,
+ "tokens_out": 62
+}

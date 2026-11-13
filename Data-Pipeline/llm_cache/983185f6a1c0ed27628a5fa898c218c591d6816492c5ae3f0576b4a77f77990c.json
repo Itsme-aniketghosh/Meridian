@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.011128,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Never notified\",\n    \"Orphaned owner\",\n    \"Test gap\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The migration is stalled due to missing notifications and test gaps requiring a new ticket and consumer guidance.\"\n}",
+ "tokens_in": 350,
+ "tokens_out": 869
+}

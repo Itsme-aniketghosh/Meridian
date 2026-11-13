@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.012604,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Never notified\",\n    \"Orphaned owner\",\n    \"Test gap\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"Unnotified owners need drafted issues and a clear outline of remaining usages to resolve the gaps.\"\n}",
+ "tokens_in": 350,
+ "tokens_out": 992
+}

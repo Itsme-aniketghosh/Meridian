@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.012268,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Orphaned owner\",\n    \"Test gap\",\n    \"Never notified\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"Unaddressed ownership issues and missing coverage require creating documentation and clarifying the remaining work.\"\n}",
+ "tokens_in": 350,
+ "tokens_out": 964
+}

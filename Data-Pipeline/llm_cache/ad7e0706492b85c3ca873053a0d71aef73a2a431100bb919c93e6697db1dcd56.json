@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.01007,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Never notified\",\n    \"Orphaned owner\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The migration is stalled due to a lack of notification and an orphaned owner.\"\n}",
+ "tokens_in": 325,
+ "tokens_out": 785
+}

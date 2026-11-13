@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0013875,
+ "facts_hash": "22c320d2ec307350",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team contrib.humanize has 29 call sites left to migrate for symbol ungettext across 1 file. django/contrib/humanize/templatetags/humanize.py has 29 call sites and had 1 bug fix. It is blocked by nothing and blocks nothing.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files_n\",\n  \"files\",\n  \"blocked_by\",\n  \"blocking\"\n ]\n}\n```",
+ "tokens_in": 325,
+ "tokens_out": 120
+}

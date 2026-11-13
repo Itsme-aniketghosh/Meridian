@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001515,
+ "facts_hash": "14f7298c1205cee1",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team contrib.auth has 1 call site left to migrate across 1 file for symbol ugettext_noop. The file django/contrib/auth/hashers.py has 1 call site and had 3 bug fixes with ticket keys #26395 and #27010. The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_n\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 340,
+ "tokens_out": 134
+}

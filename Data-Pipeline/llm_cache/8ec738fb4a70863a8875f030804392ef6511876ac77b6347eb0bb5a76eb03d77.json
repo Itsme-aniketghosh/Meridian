@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0017895,
+ "facts_hash": "9d153f23cfb06867",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Team tests: migrate symbol ungettext across sites tests/i18n/commands/__init__.py:1, tests/i18n/commands/__init__.py:12, tests/i18n/tests.py:28, tests/i18n/tests.py:60, tests/i18n/tests.py:61, tests/i18n/tests.py:62, tests/i18n/tests.py:63, tests/i18n/tests.py:1527. Done when left: 0.\", \"used\": [\"team\", \"symbol\", \"sites\", \"done_when_left\"]}",
+ "tokens_in": 408,
+ "tokens_out": 157
+}

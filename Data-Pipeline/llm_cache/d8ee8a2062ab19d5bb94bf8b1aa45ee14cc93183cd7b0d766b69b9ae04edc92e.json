@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001335,
+ "facts_hash": "6795d781151c99e8",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team django-tenants/django-tenants's migration of symbol url has had no change since 2016-05-13T13:44:04Z, with 6 call sites left. Possible reasons: Test gap (evidence: 2), Never notified (evidence: 1).\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"since\",\n  \"left\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 310,
+ "tokens_out": 116
+}

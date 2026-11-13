@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001542,
+ "facts_hash": "4c36bdeb05e511f3",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team jazzband/django-silk still has 28 call sites of symbol url left to migrate across 4 files. silk/urls.py has 19 call sites and had 0 bug fixes. There are 9 call sites in 3 other files. The team is blocked by none and is blocking none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 333,
+ "tokens_out": 139
+}

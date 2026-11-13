@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001098,
+ "facts_hash": "30d4c62d108b6058",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"Beyond its own files, the graph shows that contrib.humanize was looked at. The path shows no sites waiting on each other. The reasons found at contrib.humanize are Never notified for 1 and Test gap for django.contrib.humanize.apps.\",\n \"used\": [\n  \"found\",\n  \"path\",\n  \"walked\"\n ]\n}\n```",
+ "tokens_in": 282,
+ "tokens_out": 90
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001221,
+ "facts_hash": "49860ff2d255cfdf",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.admindocs must migrate 1 call site of ugettext at django/contrib/admindocs/views.py:23 in django/contrib/admindocs/views.py. It is done when 0 are left.\",\n \"used\": [\n  \"count\",\n  \"done_when_left\",\n  \"files\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 279,
+ "tokens_out": 107
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001248,
+ "facts_hash": "23a1104996696ae9",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The walked teams are contrib.sessions. The path is empty. The found items for team contrib.sessions are Never notified for 2, Orphaned owner for django/contrib/sessions/base_session.py line 2348, and Test gap for django.contrib.sessions.apps.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"team\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 317,
+ "tokens_out": 103
+}

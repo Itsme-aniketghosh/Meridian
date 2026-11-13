@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.000855,
+ "facts_hash": "529b13ae24570aa7",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Team contrib.syndication: migrate symbol ugettext_lazy at django/contrib/syndication/apps.py:2. Done when 0 left.\", \"used\": [\"done_when_left\", \"sites\", \"symbol\", \"team\"]}",
+ "tokens_in": 280,
+ "tokens_out": 58
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.011072,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "redacted": "a person",
+ "reply": null,
+ "tokens_in": 346,
+ "tokens_out": 865
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001068,
+ "facts_hash": "6ad46223c2bd6f2c",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n  \"text\": \"Teams walked: django/channels. Path: none. Reasons found at django/channels: Never notified at 18; Test gap at tests.test_routing and tests.test_testing.\",\n  \"used\": [\n   \"walked\",\n   \"path\",\n   \"found\",\n   \"team\"\n  ]\n}\n```",
+ "tokens_in": 292,
+ "tokens_out": 84
+}

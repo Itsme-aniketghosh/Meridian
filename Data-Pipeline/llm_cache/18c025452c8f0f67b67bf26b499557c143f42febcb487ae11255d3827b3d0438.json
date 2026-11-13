@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0012885,
+ "facts_hash": "6ee8fafec6a2b1ca",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.messages must migrate ugettext_lazy at django/contrib/messages/apps.py:2. The migration covers 1 file (django/contrib/messages/apps.py) with 1 call site, and is done when left is 0.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"sites\",\n  \"files_n\",\n  \"files\",\n  \"count\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 274,
+ "tokens_out": 117
+}

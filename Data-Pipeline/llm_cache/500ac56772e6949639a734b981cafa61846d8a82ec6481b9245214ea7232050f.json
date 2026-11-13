@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001548,
+ "facts_hash": "09ba07a3bd53b947",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"For django/channels, 18 call sites of url still need to be migrated across 2 files. There are 16 call sites in tests/test_routing.py, which had 0 bug fixes, and 2 call sites in 1 other file. The migration is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 332,
+ "tokens_out": 140
+}

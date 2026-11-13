@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0015285,
+ "facts_hash": "61f522d46bb6804b",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.sessions: migrate symbol ugettext_lazy at sites django/contrib/sessions/apps.py:2, django/contrib/sessions/base_session.py:6 across 2 files (django/contrib/sessions/apps.py, django/contrib/sessions/base_session.py) with 2 call sites. Done when left: 0.\",\n \"used\": [\n  \"count\",\n  \"done_when_left\",\n  \"files\",\n  \"files_n\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 319,
+ "tokens_out": 140
+}

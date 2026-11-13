@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.00844,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n\"problems\": [\"Test gap\", \"Never notified\"],\n\"steps\": [\"stall_reason\", \"ticket_draft\", \"consumer\"],\n\"reason\": \"The maintainers must be informed about the test coverage gap and provided with details on the remaining migrations.\"\n}",
+ "tokens_in": 326,
+ "tokens_out": 649
+}

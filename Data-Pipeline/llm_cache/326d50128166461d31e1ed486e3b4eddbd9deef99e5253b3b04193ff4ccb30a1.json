@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0024675,
+ "facts_hash": "e3b47a86dd5c7d2c",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team tests still has 8 call sites left to migrate for symbol ungettext_lazy across 1 file. In tests/i18n/tests.py, there are 8 call sites; this file had 17 bug fixes with ticket keys #22383, #24423, #25920, #25933, #26212, #26705, #26744, #26746, #26747, #26945, #27063, #27067, #27256, #27402, #27463, and #27579. The team is blocked by none and is blocking none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_n\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 465,
+ "tokens_out": 236
+}

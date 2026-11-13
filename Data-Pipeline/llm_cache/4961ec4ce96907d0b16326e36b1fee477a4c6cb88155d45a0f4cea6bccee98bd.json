@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001629,
+ "facts_hash": "83ff02110b749d1c",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team jazzband/django-debug-toolbar has 29 call sites left to migrate for symbol url across 6 files. There are 13 call sites in tests/urls.py, which had 0 bug fixes with no fix keys. Additionally, 16 call sites are cut across 5 other files. The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 336,
+ "tokens_out": 150
+}

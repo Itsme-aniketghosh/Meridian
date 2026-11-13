@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0015075,
+ "facts_hash": "4dc1b414aa876865",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"The db team's migration of ugettext_lazy has had no change since 2015-06-15T18:07:31Z, with 4 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 4), Fragility freeze (evidence: 1), Test gap (evidence: 1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 355,
+ "tokens_out": 130
+}

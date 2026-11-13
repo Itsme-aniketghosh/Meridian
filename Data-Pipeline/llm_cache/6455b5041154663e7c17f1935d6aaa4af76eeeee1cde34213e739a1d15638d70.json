@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0015105,
+ "facts_hash": "bfed7d742cfeb7bd",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team django-cms/django-cms has 160 call sites left to migrate. cms/admin/pageadmin.py has 3 call sites and had 1 bug fix (#6921). There are 157 call sites in 34 other files. The team is blocked by nothing and is blocking nobody.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"left\",\n  \"sites_cut\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 352,
+ "tokens_out": 131
+}
