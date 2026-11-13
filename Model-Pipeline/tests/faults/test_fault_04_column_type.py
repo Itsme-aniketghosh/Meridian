@@ -22,17 +22,14 @@ class ColumnType(unittest.TestCase):
         train.main(["--untuned", "--features", str(self.d / "features.parquet"), "--out", str(self.d / "out")])
 
     def test_training_never_runs_on_it(self):
-        with self.assertRaises((SystemExit, TypeError)):
+        with self.assertRaises(SystemExit):
             self.train()
         self.assertFalse((self.d / "out").exists(), "nothing written")
 
-    # Rachna (train.py check_table): it stops with "TypeError: Invalid comparison between dtype=str and int" from the
-    # negative-count check, not a refusal that names the column, as fault 3's does. Fixed when this passes.
-    @unittest.expectedFailure
     def test_it_is_refused_with_a_message_naming_the_column(self):
         with self.assertRaises(SystemExit) as stop:
             self.train()
-        self.assertIn("la", str(stop.exception.code))
+        self.assertRegex(stop.exception.code, r"^feature table: feature column\(s\) not numbers: la \(\w+\)$")
 
 
 if __name__ == "__main__":

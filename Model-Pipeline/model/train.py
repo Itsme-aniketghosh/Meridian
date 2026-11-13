@@ -77,6 +77,9 @@ def check_table(df, split_years=None):
     bad_split = sorted(set(df["split"]) - SPLITS)
     if bad_split:
         raise FeatureError(f"unknown split value(s): {bad_split}")
+    wrong = [f"{c} ({df[c].dtype})" for c in NUMERIC if not pd.api.types.is_numeric_dtype(df[c])]
+    if wrong:  # schema drift, such as counts arriving as text (fault 4)
+        raise FeatureError("feature column(s) not numbers: " + ", ".join(wrong))
     for col in NUMERIC:
         n = int(df[col].isna().sum())
         if n:

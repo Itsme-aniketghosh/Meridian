@@ -67,7 +67,7 @@ The same goes for the defect labels: the LLM may audit them (gap 6), but it neve
 | Training window | 2015–22 | Gap 12, decision 5 |
 | Alert threshold | None | Decision 3: no cutoff met the precision bar |
 
-**Code freeze: Nov 13, about 8 pm.** The faults run on frozen main: model side in PR #102, data side in PR #100, and Rochan's 7, 8, 10 and 20. `python -m tests.faults.table` prints the report's table. Two don't behave cleanly so far, fault 4 and fault 17, both Rachna's.
+**Code freeze: Nov 13, about 8 pm.** The faults run on frozen main: model side in PR #102, data side in PR #100, and Rochan's 7, 8, 10 and 20. `python -m tests.faults.table` prints the report's table. Faults 4 and 17 didn't behave at first, and both are fixed: train.py now refuses a column that isn't a number and names it, and an unreachable Jev now falls back to the rules pick.
 
 Until the freeze, anything that could change these (gap 13's cleaner SZZ, say) is measured on val only. After it, the test runs once and is reported as it comes out. `model.refresh` refuses to run while the test is open.
 
