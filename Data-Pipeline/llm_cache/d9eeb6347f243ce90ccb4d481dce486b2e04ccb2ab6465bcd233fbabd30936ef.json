@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0018975,
+ "facts_hash": "8a4fd0f3bf1d8421",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team core has 2 call sites left to migrate for symbol ugettext_lazy across 2 files. django/core/validators.py has 1 call site and 7 bug fixes (#21548, #26107, #26204, #26578, #27793). django/core/paginator.py has 1 call site and 1 bug fix (#26290). The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_n\",\n  \"left\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 420,
+ "tokens_out": 169
+}

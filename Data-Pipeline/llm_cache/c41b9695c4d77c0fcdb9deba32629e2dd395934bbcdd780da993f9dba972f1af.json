@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0023625,
+ "facts_hash": "5fa9123c34fe161a",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team encode/django-rest-framework still has 182 call sites to migrate for symbol url. There are 20 call sites in tests/schemas/test_openapi.py (which had 2 bug fixes: #6944, #7211), 2 call sites in tests/test_relations.py (which had 1 bug fix: #7006), and 2 call sites in tests/test_viewsets.py (which had 1 bug fix: #7219). Additionally, 158 call sites are in 23 other files out of 26 files. Nothing is blocked by them, and they are blocking nothing.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"sites_cut\",\n  \"files_cut\",\n  \"files_n\",\n  \"blocked_by\",\n  \"blocking\"\n ]\n}\n```",
+ "tokens_in": 475,
+ "tokens_out": 220
+}

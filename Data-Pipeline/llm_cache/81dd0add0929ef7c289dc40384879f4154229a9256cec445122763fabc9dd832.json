@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.008582,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n \"problems\": [\n  \"Test gap\",\n  \"Never notified\",\n  \"Orphaned owner\"\n ],\n \"steps\": [\n  \"stall_reason\",\n  \"ticket_draft\",\n  \"consumer\"\n ],\n \"reason\": \"The migration process is paused due to missing tests and lack of communication requiring new drafts and notifications.\"\n}",
+ "tokens_in": 349,
+ "tokens_out": 657
+}

@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.009112,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n\"problems\": [\n  \"Never notified\",\n  \"Orphaned owner\",\n  \"Fragility freeze\"\n],\n\"steps\": [\n  \"stall_reason\",\n  \"ticket_draft\",\n  \"consumer\"\n],\n\"reason\": \"Various issues including unnotified stakeholders and system freezes block the migration.\"\n}",
+ "tokens_in": 350,
+ "tokens_out": 701
+}

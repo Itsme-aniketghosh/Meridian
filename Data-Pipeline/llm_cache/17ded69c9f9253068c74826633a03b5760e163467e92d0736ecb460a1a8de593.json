@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0021975,
+ "facts_hash": "3aac1e428cf21fb5",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy at django/forms/boundfield.py:12, django/forms/fields.py:33, django/forms/models.py:21, django/forms/utils.py:9, django/forms/widgets.py:20, django/forms/widgets.py:361, django/forms/widgets.py:362, django/forms/widgets.py:363, django/forms/widgets.py:693, django/forms/widgets.py:694, django/forms/widgets.py:695 for team forms. The work is done when 0 call sites are left.\",\n \"used\": [\n  \"symbol\",\n  \"sites\",\n  \"team\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 495,
+ "tokens_out": 194
+}

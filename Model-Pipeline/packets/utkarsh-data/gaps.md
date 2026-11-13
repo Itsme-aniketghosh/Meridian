@@ -110,3 +110,18 @@ What gap 13 asks to skip is mostly already skipped. `szz.py` blames with `git di
 **Pick.** By the rule, every reachable model ties at 0, so it goes to the open-weights model: **Gemma 4**. That pick says nothing, since no model gets a line through. The diff drafter stays codemod-only for the packages, and `LADDER` doesn't change. Gap 2 for diffs is closed as "no model clears the drafter's checks on these lines."
 
 **Rerun:** `python -m meridian.diffs_compare --run-id c5118b019d642a9b --models gemini-flash,gemini-pro,gemma-4` reads the committed cache, with 0 calls. Add `--llm` with `$MERIDIAN_GCP_PROJECT` to call live, for example once Llama 4 is enabled. Table: `diffs_compare.json`.
+
+## Gap 15: the orchestrator's live run (Nov 13)
+
+On the product block `bb6b5f4e32a4bee7` (Aniket's block decision), after the context rerun (#109) and gap 16's switch-on (#111, #112), on Utkarsh's GCP project:
+
+```bash
+python -m meridian.orchestrator --run-id bb6b5f4e32a4bee7 --llm --models gemini-flash --workers 8
+```
+
+- **Planning on Gemini 3.1 Pro** (the orchestrator's fixed `MODEL`). **Writing on Gemini 3.8 Flash:** the writer comparison's pick, since the default ladder is Claude, which credit-only billing can't buy. No `--jev`: the Jev comparison picked the rules route.
+- **68 stalled teams planned:** 49 by the orchestrator, 19 by the rules. Of the 19, 6 answers weren't the JSON asked for, and in 13 the reason said something not in the facts, so the fact gate refused it. The graph walkers ran for 20 stalls, because their context tool gave nothing usable (gap 17).
+- **Steps written:** 68 stall_reason, 68 ticket_draft, 68 consumer and 20 walk. That's 164 LLM texts and 60 templates.
+- **247 calls, $1.10** (orchestrator $0.66), in 4.7 minutes.
+- **Done-when met:** rerun with the committed cache and no GCP access (`--strict-cache`, no `--llm`), it makes **0 calls** and gives the same plans and texts.
+- **Cache:** 247 entries committed in `llm_cache/`. Scanned: no email, no person's full name. 6 carry the writer's redacted marker: a reply that named a person is never stored or shipped.

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001029,
+ "facts_hash": "4be0fcdab65a4ae8",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The walked team is contrib.sitemaps. The path is empty. For contrib.sitemaps, found reasons are Never notified for 1 and Test gap for django.contrib.sitemaps.apps.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 286,
+ "tokens_out": 80
+}

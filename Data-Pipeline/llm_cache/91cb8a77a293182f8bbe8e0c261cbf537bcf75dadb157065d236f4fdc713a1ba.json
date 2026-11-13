@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001728,
+ "facts_hash": "cc6fd4c3a2f1fe0d",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Team cookiecutter/cookiecutter-django needs to migrate 16 call sites of symbol url across 2 files: {{cookiecutter.project_slug}}/config/urls.py (11 sites) and {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py (5 sites). The work is done when 0 remain.\", \"used\": [\"count\", \"done_when_left\", \"files\", \"files_n\", \"symbol\", \"team\"]}",
+ "tokens_in": 612,
+ "tokens_out": 108
+}

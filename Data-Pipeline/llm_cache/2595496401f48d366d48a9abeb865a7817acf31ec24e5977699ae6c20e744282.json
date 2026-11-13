@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.010302,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Test gap\",\n    \"Never notified\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The team needs a new ticket and a list of remaining uses to address the test gap and lack of notification.\"\n}",
+ "tokens_in": 327,
+ "tokens_out": 804
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0013515,
+ "facts_hash": "bae77d7ecec5398f",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The graph shows walked teams: django-tenants/django-tenants. The path is []. Reasons found at django-tenants/django-tenants: Never notified at [6]; Test gap at [\\\"examples.tenant_tutorial.tenant_tutorial.urls_tenants\\\"] and [\\\"examples.tenant_tutorial.tenant_tutorial.urls_public\\\"].\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 326,
+ "tokens_out": 115
+}

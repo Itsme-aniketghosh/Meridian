@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.010888,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Never notified\",\n    \"Orphaned owner\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The group needs a drafted issue and a note about remaining work to resolve the unnotified and orphaned status.\"\n}",
+ "tokens_in": 326,
+ "tokens_out": 853
+}

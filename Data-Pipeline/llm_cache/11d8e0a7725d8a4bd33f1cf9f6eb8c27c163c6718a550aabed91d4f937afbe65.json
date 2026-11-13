@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0015375,
+ "facts_hash": "af959a8cf9dbf92f",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.postgres has 3 call sites of ungettext_lazy across 1 files (sites: django/contrib/postgres/validators.py:9, django/contrib/postgres/validators.py:13, django/contrib/postgres/validators.py:20; django/contrib/postgres/validators.py has 3 sites). The work is done when 0 are left.\",\n \"used\": [\n  \"count\",\n  \"done_when_left\",\n  \"files\",\n  \"files_n\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 300,
+ "tokens_out": 145
+}

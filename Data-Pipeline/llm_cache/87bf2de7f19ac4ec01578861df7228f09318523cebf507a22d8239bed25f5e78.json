@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0015975,
+ "facts_hash": "c8cc23c98ba19d4a",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team carltongibson/django-filter still has 7 call sites of url to migrate across 2 files. There are 4 call sites in tests/rest_framework/test_integration.py, which had 0 bug fixes, and 3 call sites in 1 other file. It is blocked by nothing and blocks no one.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 340,
+ "tokens_out": 145
+}

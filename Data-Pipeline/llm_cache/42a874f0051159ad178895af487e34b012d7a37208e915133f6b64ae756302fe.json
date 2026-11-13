@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001008,
+ "facts_hash": "3222bfec8e5ed015",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.auth: migrate symbol ugettext_noop at sites django/contrib/auth/hashers.py:18. Done when left: 0.\",\n \"used\": [\n  \"done_when_left\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 277,
+ "tokens_out": 79
+}

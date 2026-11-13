@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.008406,
+ "facts_hash": "c9b162139c827e07",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\"text\": \"Migrate 247 call sites of url across 28 files for team django-oscar/django-oscar. The migration is done when 0 call sites are left.\", \"used\": [\"count\", \"symbol\", \"files_n\", \"team\", \"done_when_left\"]}\n```",
+ "tokens_in": 5244,
+ "tokens_out": 72
+}

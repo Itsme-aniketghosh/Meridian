@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0016065,
+ "facts_hash": "e80671a1b39eb733",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team utils needs to migrate ungettext_lazy at django/utils/timesince.py:6, django/utils/timesince.py:9, django/utils/timesince.py:10, django/utils/timesince.py:11, django/utils/timesince.py:12, django/utils/timesince.py:13, django/utils/timesince.py:14. It is done when 0 are left.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 341,
+ "tokens_out": 146
+}

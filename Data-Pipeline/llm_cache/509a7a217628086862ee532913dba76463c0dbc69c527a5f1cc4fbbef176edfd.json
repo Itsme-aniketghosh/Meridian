@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001491,
+ "facts_hash": "40b992d7ac74219f",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team template's migration of ungettext has had no change since 2015-10-25T23:05:03Z, with 3 call sites left. Possible reasons: Never notified (evidence: 1), Orphaned owner (evidence: 1), Semantics unclear (evidence: 1), Fragility freeze (evidence: 1).\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"since\",\n  \"left\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 354,
+ "tokens_out": 128
+}

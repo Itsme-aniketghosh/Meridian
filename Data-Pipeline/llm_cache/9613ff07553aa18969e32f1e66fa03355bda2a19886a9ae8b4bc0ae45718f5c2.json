@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.010764,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Never notified\",\n    \"Orphaned owner\",\n    \"Fragility freeze\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The group faces a fragility freeze and orphaned ownership without prior notification.\"\n}",
+ "tokens_in": 348,
+ "tokens_out": 839
+}

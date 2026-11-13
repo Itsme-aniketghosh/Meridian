@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.009028,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Test gap\",\n    \"Never notified\",\n    \"Orphaned owner\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The team requires a ticket draft for initial notification and a consumer note outlining the remaining work due to testing gaps and orphaned ownership.\"\n}",
+ "tokens_in": 350,
+ "tokens_out": 694
+}

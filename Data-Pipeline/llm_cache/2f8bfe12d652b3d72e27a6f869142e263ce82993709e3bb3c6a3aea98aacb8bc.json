@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0010845,
+ "facts_hash": "7ed3bf75cb2aa02a",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team core must migrate ugettext_lazy at django/core/paginator.py:6, django/core/validators.py:11. Done when left: 0.\",\n \"used\": [\n  \"done_when_left\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 308,
+ "tokens_out": 83
+}

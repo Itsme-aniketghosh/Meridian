@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001674,
+ "facts_hash": "a9236f4fb53b0355",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"Beyond its own files, the graph shows no sites waiting on others, as path is empty. The team walked was jazzband/django-silk. For team jazzband/django-silk, the reasons found are Never notified at 28; Orphaned owner at project/tests/urlconf_without_silk.py line 2190; and Test gap at project.example_app.urls, project.project.urls, silk.urls, and project.tests.urlconf_without_silk.\",\n \"used\": [\n  \"path\",\n  \"walked\",\n  \"team\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 376,
+ "tokens_out": 148
+}

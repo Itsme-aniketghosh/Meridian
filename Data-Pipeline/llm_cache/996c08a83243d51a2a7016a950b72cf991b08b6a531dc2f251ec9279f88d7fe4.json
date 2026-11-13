@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0015615,
+ "facts_hash": "a6bfab052f1a2bfd",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team contrib.sessions has 2 call sites left to migrate for symbol ugettext_lazy across 2 files. django/contrib/sessions/apps.py has 1 call site and had 0 bug fixes. 1 call site is in 1 other file. Team contrib.sessions is blocked by nobody and blocks nobody.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 336,
+ "tokens_out": 141
+}

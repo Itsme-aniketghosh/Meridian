@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.002469,
+ "facts_hash": "2fda003e5db0c875",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team tests has 8 call sites left to migrate. File tests/i18n/tests.py has 6 call sites and had 17 bug fixes with ticket keys #22383, #24423, #25920, #25933, #26212, #26705, #26744, #26746, #26747, #26945, #27063, #27067, #27256, #27402, #27463, and #27579. There are 2 call sites in 1 other file. They are blocked by nothing and are blocking nobody.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"left\",\n  \"sites_cut\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 481,
+ "tokens_out": 233
+}

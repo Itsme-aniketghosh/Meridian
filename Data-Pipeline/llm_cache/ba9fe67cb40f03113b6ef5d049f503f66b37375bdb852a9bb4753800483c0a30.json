@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0014295,
+ "facts_hash": "1d825b3d249a6c55",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The walked teams are django-extensions/django-extensions. The path is empty. Reasons found at team django-extensions/django-extensions are Never notified at line 10, Orphaned owner at django_extensions/admin/__init__.py line 2321, and Test gap at tests.testapp.urls and tests.management.commands.test_show_urls.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 348,
+ "tokens_out": 121
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0022575,
+ "facts_hash": "da7b070b4819283f",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate 37 call sites of url for team jazzband/django-two-factor-auth across 6 files: example/urls.py, tests/urls.py, tests/urls_admin.py, tests/urls_otp_admin.py, two_factor/gateways/twilio/urls.py, and two_factor/urls.py. The work is done when 0 call sites are left.\",\n \"used\": [\n  \"count\",\n  \"symbol\",\n  \"team\",\n  \"files_n\",\n  \"files\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 775,
+ "tokens_out": 146
+}

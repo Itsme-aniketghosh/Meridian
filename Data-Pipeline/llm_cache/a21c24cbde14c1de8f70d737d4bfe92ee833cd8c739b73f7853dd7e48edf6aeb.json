@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.011518,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Never notified\",\n    \"Orphaned owner\",\n    \"Test gap\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The maintainers need an issue created and guidance on the remaining usages to resume the migration.\"\n}",
+ "tokens_in": 347,
+ "tokens_out": 902
+}

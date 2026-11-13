@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0016665,
+ "facts_hash": "b8a6bc90abd3472d",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Migrate ugettext_lazy for team contrib.flatpages across 4 files (4 call sites): django/contrib/flatpages/admin.py:4, django/contrib/flatpages/apps.py:2, django/contrib/flatpages/forms.py:4, django/contrib/flatpages/models.py:5. Work is done when 0 call sites are left.\",\n \"used\": [\n  \"symbol\",\n  \"team\",\n  \"files_n\",\n  \"count\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 406,
+ "tokens_out": 141
+}

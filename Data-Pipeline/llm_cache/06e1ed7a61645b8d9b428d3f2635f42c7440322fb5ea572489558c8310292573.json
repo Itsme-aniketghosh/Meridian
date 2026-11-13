@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0049035,
+ "facts_hash": "57ba05ea38475d53",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate 24 call sites of ugettext for team tests across 11 files: tests/auth_tests/test_forms.py:20, tests/flatpages_tests/test_forms.py:104, tests/humanize_tests/tests.py:10, tests/i18n/commands/__init__.py:1, tests/i18n/commands/code.sample:1, tests/i18n/commands/code.sample:4, tests/i18n/exclude/__init__.py:6, tests/i18n/project_dir/__init__.py:2, tests/i18n/project_dir/app_no_locale/models.py:1, tests/i18n/project_dir/app_with_locale/models.py:1, tests/i18n/test_compilation.py:18, tests/i18n/test_compilation.py:170, tests/i18n/test_compilation.py:171, tests/i18n/test_compilation.py:177, tests/i18n/test_compilation.py:178, tests/i18n/tests.py:27, tests/i18n/tests.py:994, tests/i18n/tests.py:996, tests/i18n/tests.py:998, tests/i18n/tests.py:1000, tests/i18n/tests.py:1226, tests/i18n/tests.py:1271, tests/i18n/tests.py:1299, tests/i18n/tests.py:1514. Done when left: 0.\", \"used\": [\"count\", \"symbol\", \"team\", \"files_n\", \"sites\", \"done_when_left\"]}",
+ "tokens_in": 994,
+ "tokens_out": 455
+}

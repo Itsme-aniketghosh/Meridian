@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0024525,
+ "facts_hash": "3fb11bd59a196739",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate url call sites for team django-extensions/django-extensions across 3 files: django_extensions/admin/__init__.py, tests/management/commands/test_show_urls.py, and tests/testapp/urls.py. Specific sites are django_extensions/admin/__init__.py:55, django_extensions/admin/__init__.py:63, tests/management/commands/test_show_urls.py:3, tests/management/commands/test_show_urls.py:26, tests/management/commands/test_show_urls.py:27, tests/management/commands/test_show_urls.py:28, tests/testapp/urls.py:19, tests/testapp/urls.py:27, tests/testapp/urls.py:28, tests/testapp/urls.py:29. Done when 0 left.\", \"used\": [\"symbol\", \"team\", \"files_n\", \"files\", \"sites\", \"done_when_left\"]}",
+ "tokens_in": 465,
+ "tokens_out": 234
+}

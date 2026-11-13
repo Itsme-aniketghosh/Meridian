@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0026175,
+ "facts_hash": "e6c1c6369f14f187",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "{\"text\": \"Migrate url call sites for team graphql-python/graphene-django at examples/cookbook-plain/cookbook/urls.py:1, examples/cookbook-plain/cookbook/urls.py:8, examples/cookbook-plain/cookbook/urls.py:9, examples/cookbook/cookbook/urls.py:1, examples/cookbook/cookbook/urls.py:8, examples/cookbook/cookbook/urls.py:9, graphene_django/tests/urls.py:1, graphene_django/tests/urls.py:6, graphene_django/tests/urls.py:7, graphene_django/tests/urls_inherited.py:1, graphene_django/tests/urls_inherited.py:13, graphene_django/tests/urls_pretty.py:1, graphene_django/tests/urls_pretty.py:6 across 5 files (total count: 13). It is done when 0 left.\", \"used\": [\"symbol\", \"team\", \"sites\", \"files_n\", \"count\", \"done_when_left\"]}",
+ "tokens_in": 560,
+ "tokens_out": 237
+}

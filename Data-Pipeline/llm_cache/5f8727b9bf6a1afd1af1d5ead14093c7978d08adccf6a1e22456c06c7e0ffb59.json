@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001449,
+ "facts_hash": "8a2027135aad9c80",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team iMerica/dj-rest-auth has 18 call sites to migrate in demo/demo/urls.py, which had 2 bug fixes (#291, #332), and 33 call sites in 2 other files. The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"sites_cut\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 356,
+ "tokens_out": 122
+}

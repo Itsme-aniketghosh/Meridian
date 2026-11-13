@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.004473,
+ "facts_hash": "1c37a5c87d1ac387",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The team walked was django-oscar/django-oscar, and path is empty. Reasons found at team django-oscar/django-oscar include Never notified at 247, Orphaned owner at sandbox/urls.py line 2231, and Test gap across src.oscar.apps.dashboard.catalogue.apps, src.oscar.apps.checkout.apps, src.oscar.apps.dashboard.shipping.apps, src.oscar.apps.dashboard.users.apps, src.oscar.apps.customer.apps, src.oscar.apps.catalogue.reviews.apps, src.oscar.apps.dashboard.apps, src.oscar.apps.dashboard.vouchers.apps, tests._site.apps.catalogue.apps, src.oscar.apps.dashboard.communications.apps, tests._site.urls, src.oscar.config, src.oscar.test.factories.urls, src.oscar.apps.dashboard.offers.apps, src.oscar.apps.dashboard.ranges.apps, src.oscar.apps.communication.app, tests.unit.core.test_application, src.oscar.apps.dashboard.partners.apps, src.oscar.apps.basket.apps, src.oscar.apps.dashboard.pages.apps, src.oscar.apps.dashboard.reports.apps, src.oscar.apps.search.apps, src.oscar.apps.catalogue.apps, sandbox.urls, src.oscar.apps.dashboard.orders.apps, src.oscar.apps.offer.apps, src.oscar.apps.dashboard.reviews.apps, and tests.unit.dashboard.test_nav.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 887,
+ "tokens_out": 419
+}

@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0049155,
+ "facts_hash": "be6f76c6fd3386e5",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "{\"text\": \"Team contrib.admin has 27 call sites left to migrate for symbol ugettext. The migration is blocked by nothing and is blocking nothing. Call sites by file: django/contrib/admin/options.py has 1 call site and had 18 bug fixes (#16327, #24941, #26170, #26235, #26449, #26543, #26919, #27067, #27218, #27273, #27302, #27313, #27463, #2856); django/contrib/admin/sites.py has 1 call site and had 8 bug fixes (#19567, #26558, #26779, #26954, #26961, #27673); django/contrib/admin/helpers.py has 3 call sites and had 6 bug fixes (#26729, #27216, #27266, #27532); django/contrib/admin/widgets.py has 1 call site and had 5 bug fixes (#15667, #22936, #26533, #27199); django/contrib/admin/tests.py has 1 call site and had 4 bug fixes (#25364, #25653, #26575, #26577); django/contrib/admin/views/main.py has 3 call sites and had 3 bug fixes (#18729); django/contrib/admin/actions.py has 1 call site and had 2 bug fixes (#21734). Additionally, 16 call sites are in 2 other files.\", \"used\": [\"blocked_by\", \"blocking\", \"files\", \"files_cut\", \"left\", \"sites_cut\", \"symbol\", \"team\"]}",
+ "tokens_in": 947,
+ "tokens_out": 466
+}

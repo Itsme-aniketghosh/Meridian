@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0025785,
+ "facts_hash": "f382fd469f10a3ff",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The walked teams are django-tastypie/django-tastypie. The path is empty, showing no sites waiting on others beyond what is listed. At django-tastypie/django-tastypie, reasons found are Never notified at line 31; Orphaned owner at tastypie/api.py line 1945 and tastypie/resources.py line 1945; and Test gap at tests.basic.urls, tests.namespaced.api.urls, tests.gis.urls, tests.profilingtests.urls, tests.core.tests.resource_urls, tests.alphanumeric.urls, tests.validation.api.urls, tests.slashless.api.urls, tests.authorization.urls, tests.core.tests.manual_urls, tests.core.tests.api_urls, and tests.content_gfk.urls.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 559,
+ "tokens_out": 232
+}

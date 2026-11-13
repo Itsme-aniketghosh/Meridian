@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.002685,
+ "facts_hash": "75c051df2ad28afb",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team wagtail/wagtail has 240 call sites left to migrate across 44 files. The files to migrate include: wagtail/admin/urls/__init__.py with 33 sites and 1 bug fix (#5507); wagtail/contrib/modeladmin/options.py with 7 sites and 1 bug fix; wagtail/tests/headless_urls.py with 4 sites and 1 bug fix; wagtail/documents/wagtail_hooks.py with 2 sites and 1 bug fix (#5507); and wagtail/images/wagtail_hooks.py with 2 sites and 1 bug fix (#5507). Additionally, there are 192 call sites in 39 other files. The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 570,
+ "tokens_out": 244
+}

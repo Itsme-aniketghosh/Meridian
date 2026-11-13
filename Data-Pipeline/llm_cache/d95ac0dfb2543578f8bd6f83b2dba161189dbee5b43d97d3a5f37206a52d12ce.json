@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.01181,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n\"problems\": [\"Never notified\", \"Test gap\"],\n\"steps\": [\"stall_reason\", \"consumer\"],\n\"reason\": \"Provide a note detailing the remaining usage to help resume the stalled migration.\"\n}",
+ "tokens_in": 325,
+ "tokens_out": 930
+}

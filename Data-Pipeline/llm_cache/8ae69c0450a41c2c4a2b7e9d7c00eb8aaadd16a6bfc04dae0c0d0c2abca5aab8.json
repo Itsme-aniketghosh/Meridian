@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.008344,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Never notified\",\n    \"Orphaned owner\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The group must be informed of the required migration and given a clear breakdown of the remaining work.\"\n}",
+ "tokens_in": 326,
+ "tokens_out": 641
+}

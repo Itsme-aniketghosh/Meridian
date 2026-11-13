@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0010365,
+ "facts_hash": "58c093771e16641d",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team contrib.humanize: migrate ugettext at django/contrib/humanize/templatetags/humanize.py:12. Done when left: 0.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 286,
+ "tokens_out": 81
+}

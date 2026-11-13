@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0013965,
+ "facts_hash": "e051964ee60796fa",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "```json\n{\n \"text\": \"Team tests's migration of the symbol ugettext has had no change since 2017-01-24T11:22:42Z, with 24 left. Possible reasons: Test gap (evidence: 11), Orphaned owner (evidence: 5), Never notified (evidence: 1).\",\n \"used\": [\n  \"left\",\n  \"reasons\",\n  \"since\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 331,
+ "tokens_out": 120
+}

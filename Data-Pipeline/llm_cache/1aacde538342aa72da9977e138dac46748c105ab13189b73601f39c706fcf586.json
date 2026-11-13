@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001176,
+ "facts_hash": "077a8633a4ad63bb",
+ "model": "gemini-flash",
+ "prompt_version": "2ddaf9e6d478",
+ "reply": "{\"text\": \"Team tests migration of symbol ungettext has had no change since 2017-01-20T09:20:53Z, with 8 call sites left. Possible reasons: Test gap with evidence 2, Never notified with evidence 1, and Orphaned owner with evidence 1.\", \"used\": [\"team\", \"symbol\", \"since\", \"left\", \"reasons\"]}",
+ "tokens_in": 329,
+ "tokens_out": 91
+}

@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.008422,
+ "model": "gemini-pro",
+ "prompt_version": "76e4070b64e9",
+ "reply": "{\n  \"problems\": [\n    \"Orphaned owner\",\n    \"Never notified\",\n    \"Fragility freeze\",\n    \"Test gap\"\n  ],\n  \"steps\": [\n    \"stall_reason\",\n    \"ticket_draft\",\n    \"consumer\"\n  ],\n  \"reason\": \"The issues must be documented with a draft and details on the remaining work.\"\n}",
+ "tokens_in": 371,
+ "tokens_out": 640
+}

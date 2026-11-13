@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0036,
+ "facts_hash": "6c1314640856e76e",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "{\"text\": \"The team walked was yourlabs/django-autocomplete-light. The path is empty. Reasons found for team yourlabs/django-autocomplete-light include Never notified for 67; Orphaned owner for test_project/select2_djhacker_formfield/urls.py line 1760 and test_project/urls.py line 1760; and Test gap for test_project.select2_djhacker_formfield.urls, test_project.select2_gm2m.urls, src.dal_select2_queryset_sequence.fields, test_project.tests.test_widgets, test_project.urls, src.dal_queryset_sequence.fields, test_project.select2_foreign_key.urls, test_project.select2_many_to_many.urls, test_project.select2_taggit.urls, test_project.select2_generic_m2m.urls, test_project.select2_one_to_one.urls, test_project.select2_tagging.urls, test_project.rename_forward.urls, test_project.select2_nestedadmin.urls, test_project.select2_list.urls, test_project.secure_data.urls, test_project.forward_different_fields.urls, test_project.custom_select2.urls, and test_project.select2_outside_admin.urls.\", \"used\": [\"found\", \"path\", \"walked\"]}",
+ "tokens_in": 745,
+ "tokens_out": 331
+}

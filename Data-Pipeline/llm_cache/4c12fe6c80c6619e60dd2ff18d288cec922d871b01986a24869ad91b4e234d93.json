@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0016545,
+ "facts_hash": "1cf3a8b93a9febde",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"For team jazzband/django-two-factor-auth, 37 call sites of symbol url remain to migrate across 6 files. There are 11 call sites in example/urls.py, which had 0 bug fixes with fix keys []. Additionally, 26 call sites are in 5 other files. The migration is blocked by [] and is blocking [].\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 338,
+ "tokens_out": 153
+}

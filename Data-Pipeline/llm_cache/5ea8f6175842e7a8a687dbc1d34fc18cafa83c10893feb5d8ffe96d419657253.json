@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001641,
+ "facts_hash": "2d9bcee0685f1a17",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team django-import-export/django-import-export: migrate url across 2 files (import_export/admin.py:6, import_export/admin.py:93, import_export/admin.py:96, import_export/admin.py:368, tests/urls.py:3, tests/urls.py:12, tests/urls.py:13). Done when 0 left.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"files_n\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 359,
+ "tokens_out": 147
+}

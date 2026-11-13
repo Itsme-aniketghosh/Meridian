@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0012225,
+ "facts_hash": "d9f15223cfce0421",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team templatetags has 1 call site of symbol ungettext to migrate at django/templatetags/i18n.py:145 across 1 file. The ticket is done when 0 call sites are left.\",\n \"used\": [\n  \"count\",\n  \"done_when_left\",\n  \"files_n\",\n  \"sites\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 280,
+ "tokens_out": 107
+}

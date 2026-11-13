@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001497,
+ "facts_hash": "e0ecc747fb444401",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"Beyond its own files, django-haystack/django-haystack was walked, with no waiting sites found on the path. The reasons found at django-haystack/django-haystack were Never notified at 13 and Test gap at test_haystack.core.urls, test_haystack.test_app_without_models.urls, test_haystack.results_per_page_urls, and haystack.urls.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 358,
+ "tokens_out": 128
+}

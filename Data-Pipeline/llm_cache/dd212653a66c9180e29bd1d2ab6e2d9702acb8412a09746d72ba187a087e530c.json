@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001656,
+ "facts_hash": "4c3c9ec0fc008a1b",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"For django-tenants/django-tenants, 6 call sites of url remain to be migrated across 2 files. There are 3 call sites in examples/tenant_tutorial/tenant_tutorial/urls_public.py, which has 0 bug fixes, and 3 call sites in 1 other file. The team has no blockers and is blocking no other teams.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 344,
+ "tokens_out": 152
+}

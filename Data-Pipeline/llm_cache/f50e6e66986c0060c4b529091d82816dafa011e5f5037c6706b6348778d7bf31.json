@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001659,
+ "facts_hash": "48426fea4a2763dd",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team django-extensions/django-extensions still has 10 call sites of url to migrate across 3 files. There are 4 call sites in tests/management/commands/test_show_urls.py, which had 0 bug fixes (ticket keys: none). There are 6 call sites in 2 other files. The team is blocked by none and is blocking none.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"files_n\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 341,
+ "tokens_out": 153
+}

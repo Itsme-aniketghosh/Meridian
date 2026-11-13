@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001491,
+ "facts_hash": "d75cd72b4e9f6bac",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team django-guardian/django-guardian has 25 call sites left to migrate for symbol url. There are 4 call sites in guardian/admin.py, which had 1 bug fix. Additionally, 21 call sites are in 5 other files. The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"blocked_by\",\n  \"blocking\",\n  \"files\",\n  \"files_cut\",\n  \"left\",\n  \"sites_cut\",\n  \"symbol\",\n  \"team\"\n ]\n}\n```",
+ "tokens_in": 334,
+ "tokens_out": 132
+}

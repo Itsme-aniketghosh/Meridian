@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.00108,
+ "facts_hash": "b7ff3f8a2f9f4a5b",
+ "model": "gemini-flash",
+ "prompt_version": "b7a485672cd7",
+ "reply": "```json\n{\n \"text\": \"Team views must migrate symbol ugettext_lazy across sites django/views/static.py:18, django/views/static.py:98. Work is done when remaining count reaches 0.\",\n \"used\": [\n  \"team\",\n  \"symbol\",\n  \"sites\",\n  \"done_when_left\"\n ]\n}\n```",
+ "tokens_in": 280,
+ "tokens_out": 88
+}

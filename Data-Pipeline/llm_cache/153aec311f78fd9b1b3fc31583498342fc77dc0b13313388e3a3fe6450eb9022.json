@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0015465,
+ "facts_hash": "c478e0a1fb0f248c",
+ "model": "gemini-flash",
+ "prompt_version": "309a400f333b",
+ "reply": "```json\n{\n \"text\": \"Team cookiecutter/cookiecutter-django has 16 call sites left to migrate for symbol url. There are 11 call sites in {{cookiecutter.project_slug}}/config/urls.py, which had 0 bug fixes, and 5 call sites in 1 other file. The team is blocked by nothing and is blocking nothing.\",\n \"used\": [\n  \"team\",\n  \"left\",\n  \"symbol\",\n  \"files\",\n  \"sites_cut\",\n  \"files_cut\",\n  \"blocked_by\",\n  \"blocking\"\n ]\n}\n```",
+ "tokens_in": 341,
+ "tokens_out": 138
+}
