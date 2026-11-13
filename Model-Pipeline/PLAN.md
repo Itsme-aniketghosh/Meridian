@@ -351,12 +351,17 @@ Anything not done by Nov 10 follows the cut order in §9 and isn't squeezed in. 
 
 ## 11. Phase 3: deployment
 
-Deployment only. Phase 2 leaves nothing else open.
+Deployment, and the LLM plumbing that only pays off at deployment's volume.
 
 - The views and API on Cloud Run, the pipeline on a schedule, the champion model served to the push check
 - The hand-made Artifact Registry repo and CI key from phase 2 move into Terraform; the key is replaced by Workload Identity
 - Monitoring: gate fallback rate, Jev's success per agent, push alert precision, suggestion outcomes, spend ([scoping §9–10](../scoping/project-scoping.md))
 - Live auditor matches, once people use it
+- **Batch LLM calls for bulk runs.** Phase 2 calls models live, several tasks at once (`meridian.agents --workers`, PR #90): 204 writer tasks cost $0.48 and take minutes, so batch wasn't worth its plumbing. Once the writer runs on every new block across all 22 repos, and comparisons reach thousands of prompts, Vertex AI batch jobs pay off (about half price, no rate limits, results in minutes to hours). The design keeps the agents' code unchanged:
+  - One script, `meridian/llm_batch.py`, collects the cache misses for a run (key, model, prompt) into a JSONL in the LLM cache bucket (`storage.tf`), submits one batch job per model, waits, and writes each reply into `llm_cache/` under its usual key. The normal run then replays from the cache with 0 calls (`--strict-cache`).
+  - The writer's ladder runs as rounds: batch every task on the small model, collect the replies that fail (bad JSON or the fact gate), batch only those on the next model up. At most 3 rounds.
+  - For bulk work only: the model comparisons, re-running the writer after a prompt change, label audits like gap 6's. The orchestrator, the graph walkers and Jev stay live (`--workers`): each step depends on the one before, and a batch's wait breaks that loop.
+  - First check which of our models Vertex can batch (Gemini and Claude should; the Llama and Gemma endpoints are unchecked), and keep the spend cap: a batch is priced before it's submitted, and one over the cap isn't sent.
 
 The GCP design is ready to start from. Everything goes in Terraform under `infra/terraform/`:
 
