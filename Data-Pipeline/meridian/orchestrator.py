@@ -23,8 +23,10 @@ otherwise the rules plan runs:
 Then each picked task is written as the writer always writes it (agents.write: Jev's or the fixed ladder, the gate,
 the template on failure). The orchestrator never writes text a person sees, and decides no fact.
 
-Graph walkers (gap 17) are the last resort, and code decides when, never the model: a stall where no reason fires is
-a tool that returned nothing usable, so its plan is marked walk. The walkers aren't built yet; the run counts them.
+Graph walkers (gap 17, meridian.walkers) are the last resort, and code decides when, never the model: the tool is the
+context builder on the team's files, and walkers.fallback walks the graph when it raises, hangs, or gives nothing
+usable (no reason found, or no kept file with bug fixes to rank by). What they find becomes one more writer task,
+"walk", for that stall: at most one, so the plan still ends.
 
 Every answer goes through the LLM cache, keyed on (model, prompt version, the stall's facts and available steps), so
 a rerun with a warm cache makes 0 calls and the same plans. Logged like Jev's, agent "orchestrator", counts only.
@@ -38,10 +40,11 @@ import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
+from types import SimpleNamespace
 
-from meridian import agents
+from meridian import agents, context, walkers
 from meridian.common import CONFIG, handoff, load_config, log as say
 from meridian.fact_gate import check
 from meridian.llm_cache import Cache, key
@@ -173,22 +176,28 @@ class Orchestrator:
         self._log(stall, entry, hit, gate_pass, chosen.route, (time.perf_counter() - t0) * 1000)
         return chosen
 
-    def select(self, todo, plans=None, workers=1):
-        """agents.run(plan=...): the stalled teams' tasks the plans pick, in task order. Other teams' tasks don't run.
-        plans: a list the plans are appended to, in stall order, for the report. workers: stalls planned at once."""
+    def select(self, todo, plans=None, workers=1, walk=None):
+        """agents.run(plan=...): the stalled teams' tasks the plans pick, in task order, then one walk task per stall
+        the walkers ran for. Other teams' tasks don't run. plans: a list the plans are appended to, in stall order, for
+        the report. workers: stalls planned at once. walk(stall, team's tasks): the walkers' facts when the tool failed
+        (walkers.fallback decides, by code), else None. One walk per stall at most, so the plan still ends."""
         by_team = {}
         for t in todo:
             by_team.setdefault(t.owner_team, []).append(t)
         stalls = [t for t in todo if t.kind == "stall_reason"]
         with ThreadPoolExecutor(max(1, workers)) as pool:
             made = list(pool.map(lambda s: self.plan(s, {t.kind for t in by_team[s.owner_team]}), stalls))
-        keep = set()
-        for stall, p in zip(stalls, made):
+        keep, walks = set(), []
+        for i, (stall, p) in enumerate(zip(stalls, made)):
             keep |= {id(t) for t in by_team[stall.owner_team]
                      if t.kind in p.steps and (t.kind != "stall_reason" or t is stall)}
+            found = walk(stall, by_team[stall.owner_team]) if walk else None
+            if found is not None:
+                made[i] = replace(p, walk=True)
+                walks.append(agents.walk_task(stall, found))
         if plans is not None:
             plans.extend(made)
-        return [t for t in todo if id(t) in keep]
+        return [t for t in todo if id(t) in keep] + walks
 
     def _log(self, stall, entry, hit, gate_pass, route, latency_ms):
         if self.log is None:
@@ -199,6 +208,27 @@ class Orchestrator:
                  cost_usd=entry["cost_usd"] if paid else 0.0, cache_hit=hit, gate_pass=gate_pass, route=route,
                  source=None, task=stall.kind, repo=stall.repo or None, team=stall.owner_team,
                  latency_ms=round(latency_ms, 3), facts_hash=agents.facts_hash(stall.facts))
+
+
+def graph_walk(db, cfg, run_id, at, cache):
+    """select(walk=...) for a block: the tool is the context builder (meridian.context.cut) on the team's file list.
+    It's usable only if the auditors found a reason and a kept file has bug fixes (a risk signal to rank by);
+    otherwise walkers.fallback walks the graph. Returns the walkers' facts, or None when the tool was usable."""
+    def walk(stall, mine):
+        consumer = next((t for t in mine if t.kind == "consumer"), None)
+        reasons_found = bool(stall.facts["facts"]["reasons"])
+
+        def tool():
+            return context.cut(consumer.facts["facts"]) if consumer else None
+
+        def usable(cut):
+            return reasons_found and cut is not None and any(f["bug_fixes"] for f in cut["files"])
+        start = SimpleNamespace(task_id=stall.facts["source"]["stall"].split(":", 1)[1], repo=stall.repo,
+                                symbol=stall.facts["facts"]["symbol"], team=stall.owner_team)
+        facts, source, _ = walkers.fallback(tool, db=db, cfg=cfg, stall=start, run_id=run_id, at=at, cache=cache,
+                                            usable=usable)
+        return facts if source == "walkers" else None
+    return walk
 
 
 def main(argv=None):
@@ -234,10 +264,12 @@ def main(argv=None):
             from meridian.jev import Router
             router = Router(llm=llm, cache=cache, teams=teams, people=people)
         ladder = tuple(m.strip() for m in a.models.split(",") if m.strip()) if a.models else None
+        walk = graph_walk(db, cfg, a.run_id, at, walkers.QueryCache(handoff(cfg, a.run_id) / "walk_cache"))
         result = agents.run(db, cfg, a.run_id, at, llm=llm, cache=cache, strict_cache=a.strict_cache, router=router,
-                            ladder=ladder, workers=a.workers, plan=lambda todo: orch.select(todo, plans, a.workers))
+                            ladder=ladder, workers=a.workers,
+                            plan=lambda todo: orch.select(todo, plans, a.workers, walk))
     say(f"{len(plans)} stalled teams planned: {dict(Counter(p.route for p in plans))}; "
-        f"{sum(p.walk for p in plans)} need the graph walkers (no reason fired; gap 17)")
+        f"the graph walkers ran for {sum(p.walk for p in plans)} (their tool failed; gap 17)")
     for why, n in sorted(Counter(p.why for p in plans).items()):
         say(f"  {n} {why}")
     say(f"steps written: {dict(Counter(w.task.kind for w in result.written))}, "

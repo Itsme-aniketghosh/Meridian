@@ -59,7 +59,7 @@ TABLE = {
 }
 # Which agent does each task kind (the writer's four, Utkarsh's diffs, the policy writer if time allows)
 TASK_AGENT = {"rewrite": "writer", "ticket_draft": "writer", "stall_reason": "writer", "consumer": "writer",
-              "diff": "diff_drafter", "policy": "policy_writer"}
+              "walk": "writer", "diff": "diff_drafter", "policy": "policy_writer"}
 
 SYSTEM = """You route one task for a tool that tracks a code migration across teams. Pick which agent does it and
 which model it starts on, only from the table below: the task's own agent, and a model on that agent's list (smallest
