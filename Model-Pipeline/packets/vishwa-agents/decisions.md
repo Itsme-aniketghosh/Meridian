@@ -136,6 +136,53 @@ Result (Nov 11): **both, adopted**, now in `agents.py` (`FUNCTION_WORDS` in `nam
 
 Under 5b the cheapest model within 2 points of the best (98.0%) is still Gemini 3.8 Flash: the others are 4.9 points or more behind. What's left is the gate's 21 numbers that follow from the facts, and the writer's facts are where they get fixed.
 
+### Decision 5c (written Nov 13, before its run): derived numbers in the writer's facts (GAPS.md gap 23)
+
+Written by Aniket's session for Vishwa's gap, to land before the code freeze. The gate doesn't change.
+
+**What's left after 5b.** Gating the 816 cached answers again gives 37 texts that parse but fail the gate. Gemini Flash has 4, Scout 13, Gemma 2 and Maverick 18. All 37 were read next to their facts, AI-assisted, with Aniket's session checking each claim against the block:
+
+- **26 are right.**
+  - 12 are counts the facts don't spell out: "across 3 files" in 11 consumer texts, and "done when the count is 0" in 1 ticket draft.
+  - 14 are ticket drafts that list lines without their path ("django/forms/formsets.py at lines 9, 344, and 351").
+- **11 are wrong.**
+  - "44 other files": django-cms has 35 files.
+  - "2016-13-05": not a date.
+  - "debug_toolbar/staticfiles.py:34": the path is `debug_toolbar/panels/staticfiles.py`.
+  - 8 Maverick consumer texts write a file's site count as its line ("apps.py:1"). The block has those sites at lines 2, 4 and 18.
+
+**The change.**
+- A ticket draft's facts gain `files`, which is `[{"path", "sites"}]` in site order, plus `files_n` and `done_when_left: 0`.
+- A consumer's facts gain `files_n`, the file total before any context cut.
+- The 14 line lists stay rejected. A line is a fact only next to its path (decision 1). A bare `lines` list would make every line number a count, so "44 other files" would pass wherever a site sits on line 44. Reading "path at lines a, b" is a change to the gate, a later decision.
+
+**Test.** The cached answers are gated again ($0): each reply is looked up under its old facts' key and gated against the new facts.
+
+**Rule.** Adopt only if all of these hold. Otherwise keep as is.
+1. All 11 wrong texts are still rejected, and so are the 7 judged wrong in decisions 5 and 5b.
+2. Every test passes. Only fixtures that spell out a ticket draft's or a consumer's facts may change, and only by the new keys.
+3. Every newly accepted text is read and is right.
+
+Reported: each model's pass rate before and after. Changed facts change the cache keys, so the 136 ticket draft and consumer tasks miss the cache until the live run asks again. On Gemini Flash that's about $0.30. Until then those tasks ship their templates. The writer's pick isn't redone.
+
+Result (Nov 13): **adopted**, now in `agents.py` (`draft_tasks`, `consumer_tasks`). All 816 answers were found under their old keys and gated against the new facts.
+
+| Model | With 5b | With 5c |
+|---|---:|---:|
+| Gemini 3.8 Flash | 98.0% | **100.0%** (204 / 204) |
+| Llama 4 Scout | 93.1% | **96.1%** |
+| Gemma 4 26B A4B | 92.2% | 92.2% |
+| Llama 4 Maverick | 90.7% | **91.7%** |
+
+1. **All 11 wrong texts are still rejected.** Exactly 12 texts are newly accepted, the 12 counts listed above, so none of decision 5's 7 wrong texts is among them.
+2. **Every test passes** (205 in test_agents, test_fact_gate, test_jev, test_views, test_diffs, test_llm, test_orchestrator and test_context). The one exception is test_llm's Claude refusal test, which needs `anthropic`, a package missing from this local env (CI installs it).
+   - The only fixture change is `Model-Pipeline/tests/contracts/facts.json` and `suggestions.json`, rebuilt with `make_vishwa`.
+   - facts.json gains the new keys. suggestions.json's rows reorder because their ids hash the facts.
+   - This is a shape change to Contract 5's examples, announced in the team chat (S10).
+3. **All 12 newly accepted texts were read.** Each states the file total or the 0 that the facts now hold.
+
+Left: 25 texts the gate rejects. 14 are right, all line lists written without their path, from Scout and Maverick only, and need the gate to read "path at lines a, b". 11 are wrong. The writer ships Gemini, which now passes everything on this block.
+
 ## The writer, Nov 9: settings, not tests
 
 These are design choices for `meridian/agents.py` and `llm_cache.py`, made Nov 9 before any LLM ran. None of them is a measured decision: decisions 3–6, 9 and 10 still measure the model, the prompt format, the templates and the cache once there's a key.

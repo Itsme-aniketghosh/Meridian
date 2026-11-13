@@ -216,7 +216,9 @@ def rewrite_tasks(found, repo):
 def draft_tasks(db, q, repo, symbol):
     out = []
     for team, count, sites in db.execute(q["maker_drafts"]).fetchall():
-        facts = {"team": team, "symbol": symbol, "count": count, "sites": sites}
+        per_file = Counter(s.rsplit(":", 1)[0] for s in sites.split(", "))  # in site order (decision 5c)
+        facts = {"team": team, "symbol": symbol, "count": count, "sites": sites, "files_n": len(per_file),
+                 "files": [{"path": p, "sites": n} for p, n in per_file.items()], "done_when_left": 0}
         text = "\n".join([f"Draft ticket for {team}: migrate {_n(count, 'untracked call site')} off {symbol}",
                           f"- {sites}", f"- No ticket covers {'this site' if count == 1 else 'these sites'} yet",
                           f"- Done when {'it no longer calls' if count == 1 else 'none of them calls'} {symbol}"])
@@ -280,8 +282,8 @@ def consumer_tasks(db, q, repo, symbol):
             blocked[(by_team, by_path)] += 1
         blocked_by = [{"team": t, "path": p, "sites": n} for (t, p), n in sorted(blocked.items())]
         blocking = [{"team": t, "sites": n} for t, n in db.execute(q["consumer_blocking"], {"team": team})]
-        facts = {"team": team, "left": left, "symbol": symbol, "files": files, "blocked_by": blocked_by,
-                 "blocking": blocking}
+        facts = {"team": team, "left": left, "symbol": symbol, "files": files, "files_n": len(files),
+                 "blocked_by": blocked_by, "blocking": blocking}  # files_n: "across 3 files" (decision 5c)
         lines = [f"{team.title()}, {_n(left, symbol + ' call site')} remaining."]
         for f in files:
             fixes = (f", {_n(f['bug_fixes'], 'bug fix', 'bug fixes')} in the last year ({', '.join(f['fix_keys'])})"
