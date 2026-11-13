@@ -183,6 +183,38 @@ Result (Nov 13): **adopted**, now in `agents.py` (`draft_tasks`, `consumer_tasks
 
 Left: 25 texts the gate rejects. 14 are right, all line lists written without their path, from Scout and Maverick only, and need the gate to read "path at lines a, b". 11 are wrong. The writer ships Gemini, which now passes everything on this block.
 
+### Decision 6 (Nov 13): switch on the context builder (GAPS.md gap 16)
+
+Chaitali's decision 12 (`packets/chaitali-bias/decisions.md`, Nov 13) set the rule before it was computed, and left switching on to the writer's owner because it changes every consumer cache key: recommend switching on if, over the teams with any bug fix, the ranking keeps at least 90% of their bug fixes and beats a random order with the same number of files by at least 10 points.
+
+**Result it rests on.** Utkarsh's rerun of `meridian.context` on `bb6b5f4e32a4bee7`, the first block built with gap 24's history: **96.4%** of bug fixes kept with 35% of the files, against **72.7%** for the random order. That's +23.7 points, so it passes both parts. `bb6b5f4e` holds real names and isn't in git, so I checked it on the same snapshot's other build instead. Chaitali's `context_preview.py` on `70dd1dab`, with gap 24's history added to a scratch copy, gives exactly Utkarsh's numbers with today's code: 68 consumer tasks, 36 cut, 127 of 367 files, 495 of 1,526 sites, **96.4%** of bug fixes kept, random 72.7%. Her Nov 13 preview said random 73.3%, before `files_n` joined the facts.
+
+**Checked on that copy, with the switch on ($0, no LLM).** All 204 writer tasks were built twice, cut and uncut, and matched by kind, repo, team and symbol:
+- The 136 tasks that aren't consumer tasks have the same facts hash both ways. The cut touches consumer tasks only.
+- All 68 consumer tasks add up. The kept files are a subset of the team's files. Kept sites plus `sites_cut` equal `left`, and kept files plus `files_cut` equal `files_n`. Every kept set holds at least 90% of the team's bug fixes.
+- Of the 36 cut tasks' templates, none names a file that was cut.
+- The gate flags 41 consumer templates both cut and uncut. The cut adds none, and the flagged ones still ship as before (`template_misses`, counted in the run's report).
+
+**Switched on.** `agents.CUT = True`:
+- `consumer_tasks` passes each consumer's facts through `context.cut`. The kept files are the riskiest ones, in risk order. The rest become `files_cut` and `sites_cut`. `left` and `files_n` stay totals over every file, so every text stays true.
+- The template adds one line for the cut files: "- 3 call sites in 2 other files". It doesn't name them.
+- The consumer prompt says the same: give the cut files as counts, without naming them. It's a new prompt version for consumer only.
+- `context.measure` reads the uncut facts (`tasks(cut=False)`), so its numbers stay comparable.
+- `context.cut` returns already-cut facts unchanged. The orchestrator calls it again as its own tool, and a second cut would overwrite the counts with counts over the kept files only.
+- The writer binds `cut` at import. The orchestrator's test fakes a builder outage by patching `context.cut`, and that outage is the orchestrator's tool, not the writer's facts.
+- The gate doesn't change.
+
+**Tests.** All 724 Data-Pipeline tests pass, among them one new: the fixture's checkout keeps `cart/pricing.py`, which holds all 4 of its bug fixes, and counts its other file. The cut path isn't in the text, and the facts hash differs from the uncut one. The Model-Pipeline writer, contract and fault 15–19 tests pass. Locally, 13 LightGBM tests error because `libomp` is missing from this Mac. They do the same on main, and CI installs it. Contract 5's examples (`tests/contracts/facts.json`) keep their keys, so they aren't rebuilt.
+
+**What else changes (an independent review, $0, keys compared on main and with the switch, fixture and 70dd1dab copy).**
+- No change: the writer's stall_reason, ticket_draft and rewrite keys; the orchestrator's plan keys (68 / 68 the same); `jev_compare`, which reads the frozen `jev_tasks_facts.json`; `diffs.py`; and Contract 5's examples, which rebuild byte for byte.
+- All 68 consumer keys change, because the consumer prompt changed. The facts change for 41 of them: 36 are cut, and 5 are only reordered by risk, with no file cut.
+- Jev's key holds a consumer's facts, so 41 of Jev's consumer keys change. That costs money only on a `--jev` run, and the rules route (decision 13).
+- **The orchestrator walks 2 more stalls on 70dd1dab, 19 instead of 17, so it has 2 new walk tasks.** `orchestrator.graph_walk` takes a team's first consumer task (orchestrator.py:218) across every repo and symbol, not the stall's own. The tasks are sorted with the facts hash last, so the cut changes which one comes first. Two of the newly first ones have no kept file with bug fixes, so the walkers run. This was already the case on main: 25 of the 68 stalls take a consumer of another repo or symbol. It isn't fixed here. It's the orchestrator's code, and a fix would itself change which stalls are walked. Aniket is told.
+- The consumer view still lists every file in its table. "Without naming them" is about the text only.
+
+**What it costs.** Every consumer task's facts change, so about 68 consumer tasks miss the cache until the writer asks again. On Gemini Flash that's about $0.15. That's the floor: a text that fails the gate climbs the ladder. On an orchestrator run, add the 2 walk tasks. Until then those tasks ship their templates, which pass the gate. The writer's pass rates in 5c were measured on the uncut facts: the consumer texts are re-gated when the live run is in. The run needs `bb6b5f4e`, so Utkarsh runs it: `python -m meridian.writer --run-id bb6b5f4e32a4bee7 --index --db <block>`.
+
 ## The writer, Nov 9: settings, not tests
 
 These are design choices for `meridian/agents.py` and `llm_cache.py`, made Nov 9 before any LLM ran. None of them is a measured decision: decisions 3–6, 9 and 10 still measure the model, the prompt format, the templates and the cache once there's a key.

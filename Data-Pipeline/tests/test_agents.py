@@ -111,6 +111,22 @@ class Templates(unittest.TestCase):
                       self.by("consumer", "fulfillment").text)
         self.assertIn("You are blocking fulfillment", self.by("consumer", "platform").text)
 
+    def test_the_consumer_text_keeps_the_riskiest_files_and_counts_the_rest(self):
+        # gap 16 (vishwa decision 6): checkout's riskiest file holds all 4 of its bug fixes, so its other file is cut
+        w = self.by("consumer", "checkout")
+        facts = w.task.facts["facts"]
+        self.assertEqual([f["path"] for f in facts["files"]], ["cart/pricing.py"])
+        self.assertEqual((facts["files_cut"], facts["sites_cut"], facts["left"], facts["files_n"]), (1, 1, 3, 2))
+        self.assertIn("- 1 call site in 1 other file", w.text)
+        db = K.build()
+        whole = next(t for t in G.tasks(db, load_config(CONFIG), "R2", K.R2[1], cut=False)
+                     if t.kind == "consumer" and t.target == "checkout")
+        gone = [f["path"] for f in whole.facts["facts"]["files"] if f["path"] != "cart/pricing.py"]
+        self.assertEqual(len(gone), 1)
+        self.assertNotIn(gone[0], w.text)                      # nothing cut is named
+        self.assertNotIn("files_cut", whole.facts["facts"])
+        self.assertNotEqual(G.facts_hash(whole.facts), w.facts_hash)  # the cut is a new cache key
+
     def test_a_stall_text_names_its_symbol_and_start_and_claims_no_likelihood(self):
         w = self.by("stall_reason", "checkout")
         self.assertEqual(sorted(w.task.facts["facts"]), ["left", "reasons", "since", "symbol", "team"])  # no age

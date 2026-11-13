@@ -53,6 +53,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from meridian import auditor as A
+from meridian.context import cut as cut_files  # bound here: the orchestrator calls context.cut as its own tool
 from meridian.common import CONFIG, h, handoff, load_config, log as say, write_jsonl
 from meridian.fact_gate import _EMAIL, _words, check
 from meridian.llm_cache import Cache, canonical, key
@@ -62,6 +63,10 @@ AGENT = "writer"
 SMALL, MID, LARGE = "claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"
 LADDER = (SMALL, MID, LARGE)  # 04 §6 and rachna-models README: the writer is general small -> mid -> large
 ROUTE = "rules"               # who picked the model: the fixed ladder, until Jev
+# Gap 16 (vishwa decision 6, Nov 13): a consumer task keeps its riskiest files, to 90% of the team's bug fixes
+# (meridian.context.cut, Chaitali's decision 12), and the rest go in as counts (files_cut, sites_cut). Off only for
+# context.measure, which has to see every file
+CUT = True
 KINDS = ("rewrite", "ticket_draft", "stall_reason", "consumer")
 ROW_KIND = {"rewrite": "rewrite", "ticket_draft": "ticket_draft", "stall_reason": "stall_reason", "consumer": None,
             "walk": None}   # walk: the graph walkers' findings (orchestrator, GAPS 17), a team note like consumer
@@ -102,7 +107,9 @@ PROMPTS = {
                     "call sites are left, then list the possible reasons in the order given, each with how much "
                     "evidence it has. Don't pick one or say which is likelier.",
     "consumer": "Tell the team what it still has to migrate: how many call sites, where, how many bug fixes each file "
-                "had (with their ticket keys), what blocks them and whom they block.",
+                "had (with their ticket keys), what blocks them and whom they block. If some files are given only as "
+                "counts (files_cut, sites_cut), say how many call sites are in how many other files, without naming "
+                "them.",
     "walk": "Tell the stalled team what the graph shows beyond its own files: which teams were looked at, which "
             "sites wait on which, and the reasons found at each team. Say only what the facts say.",
 }
@@ -266,7 +273,8 @@ def walk_task(stall, walked):
     return Task("walk", "team", stall.target, stall.owner_team, stall.repo, walked, "\n".join(lines))
 
 
-def consumer_tasks(db, q, repo, symbol):
+def consumer_tasks(db, q, repo, symbol, cut=CUT):
+    """cut: the riskiest files only, the rest as counts (gap 16). False: every file, for context.measure."""
     out = []
     for team, left, *_ in db.execute(q["owner_teams"]).fetchall():
         if not left:
@@ -284,11 +292,15 @@ def consumer_tasks(db, q, repo, symbol):
         blocking = [{"team": t, "sites": n} for t, n in db.execute(q["consumer_blocking"], {"team": team})]
         facts = {"team": team, "left": left, "symbol": symbol, "files": files, "files_n": len(files),
                  "blocked_by": blocked_by, "blocking": blocking}  # files_n: "across 3 files" (decision 5c)
+        if cut:
+            facts = cut_files(facts)
         lines = [f"{team.title()}, {_n(left, symbol + ' call site')} remaining."]
-        for f in files:
+        for f in facts["files"]:
             fixes = (f", {_n(f['bug_fixes'], 'bug fix', 'bug fixes')} in the last year ({', '.join(f['fix_keys'])})"
                      if f["bug_fixes"] else "")
             lines.append(f"- {f['sites']} in {f['path']}{fixes}")
+        if facts.get("files_cut"):
+            lines.append(f"- {_n(facts['sites_cut'], 'call site')} in {_n(facts['files_cut'], 'other file')}")
         lines += [f"- {b['sites']} blocked by {b['path']}, which {b['team']} hasn't migrated" for b in blocked_by]
         lines += [f"- You are blocking {b['team']} ({_n(b['sites'], 'call site')})" for b in blocking]
         out.append(Task("consumer", "team", team, team, repo,
@@ -296,7 +308,7 @@ def consumer_tasks(db, q, repo, symbol):
     return out
 
 
-def tasks(db, cfg, run_id, at, q=None):
+def tasks(db, cfg, run_id, at, q=None, cut=CUT):
     """Every writer task in the block as of `at`, in a fixed order. Drafts, stalls and consumer texts are per
     (repo, symbol), as the views show them; a rewrite is per ticket, across all the symbols its sites call."""
     q = q or kb_queries()
@@ -308,7 +320,7 @@ def tasks(db, cfg, run_id, at, q=None):
             rows = db.execute(q["manager_facts"], {"key": k}).fetchall()
             if rows:
                 vague[repo].setdefault(k, (problem, {}))[1][symbol] = rows
-        out += draft_tasks(db, q, repo, symbol) + consumer_tasks(db, q, repo, symbol)
+        out += draft_tasks(db, q, repo, symbol) + consumer_tasks(db, q, repo, symbol, cut)
     for repo, found in sorted(vague.items()):
         out += rewrite_tasks(found, repo)
     order = {k: i for i, k in enumerate(KINDS)}
