@@ -454,3 +454,19 @@ Rule:
 - The report's overall numbers, slice table and Bonferroni count become the champion's.
 - If the champion is flagged on the same 5 slices as the laptop forest, `[bias] accepted` stands as it is. The mitigation table stays the laptop forest's, said so in the report. Its re-sampling options refit, and a refit to get scores isn't done.
 - If any flag is new, it's an open flag. The bias report fails on it, and the report says so. Nothing is accepted after seeing it.
+
+## The shipped champion: results: the same 5 flags, nothing new
+
+`registry/model.joblib` (md5 `2a0c9cc6…`), scored on today's `val` rows (features md5 `9c0ab220…`, the same as `champion.json`'s): PR-AUC **0.406668**, equal to `champion.json`'s. `python -m model.bias --scores reports/champion/champion_val_scores.csv --column forest --out reports/champion`:
+
+| | Laptop forest (Nov 9) | Champion (CI) |
+|---|---:|---:|
+| PR-AUC | 0.406 | 0.407 |
+| Recall / false-positive rate at 634 alerts | 0.516 / 0.106 | 0.519 / 0.105 |
+| Q2 recall, PR-AUC | 0.000, 0.161 | 0.000, 0.151 |
+| Q3 recall, false-positive rate, PR-AUC | 0.096, 0.032, 0.220 | 0.096, 0.034, 0.219 |
+| Q4 recall, false-positive rate, PR-AUC | 0.803, 0.488, 0.499 | 0.806, 0.485, 0.500 |
+| Flags (of 62 judged tests); under Bonferroni | 5; 3 | 5; 3 |
+| Newcomers caught (of 16) | 9 | 9 |
+
+**The same 5 size flags and none new, so `[bias] accepted` stands, and the bias report passes (0 open flags).** The 3 that survive Bonferroni are the same: Q2 recall, Q3 recall, Q4 false-positive rate. Power at a 0.15 recall gap: 0.10–0.56. The report section now quotes the champion. Its mitigation table stays the laptop forest's, and says so.

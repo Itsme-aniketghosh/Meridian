@@ -8,18 +8,18 @@ The slices are `module`, `component`, `exp_bucket` (the author's earlier commits
 
 Recall and the false-positive rate are measured at the alert rate today's P9 rule produces, 15.4% of commits (634 of 4,113). `[eval]`'s own threshold, precision 0.80 on at least 30 alerts, flags 0 `val` commits for every model, and at 0 alerts every recall is 0 (decision 10).
 
-**A judged slice without a flag isn't evidence of no bias.** At these sizes the rule catches a true 0.15 recall gap only 10% to 55% of the time (power per slice, in `bias_report.json`). The report gives each slice's power next to its result.
+**A judged slice without a flag isn't evidence of no bias.** At these sizes the rule catches a true 0.15 recall gap only 10% to 56% of the time (power per slice, in `bias_report.json`). The report gives each slice's power next to its result.
 
 ## What the final model does by slice
 
-The champion is the tuned forest, on `val`: N = 4,113, 486 bug-inducing. Overall recall 0.516, false-positive rate 0.106, PR-AUC 0.406.
+The champion is the tuned forest that CI built and committed (`registry/model.joblib`), scored as it is on `val`: N = 4,113, 486 bug-inducing. Overall recall 0.519, false-positive rate 0.105, PR-AUC 0.407.
 
 | `size_bucket` | Commits | Bug-inducing | Recall | False-positive rate | PR-AUC |
 |---|---:|---:|---:|---:|---:|
 | Q1 (smallest) | 1,179 | 22 (not judged) | 0.000 | 0.000 | |
-| Q2 | 986 | 51 | **0.000**, flagged | 0.000 | **0.161**, flagged |
-| Q3 | 917 | 114 | **0.096**, flagged | 0.032 | **0.220**, flagged |
-| Q4 (largest) | 1,031 | 299 | 0.803 | **0.488**, flagged (of 732 negatives) | 0.499 |
+| Q2 | 986 | 51 | **0.000**, flagged | 0.000 | **0.151**, flagged |
+| Q3 | 917 | 114 | **0.096**, flagged | 0.034 | **0.219**, flagged |
+| Q4 (largest) | 1,031 | 299 | 0.806 | **0.485**, flagged (of 732 negatives) | 0.500 |
 
 **All five flags are on commit size, and no `module`, `component` or `exp_bucket` slice is flagged.** Three survive a Bonferroni correction over the 62 tests (Q2 recall, Q3 recall, Q4 false-positive rate); the two PR-AUC flags don't. The two harms land on different commits. Small commits get their bugs missed: the model finds **0 of the 51** in Q2. Large commits get the false alarms: half of Q4's clean commits are flagged.
 
@@ -35,12 +35,12 @@ From the hand check: **7 of the 20 Q2 labels are wrong, 0.35 (Wilson interval 0.
 
 This fits what limits the model overall (GAPS gap 14, and Rachna's section):
 - **Accuracy is meaningless here.** The forest is 88.5% accurate, and always saying "no bug" is 88.2%.
-- **The model is 3.4× chance:** PR-AUC 0.406 against a positive rate of 0.118.
+- **The model is 3.4× chance:** PR-AUC 0.407 against a positive rate of 0.118.
 - **SZZ picks the right commit only 44% of the time**, on 130 hand-verified Defects4J and Fonte commits.
 
 ## Mitigation, and what it would cost
 
-Each fix was scored on the same `val` rows, at the same alert budget, against the worst flagged gap (Q2 recall, 0.516 below overall). The rule (decision 5): adopt a fix only if it closes at least half that gap for at most 0.01 PR-AUC **and** at most 0.02 overall precision. Per-group thresholds use only groups known when a commit is pushed (size, not `component`, which needs a ticket), and each is fitted on one half of `val` and scored on the other.
+Each fix was scored on the forest judged on Nov 9 (`val` PR-AUC 0.406, the same kind and params as the champion, 0.0009 lower, under one seed SD), not re-run on the champion: two of the options refit, and nothing is refit to get scores. Each was scored on the same `val` rows, at the same alert budget, against the worst flagged gap (Q2 recall, 0.516 below overall). The rule (decision 5): adopt a fix only if it closes at least half that gap for at most 0.01 PR-AUC **and** at most 0.02 overall precision. Per-group thresholds use only groups known when a commit is pushed (size, not `component`, which needs a ticket), and each is fitted on one half of `val` and scored on the other.
 
 | Option (tuned forest) | Alerts | PR-AUC | Recall | Precision | Q2 recall | Gap closed | Meets the rule |
 |---|---:|---:|---:|---:|---:|---:|---|
@@ -56,7 +56,7 @@ Each fix was scored on the same `val` rows, at the same alert budget, against th
 
 ## The final pick
 
-**The tuned forest:** `val` PR-AUC 0.406 (interval 0.364–0.450) against lines × files 0.319, a paired difference of +0.087 (+0.059 to +0.112). Rachna picked it over the tuned LightGBM (0.413) because the two are tied and the simpler model wins a tie. Bias would have reopened that tie only if the forest had more flagged slices. Both have the same five, so the forest stands, and its bias report passes with the five accepted and written down. It's the registry's first champion.
+**The tuned forest:** `val` PR-AUC 0.407 (interval 0.365–0.451) against lines × files 0.319, a paired difference of +0.088 (+0.061 to +0.113), for the champion CI built and committed. The forest Rachna judged on her laptop has the same params and scores 0.406. Rachna picked it over the tuned LightGBM (0.413) because the two are tied and the simpler model wins a tie. Bias would have reopened that tie only if the forest had more flagged slices. Both have the same five, so the forest stands, and its bias report passes with the five accepted and written down. It's the registry's first champion.
 
 ## The gate
 
