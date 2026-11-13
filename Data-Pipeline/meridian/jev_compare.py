@@ -84,6 +84,9 @@ def score(model, tasks, llm, cache, teams, people):
     router = J.Router(llm=timed, cache=cache, teams=teams, people=people, model=model, spend_cap_usd=1e9,
                       top_budget=10 ** 6)
     first = [router.pick(t) for t, _ in tasks]
+    down = next((p.why for p in first if p.why.startswith("jev down")), None)
+    if down:  # the router falls back to the rules when its model can't be reached; a comparison says so instead
+        raise RuntimeError(f"{model} couldn't be reached ({down})")
     spent, calls = router.spent, router.calls
     again = [J.Router(cache=cache, teams=teams, people=people, model=model, top_budget=10 ** 6).pick(t)
              for t, _ in tasks]
