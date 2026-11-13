@@ -470,3 +470,14 @@ Rule:
 | Newcomers caught (of 16) | 9 | 9 |
 
 **The same 5 size flags and none new, so `[bias] accepted` stands, and the bias report passes (0 open flags).** The 3 that survive Bonferroni are the same: Q2 recall, Q3 recall, Q4 false-positive rate. Power at a 0.15 recall gap: 0.10–0.56. The report section now quotes the champion. Its mitigation table stays the laptop forest's, and says so.
+
+---
+
+# Nov 13: GAPS.md gap 16 again, with gap 24's history: the rule, before computing
+
+Gap 24 (Utkarsh, PR #92) gives the package repos bug-fix history, read from commit subjects (`[szz] fix_message`, `file_bug_fixes` only). Its rows land "in the next block built", and none has been built yet. So this is a **preview**, made the way Utkarsh measured gap 24: `szz.file_bug_fixes` with today's `[szz]`, over the real block's own `out/70dd1dabfed544b8/` files (`git_commit`, `commit_file`, `commit_ticket`, `ticket`) and its manifest. Its rows replace `file_bug_fixes` in a scratch copy of `published/70dd1dabfed544b8.sqlite`, and `meridian.context` runs on that copy. Nothing else in the block changes, and the published block isn't touched. The script is `packets/chaitali-bias/context_preview.py`.
+
+Rule: decision 12, unchanged (cover 90%, at least 1 file, the same measures and the same random-order comparison, seed 1, 100 orders). Added for the switch-on question, which decision 12 left for after gap 2:
+- It's **recommended for switching on** if, over the teams with any bug fix, the ranking keeps at least 90% of their bug fixes, and beats the random order with the same number of files by at least 10 points. Otherwise it isn't, and the report says why.
+- The numbers are a preview until a block is built with gap 24's code. Then `meridian.context` reruns on that block, and those numbers replace these.
+- Switching it on stays Vishwa's call (it changes every consumer cache key), so this recommends, it doesn't switch.
