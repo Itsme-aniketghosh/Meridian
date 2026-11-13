@@ -19,6 +19,7 @@ from unittest import mock
 import mlflow
 
 from model import tracking
+from tests import mlflow_uri
 
 DATA = Path(__file__).resolve().parents[2] / "Data-Pipeline"
 
@@ -46,7 +47,7 @@ class DiffDrafterHandOff(unittest.TestCase):
         self.addCleanup(tmp.cleanup)
         cache = Cache(Path(tmp.name) / "cache")
         T.draft_urls(root, cfg, llm=T.stand_in("    re_path,"), llm_cache=cache)  # warm the cache, logging nothing
-        with mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{tmp.name}/mlflow.db"}):
+        with mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": mlflow_uri(tmp.name)}):
             with tracking.start_run(D.AGENT, owner="utkarsh", experiment=tracking.AGENTS,
                                     block_run_id=T.RUN) as run:
                 drafts, _, _, rows = T.draft_urls(root, cfg, llm_cache=cache, log_call=tracking.log_llm_call,

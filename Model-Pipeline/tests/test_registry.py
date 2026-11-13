@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from model import registry as reg
+from tests import mlflow_uri
 from tests.contracts import make_rochan
 
 CONTRACTS = Path(__file__).resolve().parent / "contracts"
@@ -237,7 +238,7 @@ class Store(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)  # Windows: SQLAlchemy keeps mlflow.db open
         self.dir = Path(self.tmp.name)
-        env = mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{self.dir / 'mlflow.db'}"})
+        env = mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": mlflow_uri(self.dir)})
         env.start()
         self.addCleanup(env.stop)
         self.addCleanup(self.tmp.cleanup)
@@ -272,8 +273,7 @@ class Store(unittest.TestCase):
 
     def new_store(self):
         """A second, empty MLflow store, as on CI: champion.json is all that's left of the first."""
-        env = mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": f"sqlite:///{self.dir / 'ci' / 'mlflow.db'}"})
-        (self.dir / "ci").mkdir()
+        env = mock.patch.dict(os.environ, {"MLFLOW_TRACKING_URI": mlflow_uri(self.dir / "ci")})
         env.start()
         self.addCleanup(env.stop)
 
