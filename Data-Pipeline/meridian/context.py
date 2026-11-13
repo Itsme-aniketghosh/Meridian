@@ -11,7 +11,8 @@ sites are all in Django-ecosystem repos. Stall-reason tasks list reasons, not fi
     python -m meridian.context --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite
 
 Measures, over the block's consumer tasks: files, sites and facts characters kept, bug-fix coverage, and the coverage a
-random file order would reach with the same number of files. Not switched on in agents.py (decision 12).
+random file order would reach with the same number of files. Switched on in agents.py (agents.CUT, vishwa decision 6,
+Nov 13): the writer's consumer tasks carry the cut facts. `measure` reads the uncut ones (tasks(cut=False)).
 """
 import argparse
 import json
@@ -48,7 +49,10 @@ def keep_n(files, cover=COVER):
 
 
 def cut(facts, cover=COVER):
-    """A consumer task's facts with its files cut by decision 12. Returns a new dict; the input is unchanged."""
+    """A consumer task's facts with its files cut by decision 12. Returns a new dict; the input is unchanged. Facts
+    already cut come back as they are, so their counts stay the ones over every file."""
+    if "files_cut" in facts:
+        return dict(facts)
     files = ranked(facts["files"])
     n = keep_n(files, cover)
     out = {**facts, "files": files[:n]}
@@ -101,7 +105,7 @@ def measure(consumer_facts, cover=COVER):
 
 def consumer_facts(db, cfg, run_id, at):
     from meridian.agents import tasks  # here: agents is the heavier import
-    return [t.facts["facts"] for t in tasks(db, cfg, run_id, at) if t.kind == "consumer"]
+    return [t.facts["facts"] for t in tasks(db, cfg, run_id, at, cut=False) if t.kind == "consumer"]
 
 
 def main(argv=None):
