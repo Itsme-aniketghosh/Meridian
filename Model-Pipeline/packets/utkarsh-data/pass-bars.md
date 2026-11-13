@@ -3,7 +3,7 @@
 These are my rows for Chaitali's `PASS-BARS.md`. Each row gives a number and how it's measured.
 
 docs/05-test.md says bars are fixed before the run and changing one needs a commit saying why. So the rows are split by timing:
-- **Before the run:** the hand checks and the diff drafter (sections 2 and 5). Neither has run yet.
+- **Before the run:** the label checks and the diff drafter (sections 2 and 5). Both have run since; their results are under each section.
 - **Recorded after the run:** steps B, K and L ran on Nov 4, before the bars were due (sections 1, 3 and 4). Their rows record the checks they were held to, with results, and say so.
 
 ## 1. Feature table (step B), recorded after the run
@@ -24,6 +24,10 @@ docs/05-test.md says bars are fixed before the run and changing one needs a comm
 | Label precision | At least **16 of 20** random positives (80%) are real. A positive is real when the fix's diff changes lines the inducing commit wrote, for the reason in the fix's ticket | `decisions.md`, 20 positives drawn with seed 1, each read by hand with `git show <fix>` in the snapshot clone |
 | Start year (decision 2) | 2015 stays only if **at most 2 of 10** sampled 2015 positives are wrong. Otherwise the start year moves to 2016 and the table is rebuilt | `decisions.md`, 10 from 2015 and 10 from 2022, same check |
 | Label window (decision 1) | The rule as written: the shortest window catching ≥ 80% of blames that leaves a full 2024 | the blame-delay CDF over 22,007 SZZ pairs. **No option meets it** (365 days: 54%; 730 days: 72%, and 730 breaks 2024). 365 is picked by the fallback; Aniket's OK, Nov 9 |
+
+**Results (Nov 12).** The checks were done by an AI model reading each diff, not by hand as the bars say, so they're an estimate (details in `decisions.md`):
+- Label precision: **9 of 20 real (45%) ❌** against 16. It matches SZZ's 44% on the Defects4J labels.
+- Start year: **2015 has 6 of 10 wrong ❌** against at most 2, so the rule says 2016. 2022 has 3 of 10 wrong, and the gap isn't significant (p = 0.37). After the freeze, 2015 stays unless Aniket moves it.
 
 ## 3. Tracking tables (step K), recorded after the run
 
