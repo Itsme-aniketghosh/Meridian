@@ -16,7 +16,37 @@
 
 **Tests:** `tests/test_szz.py` covers the subject rule (Django's `Fixed #N`, `closes #N`, reverts out, a tracked repo untouched) and a repo's own window.
 
-**Still to do:** the rows appear in the next block that's built. The published block `c5118` isn't rewritten. Then Chaitali reruns `meridian.context` on it.
+**The block with gap 24: `bb6b5f4e32a4bee7` (built Nov 13).** It's `meridian.toml` as the team ran it (same pinned commits, same snapshot 2026-10-01T01:23:03Z, same ticket pulls) with main at `2b0606d`. Built under its own data root and not published: `published/latest.json` is still `c5118`. 19 minutes; validate: 0 errors, 2 warnings, 1,790,126 rows in 30 tables.
+
+Against `c5118`, table by table:
+- **Same bytes:** 21 of the 25 tables, `bug_inducing` among them, so the model's labels are unchanged.
+- **`file_bug_fixes`:** 1,492 → 3,248 rows. Spark's 1,492 rows are identical. Django has 1,326, wagtail 138, allauth 78, cookiecutter 45, DRF 44, and so on.
+- **`call_site`:** the same 1,526 sites. `bug_fixes` is now filled in for the packages and Django: 367 sites are above 0, where before all were 0. That's validate's second warning (24% of `bug_fixes` outside 0..0); the first (289 Spark tickets dated year 0010) was already in `c5118`.
+- **`run`:** the new run_id and source hashes.
+- **`commit_file`:** 849,643 rows against 849,648. In three 2010–2012 commits (django-cms, Django docs, an oscar merge), git now reads a moved file as one rename row, where `c5118` has a delete and an add. `history.py` didn't change, and this Mac's git reads both checkouts the same way today, so it's PLAN S8's machine difference (git rename detection), not gap 24. Those commits are years before any bug-fix window, so `file_bug_fixes` doesn't move.
+
+### Rebuilding it (Chaitali, for `meridian.context`)
+
+The block holds real names, so it isn't in git. Rebuild it from the caches the team zip gave you (`reproduce.py --zip`), with main at `2b0606d` or later. About 20–30 minutes, no network:
+
+```bash
+cd Data-Pipeline
+git pull
+OLD=<your data root, the folder whose snapshots/_cache holds repos, jira, gitlab, scan, resolve, szz>
+export MERIDIAN_DATA=~/meridian-block3
+mkdir -p $MERIDIAN_DATA/snapshots $MERIDIAN_DATA/out
+cp -cR $OLD/snapshots/_cache $MERIDIAN_DATA/snapshots/      # macOS (instant); elsewhere cp -r
+python -m meridian.collect --run-id new --config meridian.toml    # prints run_id=bb6b5f4e32a4bee7
+for p in history scan resolve owners join graph validate; do
+  python -m meridian.$p --run-id bb6b5f4e32a4bee7 --config meridian.toml
+done
+python -m meridian.context --run-id bb6b5f4e32a4bee7 --db $MERIDIAN_DATA/out/bb6b5f4e32a4bee7/meridian.sqlite
+```
+
+- **The run_id is the check:** collect should print `bb6b5f4e32a4bee7`. If it prints another, `Data-Pipeline` code or `meridian.toml` changed after `2b0606d`. Use the id it prints, and say so.
+- **Byte check (md5 of `out/bb6b5f4e32a4bee7/…`):** `file_bug_fixes.jsonl` `a98e5d40d71d09d6642a211e606c91da`, `call_site.jsonl` `bf428a2fa11a19c9f0ad453574d17f27`, `bug_inducing.jsonl` `682abebd1cea5ef95b74009d82c91b9d`. `commit_file.jsonl` (`8a6dc499246b3671fa97127a7fda9c9a` here) can differ by git's rename detection (above), which doesn't change the first three.
+- `validate` raises a warning alert with 0 errors; it isn't a failure.
+- `publish` isn't run: the team's live block stays `c5118` unless Aniket says otherwise.
 
 ## Gap 13: a cleaner SZZ
 
