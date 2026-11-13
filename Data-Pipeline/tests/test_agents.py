@@ -11,6 +11,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import time
 import os
 import re
 import sqlite3
@@ -257,6 +258,15 @@ class WithLLM(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.cache = Cache(self.tmp.name)
         self.addCleanup(self.tmp.cleanup)
+
+    def test_workers_write_the_same_texts_and_rows_with_the_same_calls(self):
+        one, many = Fake(good), Fake(lambda m, f: (time.sleep(0.01), good(m, f))[1])  # slow, so threads overlap
+        (w1, rows1), _ = run(llm=one, cache=Cache(Path(self.tmp.name) / "one"))
+        (w8, rows8), _ = run(llm=many, cache=Cache(Path(self.tmp.name) / "many"), workers=8)
+        self.assertEqual([(w.task.kind, w.task.target, w.text) for w in w1],
+                         [(w.task.kind, w.task.target, w.text) for w in w8])
+        self.assertEqual(json.dumps(rows1, sort_keys=True), json.dumps(rows8, sort_keys=True))
+        self.assertEqual(sorted(one.calls), sorted(many.calls))  # a shared cache key is still one call
 
     def test_a_good_reply_ships_and_a_warm_cache_makes_0_calls(self):
         llm = Fake(good)

@@ -44,8 +44,10 @@ import json
 import re
 import sqlite3
 import sys
+import threading
 import time
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing, nullcontext
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -456,26 +458,48 @@ def _table(db, name):
 
 
 def run(db, cfg, run_id, at, *, llm=None, cache=None, log=None, strict_cache=False, router=None, ladder=None,
-        limit=None):
+        limit=None, workers=1):
     """Every task written. Rows are offered once: a suggestion_id already in the block isn't offered again. A block
     from before schema v1.3 has no suggestion table, so no rows so far. router: Jev (meridian.jev.Router), which
     picks each task's starting model; None is the fixed rules. A task naming a person is skipped before Jev sees it.
     ladder: the models every task tries without a router (default LADDER): the model comparison runs one model at a
     time this way (GAPS.md gap 2), so LADDER and every run_id stay as they are. limit: the first n tasks only (the 10
-    real prompts measured before a full run)."""
+    real prompts measured before a full run). workers: tasks written at once (live LLM calls wait on the network);
+    the texts and rows are the same as one at a time."""
     teams, people = names(db)
     written, skipped = [], []
-    fixed = ladder
-    for t in tasks(db, cfg, run_id, at)[:limit]:
+    todo = tasks(db, cfg, run_id, at)[:limit]
+
+    def one(t):
         try:
-            ladder, route = fixed, ROUTE
+            lad, route = ladder, ROUTE
             if router is not None:
                 person_check(t, teams, people)  # Jev's prompt carries the facts: never one that names a person
-                ladder, route = router.ladder(t)
-            written.append(write(t, teams=teams, people=people, llm=llm, cache=cache, log=log,
-                                 strict_cache=strict_cache, ladder=ladder, route=route))
+                lad, route = router.ladder(t)
+            return write(t, teams=teams, people=people, llm=llm, cache=cache, log=log, strict_cache=strict_cache,
+                         ladder=lad, route=route)
         except NamesAPerson as e:
-            skipped.append((t.kind, t.target, str(e)))
+            return e
+
+    # Tasks of one kind with the same facts share a cache key: one after another, so the second is the first's hit
+    # and never a second call whose different answer the cache would refuse.
+    groups = {}
+    for i, t in enumerate(todo):
+        groups.setdefault((t.kind, facts_hash(t.facts)), []).append(i)
+    done = {}
+
+    def group(idx):
+        for i in idx:
+            done[i] = one(todo[i])
+
+    with ThreadPoolExecutor(max(1, workers)) as pool:
+        for f in [pool.submit(group, idx) for idx in groups.values()]:
+            f.result()  # a failure (over budget, a strict-cache miss) stops the run, as it did in a loop
+    for i, t in enumerate(todo):
+        if isinstance(done[i], NamesAPerson):
+            skipped.append((t.kind, t.target, str(done[i])))
+        else:
+            written.append(done[i])
     before = []
     if _table(db, "suggestion"):
         cols = [r[1] for r in db.execute("PRAGMA table_info(suggestion)")]
@@ -516,11 +540,12 @@ def fallback_counts(written):
 def _tee(log, path):
     """log, and each row appended to path as one JSON line: what meridian.writer_compare reads."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    lock = threading.Lock()  # run(workers=) logs from several threads: one whole line at a time
 
     def both(**row):
         if log is not None:
             log(**row)
-        with open(path, "a", encoding="utf-8", newline="\n") as f:
+        with lock, open(path, "a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(row, sort_keys=True) + "\n")
     return both
 
@@ -541,6 +566,7 @@ def main(argv=None):
                     help="call models live (meridian.llm.Client, $MERIDIAN_GCP_PROJECT); a cache hit makes no call")
     ap.add_argument("--models", help="comma-separated ladder for every task, smallest first (default: LADDER)")
     ap.add_argument("--limit", type=int, help="write the first n tasks only")
+    ap.add_argument("--workers", type=int, default=8, help="tasks written at once (default 8; 1: one at a time)")
     ap.add_argument("--max-usd", type=float, help="the client's spend cap for this run (default settings.toml [llm])")
     ap.add_argument("--calls", type=Path, help="append every answer's logged row (counts and labels) to this jsonl")
     ap.add_argument("--jev", action="store_true", help="Jev (meridian.jev) picks each task's agent and model; "
@@ -577,7 +603,7 @@ def main(argv=None):
             teams, people = names(db)
             router = Router(llm=llm, cache=cache, log=log, teams=teams, people=people)
         result = run(db, cfg, a.run_id, at, llm=llm, cache=cache, log=log, strict_cache=a.strict_cache,
-                     router=router, ladder=ladder, limit=a.limit)
+                     router=router, ladder=ladder, limit=a.limit, workers=a.workers)
     if llm is not None:
         say(f"{llm.calls} calls, ${llm.spent:.4f}")
     rep = report(result)
