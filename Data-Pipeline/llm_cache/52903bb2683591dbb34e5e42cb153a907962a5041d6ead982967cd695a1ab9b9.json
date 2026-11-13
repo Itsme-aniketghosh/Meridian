@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.002937,
+ "model": "gemini-flash",
+ "prompt_version": "eafe3eeacbc1",
+ "reply": "```json\n{\"agent\": \"diff_drafter\", \"model\": \"claude-haiku-5-5\", \"reason\": \"The migration touches a single group of straightforward code updates suitable for the smallest model.\"}\n```",
+ "tokens_in": 658,
+ "tokens_out": 260
+}

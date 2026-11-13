@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.0,
+ "model": "phi4-mini",
+ "prompt_version": "eafe3eeacbc1",
+ "reply": "```json\n{\"agent\": \"writer\", \"model\": \"claude-haiku-5-5\", \"reason\": \"Ticket draft involving a specific symbol in Django code.\"}\n```",
+ "tokens_in": 297,
+ "tokens_out": 39
+}

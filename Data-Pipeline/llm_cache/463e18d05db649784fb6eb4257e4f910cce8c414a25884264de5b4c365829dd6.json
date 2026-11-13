@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.0001371,
+ "model": "gemma-4",
+ "prompt_version": "eafe3eeacbc1",
+ "reply": "```json\n{\"agent\": \"diff_drafter\", \"model\": \"claude-sonnet-5-5\", \"reason\": \"The large amount of information requires a more capable model than the smallest option.\"}\n```",
+ "tokens_in": 718,
+ "tokens_out": 49
+}

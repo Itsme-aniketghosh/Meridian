@@ -1,0 +1,8 @@
+{
+ "cost_usd": 0.0,
+ "model": "phi4-mini",
+ "prompt_version": "eafe3eeacbc1",
+ "reply": "{\"agent\": \"writer\", \"model\": \"claude-haiku-5-5\", \"reason\": \"Task is small, no blockers, and involves Django core.\"}",
+ "tokens_in": 363,
+ "tokens_out": 37
+}
