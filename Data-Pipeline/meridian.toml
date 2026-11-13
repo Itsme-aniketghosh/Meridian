@@ -146,6 +146,7 @@ blame_at = "parent"
 skip_whitespace = true
 skip_comments = true
 bug_fixes_window_days = 365
+fix_message = '^(fix|fixed|fixes|bugfix|hotfix)\b|\b(fix(es|ed)?|close[sd]?|resolve[sd]?) #[0-9]+'   # GAPS 24: file_bug_fixes only, repos with no tracker
 fix_since = "2015-01-01T00:00:00Z"     # fix commits before this never count. 0% of Spark commits before 2014 carry a key
 test_paths = '(^|/)(tests?|test-data|benchmarks?)/|Suite\.scala$|(^|/)test_[^/]*\.py$|Tests?\.java$'   # never blamed
 comment_prefixes = [                  # a line starting with one of these (after whitespace) is comment-only: never blamed.
