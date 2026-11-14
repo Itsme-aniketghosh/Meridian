@@ -1,0 +1,27 @@
+$ python -m meridian.diffs --run-id bb6b5f4e32a4bee7 --config meridian.toml --out <scratch>/out/diffs --strict-cache
+2026-11-14T03:19:56Z
+carltongibson/django-filter                       7 sites      7 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 7}
+cookiecutter/cookiecutter-django                 16 sites     16 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 16}
+django-cms/django-cms                           160 sites    160 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 160}
+django-extensions/django-extensions              10 sites     10 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 10}
+django-guardian/django-guardian                  25 sites     25 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 25}
+django-haystack/django-haystack                  13 sites     13 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 13}
+django-import-export/django-import-export         7 sites      7 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 7}
+django-oscar/django-oscar                       247 sites    247 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 247}
+django-tastypie/django-tastypie                  31 sites     31 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 31}
+django-tenants/django-tenants                     6 sites      6 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 6}
+django/channels                                  18 sites     17 lines     17 drafted (0 by the LLM)  style path_if_plain   0 owner edits  refused -
+django/django                                   289 sites    267 lines    265 drafted (0 by the LLM)  style None            0 owner edits  refused {'not_python': 2}
+encode/django-rest-framework                    182 sites    182 lines    182 drafted (0 by the LLM)  style path_if_plain   0 owner edits  refused -
+graphql-python/graphene-django                   13 sites     13 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 13}
+iMerica/dj-rest-auth                             51 sites     51 lines     51 drafted (0 by the LLM)  style path_if_plain   0 owner edits  refused -
+jazzband/django-debug-toolbar                    29 sites     29 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 29}
+jazzband/django-silk                             28 sites     28 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 28}
+jazzband/django-two-factor-auth                  37 sites     37 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 37}
+pennersr/django-allauth                          50 sites     50 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 50}
+wagtail/wagtail                                 240 sites    240 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 240}
+yourlabs/django-autocomplete-light               67 sites     67 lines      0 drafted (0 by the LLM)  style None            0 owner edits  refused {'style_unknown': 67}
+538 suggestion rows -> <scratch>/out/diffs/suggestion.jsonl
+  6.52s user 2.07s system 88% cpu 9.741 total
+exit=0
+2026-11-14T03:20:06Z

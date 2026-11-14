@@ -101,7 +101,7 @@
       0,
       0,
       "tickets_mapped",
-      36138,
+      36198,
       74015
      ]
     ],
@@ -470,7 +470,7 @@
     "params": {
      "sha": "4353640ea9495d58fabd0357253b82de3b069408"
     },
-    "secs": 0.0,
+    "secs": 0.2,
     "fixture_n": 1
    },
    "push_scope_importers": {
@@ -527,7 +527,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.3,
     "fixture_n": 2
    },
    "stall_upstream": {
@@ -681,7 +681,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.2,
     "fixture_n": 1
    },
    "stall_semantics_unclear": {
@@ -767,7 +767,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.2,
+    "secs": 0.5,
     "fixture_n": 4
    },
    "stall_competing_load": {
@@ -783,7 +783,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.0,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "derive_blast_radius": {
@@ -1025,7 +1025,7 @@
       0,
       0,
       "tickets_mapped",
-      36138,
+      36198,
       74015
      ]
     ],
@@ -1394,7 +1394,7 @@
     "params": {
      "sha": "d1"
     },
-    "secs": 0.0,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "push_scope_importers": {
@@ -1588,7 +1588,7 @@
      [
       "django-tastypie/django-tastypie",
       "tastypie/api.py",
-      "f6c7196209a27e70",
+      "8ed86ff6440f3d1a",
       1945
      ],
      [
@@ -1605,7 +1605,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.2,
     "fixture_n": 1
    },
    "stall_semantics_unclear": {
@@ -1626,8 +1626,12 @@
    },
    "stall_test_gap": {
     "status": "ran",
-    "n": 196,
+    "n": 200,
     "rows": [
+     [
+      "carltongibson/django-filter",
+      "tests.urls"
+     ],
      [
       "carltongibson/django-filter",
       "tests.rest_framework.test_integration"
@@ -1671,14 +1675,10 @@
      [
       "django-cms/django-cms",
       "cms.test_utils.project.fourth_cms_urls_for_apphook_tests"
-     ],
-     [
-      "django-cms/django-cms",
-      "cms.admin.placeholderadmin"
      ]
     ],
     "params": {},
-    "secs": 0.0,
+    "secs": 0.1,
     "fixture_n": 4
    },
    "stall_competing_load": {
@@ -1694,7 +1694,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.5,
+    "secs": 1.6,
     "fixture_n": 1
    },
    "derive_blast_radius": {
@@ -1866,7 +1866,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.3,
+    "secs": 0.7,
     "fixture_n": 2
    },
    "staff_link_coverage": {
@@ -1874,15 +1874,15 @@
     "n": 1,
     "rows": [
      [
-      36138,
+      36198,
       59491,
       "tickets_mapped",
-      36138,
+      36198,
       74015
      ]
     ],
     "params": {},
-    "secs": 0.0,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "owner_teams": {
@@ -2039,7 +2039,7 @@
     "params": {
      "sha": "f868de6914d0e6ede86309648614bb436b2b82e6"
     },
-    "secs": 0.0,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "push_scope_importers": {
@@ -2111,7 +2111,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.4,
+    "secs": 0.3,
     "fixture_n": 1
    },
    "derive_blocked_by": {
@@ -2250,7 +2250,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.0,
+    "secs": 0.1,
     "fixture_n": 2
    },
    "staff_link_coverage": {
@@ -2261,7 +2261,7 @@
       0,
       14524,
       "tickets_mapped",
-      36138,
+      36198,
       74015
      ]
     ],
@@ -2700,7 +2700,7 @@
       0,
       0,
       "tickets_mapped",
-      36138,
+      36198,
       74015
      ]
     ],
@@ -3069,7 +3069,7 @@
     "params": {
      "sha": "4353640ea9495d58fabd0357253b82de3b069408"
     },
-    "secs": 0.0,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "push_scope_importers": {
@@ -3126,7 +3126,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.3,
     "fixture_n": 2
    },
    "stall_upstream": {
@@ -3220,7 +3220,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.1,
+    "secs": 0.2,
     "fixture_n": 1
    },
    "stall_semantics_unclear": {
@@ -3306,7 +3306,7 @@
      ]
     ],
     "params": {},
-    "secs": 0.2,
+    "secs": 0.5,
     "fixture_n": 4
    },
    "stall_competing_load": {
@@ -3314,7 +3314,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.0,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "derive_blocked_by": {
@@ -3322,7 +3322,7 @@
     "n": 0,
     "rows": [],
     "params": {},
-    "secs": 0.0,
+    "secs": 0.1,
     "fixture_n": 1
    },
    "derive_blast_radius": {
@@ -3796,7 +3796,7 @@
    "real": 32,
    "both_mapped_to_path": 48,
    "inside_agrees": 50,
-   "human_checked": 0
+   "human_checked": 50
   },
   "gitlab_blocks": {
    "links": 2166,
@@ -3814,11 +3814,11 @@
    },
    "kb_cross_in_gold": 95,
    "kb_cross_in_gold_verdicts": {
-    "no_evidence": 19,
-    "unclear": 16,
+    "no": 28,
     "partial": 12,
     "wait": 13,
-    "no": 28,
+    "no_evidence": 19,
+    "unclear": 16,
     "planned": 7
    },
    "gold_wait": 43,
@@ -3828,7 +3828,7 @@
     "n": 26,
     "holds": 21
    },
-   "human_checked": 0
+   "human_checked": 50
   },
   "gitlab_stalls": {
    "n": 57,
@@ -4025,15 +4025,15 @@
   "p8_dead_keys_last_1000": [],
   "map_by_method": {
    "commit_key": 33351,
-   "none": 23353,
+   "none": 23293,
    "path": 777,
-   "stack_trace": 4435
+   "stack_trace": 4529
   },
-  "mapped_any": 36138,
+  "mapped_any": 36198,
   "tickets": 59491,
   "open": 6046,
-  "open_mapped": 621,
-  "open_mapped_no_done_when": 621,
+  "open_mapped": 633,
+  "open_mapped_no_done_when": 633,
   "newest_500": {
    "any_link": 29,
    "blocked_by": 0,
@@ -4045,18 +4045,18 @@
    "commits": 41056,
    "threshold": 2000,
    "flagged": 5911,
-   "inducing": 9004,
-   "flagged_inducing": 2912
+   "inducing": 8912,
+   "flagged_inducing": 2902
   },
   "file_bug_fixes_n": 1492,
-  "file_bug_fixes_risky": 180
+  "file_bug_fixes_risky": 172
  },
  "mapping": {
   "Spark (Jira)": {
    "commit key": 33351,
-   "stack trace": 2524,
+   "stack trace": 2584,
    "path in text": 263,
-   "unmapped": 23353
+   "unmapped": 23293
   },
   "GitLab": {
    "commit key": 0,

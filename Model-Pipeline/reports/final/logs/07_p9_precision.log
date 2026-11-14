@@ -1,0 +1,10 @@
+$ python -m meridian.p9_precision --run-id bb6b5f4e32a4bee7 --out <scratch>/out/p9_precision.json
+2026-11-14T03:21:09Z
+60 Spark val pushes replayed: 60 checked, 0 skipped over the scope limit, 0 with no mirror
+  P9 on real pushes: precision 0.333 on 45 alerts (Wilson 0.21-0.48): under the bar (needs >= 30 alerts at >= 0.80)
+  the table, all 4,113 val commits: lines x files > 2000 flags 634, precision 0.358 (Wilson 0.32-0.40)
+  P9 vs the table's lines x files on checked pushes: 0 disagreement(s)
+wrote <scratch>/out/p9_precision.json and <repo>/out/bb6b5f4e32a4bee7/push_alert.jsonl
+  73.38s user 304.68s system 90% cpu 6:57.12 total
+exit=0
+2026-11-14T03:28:06Z
