@@ -26,18 +26,27 @@ This section covers the guideline rows owned here (PLAN §12): validation on hel
 | PR-AUC difference against lines × files (paired) | +0.0875 | +0.0606 – +0.1128 |
 | Alerts at precision 0.80 (≥ 30 alerts) | none: no cutoff reaches it | |
 
-**2024, once (Nov 14)** (`reports/2024/metrics.json`, `golden/2024.json`; run from commit `[SHA]` at `[time UTC]`, MLflow run `[id]`):
+**2024, once (Nov 14).**
+- **How it was run:** step by step from `RUN-2024.md`, by Utkarsh with Aniket watching.
+- **Where it ran from:** commit `df12728` (only `model.toml` differs from the freeze tag), at 01:57 UTC.
+- **Where it's recorded:** MLflow run `4d107a39…` in `meridian-defect-risk`. Full log in `reports/2024/RUN-LOG.md`, fingerprints in `golden/2024.json`.
+- **The first check passed:** the champion first reproduced its recorded val PR-AUC, 0.4067.
+
+N = 3,762 commits, 283 bug-inducing (7.5%). Source `reports/2024/metrics.json`:
 
 | | Value | Interval (95%) |
 |---|---|---|
-| N, positives | [N], [positives] ([rate]) | |
-| PR-AUC, forest | [value] | [lo – hi] |
-| PR-AUC, lines × files | [value] | [lo – hi] |
-| Difference against lines × files (paired) | [value] | [lo – hi] |
-| ROC-AUC, forest | [value] | |
-| Recall at 20% of lines | [value] | |
+| PR-AUC, forest | **0.268** | 0.224 – 0.320 |
+| PR-AUC, lines × files | 0.214 | 0.179 – 0.259 |
+| Difference against lines × files (paired) | **+0.054** | +0.028 – +0.081 |
+| ROC-AUC, forest (lines × files: 0.770) | 0.808 | |
+| Recall at 20% of lines (smallest commits first: 0.608; random: 0.200) | 0.625 | |
+| Alerts | 0: no alert threshold (decision 3) | |
 
-**Verdict, by PLAN §4's bar** (the model ships only if its 2024 PR-AUC beats lines × files with the paired interval above 0): [ships / lines × files stays]. Whatever 2024 says is what's reported.
+**Verdict, by PLAN §4's bar** (the model ships only if its 2024 PR-AUC beats lines × files with the paired interval above 0): **the interval is above 0, so the model ships.**
+- The other two baselines fall below lines × files on 2024: churn 0.196, bug-fix count 0.166, both with paired intervals below 0.
+- Every PR-AUC is lower than on 2023 because only 7.5% of 2024's commits are labelled bug-inducing, against 11.8% in 2023. Recent labels are incomplete: a bug introduced in 2024 may not have been found and fixed by the time the data was pulled.
+- The model's lead over the bar holds on the year it never saw.
 
 **How 2024 stayed unseen:**
 - `evaluate.py --split test` refuses unless `model.toml [split] test_allowed` is true and the code is committed (fault 14 checks it).
