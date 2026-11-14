@@ -82,6 +82,22 @@ On Rachna's untuned LightGBM (her `candidate.json` isn't written yet), `val` N =
 | 2024, once | ✅ for the refusal: `--split test` is refused without `test_allowed = true`, and on uncommitted code (tested). That the choices were committed first is checked on Nov 12, from the run's `git_sha` |
 | Threshold | ✅ Fixed on `val` by decision 3 (precision 0.80 on at least 30 alerts). The test run reuses `val`'s number (tested). `metrics.json` holds its alerts, alert rate and precision, with N |
 
+### Evaluation, Nov 14 (2024, once)
+
+Run by Utkarsh with Aniket's go-ahead (Rochan, the checklist's runner, couldn't be reached), from `RUN-2024.md` step by step. Branch `run-2024` from `freeze-nov13`. Run SHA `df12728b6c588614ee5b01ae50d7df9bcc1cb2c0` (only `model.toml` differs from the freeze). Sat Nov 14 01:57 UTC. MLflow run `4d107a397eab41528e9396ab2480648b` in `meridian-defect-risk`. Full log: `reports/2024/RUN-LOG.md`.
+
+| | Result |
+|---|---|
+| N and positives | 3,762 commits, 283 bug-inducing (7.5%) |
+| The champion's val check | "val PR-AUC 0.4067, as recorded" (model md5 `2a0c9cc6…`, table `9c0ab220…`) |
+| Forest PR-AUC | **0.268** [0.224, 0.320]; ROC-AUC 0.808 |
+| Recall at 20% of lines | 0.625 (no model: 0.608 smallest commits first, 0.200 random) |
+| lines × files PR-AUC | 0.214 [0.179, 0.259]; ROC-AUC 0.770 |
+| Forest − lines × files (paired, `models.forest.vs_lines_x_files`) | **+0.054 [+0.028, +0.081]**, N = 3,762 |
+| Alerts | 0: no alert threshold (decision 3: no cutoff reached precision 0.80 on val) |
+| **Verdict (PLAN §4)** | **The interval is above 0: the model ships.** |
+| Golden md5s | `golden/2024.json` |
+
 ### Registry, Nov 9
 
 | Bar | Result |

@@ -1,0 +1,38 @@
+{
+ "data/features.parquet": {
+  "md5": "9c0ab22048fff931ac89e27c20112c56",
+  "size": 2156659
+ },
+ "registry/champion.json": {
+  "md5": "ad6bbe9d3fe31ae8f12a2ea045b34ad8",
+  "size": 1568
+ },
+ "registry/model.joblib": {
+  "md5": "2a0c9cc656b43fc4e471c70223c4b4ca",
+  "size": 5243529
+ },
+ "reports/2024/champion_candidate.json": {
+  "md5": "81f1e1b417da8db69cfa2415090eb465",
+  "size": 288
+ },
+ "reports/2024/champion_val_scores.csv": {
+  "md5": "ceea99785c2117c773eda33562c97e0b",
+  "size": 319632
+ },
+ "reports/2024/champion_test_scores.csv": {
+  "md5": "7dc54029ea989d7da689df6e6c705e71",
+  "size": 292300
+ },
+ "reports/2024/metrics.json": {
+  "md5": "bdb4c6c67441f55d077e8ec6c1482abf",
+  "size": 6639
+ },
+ "reports/champion/bias_report.json": {
+  "md5": "109a96f71197a02cbc1095e8739eac8e",
+  "size": 36649
+ },
+ "reports/llm_bias.json": {
+  "md5": "420af9371f3ab28f9bf71c29eb348803",
+  "size": 91932
+ }
+}
