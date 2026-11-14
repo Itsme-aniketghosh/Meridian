@@ -1,0 +1,364 @@
+{
+  "split": "val",
+  "n": 4113,
+  "positives": 486,
+  "positive_rate": 0.11816192560175055,
+  "candidate": {
+    "column": "forest",
+    "kind": "forest",
+    "params": {
+      "n_estimators": 200,
+      "min_samples_leaf": 5,
+      "max_features": "sqrt",
+      "max_depth": 8
+    },
+    "seed": 1,
+    "run_id": null,
+    "val_scores": "reports/tuned_val_scores.csv"
+  },
+  "reference": "lines_x_files",
+  "scores_file": "reports/tuned_val_scores.csv",
+  "scores_md5": "9f308bbe8bb262dab9e20f81191cb147",
+  "features_md5": "9c0ab22048fff931ac89e27c20112c56",
+  "settings": {
+    "bootstrap_reps": 2000,
+    "interval": 0.95,
+    "effort": 0.2,
+    "effort_ranking": "risk_per_line",
+    "threshold": "precision",
+    "threshold_precision": 0.8,
+    "threshold_min_alerts": 30,
+    "threshold_alert_rate": 0.154,
+    "bootstrap_seed": 1
+  },
+  "recall_at_effort_without_a_model": {
+    "smallest_first": 0.5802469135802469,
+    "random_order": 0.2,
+    "effort": 0.2,
+    "commits_read_whole": 3541,
+    "n": 4113,
+    "positive_rate": 0.11816192560175055
+  },
+  "models": {
+    "lines_x_files": {
+      "role": "baseline",
+      "pr_auc": {
+        "value": 0.31913718114819406,
+        "interval": [
+          0.28619271515943556,
+          0.3604264535423869
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "roc_auc": {
+        "value": 0.7970198930971532,
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "at_threshold": {
+        "threshold": null,
+        "alerts": 0,
+        "alert_rate": 0.0,
+        "median_alerts_per_push": 0.0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 486,
+        "tn": 3627,
+        "rule": "precision",
+        "chosen_on": "val",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "recall_at_effort": {
+        "value": 0.006172839506172839,
+        "found": 3.0,
+        "bugs": 486,
+        "lines_budget": 196890.6,
+        "commits_read_whole": 11,
+        "effort": 0.2,
+        "ranking": "risk_per_line",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      }
+    },
+    "churn": {
+      "role": "baseline",
+      "pr_auc": {
+        "value": 0.3162491769233995,
+        "interval": [
+          0.28268169498707524,
+          0.3582803194787635
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "roc_auc": {
+        "value": 0.7914242858488179,
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "at_threshold": {
+        "threshold": null,
+        "alerts": 0,
+        "alert_rate": 0.0,
+        "median_alerts_per_push": 0.0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 486,
+        "tn": 3627,
+        "rule": "precision",
+        "chosen_on": "val",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "recall_at_effort": {
+        "value": 0.20000142211964905,
+        "found": 97.20069115014944,
+        "bugs": 486,
+        "lines_budget": 196890.6,
+        "commits_read_whole": 0,
+        "effort": 0.2,
+        "ranking": "risk_per_line",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "vs_lines_x_files": {
+        "pr_auc_difference": -0.0028880042247945714,
+        "paired": true,
+        "interval": [
+          -0.014950756184272242,
+          0.009756726495150041
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      }
+    },
+    "bug_fixes": {
+      "role": "baseline",
+      "pr_auc": {
+        "value": 0.22209992707524895,
+        "interval": [
+          0.19303240262426447,
+          0.2575809063993543
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "roc_auc": {
+        "value": 0.6759837909778172,
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "at_threshold": {
+        "threshold": null,
+        "alerts": 0,
+        "alert_rate": 0.0,
+        "median_alerts_per_push": 0.0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 486,
+        "tn": 3627,
+        "rule": "precision",
+        "chosen_on": "val",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "recall_at_effort": {
+        "value": 0.5164609053497943,
+        "found": 251.0,
+        "bugs": 486,
+        "lines_budget": 196890.6,
+        "commits_read_whole": 2300,
+        "effort": 0.2,
+        "ranking": "risk_per_line",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "vs_lines_x_files": {
+        "pr_auc_difference": -0.09703725407294511,
+        "paired": true,
+        "interval": [
+          -0.12964543968632333,
+          -0.06607168589247726
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      }
+    },
+    "logreg": {
+      "role": "model",
+      "pr_auc": {
+        "value": 0.3823213420748834,
+        "interval": [
+          0.342782299981747,
+          0.42836472649485113
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "roc_auc": {
+        "value": 0.8275944817163454,
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "at_threshold": {
+        "threshold": null,
+        "alerts": 0,
+        "alert_rate": 0.0,
+        "median_alerts_per_push": 0.0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 486,
+        "tn": 3627,
+        "rule": "precision",
+        "chosen_on": "val",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "recall_at_effort": {
+        "value": 0.6131687242798354,
+        "found": 298.0,
+        "bugs": 486,
+        "lines_budget": 196890.6,
+        "commits_read_whole": 3398,
+        "effort": 0.2,
+        "ranking": "risk_per_line",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "vs_lines_x_files": {
+        "pr_auc_difference": 0.06318416092668933,
+        "paired": true,
+        "interval": [
+          0.04269863671343569,
+          0.0854461000527214
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      }
+    },
+    "forest": {
+      "role": "candidate",
+      "pr_auc": {
+        "value": 0.40581963724622855,
+        "interval": [
+          0.3635588365953618,
+          0.45029073401982256
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "roc_auc": {
+        "value": 0.8259441931285819,
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "at_threshold": {
+        "threshold": null,
+        "alerts": 0,
+        "alert_rate": 0.0,
+        "median_alerts_per_push": 0.0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 486,
+        "tn": 3627,
+        "rule": "precision",
+        "chosen_on": "val",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "recall_at_effort": {
+        "value": 0.6213991769547325,
+        "found": 302.0,
+        "bugs": 486,
+        "lines_budget": 196890.6,
+        "commits_read_whole": 3456,
+        "effort": 0.2,
+        "ranking": "risk_per_line",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "vs_lines_x_files": {
+        "pr_auc_difference": 0.08668245609803449,
+        "paired": true,
+        "interval": [
+          0.05939684066049128,
+          0.11198888421017418
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      }
+    },
+    "lgbm": {
+      "role": "model",
+      "pr_auc": {
+        "value": 0.41298684070316377,
+        "interval": [
+          0.3705450529431331,
+          0.4567264169284413
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "roc_auc": {
+        "value": 0.8298498004790319,
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "at_threshold": {
+        "threshold": null,
+        "alerts": 0,
+        "alert_rate": 0.0,
+        "median_alerts_per_push": 0.0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 486,
+        "tn": 3627,
+        "rule": "precision",
+        "chosen_on": "val",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "recall_at_effort": {
+        "value": 0.6131687242798354,
+        "found": 298.0,
+        "bugs": 486,
+        "lines_budget": 196890.6,
+        "commits_read_whole": 3468,
+        "effort": 0.2,
+        "ranking": "risk_per_line",
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      },
+      "vs_lines_x_files": {
+        "pr_auc_difference": 0.09384965955496971,
+        "paired": true,
+        "interval": [
+          0.06441810967815426,
+          0.12198285355729573
+        ],
+        "n": 4113,
+        "positive_rate": 0.11816192560175055
+      }
+    }
+  }
+}

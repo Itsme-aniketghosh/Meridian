@@ -88,15 +88,15 @@ Pretrained models need bias checks too. The writer's texts and the diff drafter'
 
 **Gate fallback** is how often the fact gate rejects the LLM's text and the template ships instead. It's judged on what the product ships: the live run on block `bb6b5f4e` (gap 15, Utkarsh), with the orchestrator planning and Gemini 3.8 Flash writing, replayed from its committed cache with 0 calls. The replay reproduces it exactly: 164 LLM texts and 60 templates, every template after a failed LLM attempt.
 
-| Task kind | Texts | Fell back | Rate (95% interval) |
-|---|---:|---:|---|
-| Stall reason | 68 | 0 | 0.000 (0.000–0.053) |
-| Ticket draft | 68 | 0 | 0.000 (0.000–0.053) |
-| **Consumer** | 68 | **41** | **0.603 (0.484–0.711), flagged** |
-| Walk (graph walkers) | 20 | 19 | 0.95, not judged (N < 30) |
-| **All** | 224 | 60 | 0.268 |
+| Task kind | Texts | Fell back, as run | After the gate fix (#122) |
+|---|---:|---:|---:|
+| Stall reason | 68 | 0 | 0 |
+| Ticket draft | 68 | 0 | 0 |
+| **Consumer** | 68 | **41 (0.603), flagged** | **0 (0.000; 0.000–0.053)** |
+| Walk (graph walkers) | 20 | 19 | 19 (not judged, N < 30) |
+| **All** | 224 | 60 (0.268) | 19 (0.085) |
 
-**One slice is flagged, and it's an open flag: consumer texts fall back 60% of the time.** The cause is mechanical. Every one of the 41 has a file with gap 24's new bug-fix keys (GitHub's `#6921` style), and all 477 of the gate's misses on them are those keys' numbers. The model cites the fix, and the gate reads the number as one the facts don't hold. All 27 consumer tasks without fix keys pass. On the old block, which had no package fix keys, consumer texts fell back 3 of 68. So it's a gate bug on one kind of fact, not text that's worse for some teams. It was found after the code freeze, so no fix was tried, and the flag stays open. The fix, the gate accepting a number it can read from a fix key, is Vishwa's. The walkers' 19 fallbacks each name a team the facts don't hold, at N = 20, too few to judge. By repo, only `django/django` is judged (41 of 151, 0.27, not flagged), and none of the 43 owner teams, the slice the bar names, reaches 30 texts. On the old block, the writer comparison's 204 texts fell back 4 times on Gemini 3.8 Flash, with no flag.
+**As run, one slice was flagged: consumer texts fell back 60% of the time.** The cause was mechanical. Every one of the 41 had a file with gap 24's new bug-fix keys (GitHub's `#6921` style), and all 477 of the gate's misses on them were those keys' numbers. The model cited the fix, and the gate read the number as one the facts don't hold. All 27 consumer tasks without fix keys passed. So it was a gate bug on one kind of fact, not text that's worse for some teams. Aniket fixed it after the freeze (#122): a `#N` key is now checked as a ticket, like `SPARK-N`, so a key the facts don't hold is still caught. Replayed from the same cache with 0 calls, **all 68 consumer texts pass, and no fallback slice is flagged**. The orchestrator's plans are unchanged. What's left is the walkers' 19 fallbacks, each naming a team the facts don't hold. That's N = 20, too few to judge, and an open question for the walkers. By repo, only `django/django` is judged (6 of 151, 0.04). None of the 43 owner teams, the slice the bar names, reaches 30 texts, and the judged slices' power is 0.23–0.34, so the pass says little. On the old block, the writer comparison's 204 texts fell back 4 times on Gemini 3.8 Flash, with no flag.
 
 **Diff match** is the share of drafted lines equal to the real after-line, from Utkarsh's counts: 866 of 1,503 overall (0.576). Two slices are flagged: `django-oscar` (81 of 247, 0.33) and the 15 packages without published per-repo counts (140 of 488, 0.29). They're accepted because Utkarsh's decision 11 scored every `url()` style on all 20 packages. No single style closes the gap, since each real migration chose its own.
 

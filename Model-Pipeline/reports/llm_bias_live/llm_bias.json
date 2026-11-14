@@ -10,8 +10,8 @@
     "by": {
       "repo": {
         "overall": {
-          "value": 0.26785714285714285,
-          "k": 60,
+          "value": 0.08482142857142858,
+          "k": 19,
           "n": 224
         },
         "groups": {
@@ -40,12 +40,12 @@
             "power": null
           },
           "django-cms/django-cms": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -88,12 +88,12 @@
             "power": null
           },
           "django-import-export/django-import-export": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -148,24 +148,24 @@
             "power": null
           },
           "django/django": {
-            "value": 0.271523178807947,
-            "k": 41,
+            "value": 0.039735099337748346,
+            "k": 6,
             "n": 151,
             "ci": [
-              0.2069112688856473,
-              0.34747164299390454
+              0.01833606720540129,
+              0.08397153788529008
             ],
             "judged": true,
             "flagged": false,
-            "power": 0.2331399912324389
+            "power": 0.3422980736160972
           },
           "encode/django-rest-framework": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -184,12 +184,12 @@
             "power": null
           },
           "iMerica/dj-rest-auth": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -232,24 +232,24 @@
             "power": null
           },
           "pennersr/django-allauth": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "wagtail/wagtail": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -271,8 +271,8 @@
       },
       "team": {
         "overall": {
-          "value": 0.26785714285714285,
-          "k": 60,
+          "value": 0.08482142857142858,
+          "k": 19,
           "n": 224
         },
         "groups": {
@@ -289,72 +289,72 @@
             "power": null
           },
           "contrib.admin": {
-            "value": 0.3333333333333333,
-            "k": 3,
+            "value": 0.0,
+            "k": 0,
             "n": 9,
             "ci": [
-              0.1205838183869109,
-              0.6457978644196037
+              2.7755575615628914e-17,
+              0.29914504841954404
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "contrib.admindocs": {
-            "value": 0.2857142857142857,
-            "k": 2,
-            "n": 7,
-            "ci": [
-              0.08221892400405673,
-              0.6410655481673807
-            ],
-            "judged": false,
-            "flagged": false,
-            "power": null
-          },
-          "contrib.auth": {
-            "value": 0.3333333333333333,
-            "k": 4,
-            "n": 12,
-            "ci": [
-              0.1381200910912132,
-              0.6093779111272004
-            ],
-            "judged": false,
-            "flagged": false,
-            "power": null
-          },
-          "contrib.contenttypes": {
-            "value": 0.3333333333333333,
-            "k": 2,
-            "n": 6,
-            "ci": [
-              0.09677141110578052,
-              0.700006684861608
-            ],
-            "judged": false,
-            "flagged": false,
-            "power": null
-          },
-          "contrib.flatpages": {
-            "value": 0.3333333333333333,
-            "k": 2,
-            "n": 6,
-            "ci": [
-              0.09677141110578052,
-              0.700006684861608
-            ],
-            "judged": false,
-            "flagged": false,
-            "power": null
-          },
-          "contrib.gis": {
             "value": 0.14285714285714285,
             "k": 1,
             "n": 7,
             "ci": [
               0.025679624344743524,
               0.5131278292743189
+            ],
+            "judged": false,
+            "flagged": false,
+            "power": null
+          },
+          "contrib.auth": {
+            "value": 0.0,
+            "k": 0,
+            "n": 12,
+            "ci": [
+              1.3877787807814457e-17,
+              0.24249400665524085
+            ],
+            "judged": false,
+            "flagged": false,
+            "power": null
+          },
+          "contrib.contenttypes": {
+            "value": 0.0,
+            "k": 0,
+            "n": 6,
+            "ci": [
+              0.0,
+              0.39033428790216534
+            ],
+            "judged": false,
+            "flagged": false,
+            "power": null
+          },
+          "contrib.flatpages": {
+            "value": 0.0,
+            "k": 0,
+            "n": 6,
+            "ci": [
+              0.0,
+              0.39033428790216534
+            ],
+            "judged": false,
+            "flagged": false,
+            "power": null
+          },
+          "contrib.gis": {
+            "value": 0.0,
+            "k": 0,
+            "n": 7,
+            "ci": [
+              0.0,
+              0.35433043506668743
             ],
             "judged": false,
             "flagged": false,
@@ -385,12 +385,12 @@
             "power": null
           },
           "contrib.postgres": {
-            "value": 0.16666666666666666,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 6,
             "ci": [
-              0.03005336974830669,
-              0.5635028221864702
+              0.0,
+              0.39033428790216534
             ],
             "judged": false,
             "flagged": false,
@@ -433,24 +433,24 @@
             "power": null
           },
           "contrib.sites": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "contrib.staticfiles": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -481,36 +481,36 @@
             "power": null
           },
           "core": {
-            "value": 0.3333333333333333,
-            "k": 2,
+            "value": 0.0,
+            "k": 0,
             "n": 6,
             "ci": [
-              0.09677141110578052,
-              0.700006684861608
+              0.0,
+              0.39033428790216534
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "db": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "django-cms/django-cms": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -553,12 +553,12 @@
             "power": null
           },
           "django-import-export/django-import-export": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -613,24 +613,24 @@
             "power": null
           },
           "encode/django-rest-framework": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "forms": {
-            "value": 0.3333333333333333,
-            "k": 4,
+            "value": 0.0,
+            "k": 0,
             "n": 12,
             "ci": [
-              0.1381200910912132,
-              0.6093779111272004
+              1.3877787807814457e-17,
+              0.24249400665524085
             ],
             "judged": false,
             "flagged": false,
@@ -649,12 +649,12 @@
             "power": null
           },
           "iMerica/dj-rest-auth": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -697,24 +697,24 @@
             "power": null
           },
           "pennersr/django-allauth": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "template": {
-            "value": 0.3333333333333333,
-            "k": 3,
+            "value": 0.0,
+            "k": 0,
             "n": 9,
             "ci": [
-              0.1205838183869109,
-              0.6457978644196037
+              2.7755575615628914e-17,
+              0.29914504841954404
             ],
             "judged": false,
             "flagged": false,
@@ -733,48 +733,48 @@
             "power": null
           },
           "tests": {
-            "value": 0.3333333333333333,
-            "k": 4,
+            "value": 0.0,
+            "k": 0,
             "n": 12,
             "ci": [
-              0.1381200910912132,
-              0.6093779111272004
+              1.3877787807814457e-17,
+              0.24249400665524085
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "utils": {
-            "value": 0.3333333333333333,
-            "k": 3,
+            "value": 0.0,
+            "k": 0,
             "n": 9,
             "ci": [
-              0.1205838183869109,
-              0.6457978644196037
+              2.7755575615628914e-17,
+              0.29914504841954404
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "views": {
-            "value": 0.3333333333333333,
-            "k": 2,
+            "value": 0.0,
+            "k": 0,
             "n": 6,
             "ci": [
-              0.09677141110578052,
-              0.700006684861608
+              0.0,
+              0.39033428790216534
             ],
             "judged": false,
             "flagged": false,
             "power": null
           },
           "wagtail/wagtail": {
-            "value": 0.3333333333333333,
-            "k": 1,
+            "value": 0.0,
+            "k": 0,
             "n": 3,
             "ci": [
-              0.06149194472039626,
-              0.7923403991979523
+              0.0,
+              0.5614970317550455
             ],
             "judged": false,
             "flagged": false,
@@ -796,22 +796,22 @@
       },
       "task": {
         "overall": {
-          "value": 0.26785714285714285,
-          "k": 60,
+          "value": 0.08482142857142858,
+          "k": 19,
           "n": 224
         },
         "groups": {
           "consumer": {
-            "value": 0.6029411764705882,
-            "k": 41,
+            "value": 0.0,
+            "k": 0,
             "n": 68,
             "ci": [
-              0.4841605501663213,
-              0.7107129981971936
+              3.469446951953614e-18,
+              0.053471336520070537
             ],
             "judged": true,
-            "flagged": true,
-            "power": 0.15754619745124832
+            "flagged": false,
+            "power": 0.23076877629431525
           },
           "stall_reason": {
             "value": 0.0,
@@ -823,7 +823,7 @@
             ],
             "judged": true,
             "flagged": false,
-            "power": 0.15754619745124832
+            "power": 0.23076877629431525
           },
           "ticket_draft": {
             "value": 0.0,
@@ -835,7 +835,7 @@
             ],
             "judged": true,
             "flagged": false,
-            "power": 0.15754619745124832
+            "power": 0.23076877629431525
           },
           "walk": {
             "value": 0.95,
@@ -993,17 +993,6 @@
   },
   "flags": [
     {
-      "rate": "fallback",
-      "slice": "task=consumer",
-      "value": 0.6029411764705882,
-      "n": 68,
-      "ci": [
-        0.4841605501663213,
-        0.7107129981971936
-      ],
-      "overall": 0.26785714285714285
-    },
-    {
       "rate": "match",
       "slice": "repo=(other)",
       "value": 0.28688524590163933,
@@ -1030,6 +1019,6 @@
     "match:repo=(other)",
     "match:repo=oscar"
   ],
-  "open_flags": 1,
-  "pass": false
+  "open_flags": 0,
+  "pass": true
 }

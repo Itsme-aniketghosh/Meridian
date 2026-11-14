@@ -1,0 +1,104 @@
+{
+  "candidate": "lgbm",
+  "kind": "lgbm",
+  "threshold_rule": "alert_rate",
+  "budget": 0.154145,
+  "worst": {
+    "slice": "size_bucket=Q2",
+    "metric": "recall",
+    "gap": 0.504115
+  },
+  "options": {
+    "none": {
+      "pr_auc": 0.412987,
+      "alerts": 634,
+      "recall": 0.504115,
+      "precision": 0.386435,
+      "note": "",
+      "flags": [
+        "size_bucket=Q2:recall",
+        "size_bucket=Q2:pr_auc",
+        "size_bucket=Q3:recall",
+        "size_bucket=Q3:pr_auc",
+        "size_bucket=Q4:fpr"
+      ],
+      "pr_auc_cost": 0.0,
+      "precision_cost": 0.0,
+      "slice_value": 0.0,
+      "gap": 0.504115,
+      "closes": 0.0,
+      "qualifies": false
+    },
+    "thresholds: equal recall by size": {
+      "pr_auc": 0.412987,
+      "alerts": 618,
+      "recall": 0.368313,
+      "precision": 0.289644,
+      "note": "cross-fitted on two halves of val; alerts held at the budget",
+      "flags": [
+        "size_bucket=Q2:pr_auc",
+        "size_bucket=Q3:pr_auc"
+      ],
+      "pr_auc_cost": 0.0,
+      "precision_cost": 0.096791,
+      "slice_value": 0.352941,
+      "gap": 0.015372,
+      "closes": 0.969508,
+      "qualifies": false
+    },
+    "thresholds: Fairlearn TPR parity": {
+      "pr_auc": 0.412987,
+      "alerts": 1722,
+      "recall": 0.707819,
+      "precision": 0.199768,
+      "note": "cross-fitted; its own alert count, not the budget",
+      "flags": [
+        "module=connector:fpr",
+        "size_bucket=Q2:pr_auc",
+        "size_bucket=Q3:pr_auc"
+      ],
+      "pr_auc_cost": 0.0,
+      "precision_cost": 0.186668,
+      "slice_value": 0.705882,
+      "gap": 0.001937,
+      "closes": 0.996158,
+      "qualifies": false
+    },
+    "re-sampling Q1-Q3 positives x2": {
+      "pr_auc": 0.400711,
+      "alerts": 634,
+      "recall": 0.493827,
+      "precision": 0.378549,
+      "note": "2,477 train rows added; refitted by train.fit_and_score",
+      "flags": [
+        "size_bucket=Q2:recall",
+        "size_bucket=Q2:pr_auc",
+        "size_bucket=Q3:recall",
+        "size_bucket=Q4:fpr"
+      ],
+      "pr_auc_cost": 0.012276,
+      "precision_cost": 0.007886,
+      "slice_value": 0.098039,
+      "gap": 0.395788,
+      "closes": 0.214886,
+      "qualifies": false
+    },
+    "re-sampling Q1-Q3 positives x4": {
+      "pr_auc": 0.344385,
+      "alerts": 634,
+      "recall": 0.419753,
+      "precision": 0.321767,
+      "note": "7,431 train rows added; refitted by train.fit_and_score",
+      "flags": [
+        "size_bucket=Q4:fpr"
+      ],
+      "pr_auc_cost": 0.068601,
+      "precision_cost": 0.064669,
+      "slice_value": 0.235294,
+      "gap": 0.184459,
+      "closes": 0.634094,
+      "qualifies": false
+    }
+  },
+  "picked": "none"
+}

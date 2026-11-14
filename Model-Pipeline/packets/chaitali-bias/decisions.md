@@ -562,3 +562,18 @@ Block rebuilt from Utkarsh's steps under `~/meridian-block3` (10 minutes): colle
 The walkers' 19 fallbacks are each one miss, a team name not in the walk's facts. At N = 20 that isn't judged, and it's reported.
 
 Diff match is unchanged (Utkarsh's counts): oscar and `(other)` flagged and accepted, as on Nov 10.
+
+## LLM bias on the live run, after the gate fix (#122): no fallback slice flagged
+
+Aniket fixed the gate after the freeze (#122, reviewed by Vishwa): `#N` fix keys are now tickets, checked against the facts' keys like `SPARK-N`, not bare numbers. Rerun on main `33ed598`, the same way (block `bb6b5f4e`, replayed from the same committed cache, 0 calls, no GCP project): 68 stalls, 49 planned by the orchestrator and 19 by the rules, walkers for 20, all unchanged. **205 LLM texts and 19 templates** (was 164 / 60).
+
+| Slice | Judged | Fell back | Rate | 95% interval | Flagged | Power at 0.15 |
+|---|---|---:|---:|---|---|---:|
+| task `consumer` | 68 | 0 | 0.000 | 0.000–0.053 | no | 0.23 |
+| task `stall_reason` | 68 | 0 | 0.000 | 0.000–0.053 | no | 0.23 |
+| task `ticket_draft` | 68 | 0 | 0.000 | 0.000–0.053 | no | 0.23 |
+| task `walk` | no: 20 | 19 | 0.95 | | | |
+| repo `django/django` | 151 | 6 | 0.040 | 0.018–0.084 | no | 0.34 |
+| **Overall** | 224 | 19 | 0.085 | | | |
+
+**The consumer flag is closed by a fix tried and written down (#122), so `reports/llm_bias_live/llm_bias.json` passes with 0 open flags.** All 41 earlier fallbacks pass on their cached replies. Nothing else moved: the walk and the other kinds are the same texts. The 19 walker fallbacks (a team name not in the walk's facts) are at N = 20, not judged, and reported for the walkers' owners. Diff match: oscar and `(other)` flagged and accepted, unchanged.
