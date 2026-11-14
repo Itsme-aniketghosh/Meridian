@@ -1,0 +1,6 @@
+$ python -m meridian.context --run-id bb6b5f4e32a4bee7 --config meridian.toml --out <scratch>/out/context
+2026-11-14T03:19:50Z
+68 consumer tasks, 36 cut: files 127/367, sites 495/1526, facts characters 22,745/41,821; bug fixes covered 0.964 (a random order with the same files: 0.727); wrote <scratch>/out/context
+  3.96s user 2.29s system 90% cpu 6.920 total
+exit=0
+2026-11-14T03:19:56Z

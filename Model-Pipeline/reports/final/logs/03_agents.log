@@ -1,0 +1,8 @@
+$ python -m meridian.agents --run-id bb6b5f4e32a4bee7 --config meridian.toml --out <scratch>/out/agents --quiet
+2026-11-14T03:20:06Z
+consumer: 68 texts, 68 templates, 41 templates the gate flags, 0 skipped (a fact names a person)
+stall_reason: 68 texts, 68 templates, 0 templates the gate flags, 0 skipped (a fact names a person)
+ticket_draft: 68 texts, 68 templates, 0 templates the gate flags, 0 skipped (a fact names a person)
+  9.88s user 1.99s system 96% cpu 12.331 total
+exit=0
+2026-11-14T03:20:19Z
