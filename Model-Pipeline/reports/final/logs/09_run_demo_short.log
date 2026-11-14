@@ -1,0 +1,376 @@
+2026-11-14T03:21:29Z
+Meridian data pipeline demo · short · Python 3.11.17 · free RAM 3.4 GB · free disk 321.3 GB · data root <repo> · temp /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah
+
+====================================================================================================
+[step 1/10]  Environment check (11. Reproducibility)
+====================================================================================================
+  check               value          note                                                               
+  ------------------  -------------  -------------------------------------------------------------------
+  Python              3.11.17        ok                                                                 
+  OS                  Darwin 25.6.0                                                                     
+  free RAM            3.4 GB         full pipeline needs 3 GB                                           
+  free disk           321.3 GB       at <repo>; full pipeline needs 5 GB
+  git                 yes            needed by the push check and collect                               
+  docker CLI          yes            only long's Airflow step                                           
+  tree_sitter         yes                                                                               
+  tree_sitter_python  yes                                                                               
+  jedi                yes                                                                               
+  pandas              yes                                                                               
+  numpy               yes                                                                               
+  fairlearn           yes                                                                               
+  sklearn             yes                                                                               
+  dvc                 yes                                                                               
+
+WHAT YOU JUST SAW: the machine and the pinned dependencies from requirements.txt. Python 3.11 +
+  these imports = the pipeline runs.
+
+====================================================================================================
+[step 2/10]  4. Airflow DAGs (and 9. Flow optimisation)
+====================================================================================================
+
+$ python -c "from dags.pipeline_spec import DAGS; print(DAGS)"
+
+  DAG meridian_update  (11 tasks; task <- the tasks it waits for)
+    anything_new  <- (start)                         [gate: exit 0 = go on, 99 = stop]
+    collect       <- anything_new                 writes run
+    history       <- collect                      writes git_commit, commit_file, ticket, ticket_event, ticket
+    scan          <- collect                      writes candidate, parse_failure, module_import, deprecation
+    resolve       <- scan                         writes resolution, call_edge
+    owners        <- history                      writes person, person_alias, team_map, file_owner
+    join          <- history, resolve, owners     writes call_site, ticket_map, coverage
+    graph         <- join                         writes blocked_by, blast_radius, chain
+    validate      <- graph                        
+    report        <- validate                     
+    publish       <- report                       
+
+  DAG meridian_rebuild  (14 tasks; task <- the tasks it waits for)
+    fresh         <- (start)                      
+    collect       <- fresh                        writes run
+    history       <- collect                      writes git_commit, commit_file, ticket, ticket_event, ticket
+    scan          <- collect                      writes candidate, parse_failure, module_import, deprecation
+    resolve       <- scan                         writes resolution, call_edge
+    owners        <- history                      writes person, person_alias, team_map, file_owner
+    join          <- history, resolve, owners     writes call_site, ticket_map, coverage
+    graph         <- join                         writes blocked_by, blast_radius, chain
+    validate      <- graph                        
+    bias          <- validate                     
+    gx            <- validate                     
+    report        <- validate                     
+    compare       <- report                          [gate: exit 3 = go on, 0 = stop]
+    publish       <- compare                      
+
+WHAT YOU JUST SAW: both Airflow DAGs as data (dags/meridian_dag.py builds them from this file;
+  tests/test_dag.py checks it). history and scan->resolve both wait only on collect, so they run
+  side by side: that parallel split is the flow optimisation (rubric 9; ~1,130 s in sequence -> ~700
+  s, README 'Pipeline flow').
+
+====================================================================================================
+[step 3/10]  5. Data versioning with DVC
+====================================================================================================
+
+$ python -m dvc dag --mermaid
+  stage <- the stages whose outputs it reads
+    collect   <- (raw inputs)
+    history   <- collect
+    scan      <- collect
+    owners    <- collect, history
+    resolve   <- collect, scan
+    graph     <- history, join, resolve
+    join      <- collect, history, owners, resolve, scan
+    bias      <- collect, history, join, owners, resolve, scan
+    validate  <- collect, graph, history, join, owners, resolve, scan
+  snapshots/_cache/jira.dvc: pins the raw pull (123 MB) by hash
+  snapshots/_cache/gitlab.dvc: pins the raw pull (119 MB) by hash
+
+WHAT YOU JUST SAW: DVC's view of the same pipeline (dvc.yaml: one stage per part; `dvc repro` reruns
+  what changed). dvc.lock in git holds every output's hash, the .dvc files pin the raw ticket pulls;
+  publish runs dvc commit + push.
+
+====================================================================================================
+[step 4/10]  1-2. Pipeline end to end on the built-in fixture
+====================================================================================================
+
+$ python -c "from tests.test_dashboard import fixture_block; fixture_block(TMP)"
+  wrote 27 input tables to /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/out/R2
+
+$ MERIDIAN_DATA=/var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah python -m meridian.graph --run-id R2 --config /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/meridian.toml
+  blocked_by                                    1 rows · 1 present sites with a receiver_from · 0 same or unowned owner, left out · 1 resolved
+    acme/shop verify_token                           8 sites     12 invocations     8 files  by depth {"1": 8, "2": 3, "3": 1}
+  chain                                         7 rows · 2 collides, 1 depends_on, 1 duplicates, 3 untracked · 0 in a cycle
+  1 blocked_by · 1 blast_radius · 7 chain -> /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/out/R2
+
+$ MERIDIAN_DATA=/var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah python -m meridian.writer --run-id R2 --config /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/meridian.toml
+           1  blast_radius
+           1  blocked_by
+          12  call_edge
+          17  call_site
+           7  chain
+          15  commit_file
+           1  coverage
+           1  deprecation
+           2  file_bug_fixes
+           8  file_owner
+          14  git_commit
+           4  module_import
+           6  outcome
+           7  person
+           7  person_alias
+           3  push_alert
+          13  resolution
+           1  run
+           6  suggestion
+           7  team_map
+           7  ticket
+           8  ticket_map
+  8 tables empty: bug_inducing, candidate, commit_ticket, match, parse_failure, policy, ticket_event, ticket_link
+
+  table           rows
+  --------------  ----
+  blast_radius    1   
+  blocked_by      1   
+  call_edge       12  
+  call_site       17  
+  chain           7   
+  commit_file     15  
+  coverage        1   
+  deprecation     1   
+  file_bug_fixes  2   
+  file_owner      8   
+  git_commit      14  
+  module_import   4   
+  outcome         6   
+  person          7   
+  person_alias    7   
+  push_alert      3   
+  resolution      13  
+  run             1   
+  suggestion      6   
+  team_map        7   
+  ticket          7   
+  ticket_map      8   
+  (8 more tables empty in this fixture)
+
+WHAT YOU JUST SAW: the acme/shop fixture (tests/test_kb.py) stands in for collect -> join's outputs,
+  which need the private repos and tickets; graph then computed blocked_by / blast_radius / chain
+  for real, and the writer loaded every table into one SQLite block against schema.sql. Same
+  commands, same code as the team run.
+
+====================================================================================================
+[step 5/10]  11. Reproducibility: fixture bytes = frozen golden file
+====================================================================================================
+
+$ python -m unittest tests.test_golden -v
+  test_same_bytes_as_golden (tests.test_golden.Fixture.test_same_bytes_as_golden) ... ok
+  test_every_output_as_frozen (tests.test_golden.TeamRun.test_every_output_as_frozen) ... skipped 'needs MERIDIAN_RUN_ID=c5118b019d642a9b and <repo>/out/c5118b019d642a9b (team data, never in CI)'
+  
+  ----------------------------------------------------------------------
+  Ran 2 tests in 0.096s
+  
+  OK (skipped=1)
+
+WHAT YOU JUST SAW: the fixture through graph and the writer gives byte-identical output to
+  golden/fixture.json (sha256 of every file and table). The team-run half (skipped here) checks the
+  real outputs against dvc.lock's hashes.
+
+====================================================================================================
+[step 6/10]  7. Schema & statistics
+====================================================================================================
+
+$ MERIDIAN_DATA=/var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah MERIDIAN_SETTINGS=/var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/settings.toml python -m meridian.validate --run-id R2 --config /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/meridian.toml
+  148 rows in 30 tables · 0 errors · 0 warnings -> /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/out/R2/stats.json, /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/out/R2/anomalies.json
+
+  stats.json, call_site (one of 25 tables):
+  column      missing  distinct  min  max  top values                                                 
+  ----------  -------  --------  ---  ---  -----------------------------------------------------------
+  bug_fixes   0        3         0    4    [[0, 12], [4, 4]]                                          
+  known_at    0        2                   [['2026-09-01T00:00:00Z', 12], ['2026-10-01T00:00:00Z', 5]]
+  line        0        13        1    250                                                             
+  owner_team  0        6                   [['payments', 6], ['checkout', 5]]                         
+  status      0        2                   [['present', 12], ['removed', 5]]                          
+
+WHAT YOU JUST SAW: validate = schema (the writer refuses any row schema.sql forbids), then
+  statistics per table and column into stats.json (next run's drift baseline), then the checks.
+  Clean fixture: 0 errors, 0 warnings. The weekly rebuild repeats these checks as a Great
+  Expectations suite (long mode).
+
+====================================================================================================
+[step 7/10]  8. Anomaly detection & alerts (6. Logging, 12. Error handling)
+====================================================================================================
+  injected into a copy of the block:
+    ticket.created_at: '2026-06-01T00:00:00Z' -> '06/01/2026 9am'
+    file_owner.share: 1.0 -> 1.7
+    commit_file.deleted: 0 -> None
+    commit_file.added: 30 -> 250000
+    commit_file: + 10 ordinary rows (1-5 lines added), so the IQR check has 25 values
+
+$ MERIDIAN_DATA=/var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/bad MERIDIAN_SETTINGS=/var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/bad/settings.toml MERIDIAN_DEMO_HOOK=http://127.0.0.1:51502/hook python -m meridian.validate --run-id R2 --config /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/bad/meridian.toml
+    error ranges    file_owner.share                         1 values outside 0.0..1.0
+    error formats   ticket.created_at                        1 values aren't UTC times, e.g. '06/01/2026 9am'
+    warn  missing   commit_file.deleted                      1 of 25 missing, limit 0%
+    warn  outliers  commit_file.added                        8.0% of values outside 0..7 (IQR fences, k = 3.0)
+  158 rows in 30 tables · 2 errors · 2 warnings -> /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/bad/out/R2/stats.json, /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/bad/out/R2/anomalies.json
+  ERROR: ALERT meridian R2: 2 errors, 2 warnings in the data
+  error ranges file_owner.share: 1 values outside 0.0..1.0
+  error formats ticket.created_at: 1 values aren't UTC times, e.g. '06/01/2026 9am'
+  warn missing commit_file.deleted: 1 of 25 missing, limit 0%
+  warn outliers commit_file.added: 8.0% of values outside 0..7 (IQR fences, k = 3.0)
+  ERROR: 2 data errors: see /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/bad/out/R2/anomalies.json
+
+  exit code 4; anomalies.json:
+  severity  check     where                detail                                           
+  --------  --------  -------------------  -------------------------------------------------
+  error     ranges    file_owner.share     1 values outside 0.0..1.0                        
+  error     formats   ticket.created_at    1 values aren't UTC times, e.g. '06/01/2026 9am' 
+  warn      missing   commit_file.deleted  1 of 25 missing, limit 0%                        
+  warn      outliers  commit_file.added    8.0% of values outside 0..7 (IQR fences, k = 3.0)
+
+  delivered to the local Slack-style webhook (first lines of its JSON text):
+    meridian R2: 2 errors, 2 warnings in the data
+    error ranges file_owner.share: 1 values outside 0.0..1.0
+    error formats ticket.created_at: 1 values aren't UTC times, e.g. '06/01/2026 9am'
+  delivered by SMTP: 1 message(s), Subject: [meridian] meridian R2: 2 errors, 2 warnings in the data
+
+WHAT YOU JUST SAW: validate caught all four: the bad time format and the out-of-range share are
+  errors (non-zero exit; in Airflow the task retries, then fails, publish never runs and the last
+  good block stays live), the missing value and the outlier (IQR fences) are warnings (the run goes
+  on). The ALERT went out for real: an HTTP POST to a Slack-style webhook and an SMTP message, both
+  to local stand-ins. A real channel is a webhook URL in .env and an SMTP host in settings.toml
+  [alerts]; the code path is the same.
+
+====================================================================================================
+[step 8/10]  Bias via slicing: detection and mitigation
+====================================================================================================
+
+$ python -c "import tests.test_bias as TB; TB.Bias.setUpClass()"
+
+$ MERIDIAN_DATA=/var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/tmpawgtwfy0 MERIDIAN_SETTINGS=/var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/tmpawgtwfy0/settings.toml python -m meridian.bias --run-id R --config /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/tmpawgtwfy0/meridian.toml
+  owner_rule accuracy_by_module                 overall 1.000 (N=1) · 1 of 1 slices judged · 0 flagged · difference 0.0 · ratio 1.0
+  owner_rule accuracy_by_next_author_prior_commits overall 1.000 (N=1) · 1 of 1 slices judged · 0 flagged · difference 0.0 · ratio 1.0
+  owner_rule accuracy_by_next_author_team       overall 1.000 (N=1) · 1 of 1 slices judged · 0 flagged · difference 0.0 · ratio 1.0
+  owner_rule assigned_share_by_module           overall 0.500 (N=2) · 2 of 2 slices judged · 0 flagged · difference 1.0 · ratio 0.0
+  owner_rule owned_share_by_module              overall 0.500 (N=2) · 2 of 2 slices judged · 0 flagged · difference 1.0 · ratio 0.0
+  ticket_mapping mapped_share_by_component      overall 0.167 (N=6) · 2 of 2 slices judged · 0 flagged · difference 0.5 · ratio 0.0
+  ticket_mapping mapped_share_by_type           overall 0.200 (N=5) · 2 of 2 slices judged · 0 flagged · difference 0.3333 · ratio 0.0
+  ticket_mapping mapped_share_by_year           overall 0.333 (N=3) · 2 of 2 slices judged · 0 flagged · difference 0.5 · ratio 0.0
+  resolver kept_share_by_repo                   overall 0.500 (N=2) · 1 of 1 slices judged · 0 flagged · difference 0.0 · ratio 1.0
+    owner rule, min_share 0.3, teams from 180 days     owns 1 of 2 files · accuracy 1.000, 1.000 on next authors with a team · next author unassigned 0.0% · 0 modules flagged · worst module gap 0.000
+    owner rule, min_share 0.6                          owns 1 of 2 files · accuracy 1.000, 1.000 on next authors with a team · next author unassigned 0.0% · 0 modules flagged · worst module gap 0.000
+    owner rule, teams from 730 days                    owns 2 of 2 files · accuracy 1.000, 1.000 on next authors with a team · next author unassigned 0.0% · 0 modules flagged · worst module gap 0.000
+    owner rule, fallback to last toucher               owns 1 of 2 files · accuracy 1.000, 1.000 on next authors with a team · next author unassigned 0.0% · 0 modules flagged · worst module gap 0.000
+    held out: picked 'min_share 0.3, teams from 180 days' at the cut 2025-10-06 (0 files); on the current cut accuracy {'min_share 0.3, teams from 180 days': 1.0}, delta 0.0 (95% bootstrap [0.0, 0.0])
+  14 slices judged (N >= 1), 0 flagged -> /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/tmpawgtwfy0/out/R/bias.json
+
+  every slice (bias.json):
+  rule            metric by slice                        slice        slice value  overall  N  
+  --------------  -------------------------------------  -----------  -----------  -------  -  
+  owner_rule      accuracy_by_module                     sql          1.00         1.00     1  
+  owner_rule      accuracy_by_next_author_prior_commits  2-10         1.00         1.00     1  
+  owner_rule      accuracy_by_next_author_team           SQL          1.00         1.00     1  
+  owner_rule      assigned_share_by_module               core         0.00         0.50     1  
+  owner_rule      assigned_share_by_module               sql          1.00         0.50     1  
+  owner_rule      owned_share_by_module                  core         0.00         0.50     1  
+  owner_rule      owned_share_by_module                  sql          1.00         0.50     1  
+  ticket_mapping  mapped_share_by_component              Core         0.00         0.17     4  
+  ticket_mapping  mapped_share_by_component              SQL          0.50         0.17     2  
+  ticket_mapping  mapped_share_by_type                   Bug          0.33         0.20     3  
+  ticket_mapping  mapped_share_by_type                   Wish         0.00         0.20     2  
+  ticket_mapping  mapped_share_by_year                   2015         0.00         0.33     1  
+  ticket_mapping  mapped_share_by_year                   2026         0.50         0.33     2  
+  resolver        kept_share_by_repo                     acme/engine  0.50         0.50     2  
+
+  owner-rule mitigations, scored:
+  owner-rule variant                  files owned  accuracy  modules flagged
+  ----------------------------------  -----------  --------  ---------------
+  fallback to last toucher            1/2          1.0       0              
+  min_share 0.3, teams from 180 days  1/2          1.0       0              
+  min_share 0.6                       1/2          1.0       0              
+  teams from 730 days                 2/2          1.0       0              
+
+WHAT YOU JUST SAW: bias.py slices the pipeline's three deciding rules (owner rule, ticket mapping,
+  resolver) by module, team, component, year and repo with Fairlearn's MetricFrame and flags slices
+  that fall below overall (the slices here are tiny, so few or none clear the bar). The 'core'
+  module is unowned: its author has no team in 180 days, and the 730-day lookback variant owns it.
+  Real-run findings, the mitigation chosen and its trade-offs: BIAS.md.
+
+====================================================================================================
+[step 9/10]  Product situations from KNOWLEDGE-BASE.md
+====================================================================================================
+
+  Staff engineer: `-- name: staff_headline` from KNOWLEDGE-BASE.md, on the block built above
+  call sites left  open tickets on them
+  ---------------  --------------------
+  8                5                   
+  doc expects [[8, 5]]: same
+
+  API owner: `-- name: owner_teams` from KNOWLEDGE-BASE.md, on the block built above
+  team         sites left  risky  days idle  status 
+  -----------  ----------  -----  ---------  -------
+  billing      1           0      264        stalled
+  checkout     3           2      19         stalled
+  fulfillment  1           0      264        blocked
+  payments     2           0      3          moving 
+  platform     1           0      264        stalled
+  search       0           0      21         done   
+  doc expects [['billing', 1, 0, 264, 'stalled'], ['checkout', 3, 2, 19, 'stalled'], ['fulfillment', 1, 0, 264, 'blocked'], ['payments', 2, 0, 3, 'moving'], ['platform', 1, 0, 264, 'stalled'], ['search', 0, 0, 21, 'done']]: same
+
+  Push check: a repo whose base commit is scanned into a block, then Pia (payments) pushes one commit
+
+$ MERIDIAN_SETTINGS=/var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/push.toml python -m meridian.pushcheck --base /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/shop-base.sqlite --repo acme/shop --changed HEAD~1...HEAD --checkout /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/shop --config /var/folders/jc/6t5mncm17fq1y58qznghxw8w0000gn/T/meridian-demo-hfvmmlah/shop.toml
+  <!-- meridian-push-check -->
+  **Meridian push check** · base run `R1` (2026-10-01T00:00:00Z) · 5 changed files, 2 importers
+  
+  - **P1 Drift**: new call site of `verify_token` at `pay/charge.py:5`
+  - **P1 Drift**: new call site of `verify_token` at `search/q.py:2`
+  - **P1 Drift**: new call site of `verify_token` at `shared/client.py:2`
+  - **P2 Legacy use**: `pay/charge.py:5` calls `verify_token`, marked `DeprecationWarning`
+  - **P2 Legacy use**: `search/q.py:2` calls `verify_token`, marked `DeprecationWarning`
+  - **P2 Legacy use**: `shared/client.py:2` calls `verify_token`, marked `DeprecationWarning`
+  - **P3 Collision**: edits `bill` in `billing/invoice.py`: mapped to BILL-1 (Open), another team's open ticket
+  - **P3 Collision**: edits `price` in `cart/pricing.py`: mapped to CHK-1 (Open), another team's open ticket
+  - **P3 Collision**: `handler` in `checkout/api.py` imports a changed file: mapped to CHK-2 (Open), another team's open ticket
+  - **P4 New block**: `ship/label.py:4` is now blocked by `shared/client.py:2`
+  - **P5 Ticket can move**: removes the last call site of BILL-1: the ticket can move
+  - **P6 Mismatch**: re-adds `search/q.py:2`, a call site of SRCH-1, which is done
+  - **P7 Risky edit**: changes a call site in `pay/charge.py`: 4 bug fixes in the window (PAY-0, PAY-1, PAY-2, …)
+  - **P8 Bad key**: commit 800fca21b1 names PAY-99, not a ticket in the snapshot
+  - **P9 Defect risk**: 9 lines × 5 files = 45, over 10
+
+WHAT YOU JUST SAW: what the block is for: the staff engineer's one-line headline, the API owner's
+  per-team status (done / blocked / stalled / moving), and a push check: one PR comment listing
+  P1-P9 findings, read-only on the block. All 43 KNOWLEDGE-BASE.md queries are checked the same way
+  by tests/test_kb.py.
+
+====================================================================================================
+[step 10/10]  Where to look next
+====================================================================================================
+- report/REPORT.md       in the guidelines' order; section 5 maps each criterion to where it lives
+- README.md              setup, run, folder structure, DVC, data quality, alerts, bias, flow
+- BIAS.md                bias findings, mitigation and trade-offs;   TESTING.md: every test and how to run it
+- Airflow UI (needs Docker, ~3 GB free RAM), from Data-Pipeline/:
+      cp .env.example .env               (set AIRFLOW_ADMIN_PASSWORD)
+      docker compose up -d --build
+      open http://localhost:8080  -> unpause meridian_update -> Trigger DAG w/ config {"force": true}
+      a run -> Graph (tasks, logs per task) and Gantt (history beside scan->resolve: the bottleneck view)
+- python run_demo.py long      everything: all unit tests, GX, data download, team-run tests, Airflow
+
+WHAT YOU JUST SAW: where to read further. Nothing above was written outside the temp folder.
+
+====================================================================================================
+SUMMARY (short, 14 s)
+====================================================================================================
+  step                                                     result  note                                                        
+  -------------------------------------------------------  ------  ------------------------------------------------------------
+  Environment check                                        PASS    Python 3.11.17, deps ok                                     
+  4. Airflow DAGs                                          PASS                                                                
+  5. Data versioning with DVC                              PASS                                                                
+  1-2. Pipeline end to end on the built-in fixture         PASS    148 rows in 22 tables                                       
+  11. Reproducibility: fixture bytes = frozen golden file  PASS                                                                
+  7. Schema & statistics                                   PASS                                                                
+  8. Anomaly detection & alerts                            PASS    exit 4, 4 anomalies, alert delivered to Slack and email (loc
+  Bias via slicing: detection and mitigation               PASS    14 slices, 0 flagged                                        
+  Product situations from KNOWLEDGE-BASE.md                PASS    2 views as documented; push check raised P1-P9              
+  Where to look next                                       PASS                                                                
+
+10 passed, 0 skipped (each says why), 0 failed
+../.venv/bin/python run_demo.py short  10.89s user 1.65s system 89% cpu 14.057 total
+exit=0

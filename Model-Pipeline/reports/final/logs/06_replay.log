@@ -1,0 +1,28 @@
+$ python -m meridian.replay --run-id bb6b5f4e32a4bee7 --config meridian.toml
+2026-11-14T03:20:41Z
+  django/django                              c651331b34 skipped  0 alert(s) 
+  django-oscar/django-oscar                  10dce286bc checked  1 alert(s) {'P9': 1}
+  wagtail/wagtail                            4076b9ef5e checked  1 alert(s) {'P9': 1}
+  encode/django-rest-framework               410575dace checked  1 alert(s) {'P9': 1}
+  django-cms/django-cms                      fb0d4f235b skipped  0 alert(s) 
+  pennersr/django-allauth                    c4d7b41008 checked  1 alert(s) {'P9': 1}
+  jazzband/django-two-factor-auth            fe57c4022a checked  1 alert(s) {'P9': 1}
+  jazzband/django-debug-toolbar              47d6b5e9d6 checked  0 alert(s) 
+  django-guardian/django-guardian            5a97f63d42 checked  0 alert(s) 
+  django/channels                            a12800ea40 checked  0 alert(s) 
+  cookiecutter/cookiecutter-django           6d4be405d8 checked  0 alert(s) 
+  django-extensions/django-extensions        b32f98e85a checked  0 alert(s) 
+  django-haystack/django-haystack            6fc7e8bb64 checked  0 alert(s) 
+  graphql-python/graphene-django             19ef9a094a checked  0 alert(s) 
+  carltongibson/django-filter                52eece7b3b checked  0 alert(s) 
+  django-import-export/django-import-export  f6864ffa88 checked  0 alert(s) 
+  django-tenants/django-tenants              6735fca62a checked  1 alert(s) {'P9': 1}
+  yourlabs/django-autocomplete-light         1f500ad40b checked  0 alert(s) 
+  iMerica/dj-rest-auth                       ea140563c4 checked  0 alert(s) 
+  jazzband/django-silk                       8d9b48bd48 checked  0 alert(s) 
+  django-tastypie/django-tastypie            6d06e29da5 checked  1 alert(s) {'P9': 1}
+19 of 21 pushes checked (2 skipped over the scope limit, 0 with no mirror): 7 alerts, median 0 per push (meets 05-test's median <= 1); by check {'P9': 7}
+wrote <repo>/out/bb6b5f4e32a4bee7/push_alert.jsonl
+  14.57s user 10.16s system 90% cpu 27.333 total
+exit=0
+2026-11-14T03:21:09Z

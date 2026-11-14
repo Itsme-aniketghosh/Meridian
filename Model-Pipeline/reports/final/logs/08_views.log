@@ -1,0 +1,1238 @@
+$ python -m meridian.views --run-id bb6b5f4e32a4bee7 --config meridian.toml --path /
+2026-11-14T03:28:06Z
+{
+ "links": [
+  [
+   "API owner view",
+   "/owner/url?repo=django-oscar%2Fdjango-oscar"
+  ],
+  [
+   "Ticket tools",
+   "/tickets?repo=django-oscar%2Fdjango-oscar&symbol=url"
+  ],
+  [
+   "Consumer: django-oscar/django-oscar",
+   "/consumer/django-oscar%2Fdjango-oscar?repo=django-oscar%2Fdjango-oscar&symbol=url"
+  ]
+ ],
+ "meta": {
+  "coverage": [
+   {
+    "denominator": 0,
+    "metric": "call_sites_matched",
+    "note": "first run: nothing to match",
+    "numerator": 0
+   },
+   {
+    "denominator": 1526,
+    "metric": "call_sites_owned",
+    "note": "present call sites whose file has an owner team",
+    "numerator": 1526
+   },
+   {
+    "denominator": 0,
+    "metric": "call_sites_removed",
+    "note": "last run's present sites gone",
+    "numerator": 0
+   },
+   {
+    "denominator": 1526,
+    "metric": "call_sites_resolved",
+    "note": "present call sites the resolver bound to the tracked symbol",
+    "numerator": 1525
+   },
+   {
+    "denominator": 1526,
+    "metric": "call_sites_unresolved",
+    "note": "present call sites Jedi had no answer for: kept, not dropped",
+    "numerator": 1
+   },
+   {
+    "denominator": 3196,
+    "metric": "candidates_dropped",
+    "note": "edit-role candidates the resolver bound elsewhere (look-alikes): not call sites",
+    "numerator": 30
+   },
+   {
+    "denominator": 3196,
+    "metric": "candidates_not_edit_role",
+    "note": "definitions, attributes, references: kept in candidate, not call sites",
+    "numerator": 1640
+   },
+   {
+    "denominator": 256185,
+    "metric": "commit_paths_gone",
+    "note": "files a keyed commit touched that no longer exist at the pinned SHA: not mapped",
+    "numerator": 58191
+   },
+   {
+    "denominator": 43870,
+    "metric": "files_owned",
+    "note": "files at the pinned SHAs with an owner team",
+    "numerator": 22060
+   },
+   {
+    "denominator": 6557,
+    "metric": "parse_failures",
+    "note": "files excluded because tree-sitter found an error in them",
+    "numerator": 9
+   },
+   {
+    "denominator": 83620,
+    "metric": "stack_frames_ambiguous",
+    "note": "stack frames naming a repo file that name more than one: not mapped",
+    "numerator": 137
+   },
+   {
+    "denominator": 74015,
+    "metric": "tickets_mapped",
+    "note": "tickets with at least one code target",
+    "numerator": 36198
+   },
+   {
+    "denominator": 14524,
+    "metric": "tickets_mapped_gitlab",
+    "note": "GitLab is Ruby: no code in the snapshot",
+    "numerator": 0
+   },
+   {
+    "denominator": 59491,
+    "metric": "tickets_mapped_jira",
+    "note": "jira tickets with a code target",
+    "numerator": 36198
+   }
+  ],
+  "data": "real",
+  "note": "",
+  "run_id": "bb6b5f4e32a4bee7",
+  "snapshot_at": "2026-10-01T01:23:03Z",
+  "status": "complete"
+ },
+ "scope": {
+  "repo": "django-oscar/django-oscar",
+  "symbol": "url"
+ },
+ "sections": [
+  {
+   "columns": [
+    "call sites remaining in code",
+    "open tickets mapped to code"
+   ],
+   "headline": "",
+   "note": "",
+   "rows": [
+    [
+     247,
+     0
+    ]
+   ],
+   "title": "Headline"
+  },
+  {
+   "columns": [
+    "type",
+    "chains",
+    "that Jira links"
+   ],
+   "headline": "",
+   "note": "",
+   "rows": [
+    [
+     "untracked",
+     43,
+     0
+    ]
+   ],
+   "title": "Hidden chains"
+  },
+  {
+   "columns": [
+    "ticket",
+    "ticket",
+    "function"
+   ],
+   "headline": "",
+   "note": "",
+   "rows": [],
+   "title": "Collisions: two open tickets edit the same function"
+  },
+  {
+   "columns": [
+    "ticket",
+    "ticket",
+    "call site"
+   ],
+   "headline": "",
+   "note": "",
+   "rows": [],
+   "title": "Duplicates: two tickets map the same call site"
+  },
+  {
+   "columns": [
+    "call site",
+    "team"
+   ],
+   "headline": "",
+   "note": "",
+   "rows": [
+    [
+     "00cd226835db7e3b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "00fb28f9109985bb",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "0242105e74b03f6d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "028a94ec93066102",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "0730799af8f6db74",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "082860431f8e630a",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "0a458f74d5938a05",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "0abefac2434de1ef",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "0c5b3f8e7f122181",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "0c6de4febbd5d2d9",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "0fafa9da65102b24",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "10c1a467ab12c5a1",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "1162f73305e4e0be",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "13860f0b8b7948e5",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "149409f00cf339d0",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "14d4de8a0c15c43f",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "14d7ec8c507025b9",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "16a29210c6ccbeb5",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "17eb6b529de052ae",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "185becca80d4b5a1",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "19284896576dc53b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "1aa484be79498b49",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "1b33aecf6f0e1a03",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "1ce342006c17d11c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "1d07962102a9e201",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "224a81228c3dfc70",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "23494fcd4b5a1809",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "263eb0160597c42d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "286e4e78bd47190c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "2875965709accf71",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "2aad50a14101e2c3",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "2ab56578e4957acb",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "2d21ee139a28c18d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "2d88f7eddf156a75",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "2e905a6d290b1397",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "2ed93e89754960df",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "2ede24eb1afd44e5",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "3102fe7db2e29116",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "311549bf15005c11",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "31a783f00afc398e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "33e1ef447bb81f11",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "34eff9628099b4b8",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "37d87ac9b7139ed8",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "37e497903174d11a",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "381e423dcdbf4adc",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "38426149181d3288",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "3886507e5b66a04f",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "39cd6efa5aa65a26",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "3c20f82ac0b6160b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "3cdde6bc750a7c33",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "3dc474c5928cf024",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "3e6007c5d7e4a103",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "3e936298fed0b84b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "3f589002424e0e51",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "40eb8e70855ffd43",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "41a59a251cf4c23d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "428bface3afa0655",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "43299926bd66e2f9",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "445f79f6f994afa6",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "45bba2c50fb0e3ee",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "46e08d4eddb8990d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "48c763287d63bb7c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "49c5c64a712096da",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "4c78694a618e7e08",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "4d1295d781783686",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "4e4ca5aaf3d5fb55",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "4ee8df6fb8fdd5e7",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "516fc7bf66a792c5",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "51acfa6ddca79b6b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "51fbc917a3c0a44f",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "52d360df319d3094",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "55047b0cd9341aa4",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "563c68037e14c801",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "563fedc57c9f8224",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "56595f9c447903c9",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "56f73ee65794ac4c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "57b01a4a1b22877c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "57c70fa694af1c78",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "57d9db99daa7758d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "59adb0d002a7fa32",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "5a7f74b2fdd70eb5",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "5ad63d1b06f34bd8",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "5b4e0dd0ab5245c6",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "5e9eb21f15556305",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "5ed8794eb9ba110a",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "5fbe4ed973dd2c2e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6145839cda3ea7e6",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "61aa15f4d203deb0",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6315f7feba2433e4",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "63dcab2a0a3d7af6",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "640a87d3f4791cda",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6411222c9e5df927",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6685c54fd45be65e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "67f354e4f3766d4b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "689669b952df2869",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "68ab72c3704efdc2",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6abb7292c1046130",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6af90a97b01c2798",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6b2ea21ef345be48",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6c379139241c495c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6eff8208823b7643",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6f4cee80761a2445",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "6f7b9cb7301196b7",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "70565ac66d0da7be",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "733bd7bdcf98499e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "75f0dd6f2b383a9f",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "76b7c3a088d26927",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "779b014dcd49cfb2",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "787aba5c9d934e87",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "7c1eccb46bf9588c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "7dbd2f8fde2c30b8",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "7e32e27871c28d6e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "7ecd5d018b0e0ef3",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "8176161182e85ac1",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "81a78e73451e3697",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "82278c0333cff5eb",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "82dd61835a2fea39",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "8347cf0d093bf46b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "83612b46ad54611d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "83b949b9412a3704",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "83dbd508c71e973e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "844865a82dde1b40",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "857b280ecee31ae8",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "8583b9f69314beed",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "8733cee7a6661765",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "8788a617dff2f560",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "88508f1a1a5b9fe3",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "8a404623e53c9a39",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "8d2d5f7ac0ebc882",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "90112fb6c9d1c342",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "9046f059ee1722b4",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "90ce5a7b9bfd644f",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "90e3875baee55190",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "9110c5b8a6713ef8",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "92733a9befe26609",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "92bcb6db727c1e1f",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "936b70caedf3597b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "96829dd184634651",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "96971107bc864cfb",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "96a412b56b969ca4",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "96f68cea7a032f51",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "98037e03fa0c936e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "994f2cc1b5a70799",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "999929da6cc37258",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "9a5b7f382ecd8b14",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "9f18ad284926b3e6",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a2c9e1d2534b6df6",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a2cc4bd791783d45",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a3b470a343ba4eaf",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a3bf8518759fe19e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a431d19b7255529d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a55bfde50f048e79",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a55c05b35285ae0b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a6efb93d46f78865",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a7ad88cf76eedf55",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a81d871bc5979647",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a9ba421efaf4f973",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "a9f8b6587ee03523",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "aaabd070aa6f4d21",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "aab95aec8afa4db8",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "aca6810f06b138ff",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "ad335f52a2eb47ec",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "ae014c2471e107a1",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "afb923addc08a7b5",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "aff19d5134501492",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b0fdf9a7ec67e891",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b1480a3127905037",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b1de021f1d8d1188",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b214ff5fc884b415",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b2f40a1a078fad9a",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b3a7957f5a92c9fb",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b4a7106c0aff0720",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b51096622a7d429b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b51778e783df7721",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b596126d3a403013",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b5f8c4678fb640e5",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b6460d86b8c15895",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b6d0113494fa4a3c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b7432b76f19ce836",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "b79923c663ef7447",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "bc36f3f968278cf7",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "bc51dc2144f53a21",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "bcead5ca024eecec",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "bd938b9e03f17773",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "be6e3ce1821aec69",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "beb66f021d0e1b7b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "bfb9eb8e82f6632b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "c062ba2026aaa91a",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "c3ad7270234e8732",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "c5ffb6267e0b9cd2",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "c6a17776b9704443",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "c75e21c10d3aa235",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "c7c9e1d5adc3423e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "c80ca2559a83cf57",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "c859f96b43e5e2d3",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "c9e9aa32c4871b74",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "cbb07dc8bbe7e2ca",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "cc051331a7ecfa8b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "cd59a11151549111",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "cd6d37665751e3d1",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "cec7c3321291ac1d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "cf6cb991c07110c9",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "cff49a2a42567197",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d0f9e06508a9f4c1",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d256cd4ebd4f9a1f",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d4e733ec9897986f",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d572ae1e151e1963",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d63eae4d9456f102",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d7b5355051bb2b70",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d7c6c0f01df66219",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d832355ec00784d3",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d93e1b02b1e54e8b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "d9d791b64748361d",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "da1ef54a8b539333",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "dcc03883e1ac2380",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "de1b74ed866e631b",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "de8f962aa3938c08",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "df86cc506eb50020",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "df99f1cb49ef144e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "dffb4174fe5e410e",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "e283695fd3bffdf5",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "e2e550f950cc5329",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "e36a58794e17dc3f",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "e55609483d54b9a7",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "e66d53f8f82b4097",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "e7e1693f50013440",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "e8173e3f17a919b8",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "e8f2b4c2fef01034",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "ebcdead657ee7c92",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "ec943a31c16ffce1",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "ef3d5622496559db",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "ef892bb9d717b833",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f05eec618c002694",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f230d3f6bb58396a",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f26d14857923b42c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f270a2b43050d167",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f385eba176940a0c",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f3d9a75a0ae29428",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f4b5ebb0d4889c19",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f578a5e795a86718",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f6f083c87ec851d4",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "f7cde6f86d68c778",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "fa21ba71dc9d4b0a",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "fd89a57f64415dbc",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "fe3409911e51ceaa",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "fe3f348d1dacd663",
+     "django-oscar/django-oscar"
+    ],
+    [
+     "feb3f775cfd68543",
+     "django-oscar/django-oscar"
+    ]
+   ],
+   "title": "Untracked work: call sites no ticket covers"
+  },
+  {
+   "columns": [
+    "team",
+    "call sites"
+   ],
+   "headline": "",
+   "note": "",
+   "rows": [
+    [
+     "django-oscar/django-oscar",
+     247
+    ]
+   ],
+   "title": "Teams not connected: no ticket maps any of their call sites"
+  },
+  {
+   "columns": [
+    "ticket",
+    "problem"
+   ],
+   "headline": "",
+   "note": "suggested rewrites on /tickets",
+   "rows": [],
+   "title": "Vague tickets: failed a ticket check"
+  },
+  {
+   "columns": [
+    "tickets mapped",
+    "tickets",
+    "metric",
+    "numerator",
+    "denominator"
+   ],
+   "headline": "",
+   "note": "",
+   "rows": [
+    [
+     36198,
+     74015,
+     "tickets_mapped",
+     36198,
+     74015
+    ]
+   ],
+   "title": "Link coverage"
+  },
+  {
+   "columns": [
+    "file",
+    "function",
+    "marker",
+    "callers"
+   ],
+   "headline": "",
+   "note": "",
+   "rows": [],
+   "title": "Legacy radar: deprecated functions still called"
+  },
+  {
+   "diffs": [],
+   "note": "the block's legacy suggestion rows",
+   "title": "Legacy radar: unfiled legacy code"
+  }
+ ],
+ "title": "url in django-oscar/django-oscar",
+ "view": "staff"
+}
+  13.97s user 2.42s system 98% cpu 16.708 total
+exit=0
+2026-11-14T03:28:22Z

@@ -1,0 +1,84 @@
+$ python -m meridian.auditor --run-id bb6b5f4e32a4bee7 --config meridian.toml --out <scratch>/out/auditor
+2026-11-14T03:20:37Z
+run bb6b5f4e32a4bee7 as of 2026-10-01T01:23:03Z: 68 stalled team(s) in 25 tracked repo and symbol pair(s)
+  carltongibson/django-filter url · carltongibson/django-filter: 3424 days, 7 left · stall-v0: 2 Never notified (1), 7 Test gap (2) · served: stall-v0
+  cookiecutter/cookiecutter-django url · cookiecutter/cookiecutter-django: 3097 days, 16 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (2), 7 Test gap (2) · served: stall-v0
+  django-cms/django-cms url · django-cms/django-cms: 2949 days, 160 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (3), 7 Test gap (31) · served: stall-v0
+  django-extensions/django-extensions url · django-extensions/django-extensions: 2765 days, 10 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (2) · served: stall-v0
+  django-guardian/django-guardian url · django-guardian/django-guardian: 2941 days, 25 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (4) · served: stall-v1
+  django-haystack/django-haystack url · django-haystack/django-haystack: 3026 days, 13 left · stall-v0: 2 Never notified (1), 7 Test gap (4) · served: stall-v0
+  django-import-export/django-import-export url · django-import-export/django-import-export: 2886 days, 7 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (1) · served: stall-v0
+  django-oscar/django-oscar url · django-oscar/django-oscar: 2479 days, 247 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (28) · served: stall-v0
+  django-tastypie/django-tastypie url · django-tastypie/django-tastypie: 3367 days, 31 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (2), 7 Test gap (12) · served: stall-v0
+  django-tenants/django-tenants url · django-tenants/django-tenants: 3792 days, 6 left · stall-v0: 2 Never notified (1), 7 Test gap (2) · served: stall-v1
+  django/channels url · django/channels: 2956 days, 18 left · stall-v0: 2 Never notified (1), 7 Test gap (2) · served: stall-v0
+  django/django ugettext · contrib.admin: 3647 days, 27 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (9), 7 Test gap (1) · served: stall-v0
+  django/django ugettext · contrib.admindocs: 7028 days, 1 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 6 Fragility freeze (1) · served: stall-v0
+  django/django ugettext · contrib.auth: 3564 days, 7 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (3), 5 Semantics unclear (1) · served: stall-v0
+  django/django ugettext · contrib.contenttypes: 5352 days, 1 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1) · served: stall-v1
+  django/django ugettext · contrib.flatpages: 4865 days, 3 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1) · served: stall-v0
+  django/django ugettext · contrib.gis: 5352 days, 1 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1) · served: stall-v0
+  django/django ugettext · contrib.humanize: 4263 days, 1 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1) · served: stall-v0
+  django/django ugettext · forms: 3838 days, 7 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (3), 6 Fragility freeze (1) · served: stall-v0
+  django/django ugettext · template: 3993 days, 7 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 6 Fragility freeze (1) · served: stall-v0
+  django/django ugettext · templatetags: 4140 days, 3 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (1) · served: stall-v1
+  django/django ugettext · tests: 3536 days, 24 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (5), 7 Test gap (11) · served: stall-v1
+  django/django ugettext · utils: 4263 days, 5 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (3) · served: stall-v0
+  django/django ugettext · views: 4517 days, 6 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (6), 7 Test gap (2) · served: stall-v1
+  django/django ugettext_lazy · contrib.admin: 3964 days, 11 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (7), 7 Test gap (3) · served: stall-v0
+  django/django ugettext_lazy · contrib.admindocs: 4652 days, 1 left · stall-v0: 2 Never notified (1), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · contrib.auth: 3813 days, 7 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (7), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · contrib.contenttypes: 4263 days, 2 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · contrib.flatpages: 4263 days, 4 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (2), 7 Test gap (2) · served: stall-v0
+  django/django ugettext_lazy · contrib.gis: 4263 days, 3 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (2), 7 Test gap (2) · served: stall-v0
+  django/django ugettext_lazy · contrib.humanize: 4652 days, 1 left · stall-v0: 2 Never notified (1), 7 Test gap (1) · served: stall-v1
+  django/django ugettext_lazy · contrib.messages: 4652 days, 1 left · stall-v0: 2 Never notified (1), 7 Test gap (1) · served: stall-v1
+  django/django ugettext_lazy · contrib.postgres: 3956 days, 9 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (8), 7 Test gap (8) · served: stall-v1
+  django/django ugettext_lazy · contrib.redirects: 4263 days, 2 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · contrib.sessions: 4520 days, 2 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · contrib.sitemaps: 4652 days, 1 left · stall-v0: 2 Never notified (1), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · contrib.sites: 4599 days, 2 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · contrib.staticfiles: 4652 days, 1 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1) · served: stall-v0
+  django/django ugettext_lazy · contrib.syndication: 4652 days, 1 left · stall-v0: 2 Never notified (1), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · core: 3590 days, 2 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (2) · served: stall-v1
+  django/django ugettext_lazy · db: 4125 days, 4 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (4), 6 Fragility freeze (1), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · forms: 3564 days, 11 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (5), 7 Test gap (1) · served: stall-v0
+  django/django ugettext_lazy · template: 4186 days, 2 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 6 Fragility freeze (1) · served: stall-v0
+  django/django ugettext_lazy · tests: 3540 days, 43 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (17), 7 Test gap (17) · served: stall-v0
+  django/django ugettext_lazy · utils: 4140 days, 5 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (3) · served: stall-v0
+  django/django ugettext_lazy · views: 4713 days, 2 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1) · served: stall-v0
+  django/django ugettext_noop · contrib.auth: 5394 days, 1 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 6 Fragility freeze (1) · served: stall-v0
+  django/django ungettext · contrib.admin: 3647 days, 5 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (2), 6 Fragility freeze (1) · served: stall-v0
+  django/django ungettext · contrib.auth: 4008 days, 3 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 6 Fragility freeze (1) · served: stall-v0
+  django/django ungettext · contrib.humanize: 4263 days, 29 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1) · served: stall-v0
+  django/django ungettext · forms: 4263 days, 3 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 6 Fragility freeze (1) · served: stall-v0
+  django/django ungettext · template: 3993 days, 3 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 5 Semantics unclear (1), 6 Fragility freeze (1) · served: stall-v1
+  django/django ungettext · templatetags: 6920 days, 1 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (1) · served: stall-v0
+  django/django ungettext · tests: 3540 days, 8 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (2) · served: stall-v1
+  django/django ungettext_lazy · contrib.postgres: 4263 days, 3 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1) · served: stall-v0
+  django/django ungettext_lazy · core: 4187 days, 6 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 6 Fragility freeze (1) · served: stall-v1
+  django/django ungettext_lazy · forms: 4991 days, 2 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 6 Fragility freeze (1) · served: stall-v0
+  django/django ungettext_lazy · tests: 3540 days, 8 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 6 Fragility freeze (1), 7 Test gap (1) · served: stall-v0
+  django/django ungettext_lazy · utils: 4228 days, 7 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1) · served: stall-v1
+  encode/django-rest-framework url · encode/django-rest-framework: 2365 days, 182 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (8), 7 Test gap (26) · served: stall-v1
+  graphql-python/graphene-django url · graphql-python/graphene-django: 2995 days, 13 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (4), 7 Test gap (5) · served: stall-v0
+  iMerica/dj-rest-auth url · iMerica/dj-rest-auth: 1770 days, 51 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (2) · served: stall-v0
+  jazzband/django-debug-toolbar url · jazzband/django-debug-toolbar: 2896 days, 29 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (5) · served: stall-v0
+  jazzband/django-silk url · jazzband/django-silk: 2190 days, 28 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (4) · served: stall-v0
+  jazzband/django-two-factor-auth url · jazzband/django-two-factor-auth: 2320 days, 37 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (1), 7 Test gap (3) · served: stall-v0
+  pennersr/django-allauth url · pennersr/django-allauth: 2896 days, 50 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (4), 7 Test gap (12) · served: stall-v0
+  wagtail/wagtail url · wagtail/wagtail: 2333 days, 240 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (16), 7 Test gap (34) · served: stall-v1
+  yourlabs/django-autocomplete-light url · yourlabs/django-autocomplete-light: 1770 days, 67 left · stall-v0: 2 Never notified (1), 4 Orphaned owner (2), 7 Test gap (19) · served: stall-v1
+stall job: champion stall-v0, ε 0.2 (0 live match(es) so far): the team sees the champion's ranking, or a challenger's ε of the time
+no earlier run in this block, so no stall can have ended yet
+replay: the block holds one run, so there's no past stall to replay
+Elo from 0 match(es) in the log, 0 live: no live verdicts yet (no users), so promotion can't happen
+  stall-v0      1500.0  0 match(es)
+  stall-v1      1500.0  0 match(es)
+  stall-v1 stays a challenger: 0 live match(es), needs 30; +0.0 Elo over stall-v0, needs +50; hasn't beaten stall-v0: 0 of 0 live; won 0 and lost 0 live against stall-v0: that could be luck (likelihood ratio 1, needs 20; draws don't count)
+explore job: champion explore-v0, 0 unfiled legacy candidate(s) as of 2026-10-01T01:23:03Z (deprecation-marked, with callers), 0 more already tracked, so filed; 0 shown
+  52 deprecation-marked function(s) in the block, none with a caller in call_edge: it holds only the tracked symbols' call graph (gap G3)
+explore matches need accept or reject replies on the radar, and nothing records them yet (no users): none
+  2.41s user 0.91s system 79% cpu 4.171 total
+exit=0
+2026-11-14T03:20:41Z
