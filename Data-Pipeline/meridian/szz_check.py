@@ -1,6 +1,7 @@
 """SZZ check · D6: is meridian.szz good enough to hand over? Not an Airflow part: a check you run before handing over.
 
     python -m meridian.szz_check --run-id <run_id> --d4j <dir>     # <dir>/framework/projects, <dir>/project_repos
+    python -m meridian.szz_check --run-id <run_id> --d4j <dir> --moves     # GAPS 13's variant, measured only
 
 1. SZZ on the 130 Defects4J labels ([szz] answer_key). Each label's fix is Defects4J's fixed revision; SZZ's pick is
    the commit blamed for the most lines (tie: the latest). Baselines, from the same code files before the fix:

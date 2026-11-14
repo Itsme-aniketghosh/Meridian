@@ -42,9 +42,9 @@ flowchart LR
 
 From `Data-Pipeline/`, in the `meridian` conda env (Python 3.11), about 6 GB of disk and 8 GB of RAM. Put the team zip in `shared-snapshot/` and run `reproduce.py` Option 2. It rebuilds every part and checks the golden hashes.
 
-- [ ] collect's last line says `run_id=c5118b019d642a9b`
-- [ ] `MERIDIAN_RUN_ID=c5118b019d642a9b python -m unittest tests.test_golden` passes 24 of 24
-- [ ] `dvc commit` from Linux, Mac or the Docker image, so `dvc.lock` matches
+- [x] collect's last line says `run_id=c5118b019d642a9b`
+- [x] `MERIDIAN_RUN_ID=c5118b019d642a9b python -m unittest tests.test_golden` passes 24 of 24
+- [x] `dvc commit` from Linux, Mac or the Docker image, so `dvc.lock` matches
 
 ## B. The feature table
 
@@ -58,27 +58,27 @@ From `Data-Pipeline/`, in the `meridian` conda env (Python 3.11), about 6 GB of 
 
 ## K. Tracking tables
 
-- [ ] Move `suggestion`, `outcome`, `push_alert` from KNOWLEDGE-BASE.md's tested DDL into `schema.sql`. Add `agent`, `model`, `route` to `suggestion` (03-data names them; Contract 5 needs them)
-- [ ] Draft `policy` (policy_id, job, version, author, created_at) and `match` (match_id, task_id, policy_a, policy_b, result, verdict_source, decided_by, decided_at) from [03-data](../../../docs/03-data.md), with Rochan
-- [ ] `meridian/writer.py` and `validate.py` accept them. Empty tables validate
-- [ ] KNOWLEDGE-BASE.md's `outcome_*` queries still pass in `tests/test_kb.py`
+- [x] Move `suggestion`, `outcome`, `push_alert` from KNOWLEDGE-BASE.md's tested DDL into `schema.sql`. Add `agent`, `model`, `route` to `suggestion` (03-data names them; Contract 5 needs them)
+- [x] Draft `policy` (policy_id, job, version, author, created_at) and `match` (match_id, task_id, policy_a, policy_b, result, verdict_source, decided_by, decided_at) from [03-data](../../../docs/03-data.md), with Rochan
+- [x] `meridian/writer.py` and `validate.py` accept them. Empty tables validate
+- [x] KNOWLEDGE-BASE.md's `outcome_*` queries still pass in `tests/test_kb.py`
 
 ## L. Second real run
 
 `meridian.next.toml` is `meridian.toml` with Django at its conversion commit `c651331b34` and each package at its migration commit (refs in [week1/pair3](../../../week1/pair3/README.md)). Run it with `--prev-run c5118b019d642a9b`.
 
-- [ ] join marks the Django call sites `removed`. Expect all 267 lines; the 4 `test_legacy_aliases` calls come back as new on purpose ([appendix C §2](../../../Data-Pipeline/report/appendix-real-data.md))
-- [ ] Packages: 1,160 of 1,236 lines removed where the migration commit finished the job
-- [ ] `owner_done` and `owner_eta` give real numbers
+- [x] join marks the Django call sites `removed`. Expect all 267 lines; the 4 `test_legacy_aliases` calls come back as new on purpose ([appendix C §2](../../../Data-Pipeline/report/appendix-real-data.md))
+- [x] Packages: 1,160 of 1,236 lines removed where the migration commit finished the job — 1,205: removal goes by resolution, not edit (autocomplete-light's 45 aliased calls); pass-bars.md records the key change
+- [~] `owner_done` and `owner_eta` give real numbers — `owner_done` 1,491 of 1,530; `owner_eta` is NULL on historical commits (28-day window, removals dated 2017–2022), a stated limit (report section §6)
 
 ## The diff drafter
 
 `python -m meridian.diffs --run-id <id> --config meridian.toml` drafts a one-line swap for each present call site, and writes each as a `suggestion` row of kind `diff` (Contract 5).
 
-- [ ] The codemod first: a rename rule per symbol from `meridian.toml` (`ugettext` → `gettext`, `url` → `re_path` or `path`), learned from the owner's earlier migrations where there are any ([04-architecture §6](../../../docs/04-architecture.md))
-- [ ] The LLM path only when the codemod can't, there are 2 or more same-shape examples, and the site isn't inside `except`. It goes through Vishwa's cache and fact gate, and Rochan's `log_llm_call`
-- [ ] Every draft must apply, parse, touch only its own line, and resolve to the new symbol (the resolver from phase 1). Otherwise no diff
-- [ ] Tested against run 2: drafted from c5118's lines, compared with the real after-lines at the migration commits
+- [x] The codemod first: a rename rule per symbol from `meridian.toml` (`ugettext` → `gettext`, `url` → `re_path` or `path`), learned from the owner's earlier migrations where there are any ([04-architecture §6](../../../docs/04-architecture.md))
+- [x] The LLM path only when the codemod can't, there are 2 or more same-shape examples, and the site isn't inside `except`. It goes through Vishwa's cache and fact gate, and Rochan's `log_llm_call`
+- [x] Every draft must apply, parse, touch only its own line, and resolve to the new symbol (the resolver from phase 1). Otherwise no diff — "its own statement" since decision 14 (`--one-line` keeps the line rule); needs Aniket's OK on PASS-BARS §2.5
+- [x] Tested against run 2: drafted from c5118's lines, compared with the real after-lines at the migration commits
 
 ## Decisions
 
@@ -102,38 +102,38 @@ Write the test and the rule that picks before you run it, in `decisions.md` in t
 
 Data, in `Model-Pipeline/tests/test_data.py`, on a tiny made-up history (copy a fixture from `Data-Pipeline/tests/`):
 
-- [ ] A commit blamed by a fix just after the window is a 0, and one just inside is a 1
-- [ ] `prior_bug_fixes` doesn't count a fix that comes after the commit
-- [ ] `exp` counts a person's commits across both of their emails
-- [ ] No column contains an `@`, and there's no name column
-- [ ] Every split holds only its years; `none` holds only commits after `follow_up_end`
-- [ ] The same block and config give the same file md5
+- [x] A commit blamed by a fix just after the window is a 0, and one just inside is a 1
+- [x] `prior_bug_fixes` doesn't count a fix that comes after the commit
+- [x] `exp` counts a person's commits across both of their emails
+- [x] No column contains an `@`, and there's no name column
+- [x] Every split holds only its years; `none` holds only commits after `follow_up_end`
+- [x] The same block and config give the same file md5
 
 Labels, in the schema file's notes:
 
-- [ ] Positives per year and per split, with N
-- [ ] 20 random positives checked by hand: does the fix's diff touch lines the inducing commit wrote?
-- [ ] v1 and c5118 tables compared: row counts, positives, and any column whose mean moved more than 1%
+- [x] Positives per year and per split, with N
+- [x] 20 random positives checked by hand: does the fix's diff touch lines the inducing commit wrote? — checked by an AI model, not a person (PR #94): 9 of 20
+- [ ] v1 and c5118 tables compared: row counts, positives, and any column whose mean moved more than 1% — not done: the v1 block wasn't on this machine (report section §3)
 
 Tables and run 2, in `Data-Pipeline/tests/`:
 
-- [ ] A suggestion row with a `source` outside the allowed values is refused
-- [ ] An `outcome` row for an unknown `suggestion_id` is refused
-- [ ] Run 2 against c5118: removed count equals the answer keys (Django 267, packages per repo); `known_at` of a removed row is run 2's snapshot
+- [x] A suggestion row with a `source` outside the allowed values is refused
+- [x] An `outcome` row for an unknown `suggestion_id` is refused
+- [x] Run 2 against c5118: removed count equals the answer keys (Django 267, packages per repo); `known_at` of a removed row is run 2's snapshot
 
 Diffs, in `Data-Pipeline/tests/test_diffs.py`:
 
-- [ ] Django drafts match the real after-lines ≥ 90%, reported with N
-- [ ] A draft that touches another line is refused
-- [ ] A site inside `except` gets no LLM diff
-- [ ] A draft whose new name doesn't resolve is refused
-- [ ] With the LLM off, the codemod still drafts and the run completes
+- [x] Django drafts match the real after-lines ≥ 90%, reported with N
+- [x] A draft that touches another line is refused
+- [x] A site inside `except` gets no LLM diff
+- [x] A draft whose new name doesn't resolve is refused
+- [x] With the LLM off, the codemod still drafts and the run completes
 
 ## Done when
 
-- [ ] The c5118 table is in git, its schema and label numbers written down
-- [ ] Tracking tables in `schema.sql`, tested
-- [ ] Run 2 done with real removals
-- [ ] Diff suggestions written on the real block, with the 90% test reported
-- [ ] Decisions 1–11 written down with their numbers
-- [ ] Your report section: data, labels, the label window, the tables, run 2, the diff drafter, each decision and its test
+- [x] The c5118 table is in git, its schema and label numbers written down
+- [x] Tracking tables in `schema.sql`, tested
+- [x] Run 2 done with real removals
+- [x] Diff suggestions written on the real block, with the 90% test reported — Django 95.1%; packages 73.2%, bar not met, GAPS 3 frozen; written on bb6b5f4e in the final runs (`reports/final/RUN-LOG.md`)
+- [x] Decisions 1–11 written down with their numbers — and 12–15 (`diffs.md`)
+- [x] Your report section: data, labels, the label window, the tables, run 2, the diff drafter, each decision and its test

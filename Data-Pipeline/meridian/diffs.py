@@ -1,4 +1,4 @@
-"""Diff drafter · stage 6: a one-line swap for each present call site, as `suggestion` rows of kind 'diff'.
+"""Diff drafter · stage 6: a swap of each present call site's statement, as `suggestion` rows of kind 'diff'.
 Step "diff drafter" of Model-Pipeline/packets/utkarsh-data. See docs/04-architecture.md §6 and Contract 5.
 
     python -m meridian.diffs --run-id <run_id> --config meridian.toml           # -> out/<run_id>/suggestion.jsonl
@@ -13,8 +13,10 @@ Reads out/<run_id>/call_site.jsonl and run.jsonl, and the code in snapshots/<run
      path_if_plain   path(...) when the pattern is plain text between ^ and $, else re_path
      alias           the import becomes `from django.urls import re_path as url`; url(...) calls stay as they are
      learned         per repo, from its owner's own migrations so far: every checkout line already on django.urls
-                     votes (style_vote: `re_path as url`, a re_path that could have been path, a path). None, as
-                     at every package's parent: path_if_plain, the best single style (decisions 11 and 13)
+                     votes (style_vote: `re_path as url`, a re_path that could have been path, a path), and the
+                     owner's applied or edited diffs outrank those lines. The default. No votes, as at every
+                     package's parent: no url() draft (style_unknown) until the owner migrates a file by hand, and
+                     a diff the owner rejected is never re-offered (decisions 13 and 15)
    All sites on one line get one draft for that line, so the draft is the whole after-line.
 2. The LLM path may only draft a line the codemod refused, with 2 or more same-shape examples (the repo's own
    codemod drafts), and never inside `except` (llm_allowed). Models go coding small -> mid -> large (04 §6). Each

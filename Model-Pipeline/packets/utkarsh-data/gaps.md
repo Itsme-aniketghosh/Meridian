@@ -88,6 +88,27 @@ What gap 13 asks to skip is mostly already skipped. `szz.py` blames with `git di
 
 **Left for Aniket (gap 15):** wiring `fallback` into the orchestrator, with the context builder as the tool.
 
+### Walk policies (Nov 14, after the freeze)
+
+Aniket's "smarter walkers" next step, as a shadow challenger (04-architecture §9). The walker's queries, caps and facts are unchanged; a policy only chooses which upstream team is walked first, which matters once the 3-team cap cuts a walk short.
+- **`walk-v0`, the champion:** today's walker. Upstream teams in the order `blocked_by` finds them.
+- **`walk-v1`, the challenger, aware of the auditor's exploration policies:**
+  - it takes the ranking the auditor serves this stall: the stall job's champion, or ε of the time its challenger, by the auditor's own seeded draw;
+  - it visits first the upstream team with the most evidence for the reasons that ranking puts first;
+  - then the team with the most sites blocking the walk, then by name.
+  - It uses rules over the block's rows only. No model picks a step, because the orchestrator's LLM planner fell back on 19 of 68 stalls.
+- **Not every walk gets v1.** ε-greedy, as in the auditor: v0 with 1 − ε, v1 with ε (`[walkers] eps`, else the auditor's 0.2), seeded by (run_id, task_id). Every walk also records, in shadow, the teams the other policy would have walked, at no extra query, for matches to score later.
+- **Tests** (`tests/test_walkers.py::Policies`):
+  - with room for 2 teams, v0 walks the first-found blocker and v1 walks the one holding the ranked reason's evidence;
+  - with no evidence to go on, v1 takes the team with more blocking sites;
+  - uncapped, both give the same facts, and the shadow runs 0 queries;
+  - 15–25% of 2,000 stalls get v1, and `eps = 0` gives none.
+- **On bb6b5f4e:**
+  - 16 of 68 stalls draw v1;
+  - no walk differs, since no real stall has two upstream teams competing for the cap;
+  - the orchestrator's cache-only rerun is unchanged: 205 LLM texts, 19 templates, 0 calls.
+- **Not done yet:** scoring walk matches. That needs live verdicts, and promotion needs 30 of them, as for the stall job.
+
 ## Gap 2: the diff drafter's model comparison (Nov 13)
 
 `meridian/diffs_compare.py` runs the LLM path with each model alone, through `llm_cache/`, and scores against the real after-lines. The rule was written before the run: the cheapest model within 2 points of the best pass rate wins, and ties go to the open-weights model. It ran on Utkarsh's GCP project, for about $0.003 in all.

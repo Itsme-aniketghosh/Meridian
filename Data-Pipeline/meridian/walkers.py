@@ -17,6 +17,19 @@ teams walked are capped per stall; only named KNOWLEDGE-BASE.md queries run, nev
 query's result is cached by (run_id, moment, repo, symbol, query), so a rerun makes 0 queries and gives the same facts.
 No person is a fact: stall_orphaned_owner's person id is dropped.
 
+Walk policies (Aniket's report section, "Next": smarter walkers as a shadow challenger, 04-architecture §9). Every walk
+runs the same named queries and gives the writer the same kind of facts; a policy only chooses which upstream team is
+walked first, which matters once the teams cap cuts a walk short.
+    walk-v0   the champion, today's walker: upstream teams in the order blocked_by finds them.
+    walk-v1   the challenger, aware of the auditor's exploration policies: it takes the ranking the auditor serves for
+              this stall (the stall job's champion, or ε of the time its challenger, by the auditor's own seeded draw),
+              and visits first the upstream team with the most evidence for the reasons that ranking puts first, then
+              the one with the most call sites blocking the walk so far, then by name.
+Not every walk gets v1. Like the auditor's stall job, ε-greedy picks: v0 with 1 − ε, v1 with ε ([walkers] eps in the
+config, else the auditor's eps, 0.2), seeded by (run_id, task_id), so a rerun walks the same way. v1 is rules over
+the block's own rows: no model picks a step (the orchestrator's LLM planner fell back on 19 of 68 stalls). Each walk
+also records, in shadow, the teams the other policy would have walked, for the auditor's matches to score later.
+
 Built for Aniket's orchestrator (gap 15), which wires `fallback` in. Utkarsh owns it, with the graph.
 """
 import hashlib
@@ -26,8 +39,9 @@ import time
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import SimpleNamespace
 
-from meridian.auditor import NEEDS, REASONS, point, unknown
+from meridian.auditor import NEEDS, POLICIES, REASONS, epsilon, match_log, point, serve, settings, standings, unknown
 from meridian.llm_cache import canonical
 from meridian.pushcheck import kb_queries
 
@@ -44,6 +58,27 @@ class Limits:
 
 LIMITS = Limits()
 DROP = {"stall_orphaned_owner": {1}}   # evidence columns never kept: the top person's id
+CHAMPION, CHALLENGER = "walk-v0", "walk-v1"
+WALK_POLICIES = (CHAMPION, CHALLENGER)
+
+
+def walk_policy(cfg, run_id, task_id):
+    """Which walk policy one stall gets: the champion with 1 − ε, the challenger with ε (the auditor's serve()).
+    Seeded by (run_id, 'walk:' + task_id), so it's drawn apart from the stall job's own draw for the same task."""
+    eps = cfg.get("walkers", {}).get("eps", settings(cfg)["eps"])
+    return serve(run_id, f"walk:{task_id}", CHAMPION, [CHALLENGER], eps)
+
+
+def stall_ranking(db, cfg, run_id, at, task_id, facts):
+    """(stall policy id, reason numbers, likeliest first): the ranking the auditor serves the team for this stall, as
+    its stall job picks it (the league's champion over the block's matches up to `at`, or ε of the time a challenger,
+    seeded the same way). facts: {reason number: evidence rows}, the reasons that fire for the stalled team."""
+    s = settings(cfg)
+    policies = {p: x for p, x in POLICIES.items() if x.job == "stall"}
+    league = standings(match_log(db, at), s, policies)
+    eps = epsilon(sum(league.live.values()) // 2, s)
+    chosen = serve(run_id, task_id, league.champion, [p for p in sorted(policies) if p != league.champion], eps)
+    return chosen, list(policies[chosen].rank(SimpleNamespace(facts=facts)))
 
 
 class QueryTimeout(RuntimeError):
@@ -100,6 +135,10 @@ class Walk:
     queries: int = 0                             # query lookups, cached or not
     ran: int = 0                                 # queries actually run against the block
     capped: list = field(default_factory=list)   # [[query, "rows" | "time" | "queries" | "teams"]]
+    policy: str = CHAMPION                       # the walk policy that chose the order (not a fact for the writer)
+    stall_policy: str = ""                       # walk-v1: the auditor's stall policy whose ranking it followed
+    ranking: list = field(default_factory=list)  # walk-v1: that ranking, reason numbers
+    shadow: dict = field(default_factory=dict)   # {the other walk policy: the teams it would have walked}
 
     def facts(self):
         """Contract 5's facts object for the writer: only what the walk found, with where each part came from."""
@@ -115,18 +154,24 @@ def _key(run_id, at, repo, symbol, name, sql):
                                      "sql": hashlib.sha256(sql.encode()).hexdigest()}).encode()).hexdigest()
 
 
-def walk(db, cfg, stall, run_id, at, cache=None, limits=LIMITS, q=None):
-    """Walk the graph from one stall (an auditor Stall: task_id, repo, symbol, team). Read-only, capped, cached."""
+def walk(db, cfg, stall, run_id, at, cache=None, limits=LIMITS, q=None, policy=None):
+    """Walk the graph from one stall (an auditor Stall: task_id, repo, symbol, team). Read-only, capped, cached.
+    policy: a walk policy (WALK_POLICIES), or None for the ε-greedy pick (walk_policy)."""
     q = q or kb_queries()
     cache = {} if cache is None else cache
+    policy = policy or walk_policy(cfg, run_id, stall.task_id)
+    if policy not in WALK_POLICIES:
+        raise ValueError(f"unknown walk policy {policy!r}: one of {', '.join(WALK_POLICIES)}")
     point(db, at, stall.repo, stall.symbol, run_id, q)
     hidden = set(unknown(db, NEEDS))
-    w = Walk(stall.task_id, stall.team)
+    w = Walk(stall.task_id, stall.team, policy=policy)
     results = {}
 
-    def rows_of(name):
+    def rows_of(name, w=w, new=True):
         if name in results:
             return results[name]
+        if not new:              # a shadow walk reads only what the served walk queried
+            return None
         if w.queries >= limits.queries:
             w.capped.append([name, "queries"])
             return None
@@ -151,34 +196,58 @@ def walk(db, cfg, stall, run_id, at, cache=None, limits=LIMITS, q=None):
         results[name] = hit["rows"]
         return results[name]
 
-    frontier, seen = [stall.team], {stall.team}
-    for _ in range(limits.depth + 1):
-        nxt = []
-        for team in frontier:
-            if len(w.walked) >= limits.teams:
-                w.capped.append([team, "teams"])
-                continue
-            w.walked.append(team)
-            found = {}
-            for n, (label, name) in sorted(REASONS.items()):
-                if n in hidden:
+    def evidence(team):
+        """{reason number: the team's evidence rows} over what's been queried: the facts a stall policy ranks."""
+        return {n: rs for n, (_, name) in REASONS.items() if n not in hidden
+                for rs in [[r for r in results.get(name) or [] if r[0] == team]] if rs}
+
+    def go(w, pol, new=True):
+        """One walk under one policy, filling w. v0 keeps blocked_by's order; v1 reorders each level's frontier."""
+        frontier, seen, edges, rank = [stall.team], {stall.team}, {}, None
+        for _ in range(limits.depth + 1):
+            nxt = []
+            for team in frontier:
+                if len(w.walked) >= limits.teams:
+                    w.capped.append([team, "teams"])
                     continue
-                rows = rows_of(name)
-                if rows is None:
-                    continue
-                mine = [[v for i, v in enumerate(r[1:]) if i not in DROP.get(name, ())] for r in rows if r[0] == team]
-                if mine:
-                    found[label] = mine
-                if name == "stall_upstream":
-                    for site, blocker_site, blocker_team in (r[1:4] for r in rows if r[0] == team):
-                        w.path.append([team, site, blocker_site, blocker_team])
-                        if blocker_team not in seen:
-                            seen.add(blocker_team)
-                            nxt.append(blocker_team)
-            w.found[team] = found
-        frontier = nxt
-        if not frontier:
-            break
+                w.walked.append(team)
+                found = {}
+                for n, (label, name) in sorted(REASONS.items()):
+                    if n in hidden:
+                        continue
+                    rows = rows_of(name, w, new)
+                    if rows is None:
+                        continue
+                    mine = [[v for i, v in enumerate(r[1:]) if i not in DROP.get(name, ())]
+                            for r in rows if r[0] == team]
+                    if mine:
+                        found[label] = mine
+                    if name == "stall_upstream":
+                        for site, blocker_site, blocker_team in (r[1:4] for r in rows if r[0] == team):
+                            w.path.append([team, site, blocker_site, blocker_team])
+                            edges[blocker_team] = edges.get(blocker_team, 0) + 1
+                            if blocker_team not in seen:
+                                seen.add(blocker_team)
+                                nxt.append(blocker_team)
+                w.found[team] = found
+            if pol == CHALLENGER and nxt:
+                if rank is None:     # the stalled team's own reasons are all queried by now
+                    w.stall_policy, rank = stall_ranking(db, cfg, run_id, at, stall.task_id, evidence(stall.team))
+                    w.ranking = rank
+
+                def score(team):
+                    ev = evidence(team)
+                    return tuple(-len(ev.get(n, ())) for n in rank) + (-edges.get(team, 0), team)
+                nxt.sort(key=score)
+            frontier = nxt
+            if not frontier:
+                break
+
+    go(w, policy)
+    other = CHALLENGER if policy == CHAMPION else CHAMPION
+    shadow = Walk(stall.task_id, stall.team, policy=other)
+    go(shadow, other, new=False)   # no new query: it costs nothing, and the served walk's counts stay as they were
+    w.shadow = {other: shadow.walked}
     return w
 
 
@@ -194,8 +263,10 @@ def failed(*, error=None, result=None, gate_misses=0, usable=None):
     return False, None
 
 
-def fallback(tool, *, db, cfg, stall, run_id, at, cache=None, gate_misses=0, usable=None, limits=LIMITS, q=None):
-    """(facts, 'tool' | 'walkers', why): the tool's result, or the walkers' facts when the tool failed."""
+def fallback(tool, *, db, cfg, stall, run_id, at, cache=None, gate_misses=0, usable=None, limits=LIMITS, q=None,
+             policy=None):
+    """(facts, 'tool' | 'walkers', why): the tool's result, or the walkers' facts when the tool failed. policy: as
+    walk()'s, None for the ε-greedy pick."""
     error = result = None
     if gate_misses < 2:
         out = {}
@@ -213,4 +284,4 @@ def fallback(tool, *, db, cfg, stall, run_id, at, cache=None, gate_misses=0, usa
     bad, why = failed(error=error, result=result, gate_misses=gate_misses, usable=usable)
     if not bad:
         return result, "tool", None
-    return walk(db, cfg, stall, run_id, at, cache, limits, q).facts(), "walkers", why
+    return walk(db, cfg, stall, run_id, at, cache, limits, q, policy).facts(), "walkers", why
