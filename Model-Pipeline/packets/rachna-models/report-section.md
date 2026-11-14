@@ -25,6 +25,10 @@ All three model families beat lines × files with their intervals above 0, even 
 
 Tuned logistic regression (0.382) came out below untuned (0.390). Tuning maximises the train folds (2020–2022), not 2023, and we didn't re-tune on val, which would leak it.
 
+## 2024, once
+
+The test year was opened once, after the code freeze, and scored the frozen champion (registry `model.joblib`, md5 2a0c9cc6…, val PR-AUC 0.4067 confirmed before any 2024 row was read; `reports/2024/RUN-LOG.md`). On 2024 (N = 3,762 commits, 283 bug-inducing, 7.5%), the forest reaches PR-AUC 0.268 [0.224, 0.320] against lines × files' 0.214 [0.179, 0.259]: a paired difference of +0.054 [+0.028, +0.081], n = 3,762 (`reports/2024/metrics.json`). The interval is above 0, so by the pass bar written before any run ("2024 PR-AUC beats lines × files"), the model ships. It is 3.6× chance on a year no choice ever saw; ROC-AUC 0.808. Churn (−0.018 [−0.034, −0.004]) and prior bug fixes (−0.048 [−0.078, −0.015]) both fall below lines × files again. One measure tempers it: reading the commits the forest ranks riskiest per line until 20% of all changed lines are read finds 62.5% of the bugs, and reading the smallest commits first, with no model at all, finds 60.8%. The model's edge over size is real but small, as SHAP's 63% on size suggested.
+
 ## The ceiling: it's the data
 
 **Accuracy is meaningless here.** The forest is 88.5% accurate, and always saying "no bug" is 88.2%. That's why every number above is PR-AUC.
@@ -62,5 +66,5 @@ Jev picks which model starts each LLM task. Only picks from an allowed table cou
 ## Not done, and next
 
 - Decision 2's size ablation (the model without size features against lines × files) isn't run. It's the most direct test of the question above.
-- The 2024 test year runs once, on Nov 12, and changes no choice.
+- The 2024 run is done (above): the model ships, by +0.054 [+0.028, +0.081] over lines × files.
 - For the next version: features from the diff itself (a small local code-embedding model, cached per commit, $0 a push), and a cleaner SZZ variant (Utkarsh's gap 13).
