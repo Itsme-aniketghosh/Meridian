@@ -2,7 +2,7 @@
 
 Can the block serve each feature the team proposed ([02-product](../../docs/02-product.md), [04-architecture](../../docs/04-architecture.md), [project-scoping](../../scoping/project-scoping.md))? Each one is a named SQL query in [KNOWLEDGE-BASE.md](../KNOWLEDGE-BASE.md), tested in CI on the hand-built fixture `acme/shop`. Here we run the same queries, unchanged, on the real block (snapshot 2026-10-01: Django at `4353640ea9`, Spark with Apache Jira, 20 Django packages, GitLab issues). We also score it against the answer keys in [labels/](../labels/) and replay real commits through the push check. Ideas the team dropped ([06-dead-ideas](../../docs/06-dead-ideas.md)) are left out.
 
-Which run: the queries, charts and `figures/scenarios.json` are from v1, `70dd1dabfed544b8`. The team run `c5118b019d642a9b` has the same snapshot and call-site tables, so every Django, package, call-site and push-check number holds. People, owners, SZZ and ticket mapping moved. For those we quote c5118's 36,198 mapped Spark tickets (37,817 unmapped, 48.9% block-wide), its stack-trace counts in §4, 26,302 `bug_inducing` rows and 1,788,375 rows. The other Spark numbers are v1's: §5's file counts, P9 against SZZ (§7), the 621 open mapped tickets, the Spark stall rows, `files_owned` and the orphaned-owner count.
+Which run: the queries are from v1, `70dd1dabfed544b8`. So were the charts and `figures/scenarios.json` until Nov 14, when they were redrawn from the team run `c5118b019d642a9b` ([RUN-LOG](../../Model-Pipeline/reports/final/RUN-LOG.md), step 5). c5118 has the same snapshot and call-site tables, so the Django, package, call-site and push-check numbers hold, with one package count that moved in the charts: 200 package modules with no test imports (§8), against v1's 196. People, owners, SZZ and ticket mapping moved. For those we quote c5118's 36,198 mapped Spark tickets (37,817 unmapped, 48.9% block-wide), its 633 open mapped tickets, its stack-trace counts in §4, 26,302 `bug_inducing` rows and 1,788,375 rows. The other Spark numbers are v1's: §5's file counts, P9 against SZZ (§7), the Spark stall rows, `files_owned` and the orphaned-owner count.
 
 The short version: the code side is exact and the ticket side has real signal on Spark, but the two never meet in one dataset. Django has no Jira, Spark has no tracked symbol, and GitLab has no Python (G7). So every feature that joins a ticket to a call site comes back empty on real data. That's the data's shape, not a broken feature.
 
@@ -79,7 +79,7 @@ G1–G8 are KNOWLEDGE-BASE.md's known gaps. Every P row has its own test in `tes
 |---|---|---|---|
 | T1 · Manager: facts for a rewrite | 🟡 | `manager_facts`: 0 for `SPARK-48763` | As S2 |
 | T2 · Check: unmapped | ✅ | 37,817 unmapped rows | |
-| T3 · Check: no done condition, bug without repro | 🟡 | `staff_vague` (done condition only). On Spark it fails all 621 open mapped tickets ([§4](#4-tickets-and-their-link-to-code)) | No repro query; as S7 |
+| T3 · Check: no done condition, bug without repro | 🟡 | `staff_vague` (done condition only). On Spark it fails all 633 open mapped tickets ([§4](#4-tickets-and-their-link-to-code)) | No repro query; as S7 |
 | T4 · Check: spans teams, duplicate, wrong owner | 🟡 | `derive_duplicates`, `check_wrong_owner`: 0 | As S2; "spans teams" has no named query |
 | T5 · Check: stale (30 days, code changed) | 🟡 | No query ("not in the fixture") | The data is there: 235,252 events, 208,551 path-level maps |
 | T6 · Maker: untracked sites, one group per team | ✅ | `maker_drafts`: 43 team groups (23 Django, 20 packages) | "Wave" isn't defined in the KB |
@@ -195,7 +195,7 @@ Are the commit keys right? A person checked 50 random commit-to-ticket links ([l
 
 The mapping goes to paths, not call sites, so it can't feed P3, P5 or collisions. The best path-level collision rule scores 0.64 on the 50 Spark pairs (32 real, and 48 of 50 have both keys mapped to the file). The labels' function-level flag (`inside`) agrees with the verdict 50/50, which is why 05-test wants function scope.
 
-The ticket check adapted to Spark (open, mapped to code, no "done when") fails all 621 of 621 open mapped tickets, because Apache Jira never writes "done when". We tried a check that fits Spark, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a Bug with no `{code}` or `{noformat}` block, no stack frame and no "reproduce" or "steps". On the 4,314 Spark Bugs resolved since 2020 as Fixed, Incomplete or Cannot Reproduce, it flags 58%, and 8.5% of those end Incomplete or Cannot Reproduce against a 13.2% base rate (6.4% when flagging as many by shortest description). It beats description length, but both do worse than chance, so we didn't adopt it. Of the newest 500 Spark tickets, 48% have an empty description (241), 5.8% have any non-parent link (29), and 0 have `blocked_by`.
+The ticket check adapted to Spark (open, mapped to code, no "done when") fails all 633 of 633 open mapped tickets, because Apache Jira never writes "done when". We tried a check that fits Spark, with the bar written down first ([notes/PASS-BARS-2026-10-26.md](../notes/PASS-BARS-2026-10-26.md)): a Bug with no `{code}` or `{noformat}` block, no stack frame and no "reproduce" or "steps". On the 4,314 Spark Bugs resolved since 2020 as Fixed, Incomplete or Cannot Reproduce, it flags 58%, and 8.5% of those end Incomplete or Cannot Reproduce against a 13.2% base rate (6.4% when flagging as many by shortest description). It beats description length, but both do worse than chance, so we didn't adopt it. Of the newest 500 Spark tickets, 48% have an empty description (241), 5.8% have any non-parent link (29), and 0 have `blocked_by`.
 
 ## 5. Fragility
 
@@ -252,7 +252,7 @@ P9 is the one push check with signal outside Django (v1's SZZ). Its 2,000 thresh
 | `stall_never_notified` | all 23 teams (no tracker) | ✅ true, uninformative |
 | `stall_orphaned_owner` | 2 files: `contrib/auth/forms.py` (top author silent 132 d), `tests/i18n/urls_default_unprefixed.py` (90 d). At the 2026 clock: 91 files, which is everyone | ✅ at the pin |
 | `stall_semantics_unclear` | 2 sites inside `except`: `contrib/auth/forms.py:35`, `template/defaultfilters.py:849` | ✅ the exact case the manager rewrite asks about |
-| `stall_test_gap` | 57 Django modules (mostly `apps.py`), 196 package modules no test imports | ✅ plausible, not hand-checked |
+| `stall_test_gap` | 57 Django modules (mostly `apps.py`), 200 package modules no test imports | ✅ plausible, not hand-checked |
 | `stall_competing_load` | Django 0 (path teams have no people). Spark: 8 teams "busy elsewhere" | 🟡 fired only because no Spark team has call sites; fixed since, 8 → 0 |
 
 Against `gitlab_stall_reasons.csv` (57 blocked issues, model-read), 41 are "upstream", and 33 of those 41 (0.80) have a `blocked_by` link in the block. So the most common real stall reason is in the data, at ticket level. But the KB's stall queries read call sites, and GitLab has none. The other reasons (unknown 7, other 6, owner 2, risk 1) live in comments, which we don't keep (G2).
