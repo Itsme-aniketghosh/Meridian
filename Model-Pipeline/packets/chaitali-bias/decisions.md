@@ -535,3 +535,30 @@ Rule (decision 9 and gap 7's addition, unchanged):
 - Slices: repo, owner team, task kind (now with `walk`). `[bias] min_n` 30, `max_gap` 0.10, harm upward, judged on `gemini-flash`. Every slice under 30 is listed with its N, not judged.
 - A flagged slice is an open flag unless a fix was tried on it and written down. Nothing is accepted after seeing it.
 - A template with no LLM attempt behind it isn't a fallback. If any of the 60 has none, the report gives both counts.
+
+## LLM bias on the live run: results: consumer texts flagged, an open flag
+
+Block rebuilt from Utkarsh's steps under `~/meridian-block3` (10 minutes): collect printed `bb6b5f4e32a4bee7`, validate 0 errors and 2 warnings (his two), and his three md5s match (`file_bug_fixes` `a98e5d40…`, `call_site` `bf428a2f…`, `bug_inducing` `682abebd…`).
+
+`cd Data-Pipeline && MERIDIAN_DATA=~/meridian-block3 python ../Model-Pipeline/packets/chaitali-bias/llm_bias_live.py --run-id bb6b5f4e32a4bee7 --calls <file>` (11 s, 0 calls, no GCP project set), then `python -m model.llm_bias --calls reports/llm_bias_live/live_calls.jsonl --ship gemini-flash --out reports/llm_bias_live`.
+
+**The replay reproduces the live run**: 68 stalls, 49 planned by the orchestrator and 19 by the rules, walkers for 20, **164 LLM texts and 60 templates**. All 224 texts are the writer's on `gemini-flash`, and each has a logged attempt, so every template is a fallback.
+
+| Slice | Judged | Fell back | Rate | 95% interval | Flagged | Power at 0.15 |
+|---|---|---:|---:|---|---|---:|
+| task `consumer` | 68 | 41 | 0.603 | 0.484–0.711 | **yes** | 0.16 |
+| task `stall_reason` | 68 | 0 | 0.000 | 0.000–0.053 | no | 0.16 |
+| task `ticket_draft` | 68 | 0 | 0.000 | 0.000–0.053 | no | 0.16 |
+| task `walk` | no: 20 | 19 | 0.95 | | | |
+| repo `django/django` | 151 | 41 | 0.272 | 0.207–0.347 | no | 0.23 |
+| the other 20 repos | no: at most 4 each | | | | | |
+| 43 owner teams | no: at most 12 each | | | | | |
+| **Overall** | 224 | 60 | 0.268 | | | |
+
+**Why consumer texts fall back** (each cached reply re-gated, 0 calls): all 41 are gate misses, none bad JSON. **Every one of the 41 has a file with gap 24's fix keys in its facts**, and **all 477 misses are numbers from those keys** (`#6921` read as the number 6921, which the facts hold only inside the key's string). Of the 68 consumer tasks: 41 have fix keys and all 41 fell back, 27 have none and all 27 passed. On block 70dd (no package fix keys) the same task kind fell back 3 of 68. So this comes from gap 24's new facts meeting the gate's number rule, not from text that's worse for some teams. The cut (gap 16) doesn't decide it: 20 cut and 21 uncut tasks fell back.
+
+**By the rule it's an open flag.** No fix was tried: it was found after the freeze tag. `reports/llm_bias_live/llm_bias.json` has `pass: false`, with 1 open flag. The fix belongs to the gate (Vishwa): accept a number that a fix key in the facts holds, as Spark's `SPARK-N` keys already pass. Then rerun from the cache. Nothing is accepted here.
+
+The walkers' 19 fallbacks are each one miss, a team name not in the walk's facts. At N = 20 that isn't judged, and it's reported.
+
+Diff match is unchanged (Utkarsh's counts): oscar and `(other)` flagged and accepted, as on Nov 10.
