@@ -1,0 +1,10 @@
+{
+  "kind": "forest",
+  "column": "forest",
+  "params": null,
+  "seed": null,
+  "run_id": "0c5e15f2ef6b4ad69011cd982ada891c",
+  "scores_file": "champion_val_scores.csv",
+  "champion_version": "85b4684ae33697e771ba4defa5cc4cb5618bcd6a",
+  "model_md5": "2a0c9cc656b43fc4e471c70223c4b4ca"
+}
