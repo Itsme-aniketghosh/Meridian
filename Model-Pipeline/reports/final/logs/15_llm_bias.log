@@ -1,0 +1,12 @@
+$ python -m model.llm_bias --calls reports/llm_bias_live/live_calls.jsonl --ship gemini-flash --out reports/llm_bias_live
+2026-11-14T06:31:17Z
+fallback: 224 LLM texts
+match: 1,503 lines, overall 0.576
+  FLAG match repo=(other) 0.287 (n=488, interval 0.249-0.329) vs overall 0.576
+  FLAG match repo=oscar 0.328 (n=247, interval 0.272-0.389) vs overall 0.576
+pass: True (0 open flags); wrote llm_bias.json, llm_bias_match.png
+real 2.76
+user 1.73
+sys 0.37
+exit=0
+2026-11-14T06:31:20Z

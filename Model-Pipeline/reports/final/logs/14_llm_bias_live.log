@@ -1,0 +1,8 @@
+$ MERIDIAN_DATA=~/meridian-block3 python ../Model-Pipeline/packets/chaitali-bias/llm_bias_live.py --run-id bb6b5f4e32a4bee7 --calls ../Model-Pipeline/reports/llm_bias_live/live_calls.jsonl
+2026-11-14T06:30:59Z
+68 stalls planned {'orchestrator': 49, 'rules': 19}; walkers for 20; 205 LLM texts, 19 templates; by kind {('ticket_draft', 'llm'): 68, ('stall_reason', 'llm'): 68, ('consumer', 'llm'): 68, ('walk', 'template'): 19, ('walk', 'llm'): 1}
+real 17.60
+user 15.14
+sys 2.43
+exit=0
+2026-11-14T06:31:17Z
