@@ -522,3 +522,16 @@ Rule: decision 12, unchanged (cover 90%, at least 1 file, the same measures and 
 48 of the 68 teams have a file with bug fixes (it was 0). 36 teams are cut, and 32 keep all their files. A random order with the same number of files keeps **73.3%** (seed 1, 100 orders). The facts are longer than on Nov 11 (40,996 characters against 36,676), because the files now carry their fix keys.
 
 **By the rule: 96.4% ≥ 90%, and +23.1 points over random ≥ 10, so switching it on is recommended.** It cuts the consumer facts by 46%. It isn't switched on here: that's Vishwa's call, since it changes every consumer cache key, and the numbers are a preview until a block is built with gap 24's code.
+
+---
+
+# Nov 13: LLM bias on the texts the live run shipped: the rule, before computing
+
+Utkarsh's live run (gap 15, PR #113): `meridian.orchestrator --run-id bb6b5f4e32a4bee7 --llm --models gemini-flash`, writing on Gemini 3.8 Flash, with 164 LLM texts and 60 templates. Its cache is committed, but the orchestrator has no `--calls`, and the code is frozen (tag `freeze-nov13`). So the run is **replayed** from the cache by `packets/chaitali-bias/llm_bias_live.py`. It makes the same calls `orchestrator.main` makes, with `strict_cache` on, the LLM off and `agents.run`'s `log` writing each answer's row to a jsonl, as `agents --calls` does. That's 0 paid calls, and a miss stops it. The block is rebuilt from Utkarsh's steps (`packets/utkarsh-data/gaps.md`), and its run_id and his three md5s are checked first.
+
+Rule (decision 9 and gap 7's addition, unchanged):
+- **The replay must reproduce the live run: 164 LLM texts and 60 templates.** If it doesn't, nothing is judged and the difference is reported.
+- One text per (agent, `facts_hash`). It fell back when no answer passed the gate and the template shipped. Writer and diff drafter texts only; the orchestrator's plans don't ship.
+- Slices: repo, owner team, task kind (now with `walk`). `[bias] min_n` 30, `max_gap` 0.10, harm upward, judged on `gemini-flash`. Every slice under 30 is listed with its N, not judged.
+- A flagged slice is an open flag unless a fix was tried on it and written down. Nothing is accepted after seeing it.
+- A template with no LLM attempt behind it isn't a fallback. If any of the 60 has none, the report gives both counts.
