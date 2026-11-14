@@ -5,7 +5,7 @@ Every step of `packets/rochan-tracking/RUN-2024.md`, in order: the command, what
 **Who and why:**
 - **Run by:** Utkarsh, on his Mac (macOS, Apple silicon), from `Model-Pipeline/` with the repo's `.venv` (Python 3.11).
 - **Why not Rochan:** the checklist names Rochan as runner, but he couldn't be reached. **Aniket gave the go-ahead** for Utkarsh to run it (relayed by Utkarsh, Nov 13 evening).
-- **Watching:** the checklist asks for Aniket to watch; Aniket approved the run but wasn't on a call during it.
+- **Watching:** Aniket watched the run live, as the checklist asks (confirmed by Aniket, Nov 14).
 - **Before the run (Aniket, Phase 4):** the freeze tag `freeze-nov13` exists (on #117, 978af89). The fault table and go/no-go are Aniket's; the go was given as above. They aren't re-recorded here.
 
 ## Step 1: open 2024 — PASS
