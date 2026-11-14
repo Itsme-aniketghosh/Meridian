@@ -74,6 +74,14 @@ class Tokens(unittest.TestCase):
         self.assertFalse(ok("CHK-312"))
         self.assertFalse(ok("chk-311 and CHK-3110"))
 
+    def test_github_fix_keys_are_tickets_not_numbers(self):
+        # GAPS 24's fix keys: the writer cites "#6921", which the facts hold only as the key (LLM bias, Nov 13)
+        facts = {"files": [{"path": "a/x.py", "sites": 3, "bug_fixes": 2, "fix_keys": ["#6921", "#7004"]}]}
+        self.assertTrue(ok("a/x.py has 3 call sites and 2 bug fixes (#6921, #7004).", facts))
+        self.assertFalse(ok("a/x.py, 2 bug fixes (#6922).", facts))      # a key not in the facts
+        self.assertFalse(ok("6921 call sites in a/x.py.", facts))       # the key's digits are never a count
+        self.assertFalse(ok("2 bug fixes (#3).", facts))                # nor is a count a key
+
     def test_sha_prefix(self):
         facts = {"sha": corpus.SHA}
         self.assertTrue(ok(f"commit {corpus.SHA[:7]}", facts))

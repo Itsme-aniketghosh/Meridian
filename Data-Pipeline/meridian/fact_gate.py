@@ -42,6 +42,7 @@ _EXT = (r"(?:py|pyi|rb|erb|rake|js|jsx|mjs|cjs|ts|tsx|vue|java|kt|kts|scala|go|r
 _PATH = re.compile(rf"(?<![\w/.\-])((?:\./|/)?(?:[\w.\-]+/)*[\w\-][\w.\-]*\.{_EXT})(?::(\d+))?(?![\w/])")
 _LINE_ONLY = re.compile(r"(?<![\w:/.])(:\d+)(?!\w)")  # ":231" after a path, as in "cart/pricing.py:214 and :231"
 _TICKET = re.compile(r"(?<![\w\-])([A-Z][A-Z0-9_]*-\d+)(?![\w\-])")
+_HASH_KEY = re.compile(r"(?<![\w&#])(#\d+)(?![\w\-])")  # a GitHub fix key, "#6921" (GAPS 24): a ticket, not a number
 # a path in a fact, whatever its extension: at least one '/' and a dot in the last part, or name.ext:line
 _ANY_PATH = re.compile(r"(?<![\w/.\-])((?:[\w.\-]+/)+[\w\-][\w.\-]*\.\w+|[\w\-][\w.\-]*\.\w+(?=:\d))"
                        r"(?::(\d+))?(?![\w/])")
@@ -138,6 +139,7 @@ class _Facts:
             if m.group(2):
                 self.path_lines.add((m.group(1), int(m.group(2))))
         self.tickets.update(_TICKET.findall(s))
+        self.tickets.update(_HASH_KEY.findall(s))
         self.shas.update(x for x in _SHA.findall(s) if _is_sha(x))
         for m in _ISO_DATE.finditer(s):
             self.dates.add((int(m.group(1)), int(m.group(2)), int(m.group(3))))
@@ -256,7 +258,7 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
             if not known.path_known(prev, int(m.group(1)[1:])):
                 miss("path", m.group(0), m.start())
 
-    for m in _TICKET.finditer(text):
+    for m in [*_TICKET.finditer(text), *_HASH_KEY.finditer(text)]:
         if take(m) and "ticket" in on:
             checked += 1
             if m.group(1) not in known.tickets:
