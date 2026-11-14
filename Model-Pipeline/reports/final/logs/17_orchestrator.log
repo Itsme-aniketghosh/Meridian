@@ -1,0 +1,13 @@
+$ python -m meridian.orchestrator --run-id bb6b5f4e32a4bee7 --config meridian.toml --llm --models gemini-flash --strict-cache --workers 8
+2026-11-14T06:31:30Z
+68 stalled teams planned: {'orchestrator': 49, 'rules': 19}; the graph walkers ran for 20 (their tool failed; gap 17)
+  49 orchestrator
+  6 refused: not the JSON asked for
+  13 refused: the reason says something not in the facts
+steps written: {'ticket_draft': 68, 'stall_reason': 68, 'consumer': 68, 'walk': 20}, 205 LLM texts, 19 templates
+0 calls, $0.0000 (orchestrator $0.0000)
+real 15.98
+user 13.85
+sys 2.04
+exit=0
+2026-11-14T06:31:46Z

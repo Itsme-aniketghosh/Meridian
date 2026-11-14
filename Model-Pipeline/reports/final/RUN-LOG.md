@@ -105,3 +105,78 @@ The 10 steps: environment, DAGs, DVC, the pipeline end to end (148 rows in 22 ta
   - any appendix figure caption that quotes v1 numbers (36,138 and the others above).
 - **Chaitali:** `llm_bias.json` and its chart, then its golden md5.
 - **Aniket:** whether the sensitivity charts need a `--save-model` retrain, or stay as the Nov 9 charts of the same model.
+
+## Reruns after the gate fix (#122): Nov 14, 06:10–06:32 UTC
+
+Aniket's go-ahead once #122 merged: rebuild `bb6b5f4e` and check its run_id and Utkarsh's three md5s, then the 0-call reruns on main `33ed598`, LLM bias first, then the agents and the orchestrator.
+
+**Who, what and where:**
+- **Run by:** Rochan, on a Mac (macOS, Apple silicon), with `Data-Pipeline/.venv` and `Model-Pipeline/.venv` (Python 3.11).
+- **Code:** `main` at `33ed598` (Merge #122), a clean checkout, with Chaitali's `llm_bias_live.py` from #121's head (`ab96b22`). #121 merged during the rebuild (`6b466cd`). It added that same script and changed no other code, so these runs hold for main at `6b466cd` too.
+- **Block:** `bb6b5f4e32a4bee7`, rebuilt under `MERIDIAN_DATA=~/meridian-block3` with the steps in `packets/utkarsh-data/gaps.md`. It holds real names, so it isn't in git, and it isn't published.
+- **LLM guard:** as in step 2. No GCP project and no Slack or SMTP settings in the environment, and `--strict-cache` on.
+
+| # | Step | Verdict |
+|---|---|---|
+| 8 | Rebuild `bb6b5f4e` | **PASS**: run_id `bb6b5f4e32a4bee7`, Utkarsh's three md5s match, validate 0 errors and 2 warnings |
+| 9 | LLM bias on the live run | **PASS**: 205 LLM texts and 19 templates; consumer falls back 0 of 68 (was 41); `llm_bias.json` passes and is byte-identical to #121's |
+| 10 | `meridian.agents --quiet` | **PASS**: 0 consumer templates the gate flags (was 41) |
+| 11 | `meridian.orchestrator --strict-cache` | **PASS**: 205 LLM texts and 19 templates (was 164 and 60); **0 calls, $0.0000** |
+
+LLM cache: 1,353 entries before and after. `git status` afterwards showed no tracked file changed. Raw output: `logs/13_rebuild_bb6b5f4e.log` to `logs/17_orchestrator.log`.
+
+### Step 8: rebuild bb6b5f4e — PASS
+
+`gaps.md`'s commands: `collect --run-id new`, then history, scan, resolve, owners, join, graph, validate and context. 20 minutes, 15.6 of them in history.
+- **run_id:** collect printed `bb6b5f4e32a4bee7`.
+- **md5s** of `out/bb6b5f4e32a4bee7/…`:
+  - `file_bug_fixes.jsonl` `a98e5d40…`, `call_site.jsonl` `bf428a2f…` and `bug_inducing.jsonl` `682abebd…` match;
+  - so does `commit_file.jsonl` (`8a6dc499…`), which `gaps.md` allows to differ.
+- **validate:** 1,790,126 rows in 30 tables, 0 errors and 2 warnings. They're the same two as in `gaps.md`:
+  - 289 Spark ticket dates in the years 0010–0012;
+  - 24.0% of `call_site.bug_fixes` outside 0..0.
+
+  The alert was only logged.
+- **context:**
+  - 68 consumer tasks, 36 cut (files 127 of 367, sites 495 of 1,526);
+  - bug fixes covered 0.964, against 0.727 for a random order;
+  - `reports/context_cut.json` is byte-identical to the committed one (`60b507d7…`).
+- **No scan, resolve or SZZ cache:** this machine's data root holds only the repos, Jira and GitLab caches, so those three steps were computed from scratch. The md5s show they give the same bytes.
+
+### Step 9: LLM bias on the live run — PASS
+
+```
+cd Data-Pipeline && MERIDIAN_DATA=~/meridian-block3 python ../Model-Pipeline/packets/chaitali-bias/llm_bias_live.py --run-id bb6b5f4e32a4bee7 --calls ../Model-Pipeline/reports/llm_bias_live/live_calls.jsonl
+cd Model-Pipeline && python -m model.llm_bias --calls reports/llm_bias_live/live_calls.jsonl --ship gemini-flash --out reports/llm_bias_live
+```
+- **The replay** (18 s, 0 calls):
+  - 68 stalls: 49 planned by the orchestrator and 19 by the rules, with walkers for 20;
+  - **205 LLM texts and 19 templates:** consumer, stall_reason and ticket_draft are all LLM (68 each), and walk is 1 LLM text and 19 templates.
+- **`model.llm_bias`:** passes, with 0 open flags. Diff match flags oscar (0.328, N = 247) and `(other)` (0.287, N = 488), both accepted, as before.
+- **Against #121** (Chaitali's rerun after #122):
+  - `llm_bias.json` (`3e6539f1…`) and `llm_bias_match.png` (`62ea68c2…`) are byte-identical;
+  - `live_calls.jsonl` has the same 224 rows. Only their order (8 workers) and `latency_ms` (how long a cache read took here) differ.
+
+### Step 10: agents, LLM off — PASS
+
+`python -m meridian.agents --run-id bb6b5f4e32a4bee7 --config meridian.toml --out <scratch>/out/agents --quiet` (11 s):
+- consumer, stall_reason and ticket_draft: 68 texts each, all templates;
+- **0 templates the gate flags,** where step 2 had 41 consumer templates;
+- 0 skipped for naming a person.
+
+### Step 11: orchestrator — PASS
+
+`python -m meridian.orchestrator --run-id bb6b5f4e32a4bee7 --config meridian.toml --llm --models gemini-flash --strict-cache --workers 8` (16 s):
+- **The plan is the same as in step 2:**
+  - 68 stalled teams: 49 orchestrator and 19 rules (6 not the JSON asked for, 13 reason not in the facts);
+  - walkers for 20.
+- **205 LLM texts and 19 templates,** where step 2 had 164 and 60. The 41 consumer texts the gate refused now pass on their cached replies.
+- **0 calls, $0.0000.**
+
+### The golden md5 and step 5's appendix numbers
+
+- **`golden/2024.json`** adds `reports/llm_bias_live/llm_bias.json` (md5 `3e6539f1d717fd31679b3b49c6cecacd`, 25,282 bytes). It's the file #121 added, and main's copy has that md5.
+- **`Data-Pipeline/report/appendix-real-data.md`** now quotes the redrawn charts:
+  - 200 package modules with no test imports (was 196);
+  - 633 open mapped tickets (was 621);
+  - its "Which run" note says the charts are from c5118 since Nov 14.

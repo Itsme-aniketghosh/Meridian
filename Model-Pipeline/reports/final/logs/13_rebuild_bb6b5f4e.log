@@ -1,0 +1,378 @@
+$ packets/utkarsh-data/gaps.md's rebuild, code main 33ed598, MERIDIAN_DATA=~/meridian-block3, caches copied from the team data root (repos, jira, gitlab)
+$ python -m meridian.collect --run-id new --config meridian.toml
+$ for p in history scan resolve owners join graph validate; do python -m meridian.$p --run-id bb6b5f4e32a4bee7 --config meridian.toml; done
+$ python -m meridian.context --run-id bb6b5f4e32a4bee7 --db ~/meridian-block3/out/bb6b5f4e32a4bee7/meridian.sqlite
+=== collect  0s  2026-11-14T06:10:35Z
+django
+django_packages
+spark
+gitlab
+  checkout apache/spark @ f868de6914
+  checkout carltongibson/django-filter @ 906ae91cc0
+  checkout cookiecutter/cookiecutter-django @ fd15b20a08
+  checkout django-cms/django-cms @ c44b6beda9
+  checkout django-extensions/django-extensions @ 00903ef8a0
+  checkout django-guardian/django-guardian @ d3a3c6071f
+  checkout django-haystack/django-haystack @ 2ef6382821
+  checkout django-import-export/django-import-export @ edd2abef50
+  checkout django-oscar/django-oscar @ f9ae784e55
+  checkout django-tastypie/django-tastypie @ ac18543860
+  checkout django-tenants/django-tenants @ fd1996e115
+  checkout django/channels @ 8e575dd6cb
+  checkout django/django @ 4353640ea9
+  checkout encode/django-rest-framework @ 9990b59281
+  checkout graphql-python/graphene-django @ f76f38ef30
+  checkout iMerica/dj-rest-auth @ c0c9d7eb89
+  checkout jazzband/django-debug-toolbar @ e2b00ad6d5
+  checkout jazzband/django-silk @ 134089e4ca
+  checkout jazzband/django-two-factor-auth @ 3dc446cc4f
+  checkout pennersr/django-allauth @ dac31fdac2
+  checkout wagtail/wagtail @ 34785b9085
+  checkout yourlabs/django-autocomplete-light @ 3eb84a09c5
+status complete
+  gitlab pulled 2026-10-13T23:49:29Z..2026-10-14T01:19:14Z
+  jira/SPARK pulled 2026-10-13T23:11:27Z..2026-10-13T23:49:29Z
+  ticket status, resolution and resolved_at are as of snapshot_at; other ticket fields are as of the pull
+run_id=bb6b5f4e32a4bee7
+exit=0 (11s)
+=== history  11s  2026-11-14T06:10:46Z
+apache/spark                                   45,312 first-parent   50,371 commits    332,356 files
+carltongibson/django-filter                       353 first-parent    1,182 commits      3,371 files
+cookiecutter/cookiecutter-django                1,096 first-parent    2,435 commits      5,577 files
+django-cms/django-cms                           3,308 first-parent   15,853 commits    127,008 files
+django-extensions/django-extensions             1,892 first-parent    3,287 commits      8,644 files
+django-guardian/django-guardian                   652 first-parent      970 commits      3,008 files
+django-haystack/django-haystack                 1,261 first-parent    1,658 commits      5,447 files
+django-import-export/django-import-export         633 first-parent    1,164 commits      2,767 files
+django-oscar/django-oscar                       4,319 first-parent    8,475 commits     68,237 files
+django-tastypie/django-tastypie                   978 first-parent    1,279 commits      3,941 files
+django-tenants/django-tenants                     187 first-parent      252 commits        668 files
+django/channels                                   977 first-parent    1,114 commits      2,590 files
+django/django                                  23,002 first-parent   23,968 commits    115,767 files
+encode/django-rest-framework                    3,847 first-parent    8,294 commits     28,804 files
+graphql-python/graphene-django                    197 first-parent      513 commits      1,509 files
+iMerica/dj-rest-auth                              476 first-parent      821 commits      2,199 files
+jazzband/django-debug-toolbar                   1,145 first-parent    1,956 commits      6,021 files
+jazzband/django-silk                              486 first-parent      688 commits      2,678 files
+jazzband/django-two-factor-auth                   453 first-parent      591 commits      2,144 files
+pennersr/django-allauth                         1,540 first-parent    2,131 commits      7,838 files
+wagtail/wagtail                                 5,252 first-parent    9,893 commits    111,575 files
+yourlabs/django-autocomplete-light              1,638 first-parent    2,333 commits      7,494 files
+gitlab                                         14,524 tickets     31,776 events   27,460 links      0 bulk-closed  (17,654 [Test] left out, 35 relation removals with no link to match)
+apache/spark                                   41,138 commits keyed   42,191 keys    3 dead keys
+jira/SPARK                                     59,491 tickets    203,476 events   34,155 links  3,972 bulk-closed  (8 links to SPARK tickets not in the snapshot left out, 0 changelogs cut short by Jira)
+apache/spark                                  last 1,000 first-parent commits keyed: 94.0% from the subject, 94.4% counting the body
+apache/spark                                    9,757 fix commits    7,168 with lines to blame    26,302 bug_inducing rows  0 root commits skipped  0 reused from the cache
+exit=0 (939s)
+=== scan  950s  2026-11-14T06:26:25Z
+  cache: 0 of 39 files reused
+carltongibson/django-filter: 16 candidates in 39 files · roles {'attribute': 1, 'call': 5, 'definition': 3, 'import': 2, 'reference': 5} · junk {'none': 6, 'test': 10} · 1 in except
+  0 parse failures (holding 0 tracked names, excluded) · 4 keyword-argument/parameter names (kept as reference)
+  442 module imports · 0 deprecation marks
+  cache: 0 of 40 files reused
+cookiecutter/cookiecutter-django: 17 candidates in 40 files · roles {'call': 14, 'import': 2, 'reference': 1} · junk {'none': 17} · 0 in except
+  5 parse failures (holding 0 tracked names, excluded) · 1 keyword-argument/parameter names (kept as reference)
+  84 module imports · 0 deprecation marks
+  cache: 0 of 435 files reused
+django-cms/django-cms: 422 candidates in 435 files · roles {'alias': 6, 'attribute': 25, 'call': 125, 'definition': 77, 'import': 35, 'reference': 154} · junk {'none': 261, 'test': 161} · 5 in except
+  0 parse failures (holding 0 tracked names, excluded) · 53 keyword-argument/parameter names (kept as reference)
+  3178 module imports · 3 deprecation marks
+  cache: 0 of 237 files reused
+django-extensions/django-extensions: 22 candidates in 237 files · roles {'attribute': 1, 'call': 7, 'definition': 3, 'import': 3, 'reference': 8} · junk {'none': 14, 'test': 8} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 4 keyword-argument/parameter names (kept as reference)
+  1395 module imports · 2 deprecation marks
+  cache: 0 of 86 files reused
+django-guardian/django-guardian: 72 candidates in 86 files · roles {'call': 19, 'definition': 21, 'import': 6, 'reference': 26} · junk {'none': 30, 'test': 42} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 1 keyword-argument/parameter names (kept as reference)
+  563 module imports · 2 deprecation marks
+  cache: 0 of 135 files reused
+django-haystack/django-haystack: 37 candidates in 135 files · roles {'call': 9, 'definition': 7, 'import': 4, 'reference': 17} · junk {'none': 23, 'test': 14} · 4 in except
+  0 parse failures (holding 0 tracked names, excluded) · 3 keyword-argument/parameter names (kept as reference)
+  1049 module imports · 2 deprecation marks
+  cache: 0 of 46 files reused
+django-import-export/django-import-export: 13 candidates in 46 files · roles {'attribute': 3, 'call': 5, 'definition': 1, 'import': 2, 'reference': 2} · junk {'none': 7, 'test': 6} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 1 keyword-argument/parameter names (kept as reference)
+  276 module imports · 0 deprecation marks
+  cache: 0 of 747 files reused
+django-oscar/django-oscar: 511 candidates in 747 files · roles {'alias': 4, 'attribute': 44, 'call': 219, 'definition': 75, 'import': 28, 'reference': 141} · junk {'none': 334, 'test': 177} · 5 in except
+  0 parse failures (holding 0 tracked names, excluded) · 37 keyword-argument/parameter names (kept as reference)
+  3147 module imports · 7 deprecation marks
+  cache: 0 of 182 files reused
+django-tastypie/django-tastypie: 65 candidates in 182 files · roles {'attribute': 18, 'call': 17, 'definition': 3, 'import': 14, 'reference': 13} · junk {'none': 12, 'test': 53} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 11 keyword-argument/parameter names (kept as reference)
+  1018 module imports · 0 deprecation marks
+  cache: 0 of 88 files reused
+django-tenants/django-tenants: 16 candidates in 88 files · roles {'call': 4, 'definition': 5, 'import': 3, 'reference': 4} · junk {'example': 6, 'none': 10} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 1 keyword-argument/parameter names (kept as reference)
+  327 module imports · 3 deprecation marks
+  cache: 0 of 41 files reused
+django/channels: 21 candidates in 41 files · roles {'call': 16, 'import': 2, 'reference': 3} · junk {'none': 3, 'test': 18} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 2 keyword-argument/parameter names (kept as reference)
+  242 module imports · 0 deprecation marks
+  cache: 0 of 2371 files reused
+django/django: 294 candidates in 2371 files · roles {'alias': 1, 'call': 152, 'definition': 5, 'import': 136} · junk {'none': 211, 'test': 83} · 2 in except
+  1 parse failures (holding 0 tracked names, excluded) · 0 keyword-argument/parameter names (kept as reference)
+  13021 module imports · 19 deprecation marks
+  answer key: 265 edit lines in .py (key 265) · 2 outside .py (key 2)
+  cache: 0 of 155 files reused
+encode/django-rest-framework: 468 candidates in 155 files · roles {'alias': 3, 'attribute': 28, 'call': 156, 'definition': 49, 'import': 26, 'reference': 206} · junk {'none': 117, 'test': 351} · 3 in except
+  0 parse failures (holding 0 tracked names, excluded) · 133 keyword-argument/parameter names (kept as reference)
+  1445 module imports · 13 deprecation marks
+  cache: 0 of 120 files reused
+graphql-python/graphene-django: 14 candidates in 120 files · roles {'call': 8, 'import': 5, 'reference': 1} · junk {'example': 6, 'none': 1, 'test': 7} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 1 keyword-argument/parameter names (kept as reference)
+  514 module imports · 0 deprecation marks
+  cache: 0 of 32 files reused
+iMerica/dj-rest-auth: 61 candidates in 32 files · roles {'call': 48, 'definition': 3, 'import': 3, 'reference': 7} · junk {'none': 22, 'test': 39} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 2 keyword-argument/parameter names (kept as reference)
+  292 module imports · 0 deprecation marks
+  cache: 0 of 62 files reused
+jazzband/django-debug-toolbar: 64 candidates in 62 files · roles {'call': 25, 'definition': 9, 'import': 5, 'reference': 25} · junk {'none': 19, 'test': 45} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 0 keyword-argument/parameter names (kept as reference)
+  356 module imports · 0 deprecation marks
+  cache: 0 of 101 files reused
+jazzband/django-silk: 55 candidates in 101 files · roles {'alias': 2, 'attribute': 2, 'call': 24, 'definition': 7, 'import': 4, 'reference': 16} · junk {'none': 40, 'test': 15} · 1 in except
+  1 parse failures (holding 0 tracked names, excluded) · 4 keyword-argument/parameter names (kept as reference)
+  526 module imports · 0 deprecation marks
+  cache: 0 of 65 files reused
+jazzband/django-two-factor-auth: 94 candidates in 65 files · roles {'alias': 2, 'call': 31, 'definition': 17, 'import': 6, 'reference': 38} · junk {'none': 34, 'test': 60} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 8 keyword-argument/parameter names (kept as reference)
+  414 module imports · 0 deprecation marks
+  cache: 0 of 558 files reused
+pennersr/django-allauth: 160 candidates in 558 files · roles {'attribute': 11, 'call': 39, 'definition': 40, 'import': 12, 'reference': 58} · junk {'none': 160} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 12 keyword-argument/parameter names (kept as reference)
+  2093 module imports · 0 deprecation marks
+  cache: 0 of 810 files reused
+wagtail/wagtail: 667 candidates in 810 files · roles {'alias': 6, 'attribute': 122, 'call': 197, 'definition': 91, 'import': 45, 'reference': 206} · junk {'none': 487, 'test': 180} · 7 in except
+  2 parse failures (holding 0 tracked names, excluded) · 54 keyword-argument/parameter names (kept as reference)
+  4733 module imports · 1 deprecation marks
+  cache: 0 of 207 files reused
+yourlabs/django-autocomplete-light: 107 candidates in 207 files · roles {'alias': 2, 'attribute': 6, 'call': 46, 'definition': 2, 'import': 21, 'reference': 30} · junk {'none': 90, 'test': 17} · 0 in except
+  0 parse failures (holding 0 tracked names, excluded) · 28 keyword-argument/parameter names (kept as reference)
+  612 module imports · 0 deprecation marks
+3196 candidate · 9 parse_failure · 35727 module_import · 52 deprecation -> ~/meridian-block3/out/bb6b5f4e32a4bee7
+exit=0 (8s)
+=== resolve  958s  2026-11-14T06:26:33Z
+carltongibson/django-filter (on the path: django__django)
+  16 candidates · ast_resolved 7 · ast_unresolved 4 · dropped 5 · via {'direct': 7, 'none': 9}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  5 call edges (5 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+cookiecutter/cookiecutter-django (on the path: django__django)
+  17 candidates · ast_resolved 16 · ast_unresolved 0 · dropped 1 · via {'direct': 16, 'none': 1}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  14 call edges (14 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django-cms/django-cms (on the path: django__django)
+  422 candidates · ast_resolved 160 · ast_unresolved 44 · dropped 218 · via {'direct': 160, 'none': 262}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  126 call edges (125 from confirmed calls, 1 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django-extensions/django-extensions (on the path: django__django)
+  22 candidates · ast_resolved 10 · ast_unresolved 4 · dropped 8 · via {'direct': 10, 'none': 12}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  7 call edges (7 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django-guardian/django-guardian (on the path: django__django)
+  72 candidates · ast_resolved 25 · ast_unresolved 1 · dropped 46 · via {'direct': 7, 'none': 47, 'reexport': 18}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  19 call edges (19 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django-haystack/django-haystack (on the path: django__django)
+  37 candidates · ast_resolved 13 · ast_unresolved 1 · dropped 23 · via {'direct': 13, 'none': 24}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  9 call edges (9 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django-import-export/django-import-export (on the path: django__django)
+  13 candidates · ast_resolved 7 · ast_unresolved 1 · dropped 5 · via {'direct': 7, 'none': 6}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  5 call edges (5 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django-oscar/django-oscar (on the path: django__django)
+  511 candidates · ast_resolved 247 · ast_unresolved 16 · dropped 248 · via {'direct': 247, 'none': 264}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  219 call edges (219 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django-tastypie/django-tastypie (on the path: django__django)
+  65 candidates · ast_resolved 31 · ast_unresolved 22 · dropped 12 · via {'direct': 31, 'none': 34}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  18 call edges (17 from confirmed calls, 1 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django-tenants/django-tenants (on the path: django__django)
+  16 candidates · ast_resolved 6 · ast_unresolved 0 · dropped 10 · via {'direct': 6, 'none': 10}
+  1 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 1 · via {'import_alias': 1}
+  4 call edges (4 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django/channels (on the path: django__django)
+  21 candidates · ast_resolved 18 · ast_unresolved 1 · dropped 2 · via {'direct': 18, 'none': 3}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  16 call edges (16 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+django/django
+  294 candidates · ast_resolved 294 · ast_unresolved 0 · dropped 0 · via {'direct': 294}
+  542 alias calls · ast_resolved 542 · ast_unresolved 0 · dropped 0 · via {'assign_alias': 9, 'import_alias': 533}
+  1186 call edges (694 from confirmed calls, 492 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+encode/django-rest-framework (on the path: django__django)
+  468 candidates · ast_resolved 182 · ast_unresolved 115 · dropped 171 · via {'direct': 182, 'none': 286}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  156 call edges (156 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+graphql-python/graphene-django (on the path: django__django)
+  14 candidates · ast_resolved 13 · ast_unresolved 1 · dropped 0 · via {'direct': 13, 'none': 1}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  8 call edges (8 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+iMerica/dj-rest-auth (on the path: django__django)
+  61 candidates · ast_resolved 51 · ast_unresolved 2 · dropped 8 · via {'direct': 51, 'none': 10}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  48 call edges (48 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+jazzband/django-debug-toolbar (on the path: django__django)
+  64 candidates · ast_resolved 28 · ast_unresolved 1 · dropped 35 · via {'direct': 28, 'none': 36}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  24 call edges (23 from confirmed calls, 1 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+jazzband/django-silk (on the path: django__django)
+  55 candidates · ast_resolved 28 · ast_unresolved 3 · dropped 24 · via {'direct': 28, 'none': 27}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  24 call edges (24 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+jazzband/django-two-factor-auth (on the path: django__django)
+  94 candidates · ast_resolved 37 · ast_unresolved 5 · dropped 52 · via {'direct': 37, 'none': 57}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  31 call edges (31 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+pennersr/django-allauth (on the path: django__django)
+  160 candidates · ast_resolved 50 · ast_unresolved 5 · dropped 105 · via {'direct': 50, 'none': 110}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  124 call edges (38 from confirmed calls, 86 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+wagtail/wagtail (on the path: django__django)
+  667 candidates · ast_resolved 240 · ast_unresolved 105 · dropped 322 · via {'direct': 240, 'none': 427}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  199 call edges (196 from confirmed calls, 3 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+yourlabs/django-autocomplete-light (on the path: django__django)
+  107 candidates · ast_resolved 67 · ast_unresolved 26 · dropped 14 · via {'direct': 67, 'none': 40}
+  0 alias calls · ast_resolved 0 · ast_unresolved 0 · dropped 0 · via {}
+  46 call edges (46 from confirmed calls, 0 from their callers) · 0 Jedi failures while finding callers · 0 receiver_from
+3739 resolution rows, 2288 call edges -> ~/meridian-block3/out/bb6b5f4e32a4bee7 (jedi==0.19.2)
+exit=0 (154s)
+=== owners  1112s  2026-11-14T06:29:07Z
+apache/spark                                   3,506 author emails ->  3,050 people
+carltongibson/django-filter                      166 author emails ->    155 people
+cookiecutter/cookiecutter-django                 221 author emails ->    201 people
+django-cms/django-cms                            557 author emails ->    496 people
+django-extensions/django-extensions              526 author emails ->    492 people
+django-guardian/django-guardian                  140 author emails ->    130 people
+django-haystack/django-haystack                  196 author emails ->    182 people
+django-import-export/django-import-export        163 author emails ->    153 people
+django-oscar/django-oscar                        334 author emails ->    293 people
+django-tastypie/django-tastypie                  206 author emails ->    197 people
+django-tenants/django-tenants                     22 author emails ->     21 people
+django/channels                                  213 author emails ->    206 people
+django/django                                  1,601 author emails ->  1,473 people
+encode/django-rest-framework                   1,154 author emails ->  1,076 people
+graphql-python/graphene-django                    88 author emails ->     85 people
+iMerica/dj-rest-auth                             157 author emails ->    144 people
+jazzband/django-debug-toolbar                    229 author emails ->    211 people
+jazzband/django-silk                             106 author emails ->    101 people
+jazzband/django-two-factor-auth                   59 author emails ->     57 people
+pennersr/django-allauth                          487 author emails ->    470 people
+wagtail/wagtail                                  553 author emails ->    472 people
+yourlabs/django-autocomplete-light               193 author emails ->    183 people
+all repos, with co-authors                     9,845 emails        ->  8,442 people · 64 generic and 3 bot emails, never merged on name or local part · 18 emails joined by .mailmap · 104 local parts shared by 3+ names, never merged on
+spark                                          3,050 people -> 263 with a team (22 teams), 2,787 unassigned (no keyed commit with a component since 2026-04-04)
+                                              biggest teams: SQL 141, Spark Core 26, PySpark 21, Structured Streaming 16, Connect 13, Build 9
+apache/spark                                  27,495 files ·  5,708 touched 2026-04-04..2026-10-01 · 21,810 unowned · basis author
+                                              next author after 2026-04-04, on owned source files: team owner 37.3% vs last toucher's team 35.3% (N=988) · person owner 17.2% vs last toucher 16.4% (N=932)
+carltongibson/django-filter                      106 files ·     37 touched 2020-01-22..2020-07-20 · 0 unowned · basis repo
+cookiecutter/cookiecutter-django                 189 files ·    108 touched 2017-11-14..2018-05-13 · 0 unowned · basis repo
+django-cms/django-cms                          1,571 files ·    165 touched 2021-04-28..2021-10-25 · 0 unowned · basis repo
+django-extensions/django-extensions              355 files ·     93 touched 2019-11-25..2020-05-23 · 0 unowned · basis repo
+django-guardian/django-guardian                  187 files ·     38 touched 2019-03-12..2019-09-08 · 0 unowned · basis repo
+django-haystack/django-haystack                  223 files ·      4 touched 2020-10-13..2021-04-11 · 0 unowned · basis repo
+django-import-export/django-import-export        141 files ·     26 touched 2019-11-05..2020-05-03 · 0 unowned · basis repo
+django-oscar/django-oscar                      1,479 files ·    267 touched 2020-02-23..2020-08-21 · 0 unowned · basis repo
+django-tastypie/django-tastypie                  271 files ·     12 touched 2020-12-05..2021-06-03 · 0 unowned · basis repo
+django-tenants/django-tenants                    112 files ·     14 touched 2017-05-02..2017-10-29 · 0 unowned · basis repo
+django/channels                                  110 files ·     16 touched 2020-04-08..2020-10-05 · 0 unowned · basis repo
+django/django                                  5,686 files ·  2,036 touched 2016-08-07..2017-02-03 · 0 unowned · basis path
+encode/django-rest-framework                     577 files ·     92 touched 2020-03-11..2020-09-07 · 0 unowned · basis repo
+graphql-python/graphene-django                   153 files ·     74 touched 2018-03-13..2018-09-09 · 0 unowned · basis repo
+iMerica/dj-rest-auth                             126 files ·     21 touched 2021-06-23..2021-12-20 · 0 unowned · basis repo
+jazzband/django-debug-toolbar                    164 files ·     73 touched 2019-11-25..2020-05-23 · 0 unowned · basis repo
+jazzband/django-silk                             243 files ·     28 touched 2020-06-08..2020-12-05 · 0 unowned · basis repo
+jazzband/django-two-factor-auth                  215 files ·    117 touched 2020-01-11..2020-07-09 · 0 unowned · basis repo
+pennersr/django-allauth                          705 files ·    235 touched 2017-02-23..2017-08-22 · 0 unowned · basis repo
+wagtail/wagtail                                3,354 files ·  1,864 touched 2020-01-05..2020-07-03 · 0 unowned · basis repo
+yourlabs/django-autocomplete-light               408 files ·     97 touched 2021-06-08..2021-12-05 · 0 unowned · basis repo
+exit=0 (9s)
+=== join  1121s  2026-11-14T06:29:16Z
+carltongibson/django-filter                        7 call sites
+cookiecutter/cookiecutter-django                  16 call sites
+django-cms/django-cms                            160 call sites
+django-extensions/django-extensions               10 call sites
+django-guardian/django-guardian                   25 call sites
+django-haystack/django-haystack                   13 call sites
+django-import-export/django-import-export          7 call sites
+django-oscar/django-oscar                        247 call sites
+django-tastypie/django-tastypie                   31 call sites
+django-tenants/django-tenants                      6 call sites
+django/channels                                   18 call sites
+django/django                                    289 call sites
+encode/django-rest-framework                     182 call sites
+graphql-python/graphene-django                    13 call sites
+iMerica/dj-rest-auth                              51 call sites
+jazzband/django-debug-toolbar                     29 call sites
+jazzband/django-silk                              28 call sites
+jazzband/django-two-factor-auth                   37 call sites
+pennersr/django-allauth                           50 call sites
+wagtail/wagtail                                  240 call sites
+yourlabs/django-autocomplete-light                67 call sites
+call_site                                     1,526 present · versions written this run: 1,526 new · first run
+ticket_map                                    246,752 rows · 184,713 commit_key, 37,817 none, 1,026 path, 23,196 stack_trace
+  call_sites_resolved             1,525 / 1,526    present call sites the resolver bound to the tracked symbol
+  call_sites_unresolved               1 / 1,526    present call sites Jedi had no answer for: kept, not dropped
+  call_sites_owned                1,526 / 1,526    present call sites whose file has an owner team
+  candidates_dropped                 30 / 3,196    edit-role candidates the resolver bound elsewhere (look-alikes): not call sites
+  candidates_not_edit_role        1,640 / 3,196    definitions, attributes, references: kept in candidate, not call sites
+  parse_failures                      9 / 6,557    files excluded because tree-sitter found an error in them
+  files_owned                    22,060 / 43,870   files at the pinned SHAs with an owner team
+  tickets_mapped                 36,198 / 74,015   tickets with at least one code target
+  commit_paths_gone              58,191 / 256,185  files a keyed commit touched that no longer exist at the pinned SHA: not mapped
+  stack_frames_ambiguous            137 / 83,620   stack frames naming a repo file that name more than one: not mapped
+  call_sites_matched                  0 / 0        first run: nothing to match
+  call_sites_removed                  0 / 0        last run's present sites gone
+  tickets_mapped_gitlab               0 / 14,524   GitLab is Ruby: no code in the snapshot
+  tickets_mapped_jira            36,198 / 59,491   jira tickets with a code target
+1,526 call_site · 246,752 ticket_map · 14 coverage -> ~/meridian-block3/out/bb6b5f4e32a4bee7
+exit=0 (38s)
+=== graph  1159s  2026-11-14T06:29:54Z
+blocked_by                                    0 rows · 0 present sites with a receiver_from · 0 same or unowned owner, left out
+  carltongibson/django-filter url                    7 sites      5 invocations     2 files  by depth {"1": 5, "2": 0, "3": 0}
+  cookiecutter/cookiecutter-django url              16 sites     14 invocations     2 files  by depth {"1": 14, "2": 0, "3": 0}
+  django-cms/django-cms url                        160 sites    126 invocations    35 files  by depth {"1": 125, "2": 1, "3": 0}
+  django-extensions/django-extensions url           10 sites      7 invocations     3 files  by depth {"1": 7, "2": 0, "3": 0}
+  django-guardian/django-guardian url               25 sites     19 invocations     5 files  by depth {"1": 19, "2": 0, "3": 0}
+  django-haystack/django-haystack url               13 sites      9 invocations     4 files  by depth {"1": 9, "2": 0, "3": 0}
+  django-import-export/django-import-export url      7 sites      5 invocations     2 files  by depth {"1": 5, "2": 0, "3": 0}
+  django-oscar/django-oscar url                    247 sites    219 invocations    28 files  by depth {"1": 219, "2": 0, "3": 0}
+  django-tastypie/django-tastypie url               31 sites     18 invocations    14 files  by depth {"1": 17, "2": 1, "3": 0}
+  django-tenants/django-tenants url                  6 sites      4 invocations     2 files  by depth {"1": 4, "2": 0, "3": 0}
+  django/channels url                               18 sites     16 invocations     2 files  by depth {"1": 16, "2": 0, "3": 0}
+  django/django ugettext                            93 sites    585 invocations    78 files  by depth {"1": 209, "2": 241, "3": 135}
+  django/django ugettext_lazy                      117 sites    499 invocations   101 files  by depth {"1": 391, "2": 72, "3": 36}
+  django/django ugettext_noop                        1 sites     29 invocations     1 files  by depth {"1": 29, "2": 0, "3": 0}
+  django/django ungettext                           52 sites     90 invocations    14 files  by depth {"1": 44, "2": 44, "3": 2}
+  django/django ungettext_lazy                      26 sites     21 invocations     5 files  by depth {"1": 21, "2": 0, "3": 0}
+  encode/django-rest-framework url                 182 sites    156 invocations    26 files  by depth {"1": 156, "2": 0, "3": 0}
+  graphql-python/graphene-django url                13 sites      8 invocations     5 files  by depth {"1": 8, "2": 0, "3": 0}
+  iMerica/dj-rest-auth url                          51 sites     48 invocations     3 files  by depth {"1": 48, "2": 0, "3": 0}
+  jazzband/django-debug-toolbar url                 29 sites     24 invocations     5 files  by depth {"1": 23, "2": 1, "3": 0}
+  jazzband/django-silk url                          28 sites     24 invocations     4 files  by depth {"1": 24, "2": 0, "3": 0}
+  jazzband/django-two-factor-auth url               37 sites     31 invocations     6 files  by depth {"1": 31, "2": 0, "3": 0}
+  pennersr/django-allauth url                       50 sites    124 invocations    97 files  by depth {"1": 38, "2": 86, "3": 0}
+  wagtail/wagtail url                              240 sites    199 invocations    45 files  by depth {"1": 196, "2": 3, "3": 0}
+  yourlabs/django-autocomplete-light url            67 sites     46 invocations    21 files  by depth {"1": 46, "2": 0, "3": 0}
+chain                                         43 rows · 43 untracked · 0 in a cycle
+0 blocked_by · 25 blast_radius · 43 chain -> ~/meridian-block3/out/bb6b5f4e32a4bee7
+exit=0 (1s)
+=== validate  1160s  2026-11-14T06:29:55Z
+  warn  dates     ticket.created_at                        289 invalid dates (before 2000-01-01 or after snapshot_at), from 0010-04-03T23:04:00Z to 0012-10-19T10:49:00Z: excluded from date slices, e.g. SPARK-515, SPARK-514, SPARK-513, SPARK-512, SPARK-511
+  warn  outliers  call_site.bug_fixes                      24.0% of values outside 0..0 (IQR fences, k = 3.0)
+1,790,126 rows in 30 tables · 0 errors · 2 warnings -> ~/meridian-block3/out/bb6b5f4e32a4bee7/stats.json, ~/meridian-block3/out/bb6b5f4e32a4bee7/anomalies.json
+WARNING: ALERT meridian bb6b5f4e32a4bee7: 0 errors, 2 warnings in the data
+warn dates ticket.created_at: 289 invalid dates (before 2000-01-01 or after snapshot_at), from 0010-04-03T23:04:00Z to 0012-10-19T10:49:00Z: excluded from date slices, e.g. SPARK-515, SPARK-514, SPARK-513, SPARK-512, SPARK-511
+warn outliers call_site.bug_fixes: 24.0% of values outside 0..0 (IQR fences, k = 3.0)
+exit=0 (38s)
+=== context  1198s  2026-11-14T06:30:33Z
+68 consumer tasks, 36 cut: files 127/367, sites 495/1526, facts characters 22,745/41,821; bug fixes covered 0.964 (a random order with the same files: 0.727); wrote <repo>/Model-Pipeline/reports/context_cut.json
+exit=0 (5s)
+=== byte check (md5 of ~/meridian-block3/out/bb6b5f4e32a4bee7/...; expected: packets/utkarsh-data/gaps.md)
+MATCH    file_bug_fixes.jsonl a98e5d40d71d09d6642a211e606c91da
+MATCH    call_site.jsonl bf428a2fa11a19c9f0ad453574d17f27
+MATCH    bug_inducing.jsonl 682abebd1cea5ef95b74009d82c91b9d
+MATCH    commit_file.jsonl 8a6dc499246b3671fa97127a7fda9c9a
+=== done  1204s  2026-11-14T06:30:39Z
