@@ -14,7 +14,7 @@ prior_fix_days = 365               # prior_bug_fixes looks back this far
 train = [2015, 2022]
 val = 2023
 test = 2024
-test_allowed = true                # Aniket flips it on Nov 12, once
+test_allowed = false               # Aniket flips it on Nov 12, once
 
 [seed]
 value = 1
