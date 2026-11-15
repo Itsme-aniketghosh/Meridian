@@ -21,7 +21,8 @@ done condition. Workarounds are labelled hypotheses.
 
 - Internally the "super engineer". Never on screen
 - Legacy radar: unfiled legacy code (deprecated symbols with callers, old
-  high-fan-in files). Accept/reject and "what unblocked this?" train the auditor (04 §9)
+  high-fan-in files). Accept/reject and "what unblocked this?" train the auditor (04 §9).
+  The fan-in and twin signals were cut in phase 2: they need a whole-repo call graph
 
 ## API owner
 
@@ -86,7 +87,15 @@ Meridian · 3 notes · nothing blocks this merge
 5. LLM, gate, diffs
 6. Auditor learning
 
+Status (Nov 15): the push check runs P1–P9 and replayed the 21 migration commits: 7 P9
+alerts on 19 checked pushes, median 0 per push. LLM, gate and diffs are built: Django
+95.1%, packages 73.2% against a 90% bar. Auditor learning is built, with 0 live matches. On real data no ticket
+maps to a call site, so the block and chain tables are empty; the `acme/shop` fixture runs
+them end to end.
+
 ## Known gaps
+
+Phase 2's open gaps and what happens to each: [GAPS.md](../Model-Pipeline/GAPS.md), "After phase 2".
 
 | Gap | Effect | Decided by |
 |---|---|---|
@@ -94,4 +103,8 @@ Meridian · 3 notes · nothing blocks this merge
 | No chains across repos | Chains, P4 on fixtures only, said on screen | None of the 4 sources has them |
 | Resolver misses aliased `_()` | Closed: the one-hop rule finds 542 of 542 | Week-1: both got 533 of 542 |
 | Weak ticket → code mapping | P3, P5, chains go quiet (Spark: 5% linked) | Mapping precision |
-| Few Elo matches | Learning stalls | Week-1: matches per month |
+| Few Elo matches | 0 live matches: auditor policies and walk-v1 unscored, promotion needs 30 | Live use, phase 3 |
+| Package diffs under the bar | 73.2% vs 90%; 230 of 244 misses are owners choosing line by line | Learning from owners' edits, phase 3 |
+| Walker texts fall back | 19 of 20 name a team their facts don't hold, so they ship as templates | Team names into the walk's facts (gap 27) |
+| Gate misses two forms | `6921a` isn't checked; 14 right line lists without their path are rejected | Gate fix with planted-error tests (gaps 26, 23) |
+| No policy writer | Cut: the auditor's only challenger is the hand-written v1 | Phase 3, after live matches (gap 22) |

@@ -10,9 +10,9 @@ intake (Slack, support, GitHub issues).
 | Dataset | Used for |
 |---|---|
 | [Django](https://github.com/django/django) | Parser recall, burndown replay, diffs, push replay |
-| [Spark](https://github.com/apache/spark) + [Apache Jira](https://issues.apache.org/jira) | Ticket join, SZZ, fragility, ticket tools, push replay |
+| [Spark](https://github.com/apache/spark) + [Apache Jira](https://issues.apache.org/jira) | Ticket join, SZZ, fragility, ticket tools, push replay, the defect-risk model (41,163 commits) |
 | Django packages, `url()` → `path()` | Cross-repo scanning (19 of 20 migrations found). Not blocking: they don't call each other |
-| [Defects4J](https://github.com/rjust/defects4j) + Fonte | SZZ answer key: 130 bug-inducing commits, mapped to v3 |
+| [Defects4J](https://github.com/rjust/defects4j) + Fonte | SZZ answer key: 130 bug-inducing commits, mapped to v3. SZZ picks the right one 44% of the time |
 | [GitLab](https://gitlab.com/gitlab-org/gitlab) issues | Cross-team blocks, stalls (one repo, ~100 teams) |
 | GitHub issues | Vague and duplicate labels |
 
@@ -85,5 +85,5 @@ push_alert   push_sha base_run_id check(P1–P9) target evidence[] outcome
 ## Tools
 
 [tree-sitter](https://tree-sitter.github.io/tree-sitter/) ·
-[pyright](https://github.com/microsoft/pyright) or [Jedi](https://github.com/davidhalter/jedi)
-(week-1 pick) · [PyDriller](https://github.com/ishepard/pydriller) (SZZ built on top)
+[Jedi](https://github.com/davidhalter/jedi) (picked over [pyright](https://github.com/microsoft/pyright);
+with the one-hop rule it finds 542 of 542 alias calls) · [PyDriller](https://github.com/ishepard/pydriller) (SZZ built on top)

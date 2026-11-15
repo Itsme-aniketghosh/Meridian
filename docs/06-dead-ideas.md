@@ -29,8 +29,12 @@
 | "Super engineer" on screen | Staff engineers won't trust it | Never |
 | Argo on Kubernetes | Always-on for a 20-min job | Continuous pipeline |
 | Blocking merges on push | One false block, uninstalled | Precision ≥ 0.95 for 3 months |
-| LLM on every push | Costs per push | Budget exists |
+| LLM on every push | Costs per push, and the answer changes run to run | Budget exists, for text only. Never for P9: it would decide a fact |
 | Full parse per push | Too slow | Never |
 | Live Jira per push | Not deterministic | Never |
 | Synthetic histories for defect risk | Learns the generator | Never |
+| P9 alerting when the model and lines × files both flag | 0.619 on 42 val alerts, bar 0.80 | ≥ 0.80 on 30 alerts |
+| LLM auditing defect labels | Agreed with a blind hand check on 10 of 20 | ≥ 15 of 20 |
+| Per-group thresholds for the size bias | Equal recall by size costs 0.121 precision, recall 0.52 → 0.34 | Passes the mitigation rule |
+| Loosening the fact gate for right text it rejects | Lets a swapped team name through. Fix the facts instead | Never |
 | Applying changes, PRs, filing tickets | Not earned | Suggestions applied unchanged |

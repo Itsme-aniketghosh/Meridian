@@ -1,6 +1,6 @@
 # Validation, tracking, the registry and the auditor
 
-This section covers the guideline rows owned here (PLAN §12): validation on held-out data (§2.3, §8.4), experiment tracking (§4, with the training owner), the charts that compare the models (§4), the registry push to GCP (§2.6, §8.7), the automatic push after the gate (§7.4, with the CI owner), and rollback (§7.6). It ends with the auditor, the part of the product that learns which stall reasons to show first. Every number carries its N and its source. The choices behind them, with the rule each was picked by, are in `packets/rochan-tracking/decisions.md`; the bars they're held to are in `pass-bars.md`.
+This section covers the guideline rows owned here (PLAN §12): validation on held-out data (§2.3, §8.4), experiment tracking (§4, with the training owner), the charts that compare the models (§4), the registry push to GCP (§2.6, §8.7), the automatic push after the gate (§7.4, with the CI owner), and rollback (§7.6). It ends with the auditor, the part of the product that learns which stall reasons to show first. Every number carries its N and its source. The choices behind them, each with the rule that picked it, are in `packets/rochan-tracking/decisions.md`; the bars they're held to are in `pass-bars.md`.
 
 ## 1. Validation on held-out data (§2.3, §8.4)
 
@@ -27,7 +27,7 @@ This section covers the guideline rows owned here (PLAN §12): validation on hel
 | Alerts at precision 0.80 (≥ 30 alerts) | none: no cutoff reaches it | |
 
 **2024, once (Nov 14).**
-- **How it was run:** step by step from `RUN-2024.md`, by Utkarsh with Aniket watching.
+- **How it was run:** step by step from `RUN-2024.md`, by the data owner with the lead watching.
 - **Where it ran from:** commit `df12728` (only `model.toml` differs from the freeze tag), at 01:57 UTC.
 - **Where it's recorded:** MLflow run `4d107a39…` in `meridian-defect-risk`. Full log in `reports/2024/RUN-LOG.md`, fingerprints in `golden/2024.json`.
 - **The first check passed:** the champion first reproduced its recorded val PR-AUC, 0.4067.
@@ -46,7 +46,7 @@ N = 3,762 commits, 283 bug-inducing (7.5%). Source `reports/2024/metrics.json`:
 **Verdict, by PLAN §4's bar** (the model ships only if its 2024 PR-AUC beats lines × files with the paired interval above 0): **the interval is above 0, so the model ships.**
 - The other two baselines fall below lines × files on 2024: churn 0.196, bug-fix count 0.166, both with paired intervals below 0.
 - Every PR-AUC is lower than on 2023 because only 7.5% of 2024's commits are labelled bug-inducing, against 11.8% in 2023. Recent labels are incomplete: a bug introduced in 2024 may not have been found and fixed by the time the data was pulled.
-- The model's lead over the bar holds on the year it never saw.
+- The model stays ahead of the bar on the year it never saw.
 
 **How 2024 stayed unseen:**
 - `evaluate.py --split test` refuses unless `model.toml [split] test_allowed` is true and the code is committed (fault 14 checks it).
@@ -78,7 +78,7 @@ On `val` (`reports/tuned_val.json`; N = 4,113, seed 1, 1,000 resamples), every t
 ## 3. Experiment tracking (§4)
 
 - **One way to start a run.** Every training, evaluation, bias, decision and agent run starts through `model/tracking.py`. It stamps each run with the same tags: `owner`, `block_run_id`, `git_sha`, `git_dirty`, `config_sha256`, `meridian_config_sha256`, `features_md5` on model runs, and `decision` on decision tests.
-- **Every number traces back.** Any number in this report traces to the code (`git_sha`, with `git_dirty` false), the data block and the feature table it came from.
+- **Every number in this report traces back** to the code (`git_sha`, with `git_dirty` false), the data block and the feature table it came from.
 - **Three experiments:** `meridian-defect-risk` (the model), `meridian-agents` (LLM calls) and `meridian-auditor` (the auditor's decisions).
 - **The store:** local SQLite (decision 8). MLflow 3.18 refuses the file store unless every machine sets an opt-out, and the model registry needs a database.
 - **LLM calls** are logged in batches, one run per agent batch, about 120 times faster than a run per call (decision T1).
@@ -146,7 +146,7 @@ A policy 200 Elo better is promoted in 100% of runs, at a median of 69 matches i
 
 The cost: a policy only 80 Elo better is promoted in 49.5% of 3,000-match runs, and one 60 better in 21.9%. `[auditor] promote_gain = 100` trades speed for those.
 
-## Limits, stated plainly
+## Limits
 
 - **No alert threshold.** The model can't alert at precision 0.80 on `val`, so the push check (P9) stays on lines × files. The model's value shows as a ranking: PR-AUC and recall at 20% of lines.
 - **The ceiling is the data.** The labels come from SZZ, which picks the right bug-inducing commit 44% of the time on the 130 checked labels, and recent labels are incomplete. The model and data sections give these numbers.

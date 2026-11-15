@@ -1,19 +1,19 @@
-# Data, labels and the product's data side (Utkarsh)
+# Data, labels and the product's data side
 
-My section for `Model-Pipeline/report/REPORT.md`. Every number comes from a script, test or file named next to it, or from `decisions.md`, `run2.md`, `diffs.md` and `gaps.md` in this folder.
+This section feeds `Model-Pipeline/report/REPORT.md`. Every number comes from a script, test or file named next to it, or from `decisions.md`, `run2.md`, `diffs.md` and `gaps.md` in this folder.
 
 **Which block each number comes from.** All three are builds of the same snapshot (2026-10-01T01:23:03Z) with the same pinned commits and ticket pulls (GAPS.md, "Which block").
 - **`c5118b019d642a9b`, the team run:** the feature table, the labels, decisions 1–11 and 13–14, and the diff drafter's results.
-- **`bb6b5f4e32a4bee7`:** the team config with gap 24's code. It covers gap 24's coverage numbers and the product runs (Aniket's section).
+- **`bb6b5f4e32a4bee7`:** the team config with gap 24's code. Gap 24's coverage numbers and the product runs (the lead's section) come from it.
 - **`5bc7deda64fcfa0a`, run 2:** its numbers in §6. Re-made on Nov 14 as `7b745b4430bbac75` with the same results.
 
 ## 1. The block
 
-Everything starts from the team run `c5118b019d642a9b` (status `complete`, 22 repos). It was rebuilt from the team zip with `reproduce.py` Option 2. All 24 outputs match their golden md5s (`MERIDIAN_RUN_ID=c5118b019d642a9b python -m unittest tests.test_golden`), and `dvc status` reports the data and pipelines up to date. The block holds real names, so it never goes in git. The feature table holds none, so it does.
+Everything starts from the team run `c5118b019d642a9b` (status `complete`, 22 repos), rebuilt from the team zip with `reproduce.py` Option 2. All 24 outputs match their golden md5s (`MERIDIAN_RUN_ID=c5118b019d642a9b python -m unittest tests.test_golden`), and `dvc status` reports the data and pipelines up to date. The block holds real names, so it never goes in git. The feature table holds none, so it does.
 
 ## 2. The feature table
 
-`python -m model.data --config model.toml` reads `published/latest.json`, checks that it names the same run as `model.toml`, and writes `Model-Pipeline/data/features.parquet` and `features.schema.json`. That's guideline §2.1 and §8.2: data loaded from the pipeline, versioned. Every model run is tagged with `block_run_id` and `features_md5`.
+`python -m model.data --config model.toml` reads `published/latest.json`, checks that it names the same run as `model.toml`, and writes `Model-Pipeline/data/features.parquet` and `features.schema.json`. That covers guideline §2.1 and §8.2: data loaded from the pipeline, versioned. Every model run is tagged with `block_run_id` and `features_md5`.
 
 - **Rows:** 41,163 Spark first-parent commits authored from 2015 on, none of them merges, sorted by `authored_at`, then `sha`.
 - **Columns:**
@@ -38,15 +38,15 @@ Everything starts from the team run `c5118b019d642a9b` (status `complete`, 22 re
 
 ## 3. Labels and the label window
 
-A commit is positive if a `bug_inducing` row names it, and that row's fix was authored 0 to `window_days` later.
+A commit is positive if a `bug_inducing` row names it and that row's fix was authored 0 to `window_days` later.
 
-**The window (decision 1).** The rule was to take the shortest window that catches 80% of blames and still leaves a full 2024. **No option met it.**
+**The window (decision 1).** The rule was to take the shortest window that catches 80% of blames and still leaves a full 2024. No option met it.
 - **All 22,007 SZZ pairs:** 365 days catches 54% of blames and 730 days catches 72%. 80% takes about 988 days.
 - **Fully observed inducing commits** (2015–2018, N = 11,808): 59% and 73%.
 - **Ruled out:** a full 2024 needs a window of at most 638 days, which excludes 730.
-- **Picked:** 365, by the packet's fallback rule. Aniket confirmed it on Nov 9.
+- **Picked:** 365, by the packet's fallback rule. The lead confirmed it on Nov 9.
 
-**The share slides by year.** The positive share falls from 30.8% (2015) to 7.5% (2024) under every window. It follows the number of fix commits per year (1,309 with blame in 2015, 340 in 2022), not the window. A model can learn "old means buggy" from this. That's why the splits are by time, and val and test are each judged on their own year.
+**The share slides by year.** The positive share falls from 30.8% (2015) to 7.5% (2024) under every window. It tracks the number of fix commits per year (1,309 with blame in 2015, 340 in 2022), not the window. A model can learn "old means buggy" from this, so the splits are by time, and val and test are each judged on their own year.
 
 **Label checks, done by an AI model, not a person** (PR #94, `decisions.md`). For each pair, the model read:
 - the fix's ticket;
@@ -56,7 +56,7 @@ A commit is positive if a `bug_inducing` row names it, and that row's fix was au
 The results:
 - **The label-precision bar fails:** 9 of 20 random positives are real (45%; 95% interval 26–66%), against a bar of 16.
 - **It matches SZZ's known rate,** 44% on the Defects4J labels. Most false positives name a commit that didn't bring the bug in: refactors, reverts, incidental lines.
-- **By year (decision 2):** 2015 had 4 of 10 right and 2022 had 7 of 10. The written rule (at most 2 of 10 wrong) would move the start year to 2016. But 2022 fails the same bar, the gap isn't significant on 10 each (p = 0.37), and an unchecked AI read doesn't meet a rule written for a person's. Aniket kept 2015.
+- **By year (decision 2):** 2015 had 4 of 10 right and 2022 had 7 of 10. The written rule (at most 2 of 10 wrong) would move the start year to 2016. But 2022 fails the same bar, the gap isn't significant on 10 each (p = 0.37), and an unchecked AI read doesn't meet a rule written for a person's. The lead kept 2015.
 
 **v1 vs c5118.** Not compared: the v1 block wasn't on this machine, and c5118 was available from day 1. REPORT.md §2 of the data pipeline lists what changed from v1.
 
@@ -65,7 +65,7 @@ The results:
 | # | Decision | Pick | Deciding number |
 |---|---|---|---|
 | 1 | Label window | 365 days | rule not met (54% / 72%; 80% needs about 988 days); fallback |
-| 2 | Start year | 2015 | AI check: 2015 had 6 of 10 wrong (the rule says 2016), 2022 had 3 of 10; p = 0.37; Aniket's call |
+| 2 | Start year | 2015 | AI check: 2015 had 6 of 10 wrong (the rule says 2016), 2022 had 3 of 10; p = 0.37; the lead's call |
 | 3 | Author identity | merged person | 65.8% of train commits come from authors with 2+ emails; raw emails would mislabel about 11% of newcomers |
 | 4 | `[MINOR]` commits | keep, with `is_minor` | 3.5% of train, 3.9% positive |
 | 5 | Module slices | second level inside `sql/` | top-level `sql` is 41.8% of test, over the 40% bar |
@@ -101,7 +101,7 @@ Run `5bc7deda64fcfa0a` uses `meridian.next.toml`: Django at its conversion commi
   - **New run_id:** `7b745b4430bbac75`, because gap 24 added `fix_message` to `meridian.next.toml` and the run_id hashes the config.
   - **Validate:** 0 errors, 9 warnings: the same 8 as before, plus the expected rise in `file_bug_fixes`.
   - **Tests:** `test_run2` passed 4 of 4.
-  - **4 more `call_site` rows:** they're present sites whose `bug_fixes` changed from 0 to 3, so join records them again. No removal count moved.
+  - **4 more `call_site` rows:** present sites whose `bug_fixes` changed from 0 to 3, so join records them again. No removal count moved.
 
 ## 7. The diff drafter
 
@@ -111,19 +111,19 @@ Run `5bc7deda64fcfa0a` uses `meridian.next.toml`: Django at its conversion commi
 
 **Results** (`diffs.md`, `tests/test_diffs.py`):
 - **Django: 254 of 267 lines match** the real after-line at `c651331b34` (95.1%), which clears 05-test's 90%.
-- **Packages: 73.2% (655 of 895). The 90% bar isn't met, and GAPS 3 is frozen at this number** (Nov 13).
+- **Packages: 73.2% (655 of 895).** The 90% bar isn't met, and GAPS 3 is frozen at this number (Nov 13).
   - **The test:** the 895 lines come from the 12 finished repos, in the files the drafter wasn't shown.
   - **Without the owner's lines:** at the parent commit, with no owner lines to read, it's 58.6% (623 of 1,063). The best single style is 49.5% over all 20 repos (decision 11).
   - **What closes most of the gap:** reading the owner's style from their first migrated files (decision 13) and drafting multi-line calls as one statement (decision 14).
   - **Of the 244 lines still missed,** only 14 (5.7%) are the owner doing more than migrating. The other 230 are owners choosing line by line, which nothing at the parent commit shows: `path` here and `re_path` there, joined here and kept there, a strict converter here and a loose one there.
-- **One rule changed after the drafts ran:** decision 14 changes PASS-BARS §2.5's rule from "a draft that changes any other line is refused" to "any other statement". Aniket signed it off on Nov 15, and PASS-BARS says it came after the results. `--one-line` keeps the old rule and gives the old numbers.
+- **One rule changed after the drafts ran:** decision 14 changes PASS-BARS §2.5's rule from "a draft that changes any other line is refused" to "any other statement". The lead signed it off on Nov 15, and PASS-BARS says it came after the results. `--one-line` keeps the old rule and gives the old numbers.
 
-**In the product, the drafter doesn't guess a `url()` style** (decision 15). It waits for the owner's first migrated file, copies its style, learns from the owner's edits of earlier diffs, and never re-offers a diff they rejected. Learning from edits is built and tested on a fixture (`OwnerFirst`), but there are no real outcomes to measure it on yet.
+**In the product** (decision 15), the drafter doesn't guess a `url()` style. It waits for the owner's first migrated file, copies its style, learns from the owner's edits of earlier diffs, and never re-offers a diff they rejected. Learning from edits is built and tested on a fixture (`OwnerFirst`), but there are no real outcomes to measure it on yet.
 
 **The LLM path** follows 04 §6:
 - **When it runs:** only on a line the codemod refused, with 2 or more same-shape examples, and never inside `except`. A line whose facts name a person is never sent.
 - **The ladder:** models go coding small → mid → large.
-- **The checks:** each answer goes through Vishwa's cache and the fact gate (decision 12), then the codemod's own apply, parse and resolve checks.
+- **The checks:** each answer goes through the LLM cache and the fact gate (decision 12), then the codemod's own apply, parse and resolve checks.
 - **Logging:** every answer goes to `log_llm_call`.
 - **Tests:** the Nov 9 hand-off test (`tests/test_handoff_diffs.py`) runs it on the fixture with a warm cache and 0 API calls.
 
@@ -158,12 +158,12 @@ Run `5bc7deda64fcfa0a` uses `meridian.next.toml`: Django at its conversion commi
   - Spark's rows are byte-identical, and `bug_inducing` is unchanged;
   - `file_bug_fixes` grows from 1,492 to 3,248 rows;
   - 367 of 1,526 migration call sites now carry a bug-fix count, where before none did. 115 of them are package sites.
-- **The rebuild:** Rochan rebuilt the block on Nov 14 and got the same run_id and md5s.
+- **The rebuild:** the block was rebuilt on Nov 14 and gave the same run_id and md5s.
 
 **A cleaner SZZ (gap 13).**
 - **What it already skipped:** whitespace, blank, comment and test lines.
 - **What the variant adds:** it follows moved and copied lines (`git blame -M -C`). Of 22,007 fix → inducing pairs, 1,223 go and 2,460 are new.
-- **The result:** val PR-AUC with the champion's forest goes from 0.4058 to 0.4002. That's no gain, so the labels stay as they are.
+- **The result:** val PR-AUC with the champion's forest goes from 0.4058 to 0.4002. No gain, so the labels stay as they are.
 - **Not measured:** the Defects4J pick rate, because the Defects4J repositories weren't on this machine.
 
 **Graph walkers (gap 17, PRs #92 and #95).**
@@ -181,7 +181,7 @@ Run `5bc7deda64fcfa0a` uses `meridian.next.toml`: Django at its conversion commi
 - **`owner_eta` gives no number on historical commits** (§6).
 - **`age` is slightly negative on 8 rows** (train 6, val 1, test 1; lowest −1.94 days; none positive).
   - **Why:** history is walked in landing order, but the gap is measured in author dates, and a commit can land after one authored later (rebases, cherry-picks). No future data gets in.
-  - **Handling:** the models read it as 0 (`train.py` `feature_matrix`, Rachna's decision of Nov 6).
+  - **Handling:** the models read it as 0 (`train.py` `feature_matrix`, decided Nov 6).
   - **Left as is:** clamping in `data.py` waits for the next table rebuild, since changing it now would change the frozen table's md5 (`9c0ab220…`) and every number scored on it.
 - **The packages' diff bar (90%) isn't met:** 73.2%, frozen. The misses are owners choosing differently line by line, not owners restructuring (14 of 244).
 - **The LLM path drafts nothing on the real packages.** Its only lines need an import change in the same commit.
