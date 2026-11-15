@@ -278,6 +278,19 @@ Every model choice had its rule written and committed before its run, and every 
 - **Live spend:** orchestrator live run 247 calls, $1.10; writer comparison under $1; Q2 label audit $2.52; Jev comparison $0.055; diff model comparison $0.003.
 - **Every rerun since is free:** 0 calls, the same plans and texts, byte for byte.
 
+### 8.6 Self-improving loops
+
+Five loops let Meridian get better as it runs. Each changes production only through a rule written in advance.
+
+| Loop | How it turns | Status |
+|---|---|---|
+| ↻1 The model | `model.refresh --every 24`: a new block rolls the split forward, all 3 models retrain, the champion is re-scored on the same fresh val, and it's replaced only on a gain over 2 seed-noise SDs | Built; runs when a block is published (none since c5118, by decision) |
+| ↻2 Auditor policies | Every policy ranks every stall in shadow; ε-greedy serves one; when the stall ends, verdict rules say why; matches feed Elo; the guard promotes (30+ live matches, luck ≤ 5%) | Built; checked in simulation; 0 live matches |
+| ↻3 walk-v1 | walk-v0 serves 80% of stalls, walk-v1 20%, each recording the other's route in shadow; stall verdicts score both; the same guard promotes | Built (#129); 16 of 68 real stalls drew v1, no walk differed |
+| ↻4 The agents | Per task: the gate checks, a miss moves one model up, then the template ships. Across runs: the fallback rate is sliced, a flagged slice is fixed, cached answers are re-gated at $0 | Built; consumer fallback 41 → 0 of 68 (#122). A person makes the fix |
+| ↻5 The diff drafter | Waits for the owner's first migrated file, copies their style, learns from their edits, never re-offers a rejected diff | Built; tested on the fixture only |
+| ↻6 Policy writer | An LLM writes a new stall policy from the champion's losses; a person reviews it; it enters loop 2 as a challenger | Cut (gap 22) |
+
 ## 9. Simulated faults
 
 21 faults, each a script in `tests/faults/` with its expected result written first. **21 of 21 behave** on frozen main and again on `57adef0`.
