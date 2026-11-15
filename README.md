@@ -10,13 +10,20 @@ What we hold to:
 - We only suggest. No PRs, no filed tickets. Self-maintaining APIs come later.
 - What isn't in the map isn't in the output, and we always report what we missed.
 
-The data pipeline is in [Data-Pipeline/](Data-Pipeline/README.md), with its course report in [Data-Pipeline/report/REPORT.md](Data-Pipeline/report/REPORT.md). How to run the tests: [TESTING.md](TESTING.md).
+The data pipeline is in [Data-Pipeline/](Data-Pipeline/README.md), with its course report in [Data-Pipeline/report/REPORT.md](Data-Pipeline/report/REPORT.md).
+
+Phase 2, the defect-risk model and the multi-agent product, is in [Model-Pipeline/](Model-Pipeline/PLAN.md):
+- Report: [Model-Pipeline/report/REPORT.md](Model-Pipeline/report/REPORT.md). The model ships: 2024 PR-AUC 0.268 vs lines × files 0.214, paired +0.054 [+0.028, +0.081].
+- Architecture page: [Model-Pipeline/report/architecture.html](Model-Pipeline/report/architecture.html) (open in a browser): the agents, tools, LLM tests and self-improving loops.
+- Open gaps and what happens to them: [Model-Pipeline/GAPS.md](Model-Pipeline/GAPS.md).
+
+How to run the tests: [TESTING.md](TESTING.md).
 
 | Doc | What's in it |
 |---|---|
 | [01 Problem](docs/01-problem.md) | Why migrations don't finish |
 | [02 Product](docs/02-product.md) | Views, build order, gaps |
 | [03 Data](docs/03-data.md) | Datasets, measured facts, schema |
-| [04 Architecture](docs/04-architecture.md) | Exact rules per stage |
+| [04 Architecture](docs/04-architecture.md) | Exact rules per stage, the agents and the self-improving loops |
 | [05 Test](docs/05-test.md) | Tests, pass bars, week-1 checks |
 | [06 Dead ideas](docs/06-dead-ideas.md) | Rejected, and why |

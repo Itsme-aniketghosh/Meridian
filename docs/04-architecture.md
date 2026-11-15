@@ -18,10 +18,10 @@
  3 JOIN      call_site rows, stable IDs
  4 GRAPH     blocked_by · blast radius · chains
  5 RULES     stall · ETA · order · reasons · ticket checks · fragility
- 6 LLM       Jev routes, agents write, cached
+ 6 LLM       orchestrator plans · Jev routes · agents write · walkers when a tool fails · cached
  7 GATE      text matches facts, else template
  8 VIEWS     read-only
- 9 LEARN     Elo over auditor policies → ε-greedy → back to 5
+ 9 LEARN     Elo over auditor and walk policies → ε-greedy → back to 5 · model refresh (§11)
  per push    2–4 on the diff only (§10)
 ```
 
@@ -97,22 +97,43 @@ wrong owner only.
 - Diffs: codemod from the owner's prior migrations first. LLM only if ≥ 2 same-shape
   examples and not in `except`. Must apply, parse, touch only that site, resolve
 
-Jev, the router, is a general reasoning model. It reads the problem and picks the
-agent and model. On a failed check it picks the next model up, or stops.
+Orchestrator: per stalled team, one planning call on the strongest model the billing
+can buy (Gemini 3.1 Pro). It works one closed list: identify the stall's own reasons,
+push steps from a menu of 4 writer tasks, finish. Each step once, so every plan ends.
+Bad JSON or a reason not in the facts → the rules plan (every available step).
+
+Context builder (a tool): keeps the files holding 90% of a team's bug fixes, counts the
+rest ("3 call sites in 2 other files"). Switched on by its rule: ≥ 90% of fixes kept and
+≥ 10 points over random (96.4% with 35% of files; random 72.7%).
+
+Graph walkers: when the tool fails (error, hang, nothing usable, or two gate misses;
+decided by code), they query the graph directly. Named KNOWLEDGE-BASE queries only,
+block read-only, ≤ 3 teams, 2 `blocked_by` hops, 24 queries per stall, every result
+cached by run_id. What they find is one more writer task, `walk`. Walk policies:
+`walk-v0` (blocked_by order) is the champion; `walk-v1` follows the auditor's ranking,
+served ε of the time, the other's route kept in shadow (§9).
+
+Jev, the router, picks which model starts each task. On a failed check the next model
+up, or stop. The rules route today: on 30 held-out tasks they were right 29 times at $0,
+and no model beat them. Phi-4-mini when a router runs.
 
 | Agent | Models | Retry on |
 |---|---|---|
-| Diff drafter | coding small → mid → large | Diff doesn't apply, parse, or resolve |
-| Policy writer | coding mid → large | Policy tests fail |
-| Writer | general small → mid → large | Bad JSON, gate miss |
+| Orchestrator | Gemini 3.1 Pro, one call per stall | Bad JSON, gate miss → rules plan |
+| Diff drafter | codemod; LLM coding small → mid → large | Diff doesn't apply, parse, or resolve |
+| Writer | Gemini 3.8 Flash (picked: cheapest within 2 points of the best, 204 tasks) | Bad JSON, gate miss |
+| Policy writer | coding mid → large | Cut in phase 2 (waits for live matches) |
 
 - Picks only from this table. Models and a top-model budget pinned in `meridian.toml`. Cached
 - Jev down → rules pick. Top model fails → template, or nothing for code
+- Every model pick has its rule committed before its run; the answers are cached, so the comparison reruns for $0
 
 ## 7. Gate
 
 - Every number, path, SHA, ID, person, team in LLM text must be in its facts
-- Any miss → whole text becomes the template. Fallback rate published
+- Any miss → whole text becomes the template. Fallback rate published, and sliced by task kind, repo and team
+- A GitHub fix key (`#6921`) is a ticket, like `SPARK-6921`, not a number
+- A gate that rejects right text is fixed in the facts, never loosened: a looser gate lets a swapped team through
 
 ## 8. Views
 
@@ -140,6 +161,7 @@ Read-only. `run_id`, `snapshot_at`, and coverage on every screen.
   ≤ 5% of the time per champion, however often it's checked. Built to find +200 Elo; the
   5% is split over the challengers (auditor decision 12)
 - LLMs may propose policy code. A human reviews it. Never in the decision path
+- Walk policies play the same matches: the stall's verdict scores the route each walk took
 
 ## 10. Push check
 
@@ -158,12 +180,25 @@ Read-only. `run_id`, `snapshot_at`, and coverage on every screen.
 | P6 | Mismatch | Re-adds a call site of a Done ticket |
 | P7 | Risky edit | Changes a call site in a file with `bug_fixes` ≥ 3 |
 | P8 | Bad key | Commit names a key not in the snapshot |
-| P9 | Defect risk | lines × files above threshold, unless a model beats it |
+| P9 | Defect risk | lines × files above threshold. The model ranks better (2024 PR-AUC 0.268 vs 0.214) but can't alert at precision 0.80, so P9 keeps lines × files |
 
 - One comment, templates only, $0. Max 10 lines. Never blocks merge
 - Outcome stored: fixed, dismissed, ignored
 - Limits: one repo per push; base up to 24 h old
 - Nightly must contain every push row for the merged SHA
+
+## 11. Self-improving loops
+
+Each loop changes production only through a rule written before it runs.
+
+| Loop | Turns by | Status |
+|---|---|---|
+| Model | `model.refresh`: new block → roll the split → retrain all → re-score the champion on the same val → promote on a gain over 2 seed-noise SDs | Built; waits for a new published block |
+| Auditor policies | §9: shadow rankings, verdicts, Elo, the luck guard | Built; 0 live matches |
+| Walk policies | walk-v0 vs walk-v1, scored by the same verdicts | Built; 0 live matches |
+| Agents | gate miss → next model up → template; fallback rate sliced → fix the facts → re-gate the cache at $0 | Built; a person makes the fix |
+| Diff drafter | waits for the owner's first migrated file, copies their style, learns from their edits, never re-offers a rejected diff | Built; fixture only |
+| Policy writer | an LLM writes a policy from the champion's losses → human review → challenger | Cut |
 
 ## Schedule and infra
 
@@ -190,3 +225,7 @@ Read-only. `run_id`, `snapshot_at`, and coverage on every screen.
 | Incremental ≠ rebuild | Alert, publish the rebuild |
 | No base map | Push check silent |
 | Push ≠ nightly | Nightly wins, logged |
+| Planner answer bad | Rules plan |
+| Context tool fails | Graph walkers |
+| Cache miss in CI (`--strict-cache`) | Job fails |
+| Champion file broken | P9 uses lines × files and says so |

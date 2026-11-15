@@ -1,6 +1,6 @@
 # Meridian phase 2: the model and the product
 
-Phase 1 built the data: one SQLite block from Django, 20 Django packages, Spark and their tickets. Phase 2 trains a defect-risk model on it through the course's model-pipeline guideline, and builds the product around it: views, LLM agents, a fact gate and a learning auditor. Sections follow the guideline's order (PLAN §12). Every number has its N and a source, and each owner's full section is linked at the end.
+Phase 1 built the data: one SQLite block holding Django, 20 Django packages, Spark and their tickets. Phase 2 trains a defect-risk model on it through the course's model-pipeline guideline, and builds the product around it: views, LLM agents, a fact gate and a learning auditor. Sections follow the guideline's order (PLAN §12). Every number has its N and a source. Each part's full write-up is linked at the end.
 
 ## 1. Overview
 
@@ -12,7 +12,7 @@ Phase 2 adds three things.
 - **A multi-agent product.** An orchestrator plans for each stalled team. Auditors rank why the team stalled. A router picks a model, writers turn facts into text, and graph walkers dig when the tools come up empty. A fact gate checks every word an LLM writes.
 - **Self-improving loops** (§8.6). The model retrains itself on each new block, auditor policies and walk-v1 compete for promotion, and the agents' text is corrected through the gate. Each loop changes production only through a rule written in advance.
 
-The tools exist to cut the noise. The context builder hands the LLM 35% of a team's files and still keeps 96.4% of its bug fixes, so the model reads what matters and nothing else. And when a tool comes back empty, the agents don't stop: the graph walkers go straight to the code graph and bring back what they find, through the same fact gate. So far most of those findings reach the team as templates rather than prose: 19 of 20 walker texts fell back (§11).
+The tools are there to cut the noise. The context builder hands the LLM 35% of a team's files and still keeps 96.4% of its bug fixes, so the model reads what matters and nothing else. And when a tool comes back empty, the agents don't stop: the graph walkers go straight to the code graph and bring back what they find, through the same fact gate. So far most of those findings reach the team as templates rather than prose: 19 of 20 walker texts fell back (§11).
 
 **Results in one place:**
 
@@ -127,9 +127,9 @@ Three baselines, three model families, all on val 2023 with paired bootstrap int
 | Recall at 20% of lines (smallest commits first: 0.608) | 0.625 |
 
 - The pass bar, written before any run: 2024 PR-AUC beats lines × files with the paired interval above 0. **It does. The model ships.**
-- It's 3.6× chance on a year nothing was tuned on.
+- 3.6× chance, on a year nothing was tuned on.
 - **The edge is small.** At 20% of lines read, it finds 62.5% of bugs; reading the smallest commits first finds 60.8%. 63% of the model's attention is on commit size (§5).
-- PR-AUCs drop from 2023 because 2024's labels are thinner: 7.5% positive, against 11.8%. Bugs from 2024 haven't all been found yet.
+- PR-AUCs drop from 2023 because 2024's labels are thinner: 7.5% positive vs 11.8%. Not every 2024 bug has been found yet.
 - Golden md5s of every input and output are in `golden/2024.json`.
 
 ### 2.4 Bias detection and mitigation (§2.4–2.5, §6)
@@ -185,7 +185,7 @@ The tuned forest. It beats lines × files, ties LightGBM (the simpler wins), and
 
 - **MLflow,** three experiments: `meridian-defect-risk`, `meridian-agents` (every LLM call), `meridian-auditor`.
 - **Every run carries the same tags:** `owner`, `block_run_id`, `git_sha`, `git_dirty`, `config_sha256`, `features_md5`, and `decision` on decision runs. 26 of 26 runs checked.
-- **Any number traces back** to its commit, its block and its feature table.
+- **Any number traces back** to its commit, block and feature table.
 - **Comparison charts** from `evaluate.py`: PR-AUC with intervals per model, confusion matrix, PR curves; on val in `reports/`, on 2024 in `reports/2024/`.
 
 ## 5. Sensitivity analysis (§5)
@@ -225,7 +225,7 @@ build image → data check → train → seed noise → evaluate → bias → ga
 
 ## 8. The LLMs: validation, bias and tracking (note on pretrained models)
 
-Every LLM in Meridian sits behind three checks: the fact gate validates its text, the fallback rate is sliced for bias, and every call is logged in MLflow.
+Every LLM here gets the same checks: the fact gate validates its text, its fallback rate is sliced for bias, and every call goes to MLflow.
 
 ### 8.1 The agents
 
@@ -245,7 +245,7 @@ Every LLM in Meridian sits behind three checks: the fact gate validates its text
 
 - **What counts as a fact** (decision 1): numbers, dates, paths, SHAs, ticket keys and team names. Only adding team names catches the swapped-team errors: 200 of 200 caught.
 - **Team names as words** (decision 11): "across the platform" isn't the team. Fixed by context: 2,000 of 2,000 caught, 0 false rejects over 10 seeds.
-- **On real text** the gate was too strict, not too loose: 23 of its 27 rejections were right. Each cause was fixed in the facts, not by loosening the gate: Gemini 80.4% → 98.0% → **100%** (204 of 204), with every wrong text still rejected.
+- **On real text** the gate erred strict: 23 of its 27 rejections were right text. We fixed each cause in the facts and left the gate as strict as it was: Gemini 80.4% → 98.0% → **100%** (204 of 204), with every wrong text still rejected.
 - **The #6921 fix (#122, after the freeze):** GitHub fix keys were read as numbers, so consumer texts fell back 41 of 68. A `#N` key is now checked as a ticket. Consumer texts: 27 → 68 passing, 0 regressions, 200 of 200 planted errors still caught.
 
 ### 8.3 How we tested the LLMs
@@ -335,17 +335,17 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 - P9's bar: precision ≥ 0.80 on at least 30 alerts. **The model can't reach it** on val (best 0.62 on 42 alerts), and neither can model-and-rule together (decision 15b, 900 cutoff pairs).
 - **Measured on 60 real 2023 Spark pushes:** P9 is right on 15 of 45 alerts, precision 0.333 (Wilson 0.21–0.48). It misses its bar too.
 - **On the 21 real migration commits:** 7 P9 alerts on 19 checked pushes, median 0 per push, which meets the ≤ 1 bar.
-- So the model ranks better than lines × files but can't alert at the bar. P9 keeps lines × files, and the model's value shows as a ranking.
+- The model ranks better than lines × files. It just can't alert at the bar, so P9 keeps lines × files and the model's value shows up as a ranking.
 
 ## 11. What didn't work
 
-- **The labels cap everything.** SZZ picks the right commit 44% of the time (130 hand-verified Defects4J and Fonte commits). An AI read of 20 random positives found 9 real (45%). Three model families stop within 0.004 ROC-AUC of each other: the limit is the data.
-- **Package diffs: 73.2%, under the 90% bar,** and frozen. 230 of the 244 misses are owners choosing line by line (`path` here, `re_path` there), which nothing at the parent commit shows. Decision 14 drafts whole statements; PASS-BARS §2.5 changed from "line" to "statement" after the drafts ran, and says so.
-- **The diff LLM path drafts nothing** on the real packages: Flash, Pro and Gemma each drafted 0 of 12. Its only lines need an import change in the same commit.
-- **Walker texts mostly fall back:** 19 of 20, each naming a team its facts don't hold. Their findings reach the team as templates, not prose.
-- **Two gate gaps,** left for after the freeze: a number with letters glued on (`6921a`), and 14 correct line lists written without their path.
-- **No live matches:** the auditor's policies and walk-v1 have never been scored, because nobody uses the product yet. Promotion needs 30 matches.
-- **Slack:** no webhook secret on the repo, so CI's alerts go to the run summary, not a real channel.
+- The labels cap everything. Not the model. SZZ picks the right commit 44% of the time (130 hand-verified Defects4J and Fonte commits). An AI read of 20 random positives found 9 real (45%). Three model families stop within 0.004 ROC-AUC of each other: the limit is the data.
+- Package diffs: 73.2%, under the 90% bar, and frozen. 230 of the 244 misses are owners choosing line by line (`path` here, `re_path` there), which nothing at the parent commit shows. Decision 14 drafts whole statements; PASS-BARS §2.5 changed from "line" to "statement" after the drafts ran, and says so.
+- The diff LLM path drafts nothing on the real packages: Flash, Pro and Gemma each drafted 0 of 12. Its only lines need an import change in the same commit.
+- Walker texts mostly fall back: 19 of 20, each naming a team its facts don't hold. Their findings reach the team as templates, not prose. Fix: put the team names into the walk's facts (gap 27).
+- Two gate gaps, left for after the freeze: a number with letters glued on (`6921a`, gap 26) and 14 correct line lists written without their path (gap 23). Both go in one small PR with the walker fix.
+- No live matches: the auditor's policies and walk-v1 have never been scored, because nobody uses the product yet. Promotion needs 30 matches.
+- Slack: no webhook secret on the repo, so CI's alerts go to the run summary, not a real channel.
 
 ## 12. What was cut, and what phase 3 deploys
 
