@@ -184,9 +184,10 @@ The tuned forest. It beats lines × files, ties LightGBM (the simpler wins), and
 ## 4. Experiment tracking and model comparison (§4)
 
 - **MLflow,** three experiments: `meridian-defect-risk`, `meridian-agents` (every LLM call), `meridian-auditor`.
+- **Hyperparameters, metrics, versions:** each tuning trial's hyperparameters and score are in `reports/tuning_<kind>.json`. Training and evaluation runs log their metrics. Each registered model is a version of `defect-risk` in the MLflow registry, with `champion` and `previous` aliases.
 - **Every run carries the same tags:** `owner`, `block_run_id`, `git_sha`, `git_dirty`, `config_sha256`, `features_md5`, and `decision` on decision runs. 26 of 26 runs checked.
 - **Any number traces back** to its commit, block and feature table.
-- **Comparison charts** from `evaluate.py`: PR-AUC with intervals per model, confusion matrix, PR curves; on val in `reports/`, on 2024 in `reports/2024/`.
+- **Comparison charts** from `evaluate.py`. On val, in `reports/`: PR-AUC with intervals for all six (`pr_auc_val.png`), the confusion matrix (`confusion_val.png`) and the PR curves (`pr_curves_val.png`). On 2024, the champion against the baselines, in `reports/2024/`.
 
 ## 5. Sensitivity analysis (§5)
 

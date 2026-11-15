@@ -72,8 +72,8 @@ On `val` (`reports/tuned_val.json`; N = 4,113, seed 1, 1,000 resamples), every t
 - The champion is that same forest configuration, retrained in CI's image: val PR-AUC 0.4067. Five seeds of it give a mean of 0.4044 with a standard deviation of 0.0021 (`reports/seed_noise.json`, N = 4,113), so 0.4058 and 0.4067 are the same model within seed noise.
 
 **The charts** come from `evaluate.py`:
-- on `val`: PR-AUC with its interval for every model and baseline, the confusion matrix at the threshold, and the PR curves;
-- on 2024, the same three in `reports/2024/` after the run.
+- on `val`, in `reports/`: PR-AUC with its interval for every model and baseline (`pr_auc_val.png`), the confusion matrix at the threshold (`confusion_val.png`: 0 alerts, since no cutoff reaches the bar) and the PR curves (`pr_curves_val.png`);
+- on 2024, the same three for the champion against the baselines, in `reports/2024/`.
 
 ## 3. Experiment tracking (§4)
 
