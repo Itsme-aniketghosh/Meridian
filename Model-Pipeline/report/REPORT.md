@@ -6,10 +6,11 @@ Phase 1 built the data: one SQLite block from Django, 20 Django packages, Spark 
 
 When a team retires an API, someone has to find every call to it, work out who owns each call, judge which ones are risky and see which teams are waiting on each other. Meridian does that from the code, git history and tickets.
 
-Phase 2 adds two things.
+Phase 2 adds three things.
 
 - **A defect-risk model** for the push check's P9 ("is this commit likely to introduce a bug?"). Today's rule is lines × files.
 - **A multi-agent product.** An orchestrator plans for each stalled team. Auditors rank why the team stalled. A router picks a model, writers turn facts into text, and graph walkers dig when the tools come up empty. A fact gate checks every word an LLM writes.
+- **Self-improving loops** (§8.6). The model retrains itself on each new block, auditor policies and walk-v1 compete for promotion, and the agents' text is corrected through the gate. Each loop changes production only through a rule written in advance.
 
 The tools exist to cut the noise. The context builder hands the LLM 35% of a team's files and still keeps 96.4% of its bug fixes, so the model reads what matters and nothing else. And when a tool comes back empty, the agents don't stop: the graph walkers go straight to the code graph and bring back what they find, through the same fact gate.
 
@@ -62,7 +63,14 @@ flowchart LR
 
   reg --> p9["Push check · P9"]
   block --> p9
+
+  reg -.->|"↻1 new block: retrain, promote on a real gain"| train
+  views -.->|"↻2 stall verdicts: Elo, guard"| aud
+  views -.->|"↻3 verdicts score walk-v0 vs walk-v1"| walk
+  tmpl -.->|"↻4 fallback rate: fix, re-gate at $0"| writer
 ```
+
+The dotted ↻ arrows are the self-improving loops (§8.6).
 
 ## 2. Model development (§2, §8)
 
