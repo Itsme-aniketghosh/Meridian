@@ -1,0 +1,521 @@
+<title>Meridian Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one wide schematic (data on top, model and agents side by side, what people see at the bottom), then the evidence a judge checks. */
+:root {
+  --bg: #f6f7f4; --panel: #eceee8; --card: #ffffff; --ink: #1d2320; --muted: #5d6762; --line: #8a948e;
+  --agent: #1f6f5c; --agent-soft: #d9ece6; --rule: #3f4f8a; --rule-soft: #e1e5f3;
+  --tool: #8a5a12; --tool-soft: #f4e7cf; --gate: #a3361f; --gate-soft: #f6ddd5; --fall: #a3361f;
+  --display: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121614; --panel: #1a201d; --card: #202724; --ink: #e6ebe8; --muted: #9aa6a0; --line: #6f7b75;
+  --agent: #5cc3a6; --agent-soft: #1d3a32; --rule: #9aa9e6; --rule-soft: #242c4a;
+  --tool: #e0ad5c; --tool-soft: #3a2e19; --gate: #f08a70; --gate-soft: #3f231c; --fall: #f08a70; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121614; --panel: #1a201d; --card: #202724; --ink: #e6ebe8; --muted: #9aa6a0; --line: #6f7b75;
+  --agent: #5cc3a6; --agent-soft: #1d3a32; --rule: #9aa9e6; --rule-soft: #242c4a;
+  --tool: #e0ad5c; --tool-soft: #3a2e19; --gate: #f08a70; --gate-soft: #3f231c; --fall: #f08a70; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--display);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+main { max-width: 1240px; margin: 0 auto; display: grid; gap: 28px; }
+header { display: grid; gap: 8px; max-width: 76ch; }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font-size: 20px; margin: 0 0 10px; text-wrap: balance; }
+p { margin: 0; }
+.lede { color: var(--muted); font-size: 16px; }
+.lede b { color: var(--ink); font-weight: 600; }
+.diagram { background: var(--card); border: 1px solid var(--panel); border-radius: 10px; overflow-x: auto; }
+.diagram svg { display: block; min-width: 1100px; width: 100%; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font: 12px var(--mono); color: var(--muted); padding: 12px 16px 14px; border-top: 1px solid var(--panel); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 18px; height: 12px; border-radius: 3px; border: 1.5px solid; display: inline-block; }
+.sw.agent { background: var(--agent-soft); border-color: var(--agent); }
+.sw.rule { background: var(--rule-soft); border-color: var(--rule); }
+.sw.tool { background: var(--tool-soft); border-color: var(--tool); }
+.sw.gate { background: var(--gate-soft); border-color: var(--gate); }
+.sw.fall { background: transparent; border-color: var(--fall); border-style: dashed; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.stat { background: var(--card); border: 1px solid var(--panel); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; }
+.stat .num { font: 600 26px var(--display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.stat .what { color: var(--muted); font-size: 13.5px; }
+.stat .src { font: 11.5px var(--mono); color: var(--muted); }
+.tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--panel); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 620px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--panel); vertical-align: top; }
+th { font: 500 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.kind { font: 500 11px var(--mono); padding: 2px 7px; border-radius: 99px; white-space: nowrap; border: 1px solid; }
+.kind.agent { color: var(--agent); background: var(--agent-soft); border-color: var(--agent); }
+.kind.rule { color: var(--rule); background: var(--rule-soft); border-color: var(--rule); }
+.kind.tool { color: var(--tool); background: var(--tool-soft); border-color: var(--tool); }
+.kind.gate { color: var(--gate); background: var(--gate-soft); border-color: var(--gate); }
+ul.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+table.wide { min-width: 900px; }
+ul.rules li { background: var(--card); border: 1px solid var(--panel); border-radius: 10px; padding: 11px 14px; font-size: 14px; }
+ul.rules li b { font-weight: 600; }
+code { font: 12.5px var(--mono); }
+.loops { display: grid; gap: 14px; }
+.loop { background: var(--card); border: 1px solid var(--panel); border-radius: 10px; padding: 14px 16px; display: grid; gap: 8px; }
+.loop-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.loop-h h3 { margin: 0; font-size: 16.5px; }
+.loop-n { font: 600 14px var(--mono); color: var(--agent); }
+.pill { font: 11.5px var(--mono); padding: 2px 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.pill.cut { border-style: dashed; border-color: var(--fall); color: var(--fall); }
+.loop-svg { overflow-x: auto; }
+.loop-svg svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.loop-note { color: var(--muted); font-size: 14px; max-width: 90ch; }
+.badge { fill: var(--agent); }
+.badge-t { font: 600 11px var(--mono); fill: var(--card); }
+
+footer { color: var(--muted); font-size: 13px; max-width: 90ch; }
+/* svg */
+.lane { fill: var(--panel); }
+.lane-t { font: 600 11.5px var(--mono); letter-spacing: .1em; fill: var(--muted); }
+.box { stroke-width: 1.6; }
+.b-agent { fill: var(--agent-soft); stroke: var(--agent); }
+.b-agent.hero { stroke-width: 2.6; }
+.b-rule { fill: var(--rule-soft); stroke: var(--rule); }
+.b-tool { fill: var(--tool-soft); stroke: var(--tool); }
+.b-gate { fill: var(--gate-soft); stroke: var(--gate); stroke-width: 2.2; }
+.b-fall { fill: var(--card); stroke: var(--fall); stroke-dasharray: 6 4; stroke-width: 1.8; }
+.b-plain { fill: var(--card); stroke: var(--line); }
+.t { font: 600 13px var(--display); fill: var(--ink); letter-spacing: .02em; }
+.s { font: 11px var(--mono); fill: var(--muted); }
+.chip { font: 500 10px var(--mono); letter-spacing: .04em; }
+.c-agent { fill: var(--agent); } .c-rule { fill: var(--rule); } .c-tool { fill: var(--tool); } .c-gate { fill: var(--gate); } .c-fall { fill: var(--fall); }
+.e { fill: none; stroke: var(--line); stroke-width: 1.6; }
+.e-fall { fill: none; stroke: var(--fall); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.e-ok { fill: none; stroke: var(--agent); stroke-width: 1.8; }
+.el { font: 10.5px var(--mono); fill: var(--muted); }
+.el-fall { font: 500 10.5px var(--mono); fill: var(--fall); }
+.el-ok { font: 500 10.5px var(--mono); fill: var(--agent); }
+.ah { fill: var(--line); } .ah-fall { fill: var(--fall); } .ah-ok { fill: var(--agent); }
+.screen { fill: var(--card); stroke: var(--line); stroke-width: 1.2; }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">Meridian · phase 2 · Nov 15, 2026</div>
+    <h1>How Meridian works</h1>
+    <p class="lede">Meridian finds every call to an API that's being retired, who owns it, how risky it is and which teams are stuck waiting on each other. <b>Rules decide the facts; LLM agents only write them up</b>, and a fact gate checks every word. The tools cut the noise so a model reads only what matters, and when a tool comes back empty, the graph walkers go straight to the code graph. Self-improving loops retrain the model, let policies and walkers compete, and correct the agents' text, so it gets better as people use it.</p>
+  </header>
+
+  <section class="diagram" aria-label="Architecture diagram">
+    <svg viewBox="0 0 1200 850" role="img" aria-labelledby="dg-t dg-d">
+      <title id="dg-t">Meridian architecture</title>
+      <desc id="dg-d">The data pipeline builds one SQLite block. The model pipeline trains, evaluates, checks bias, gates and pushes the defect-risk model to Artifact Registry for the push check. The multi-agent product finds stalled teams, auditors rank reasons, the orchestrator plans, Jev picks a model, the writer writes from the context builder's facts or the graph walkers' facts when the tool fails, and the fact gate passes the text or ships a template to the views.</desc>
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="af" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-fall" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-ok" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+
+      <!-- lanes -->
+      <rect class="lane" x="16" y="16" width="1168" height="120" rx="10"/>
+      <text class="lane-t" x="32" y="36">1 · DATA PIPELINE (PHASE 1)</text>
+      <rect class="lane" x="16" y="180" width="380" height="500" rx="10"/>
+      <text class="lane-t" x="32" y="200">2 · MODEL PIPELINE · CI ON EVERY PUSH</text>
+      <rect class="lane" x="412" y="180" width="772" height="500" rx="10"/>
+      <text class="lane-t" x="428" y="200">3 · PRODUCT · MULTI-AGENT SYSTEM</text>
+      <rect class="lane" x="16" y="700" width="1168" height="134" rx="10"/>
+      <text class="lane-t" x="32" y="720">4 · WHAT PEOPLE SEE</text>
+
+      <!-- band 1 -->
+      <rect class="box b-plain" x="32" y="50" width="200" height="66" rx="8"/>
+      <text class="t" x="46" y="74">SOURCES</text>
+      <text class="s" x="46" y="93">22 repos · Spark Jira</text>
+      <text class="s" x="46" y="108">GitLab issues</text>
+
+      <rect class="box b-rule" x="272" y="50" width="520" height="66" rx="8"/>
+      <text class="t" x="286" y="74">AIRFLOW DAGs · daily update, weekly rebuild</text>
+      <text class="s" x="286" y="93">collect → history → scan → resolve → owners</text>
+      <text class="s" x="286" y="108">→ join → graph → validate → publish</text>
+
+      <path class="box b-plain" d="M840,56 a164,10 0 0 1 328,0 v54 a164,10 0 0 1 -328,0 z"/>
+      <path class="e" d="M840,56 a164,10 0 0 0 328,0"/>
+      <text class="t" x="858" y="82">THE BLOCK · one SQLite file</text>
+      <text class="s" x="858" y="99">one run_id · 1.79M rows</text>
+      <text class="s" x="858" y="113">same inputs → same bytes</text>
+
+      <path class="e" d="M232,83 H266" marker-end="url(#a)"/>
+      <path class="e" d="M792,83 H834" marker-end="url(#a)"/>
+
+      <!-- bus: everything reads the block -->
+      <path class="e" d="M1004,121 V158 H206 V208" marker-end="url(#a)"/>
+      <path class="e" d="M540,158 V208" marker-end="url(#a)"/>
+      <text class="el" x="1012" y="152">reads the block</text>
+
+      <!-- band 2: model -->
+      <rect class="box b-rule" x="56" y="214" width="300" height="50" rx="8"/>
+      <text class="t" x="70" y="235">FEATURES</text>
+      <text class="s" x="70" y="252">41,163 Spark commits · md5 9c0ab220</text>
+      <rect class="box b-rule" x="56" y="284" width="300" height="54" rx="8"/>
+      <text class="t" x="70" y="305">TRAIN + TUNE (Optuna)</text>
+      <text class="s" x="70" y="323">logreg · forest · LightGBM</text>
+      <rect class="box b-rule" x="56" y="358" width="300" height="54" rx="8"/>
+      <text class="t" x="70" y="379">EVALUATE</text>
+      <text class="s" x="70" y="397">val 2023 · 2024 scored once</text>
+      <rect class="box b-rule" x="56" y="432" width="300" height="54" rx="8"/>
+      <text class="t" x="70" y="453">BIAS SLICES</text>
+      <text class="s" x="70" y="471">62 judged tests · 5 size flags</text>
+      <rect class="box b-gate" x="56" y="506" width="300" height="54" rx="8"/>
+      <text class="t" x="70" y="527">GATE</text>
+      <text class="s" x="70" y="545">5 checks · a fail blocks the push</text>
+      <path class="box b-plain" d="M56,592 a150,9 0 0 1 300,0 v52 a150,9 0 0 1 -300,0 z"/>
+      <path class="e" d="M56,592 a150,9 0 0 0 300,0"/>
+      <text class="t" x="70" y="621">ARTIFACT REGISTRY</text>
+      <text class="s" x="70" y="638">champion 85b4684 · rollback</text>
+      <path class="e" d="M206,264 V278" marker-end="url(#a)"/>
+      <path class="e" d="M206,338 V352" marker-end="url(#a)"/>
+      <path class="e" d="M206,412 V426" marker-end="url(#a)"/>
+      <path class="e" d="M206,486 V500" marker-end="url(#a)"/>
+      <path class="e" d="M206,560 V578" marker-end="url(#a)"/>
+      <path class="e" d="M206,653 V738" marker-end="url(#a)"/>
+
+      <!-- band 3: agents -->
+      <rect class="box b-rule" x="440" y="214" width="200" height="50" rx="8"/>
+      <text class="t" x="454" y="235">STALL RULE</text>
+      <text class="s" x="454" y="252">finds 68 stalled teams</text>
+
+      <rect class="box b-rule" x="440" y="290" width="200" height="94" rx="8"/>
+      <text class="chip c-rule" x="454" y="308">AGENTS · RULES</text>
+      <text class="t" x="454" y="328">AUDITORS</text>
+      <text class="s" x="454" y="346">rank why a team stalled</text>
+      <text class="s" x="454" y="361">policies v0, v1 · ε 0.2</text>
+      <text class="s" x="454" y="376">Elo · luck guard</text>
+
+      <rect class="box b-agent hero" x="680" y="214" width="260" height="118" rx="8"/>
+      <text class="chip c-agent" x="696" y="234">LLM AGENT · GEMINI 3.1 PRO</text>
+      <text class="t" x="696" y="256" style="font-size:15px">ORCHESTRATOR</text>
+      <text class="s" x="696" y="276">plans each stall from a closed</text>
+      <text class="s" x="696" y="291">menu of 4 writer steps</text>
+      <text class="s" x="696" y="306">always ends · one call a stall</text>
+      <text class="s" x="696" y="321">bad answer → the rules plan</text>
+
+      <rect class="box b-rule" x="980" y="214" width="188" height="92" rx="8"/>
+      <text class="chip c-rule" x="994" y="232">ROUTER</text>
+      <text class="t" x="994" y="252">JEV</text>
+      <text class="s" x="994" y="271">picks the starting model</text>
+      <text class="s" x="994" y="286">rules · Phi-4-mini</text>
+
+      <rect class="box b-agent" x="680" y="372" width="260" height="92" rx="8"/>
+      <text class="chip c-agent" x="696" y="390">LLM AGENT · GEMINI 3.8 FLASH</text>
+      <text class="t" x="696" y="410">WRITER</text>
+      <text class="s" x="696" y="429">turns facts into text, JSON only</text>
+      <text class="s" x="696" y="444">ladder: small → mid → large</text>
+
+      <rect class="box b-tool" x="440" y="420" width="200" height="84" rx="8"/>
+      <text class="chip c-tool" x="454" y="438">TOOL</text>
+      <text class="t" x="454" y="458">CONTEXT BUILDER</text>
+      <text class="s" x="454" y="477">35% of files kept,</text>
+      <text class="s" x="454" y="492">96.4% of bug fixes</text>
+
+      <rect class="box b-fall" x="440" y="548" width="200" height="110" rx="8"/>
+      <text class="chip c-fall" x="454" y="566">FALLBACK AGENTS</text>
+      <text class="t" x="454" y="586">GRAPH WALKERS</text>
+      <text class="s" x="454" y="605">query the code graph</text>
+      <text class="s" x="454" y="620">named queries only</text>
+      <text class="s" x="454" y="635">read-only · capped</text>
+      <text class="s" x="454" y="650">walk-v0 · walk-v1</text>
+
+      <path class="box b-plain" d="M980,478 a94,8 0 0 1 188,0 v56 a94,8 0 0 1 -188,0 z"/>
+      <path class="e" d="M980,478 a94,8 0 0 0 188,0"/>
+      <text class="t" x="994" y="505">LLM CACHE</text>
+      <text class="s" x="994" y="522">1,353 entries</text>
+      <text class="s" x="994" y="537">rerun = 0 calls, $0</text>
+
+      <rect class="box b-rule" x="980" y="572" width="188" height="86" rx="8"/>
+      <text class="chip c-rule" x="994" y="590">CODEMOD · LLM LADDER</text>
+      <text class="t" x="994" y="610">DIFF DRAFTER</text>
+      <text class="s" x="994" y="629">Django 254/267 matched</text>
+      <text class="s" x="994" y="644">packages 73.2%</text>
+
+      <path class="box b-gate" d="M736,500 H884 L904,532 L884,564 H736 L716,532 Z"/>
+      <text class="t" x="742" y="527">FACT GATE</text>
+      <text class="s" x="742" y="545">numbers, paths, teams</text>
+
+      <rect class="box b-plain" x="736" y="604" width="148" height="40" rx="8"/>
+      <text class="t" x="752" y="629">TEMPLATE</text>
+
+      <!-- agent edges -->
+      <path class="e" d="M540,264 V284" marker-end="url(#a)"/>
+      <path class="e" d="M640,320 H674" marker-end="url(#a)"/>
+      <text class="el" x="643" y="312">ranks</text>
+      <path class="e" d="M940,260 H974" marker-end="url(#a)"/>
+      <text class="el" x="944" y="252">tasks</text>
+      <path class="e" d="M810,332 V366" marker-end="url(#a)"/>
+      <text class="el" x="818" y="354">plan</text>
+      <path class="e" d="M1074,306 V418 H946" marker-end="url(#a)"/>
+      <text class="el" x="1082" y="360">model</text>
+      <path class="e" d="M640,440 H674" marker-end="url(#a)"/>
+      <path class="e-fall" d="M540,504 V542" marker-end="url(#af)"/>
+      <text class="el-fall" x="548" y="527">tool fails</text>
+      <path class="e-fall" d="M640,600 H660 V454 H674" marker-end="url(#af)"/>
+      <text class="el-fall" x="666" y="596">walk facts</text>
+      <path class="e" d="M946,450 H960 V500 H974" marker-start="url(#a)" marker-end="url(#a)"/>
+      <path class="e" d="M810,464 V494" marker-end="url(#a)"/>
+      <path class="e-fall" d="M810,564 V598" marker-end="url(#af)"/>
+      <text class="el-fall" x="818" y="586">miss</text>
+      <path class="e-ok" d="M904,532 H950 V738" marker-end="url(#ao)"/>
+      <text class="el-ok" x="912" y="524">pass</text>
+      <path class="e" d="M810,644 V738" marker-end="url(#a)"/>
+      <path class="e" d="M1074,658 V738" marker-end="url(#a)"/>
+
+      <!-- self-improving loop badges -->
+      <g><rect class="badge" x="320" y="590" width="28" height="20" rx="10"/><text class="badge-t" x="324" y="604">↻1</text></g>
+      <g><rect class="badge" x="604" y="294" width="28" height="20" rx="10"/><text class="badge-t" x="608" y="308">↻2</text></g>
+      <g><rect class="badge" x="604" y="552" width="28" height="20" rx="10"/><text class="badge-t" x="608" y="566">↻3</text></g>
+      <g><rect class="badge" x="1136" y="576" width="28" height="20" rx="10"/><text class="badge-t" x="1140" y="590">↻5</text></g>
+      <g><rect class="badge" x="912" y="376" width="28" height="20" rx="10"/><text class="badge-t" x="916" y="390">↻4</text></g>
+      <!-- band 4 -->
+      <rect class="box b-rule" x="56" y="744" width="300" height="76" rx="8"/>
+      <text class="t" x="70" y="766">PUSH CHECK</text>
+      <text class="s" x="70" y="785">P1–P9 on every push</text>
+      <text class="s" x="70" y="800">P9: lines × files; the model ranks</text>
+
+      <rect class="box b-plain" x="440" y="744" width="728" height="76" rx="8"/>
+      <text class="t" x="454" y="766">VIEWS · read-only · run_id and coverage on every page</text>
+      <rect class="screen" x="454" y="778" width="120" height="30" rx="6"/><text class="s" x="472" y="797">Staff</text>
+      <rect class="screen" x="588" y="778" width="120" height="30" rx="6"/><text class="s" x="606" y="797">Owner</text>
+      <rect class="screen" x="722" y="778" width="120" height="30" rx="6"/><text class="s" x="740" y="797">Consumer</text>
+      <rect class="screen" x="856" y="778" width="120" height="30" rx="6"/><text class="s" x="874" y="797">Tickets</text>
+      <rect class="screen" x="990" y="778" width="120" height="30" rx="6"/><text class="s" x="1008" y="797">Push</text>
+    </svg>
+    <div class="legend">
+      <span><i class="sw agent"></i>LLM agent</span>
+      <span><i class="sw rule"></i>rules and code</span>
+      <span><i class="sw tool"></i>tool</span>
+      <span><i class="sw gate"></i>check that can stop the line</span>
+      <span><i class="sw fall"></i>fallback path</span>
+      <span><b style="color:var(--agent)">↻1–5</b>&nbsp;self-improving loop, below</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="loops-h">
+    <h2 id="loops-h">Self-improving loops</h2>
+    <p class="lede" style="margin-bottom:14px">Five loops let Meridian get better as it runs: the model, the auditors, the walkers, the writing agents and the diff drafter. Each changes production only through a rule written in advance, and the ↻ badges in the diagram show where each one runs. A sixth, an LLM that writes policies, was cut.</p>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+      <marker id="la" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+      <marker id="lo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-ok" d="M0,0 L10,5 L0,10 z"/></marker>
+      <marker id="lf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-fall" d="M0,0 L10,5 L0,10 z"/></marker>
+    </defs></svg>
+    <div class="loops">
+    <article class="loop">
+      <div class="loop-h"><span class="loop-n">↻1</span><h3>The model retrains itself</h3><span class="pill built">built: model.refresh --every 24; runs when a new block is published</span></div>
+      <div class="loop-svg"><svg viewBox="0 0 1000 126" role="img" aria-label="New block published then Roll the split forward then Retrain all 3 models then Gate, re-score champion then Promote on a real gain, then back to the start">
+<rect class="box b-rule" x="20" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="32" y="41" style="font-size:12.5px">New block published</text>
+<text class="s" x="32" y="60">published/latest.json</text>
+<path class="e" d="M183,46 H213" marker-end="url(#la)"/>
+<rect class="box b-rule" x="219" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="231" y="41" style="font-size:12.5px">Roll the split forward</text>
+<text class="s" x="231" y="60">train, val, test move</text>
+<path class="e" d="M382,46 H412" marker-end="url(#la)"/>
+<rect class="box b-rule" x="418" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="430" y="41" style="font-size:12.5px">Retrain all 3 models</text>
+<text class="s" x="430" y="60">seed noise, eval, bias</text>
+<path class="e" d="M582,46 H612" marker-end="url(#la)"/>
+<rect class="box b-rule" x="618" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="630" y="41" style="font-size:12.5px">Gate, re-score champion</text>
+<text class="s" x="630" y="60">on the same fresh val</text>
+<path class="e" d="M781,46 H811" marker-end="url(#la)"/>
+<rect class="box b-rule" x="817" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="829" y="41" style="font-size:12.5px">Promote on a real gain</text>
+<text class="s" x="829" y="60">over 2 SD of seed noise</text>
+<path class="e-ok" d="M898,76 V104 H102 V82" marker-end="url(#lo)"/>
+<text class="el-ok" x="420" y="120">↻ the winner is the next bar</text>
+</svg></div>
+      <p class="loop-note">Nothing is decided by hand. A model that loses stays registered with its reason, and the winner is the bar for the next cycle. CI runs the same steps on every push.</p>
+    </article>
+    <article class="loop">
+      <div class="loop-h"><span class="loop-n">↻2</span><h3>Auditor policies compete</h3><span class="pill built">built; checked in simulation; 0 live matches until people use it</span></div>
+      <div class="loop-svg"><svg viewBox="0 0 1000 126" role="img" aria-label="Every policy ranks then ε-greedy serves one then Stall ends then Matches, then Elo then Guard promotes, then back to the start">
+<rect class="box b-rule" x="20" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="32" y="41" style="font-size:12.5px">Every policy ranks</text>
+<text class="s" x="32" y="60">every stall, in shadow</text>
+<path class="e" d="M183,46 H213" marker-end="url(#la)"/>
+<rect class="box b-rule" x="219" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="231" y="41" style="font-size:12.5px">ε-greedy serves one</text>
+<text class="s" x="231" y="60">0.2, then 0.1</text>
+<path class="e" d="M382,46 H412" marker-end="url(#la)"/>
+<rect class="box b-rule" x="418" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="430" y="41" style="font-size:12.5px">Stall ends</text>
+<text class="s" x="430" y="60">verdict rules say why</text>
+<path class="e" d="M582,46 H612" marker-end="url(#la)"/>
+<rect class="box b-rule" x="618" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="630" y="41" style="font-size:12.5px">Matches, then Elo</text>
+<text class="s" x="630" y="60">replays count half</text>
+<path class="e" d="M781,46 H811" marker-end="url(#la)"/>
+<rect class="box b-rule" x="817" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="829" y="41" style="font-size:12.5px">Guard promotes</text>
+<text class="s" x="829" y="60">30+ matches, luck ≤ 5%</text>
+<path class="e-ok" d="M898,76 V104 H102 V82" marker-end="url(#lo)"/>
+<text class="el-ok" x="420" y="120">↻ the winner is the next bar</text>
+</svg></div>
+      <p class="loop-note">The team sees the champion&#x27;s ranking most of the time and a challenger&#x27;s the rest. Whichever ranked the true reason higher wins the match. The guard used to promote a no-better policy by luck 87% of the time; now it&#x27;s 4.0%.</p>
+    </article>
+    <article class="loop">
+      <div class="loop-h"><span class="loop-n">↻3</span><h3>walk-v1: the walkers learn where to look</h3><span class="pill built">built in #129; scored once stall verdicts arrive</span></div>
+      <div class="loop-svg"><svg viewBox="0 0 1000 126" role="img" aria-label="walk-v0 serves 80% then Other&#x27;s route kept then Stall verdicts then Same guard promotes, then back to the start">
+<rect class="box b-fall" x="20" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="32" y="41" style="font-size:12.5px">walk-v0 serves 80%</text>
+<text class="s" x="32" y="60">walk-v1 serves 20%</text>
+<path class="e" d="M233,46 H263" marker-end="url(#la)"/>
+<rect class="box b-fall" x="269" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="281" y="41" style="font-size:12.5px">Other&#x27;s route kept</text>
+<text class="s" x="281" y="60">in shadow, 0 queries</text>
+<path class="e" d="M482,46 H512" marker-end="url(#la)"/>
+<rect class="box b-fall" x="518" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="530" y="41" style="font-size:12.5px">Stall verdicts</text>
+<text class="s" x="530" y="60">score both walks</text>
+<path class="e" d="M731,46 H761" marker-end="url(#la)"/>
+<rect class="box b-fall" x="767" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="779" y="41" style="font-size:12.5px">Same guard promotes</text>
+<text class="s" x="779" y="60">the better walker</text>
+<path class="e-ok" d="M874,76 V104 H126 V82" marker-end="url(#lo)"/>
+<text class="el-ok" x="420" y="120">↻ the winner becomes walk-v0</text>
+</svg></div>
+      <p class="loop-note">walk-v1 follows the auditor&#x27;s ranking: it visits first the upstream team with the most evidence for the top reasons. Rules only, no model picks a step. On the real block 16 of 68 stalls drew it, and no walk differed yet.</p>
+    </article>
+    <article class="loop">
+      <div class="loop-h"><span class="loop-n">↻4</span><h3>The agents correct themselves</h3><span class="pill built">built; the ladder runs per task, a person makes the fix</span></div>
+      <div class="loop-svg"><svg viewBox="0 0 1000 126" role="img" aria-label="Writer drafts then Fact gate checks then Miss: next model up then Fallback rate sliced then Fix the facts, then back to the start">
+<rect class="box b-agent" x="20" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="32" y="41" style="font-size:12.5px">Writer drafts</text>
+<text class="s" x="32" y="60">JSON from the facts</text>
+<path class="e" d="M183,46 H213" marker-end="url(#la)"/>
+<rect class="box b-agent" x="219" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="231" y="41" style="font-size:12.5px">Fact gate checks</text>
+<text class="s" x="231" y="60">every number, path, team</text>
+<path class="e" d="M382,46 H412" marker-end="url(#la)"/>
+<rect class="box b-agent" x="418" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="430" y="41" style="font-size:12.5px">Miss: next model up</text>
+<text class="s" x="430" y="60">small → mid → large</text>
+<path class="e" d="M582,46 H612" marker-end="url(#la)"/>
+<rect class="box b-agent" x="618" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="630" y="41" style="font-size:12.5px">Fallback rate sliced</text>
+<text class="s" x="630" y="60">by kind, repo, team</text>
+<path class="e" d="M781,46 H811" marker-end="url(#la)"/>
+<rect class="box b-agent" x="817" y="16" width="163" height="60" rx="8"/>
+<text class="t" x="829" y="41" style="font-size:12.5px">Fix the facts</text>
+<text class="s" x="829" y="60">re-gate from cache, $0</text>
+<path class="e-ok" d="M898,76 V104 H102 V82" marker-end="url(#lo)"/>
+<text class="el-ok" x="420" y="120">↻ consumer fallback 41 → 0 of 68</text>
+</svg></div>
+      <p class="loop-note">Inside each task the ladder retries on a bigger model, then ships the template. Across runs, the fallback rate shows where text fails: consumer texts fell back 41 of 68, the cause was fixed (#122), and the cached answers re-gated to 0 of 68 at $0. The orchestrator&#x27;s plans run the same check: a refused plan gets the rules plan.</p>
+    </article>
+    <article class="loop">
+      <div class="loop-h"><span class="loop-n">↻5</span><h3>The diff drafter learns each owner</h3><span class="pill built">built; tested on the fixture; no real outcomes yet</span></div>
+      <div class="loop-svg"><svg viewBox="0 0 1000 126" role="img" aria-label="Wait for the owner then Copy their style then Learn from edits then Never re-offer, then back to the start">
+<rect class="box b-tool" x="20" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="32" y="41" style="font-size:12.5px">Wait for the owner</text>
+<text class="s" x="32" y="60">first migrated file</text>
+<path class="e" d="M233,46 H263" marker-end="url(#la)"/>
+<rect class="box b-tool" x="269" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="281" y="41" style="font-size:12.5px">Copy their style</text>
+<text class="s" x="281" y="60">path, re_path or alias</text>
+<path class="e" d="M482,46 H512" marker-end="url(#la)"/>
+<rect class="box b-tool" x="518" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="530" y="41" style="font-size:12.5px">Learn from edits</text>
+<text class="s" x="530" y="60">of earlier diffs</text>
+<path class="e" d="M731,46 H761" marker-end="url(#la)"/>
+<rect class="box b-tool" x="767" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="779" y="41" style="font-size:12.5px">Never re-offer</text>
+<text class="s" x="779" y="60">a rejected diff</text>
+<path class="e-ok" d="M874,76 V104 H126 V82" marker-end="url(#lo)"/>
+<text class="el-ok" x="420" y="120">↻ every edit sharpens the next draft</text>
+</svg></div>
+      <p class="loop-note">A wrong diff costs the owner more than no diff, so the drafter waits for the owner&#x27;s own lines before it drafts the rest.</p>
+    </article>
+    <article class="loop">
+      <div class="loop-h"><span class="loop-n">↻6</span><h3>An LLM writes new policies</h3><span class="pill cut">cut (gap 22); phase 3</span></div>
+      <div class="loop-svg"><svg viewBox="0 0 1000 126" role="img" aria-label="LLM reads losses then Writes a policy then A person reviews then Enters loop 2, then back to the start">
+<rect class="box b-fall" x="20" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="32" y="41" style="font-size:12.5px">LLM reads losses</text>
+<text class="s" x="32" y="60">the champion&#x27;s, in the log</text>
+<path class="e-fall" d="M233,46 H263" marker-end="url(#lf)"/>
+<rect class="box b-fall" x="269" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="281" y="41" style="font-size:12.5px">Writes a policy</text>
+<text class="s" x="281" y="60">as code; tests must pass</text>
+<path class="e-fall" d="M482,46 H512" marker-end="url(#lf)"/>
+<rect class="box b-fall" x="518" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="530" y="41" style="font-size:12.5px">A person reviews</text>
+<text class="s" x="530" y="60">and merges it</text>
+<path class="e-fall" d="M731,46 H761" marker-end="url(#lf)"/>
+<rect class="box b-fall" x="767" y="16" width="213" height="60" rx="8"/>
+<text class="t" x="779" y="41" style="font-size:12.5px">Enters loop 2</text>
+<text class="s" x="779" y="60">as a challenger</text>
+<path class="e-fall" d="M874,76 V104 H126 V82" marker-end="url(#lf)"/>
+<text class="el-fall" x="420" y="120">would feed loop 2</text>
+</svg></div>
+      <p class="loop-note">The guard it needed (luck ≤ 5%) is in place. The agent isn&#x27;t: every new challenger is another chance at a lucky promotion, so it waits for live matches.</p>
+    </article>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="Headline numbers">
+    <div class="stat"><span class="num">+0.054</span><span class="what">2024 PR-AUC over lines × files, paired [+0.028, +0.081], N = 3,762. Scored once. The model ships</span><span class="src">reports/2024/metrics.json</span></div>
+    <div class="stat"><span class="num">21 / 21</span><span class="what">simulated faults behave, each with its expected result written first</span><span class="src">tests/faults/</span></div>
+    <div class="stat"><span class="num">0 calls</span><span class="what">on a full product rerun: 68 stalls, 205 LLM texts, $0</span><span class="src">reports/final/RUN-LOG.md</span></div>
+    <div class="stat"><span class="num">200 / 200</span><span class="what">planted errors caught by the fact gate; 2,000 / 2,000 over 10 seeds</span><span class="src">vishwa-agents/decisions.md</span></div>
+  </section>
+
+  <section>
+    <h2>The agents and tools</h2>
+    <div class="tablewrap">
+      <table class="wide">
+        <thead><tr><th>Part</th><th>Kind</th><th>Does</th><th>How it was tested and picked</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Orchestrator</td><td><span class="kind agent">LLM · Gemini 3.1 Pro</span></td><td>Plans each stalled team from a closed menu of 4 writer steps</td><td>The strongest model our billing can buy (Claude needs Marketplace billing). Not compared: every answer is checked instead, and a failed check gets the rules plan</td><td class="num">68 stalls: 49 plans used, 19 to the rules (6 not JSON, 13 refused by the gate)</td></tr>
+          <tr><td>Auditors</td><td><span class="kind rule">rules</span></td><td>Rank why a team stalled; policies compete, Elo scores them</td><td>Promotion guard picked from a sweep of 27 over 2,000 simulated seeds, its rule committed first</td><td class="num">Luck promotes a no-better policy 4.0% of the time (was 87%)</td></tr>
+          <tr><td>Jev</td><td><span class="kind rule">rules · Phi-4-mini</span></td><td>Picks which model starts each task</td><td>60 tasks labelled by hand, labels committed before any model ran; rules vs 3 models on the 30 held out</td><td class="num">Rules 29/30 at $0. No model beats them</td></tr>
+          <tr><td>Writer</td><td><span class="kind agent">LLM · Gemini 3.8 Flash</span></td><td>Turns facts into stall reasons, ticket drafts, consumer text</td><td>4 models on 204 real tasks; the cheapest within 2 points of the best wins</td><td class="num">Flash 80.4%, then 100% after fixing the facts</td></tr>
+          <tr><td>Context builder</td><td><span class="kind tool">tool</span></td><td>Keeps only the files holding a team's bug fixes</td><td>Switched on by a rule written first: keep ≥ 90% of bug fixes and beat random by ≥ 10 points</td><td class="num">96.4% of fixes in 35% of files (random 72.7%)</td></tr>
+          <tr><td>Graph walkers</td><td><span class="kind gate">fallback</span></td><td>When the tool fails, query the code graph directly</td><td>Fixture with the tool made to fail and the cause outside its context: they find it. walk-v1 gets 20% of stalls, scored in shadow</td><td class="num">Ran for 20 real stalls; rerun makes 0 queries</td></tr>
+          <tr><td>Diff drafter</td><td><span class="kind rule">codemod · LLM</span></td><td>Drafts the replacement line</td><td>3 models on the 12 lines the codemod refuses; same rule as the writer</td><td class="num">0 of 12 each, so codemod only. Django 95.1%</td></tr>
+          <tr><td>Fact gate</td><td><span class="kind gate">code</span></td><td>Any number, path, ticket, SHA, date or team not in the facts ships the template</td><td>400 planted texts, then 2,000 over 10 seeds, then 816 real answers with every rejection read by hand</td><td class="num">All planted errors caught; 23 of 27 real rejects were right text, fixed in the facts</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>How we tested the LLMs</h2>
+    <p class="lede" style="margin-bottom:12px">Every model choice had its rule written and committed before its run. Every answer is cached, so each test reruns for $0.</p>
+    <div class="tablewrap">
+      <table class="wide">
+        <thead><tr><th>Test</th><th>On</th><th>Models and scores</th><th>Rule, written first</th><th>Picked</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td>Writer model</td><td class="num">204 real tasks</td><td class="num">Gemini 3.8 Flash 80.4% · Llama 4 Maverick 74.0% · Gemma 4 65.2% · Llama 4 Scout 54.4%</td><td>Cheapest within 2 points of the best pass rate</td><td>Gemini 3.8 Flash</td><td class="num">under $1</td></tr>
+          <tr><td>Jev router</td><td class="num">30 held-out tasks, hand-labelled</td><td class="num">Rules 29 · Phi-4-mini 29 · Gemma 4 29 · Gemini 3.8 Flash 26</td><td>A model routes only if it beats the rules</td><td>Rules; Phi-4-mini when a router runs</td><td class="num">$0.055</td></tr>
+          <tr><td>Diff drafter</td><td class="num">12 refused package lines</td><td class="num">Flash 0 · Pro 0 · Gemma 4 0 · Llama 4 unreachable</td><td>Cheapest within 2 points; ties go to open weights</td><td>None clears the checks: codemod only</td><td class="num">$0.003</td></tr>
+          <tr><td>Label audit</td><td class="num">20 commits, judged blind by a person</td><td class="num">Gemini 3.1 Pro agreed on 10 of 20</td><td>Use the LLM only at ≥ 15 of 20</td><td>Not used</td><td class="num">$2.52</td></tr>
+          <tr><td>Gate, planted errors</td><td class="num">400 texts; 4,000 over 10 seeds</td><td class="num">3 definitions of a fact; 3 team-name rules</td><td>Smallest option at 100% caught, ≤ 5% false rejects</td><td>Team names in; 2,000/2,000, 0 false rejects</td><td class="num">$0</td></tr>
+          <tr><td>Gate, real text</td><td class="num">816 answers, 4 models</td><td class="num">23 of 27 rejects were right</td><td>Fix the facts, never loosen the gate</td><td>80.4% → 98.0% → 100%, wrong texts still caught</td><td class="num">$0, re-gated from cache</td></tr>
+          <tr><td>Orchestrator, live</td><td class="num">68 real stalls</td><td class="num">Gemini 3.1 Pro plans, Flash writes</td><td>A plan is used only if every check passes</td><td>49 plans; 19 to the rules</td><td class="num">$1.10, 247 calls</td></tr>
+          <tr><td>LLM bias</td><td class="num">224 live texts</td><td class="num">Fallback by task kind, repo, team</td><td>Flag at &gt; 0.10 worse, N ≥ 30</td><td>Consumer 41/68 flagged → gate fix → 0</td><td class="num">$0, replayed</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Guardrails</h2>
+    <ul class="rules">
+      <li><b>Code decides, models write.</b> Facts come from rules over the block. An LLM never decides a fact.</li>
+      <li><b>Every plan ends.</b> One planning call, a closed menu, each step once. A bad answer gets the rules plan.</li>
+      <li><b>Code decides when a tool failed:</b> an error, a hang, nothing usable, or two gate misses. Then the walkers run.</li>
+      <li><b>Walkers are boxed in:</b> read-only, named queries only, 3 teams, 2 hops, 24 queries per stall.</li>
+      <li><b>No people in facts.</b> A fact with an email is refused before a prompt is built.</li>
+      <li><b>Every answer is cached</b> by model, prompt version and facts, so reruns cost nothing and match byte for byte.</li>
+    </ul>
+  </section>
+
+  <footer>Every number has its source in the repo: <code>Model-Pipeline/report/REPORT.md</code> and each owner's section under <code>Model-Pipeline/packets/</code>. Model numbers come from block <code>c5118b019d642a9b</code>, product numbers from <code>bb6b5f4e32a4bee7</code>; both are builds of the same Oct 1 snapshot.</footer>
+</main>

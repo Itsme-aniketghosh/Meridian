@@ -45,7 +45,7 @@ SHAP values on all of val are exact here (they add up to the model's output to 1
 
 That matters for the honest question behind decision 2: SZZ blames the lines a fix changed, so big commits look risky partly by construction. The forest beats lines × files, but much of what it uses is size, measured better.
 
-Of the forest's settings, `max_features` carries 0.91 of fANOVA's parameter importance. Moving `min_samples_leaf` ±50% changes val PR-AUC by 0.0028, under the 2 × seed-noise bar of 0.0043: safe to retrain. `n_estimators` moves it 0.0069, over the bar by the rule, although fANOVA gives it no importance and five noisy points span about 0.005 by chance alone.
+The charts are drawn from the champion itself (`registry/model.joblib`, redrawn Nov 15; the Nov 9 charts came from the laptop forest, 0.4058, and gave the same SHAP numbers). Of the forest's settings, `max_features` carries 0.91 of fANOVA's parameter importance. Moving `min_samples_leaf` ±50% changes val PR-AUC by 0.0028, under the 2 × seed-noise bar of 0.0043: safe to retrain. `n_estimators` moves it 0.0062, over the bar by the rule, although fANOVA gives it no importance and five noisy points span about 0.005 by chance alone.
 
 ## Why P9 stays lines × files
 

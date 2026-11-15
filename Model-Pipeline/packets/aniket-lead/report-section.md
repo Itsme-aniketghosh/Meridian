@@ -103,7 +103,6 @@ On the fixture, with the context builder made to fail, they go from fulfillment 
 - **Two gaps in the gate, both left for after the freeze:**
   - a number with letters glued on (`6921a`) isn't checked (on main before #122 too);
   - 14 correct line lists written without their path still fail (gap 23).
-- **The sensitivity charts** (SHAP, sweeps, permutation importance) were drawn on Nov 9 from forest `a817afba` (val 0.4058), not from the champion file (0.4067). Redrawing them needs a retrain on frozen code, which wasn't done.
 - **The auditor has no live matches yet.** Its champion and challenger both sit at Elo 1500, because the product has no users.
 
 ## Next
