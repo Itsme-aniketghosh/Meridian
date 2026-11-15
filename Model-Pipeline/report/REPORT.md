@@ -220,17 +220,17 @@ Every LLM in Meridian sits behind three checks: the fact gate validates its text
 
 ### 8.1 The agents
 
-| Agent or tool | What it does | Model | Result |
-|---|---|---|---|
-| **Orchestrator** · Aniket | Plans for each stalled team from a closed menu of 4 writer steps. Always ends; the rules plan on any bad answer | Gemini 3.1 Pro | 68 stalls: 49 planned by the model, 19 by the rules |
-| **Auditors** · Rochan | Rank why a team stalled. Policies v0 and v1, ε-greedy (0.2), Elo, a promotion guard | rules | Guard: luck promotes a no-better policy 4.0% of the time (was 87%) |
-| **Jev** · Rachna | Picks which model starts each task | rules; Phi-4-mini | Rules right on 29 of 30 held-out tasks, $0. No router beats them |
-| **Writer** · Vishwa | Turns facts into text: stall reasons, ticket drafts, consumer text, rewrites | Gemini 3.8 Flash | 100% pass on 204 tasks after decisions 5b and 5c |
-| **Context builder** (tool) · Chaitali | Keeps the files holding 90% of a team's bug fixes, counts the rest | rules | 96.4% of bug fixes with 35% of files (random: 72.7%); facts 46% shorter |
-| **Graph walkers** · Utkarsh | When the context builder fails, query the code graph directly: named queries only, read-only, capped | rules; walk-v0, walk-v1 | Ran for 20 stalls. On the fixture they find the upstream team's test gap |
-| **Diff drafter** · Utkarsh | Drafts the replacement line, codemod first | codemod; LLM ladder | Django 254 of 267 (95.1%); packages 73.2% |
-| **Fact gate** · Vishwa | Every number, path, ticket, SHA, date and team in LLM text must be in the facts. Any miss ships the template | code | 200 of 200 planted errors caught |
-| **LLM cache** · Vishwa | sha256(model, prompt version, facts), committed | | Reruns: 0 calls, 1,353 entries before and after |
+| Agent or tool | What it does | Model | How it was tested and picked | Result |
+|---|---|---|---|---|
+| **Orchestrator** · Aniket | Plans for each stalled team from a closed menu of 4 writer steps. Always ends | Gemini 3.1 Pro | The strongest model our billing can buy. Not compared: every answer is checked, and a failed check gets the rules plan | 68 stalls: 49 plans used, 19 to the rules (6 not JSON, 13 refused by the gate) |
+| **Auditors** · Rochan | Rank why a team stalled. Policies v0 and v1, ε-greedy (0.2), Elo | rules | Promotion guard picked from a sweep of 27 over 2,000 simulated seeds, rule committed first | Luck promotes a no-better policy 4.0% of the time (was 87%) |
+| **Jev** · Rachna | Picks which model starts each task | rules; Phi-4-mini | 60 tasks labelled by hand before any model ran; rules vs 3 models on the 30 held out | Rules 29 of 30, $0. No router beats them |
+| **Writer** · Vishwa | Turns facts into stall reasons, ticket drafts, consumer text, rewrites | Gemini 3.8 Flash | 4 models on 204 real tasks; cheapest within 2 points of the best | Flash 80.4%, then 100% after fixing the facts |
+| **Context builder** (tool) · Chaitali | Keeps the files holding 90% of a team's bug fixes, counts the rest | rules | Switched on by a rule written first: ≥ 90% of bug fixes kept, ≥ 10 points over random | 96.4% of fixes with 35% of files (random 72.7%); facts 46% shorter |
+| **Graph walkers** · Utkarsh | When the context builder fails, query the code graph: named queries only, read-only, capped | rules; walk-v0, walk-v1 | Fixture with the tool made to fail and the cause outside its context: found. walk-v1 on 20% of stalls, in shadow | Ran for 20 real stalls; a rerun makes 0 queries |
+| **Diff drafter** · Utkarsh | Drafts the replacement line, codemod first | codemod; LLM ladder | 3 models on the 12 lines the codemod refuses, same rule as the writer | 0 of 12 each: codemod only. Django 95.1%, packages 73.2% |
+| **Fact gate** · Vishwa | Every number, path, ticket, SHA, date and team in LLM text must be in the facts; any miss ships the template | code | 400 planted texts, 4,000 over 10 seeds, then 816 real answers with every rejection read by hand | All planted errors caught; 23 of 27 real rejects were right, fixed in the facts |
+| **LLM cache** · Vishwa | sha256(model, prompt version, facts), committed | | Fault 18: delete one entry, only that task calls again | Reruns: 0 calls, 1,353 entries before and after |
 
 ### 8.2 Validation: the fact gate
 
@@ -239,18 +239,24 @@ Every LLM in Meridian sits behind three checks: the fact gate validates its text
 - **On real text** the gate was too strict, not too loose: 23 of its 27 rejections were right. Each cause was fixed in the facts, not by loosening the gate: Gemini 80.4% → 98.0% → **100%** (204 of 204), with every wrong text still rejected.
 - **The #6921 fix (#122, after the freeze):** GitHub fix keys were read as numbers, so consumer texts fell back 41 of 68. A `#N` key is now checked as a ticket. Consumer texts: 27 → 68 passing, 0 regressions, 200 of 200 planted errors still caught.
 
-### 8.3 Model choice
+### 8.3 How we tested the LLMs
 
-The writer's 204 real tasks ran on every model we could reach. Rule: the cheapest within 2 points of the best.
+Every model choice had its rule written and committed before its run, and every answer is cached, so each test reruns for $0.
 
-| Model, N = 204 | Pass rate | Cost | p95 latency |
-|---|---:|---:|---:|
-| **Gemini 3.8 Flash** | **80.4%** | $0.48 | 12 s |
-| Llama 4 Maverick | 74.0% | $0.05 | 2.3 s |
-| Gemma 4 | 65.2% | $0.03 | 13.7 s |
-| Llama 4 Scout | 54.4% | $0.04 | 2.5 s |
+| Test | On | Models and scores | Rule, written first | Picked | Cost |
+|---|---|---|---|---|---:|
+| Writer model | 204 real tasks | Gemini 3.8 Flash 80.4% · Llama 4 Maverick 74.0% · Gemma 4 65.2% · Llama 4 Scout 54.4% | Cheapest within 2 points of the best | Gemini 3.8 Flash | under $1 |
+| Jev router | 30 held-out tasks, hand-labelled | Rules 29 · Phi-4-mini 29 · Gemma 4 29 · Gemini 3.8 Flash 26 | A model routes only if it beats the rules | Rules; Phi-4-mini when a router runs | $0.055 |
+| Diff drafter | 12 refused package lines | Flash 0 · Pro 0 · Gemma 4 0 · Llama 4 unreachable | Cheapest within 2 points; ties go to open weights | None clears the checks: codemod only | $0.003 |
+| Label audit | 20 commits, judged blind by a person | Gemini 3.1 Pro agreed on 10 of 20 | Use the LLM only at ≥ 15 of 20 | Not used | $2.52 |
+| Gate, planted errors | 400 texts; 4,000 over 10 seeds | 3 definitions of a fact, 3 team-name rules | Smallest option at 100% caught, ≤ 5% false rejects | Team names in: 2,000 of 2,000, 0 false rejects | $0 |
+| Gate, real text | 816 answers, 4 models | 23 of 27 rejects were right | Fix the facts, never loosen the gate | 80.4% → 98.0% → 100%, wrong texts still caught | $0 |
+| Orchestrator, live | 68 real stalls | Gemini 3.1 Pro plans, Flash writes | A plan is used only if every check passes | 49 plans; 19 to the rules | $1.10 |
+| LLM bias | 224 live texts | Fallback by task kind, repo, team | Flag at > 0.10 worse, N ≥ 30 | Consumer 41 of 68 flagged → gate fix → 0 | $0 |
 
-Claude and Mistral weren't run: they're Marketplace products, which credit-only billing can't buy.
+- Claude and Mistral weren't run: they're Marketplace products, which credit-only billing can't buy.
+- Gemini Flash's thinking is set low: at the default it spent 3,064 tokens a task, and 3 of 10 replies ran out of room before the JSON.
+- The Jev test barely tests routing: 29 of the 30 tasks were small. It shows a router does no harm here, not that it helps.
 
 ### 8.4 Bias
 

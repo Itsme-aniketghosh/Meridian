@@ -44,8 +44,6 @@ p { margin: 0; }
 .stat .num { font: 600 26px var(--display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .stat .what { color: var(--muted); font-size: 13.5px; }
 .stat .src { font: 11.5px var(--mono); color: var(--muted); }
-.two { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 28px; align-items: start; }
-@media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
 .tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--panel); border-radius: 10px; }
 table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 620px; }
 th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--panel); vertical-align: top; }
@@ -57,7 +55,8 @@ td.num { font-variant-numeric: tabular-nums; }
 .kind.rule { color: var(--rule); background: var(--rule-soft); border-color: var(--rule); }
 .kind.tool { color: var(--tool); background: var(--tool-soft); border-color: var(--tool); }
 .kind.gate { color: var(--gate); background: var(--gate-soft); border-color: var(--gate); }
-ul.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+ul.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+table.wide { min-width: 900px; }
 ul.rules li { background: var(--card); border: 1px solid var(--panel); border-radius: 10px; padding: 11px 14px; font-size: 14px; }
 ul.rules li b { font-weight: 600; }
 code { font: 12.5px var(--mono); }
@@ -285,37 +284,56 @@ footer { color: var(--muted); font-size: 13px; max-width: 90ch; }
     <div class="stat"><span class="num">200 / 200</span><span class="what">planted errors caught by the fact gate; 2,000 / 2,000 over 10 seeds</span><span class="src">vishwa-agents/decisions.md</span></div>
   </section>
 
-  <div class="two">
-    <section>
-      <h2>The agents and tools</h2>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>Part</th><th>Kind</th><th>Does</th><th>Measured</th></tr></thead>
-          <tbody>
-            <tr><td>Orchestrator</td><td><span class="kind agent">LLM · Gemini 3.1 Pro</span></td><td>Plans each stalled team from a closed menu of 4 writer steps</td><td class="num">68 stalls: 49 by the model, 19 by the rules</td></tr>
-            <tr><td>Auditors</td><td><span class="kind rule">rules</span></td><td>Rank why a team stalled; policies compete, Elo scores them</td><td class="num">Luck promotes a no-better policy 4.0% of the time (was 87%)</td></tr>
-            <tr><td>Jev</td><td><span class="kind rule">rules · Phi-4-mini</span></td><td>Picks which model starts each task</td><td class="num">Rules right on 29 of 30, $0</td></tr>
-            <tr><td>Writer</td><td><span class="kind agent">LLM · Gemini 3.8 Flash</span></td><td>Turns facts into stall reasons, ticket drafts, consumer text</td><td class="num">204 of 204 pass the gate</td></tr>
-            <tr><td>Context builder</td><td><span class="kind tool">tool</span></td><td>Keeps only the files holding a team's bug fixes</td><td class="num">96.4% of fixes in 35% of files (random 72.7%)</td></tr>
-            <tr><td>Graph walkers</td><td><span class="kind gate">fallback</span></td><td>When the tool fails, query the code graph directly</td><td class="num">Ran for 20 stalls; 0 extra cost on rerun</td></tr>
-            <tr><td>Diff drafter</td><td><span class="kind rule">codemod · LLM</span></td><td>Drafts the replacement line</td><td class="num">Django 95.1%; packages 73.2%</td></tr>
-            <tr><td>Fact gate</td><td><span class="kind gate">code</span></td><td>Any number, path, ticket, SHA, date or team not in the facts ships the template</td><td class="num">23 of 27 early rejects were right text; fixed in the facts, not by loosening</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-    <section>
-      <h2>Guardrails</h2>
-      <ul class="rules">
-        <li><b>Code decides, models write.</b> Facts come from rules over the block. An LLM never decides a fact.</li>
-        <li><b>Every plan ends.</b> One planning call, a closed menu, each step once. A bad answer gets the rules plan.</li>
-        <li><b>Code decides when a tool failed:</b> an error, a hang, nothing usable, or two gate misses. Then the walkers run.</li>
-        <li><b>Walkers are boxed in:</b> read-only, named queries only, 3 teams, 2 hops, 24 queries per stall.</li>
-        <li><b>No people in facts.</b> A fact with an email is refused before a prompt is built.</li>
-        <li><b>Every answer is cached</b> by model, prompt version and facts, so reruns cost nothing and match byte for byte.</li>
-      </ul>
-    </section>
-  </div>
+  <section>
+    <h2>The agents and tools</h2>
+    <div class="tablewrap">
+      <table class="wide">
+        <thead><tr><th>Part</th><th>Kind</th><th>Does</th><th>How it was tested and picked</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Orchestrator</td><td><span class="kind agent">LLM · Gemini 3.1 Pro</span></td><td>Plans each stalled team from a closed menu of 4 writer steps</td><td>The strongest model our billing can buy (Claude needs Marketplace billing). Not compared: every answer is checked instead, and a failed check gets the rules plan</td><td class="num">68 stalls: 49 plans used, 19 to the rules (6 not JSON, 13 refused by the gate)</td></tr>
+          <tr><td>Auditors</td><td><span class="kind rule">rules</span></td><td>Rank why a team stalled; policies compete, Elo scores them</td><td>Promotion guard picked from a sweep of 27 over 2,000 simulated seeds, its rule committed first</td><td class="num">Luck promotes a no-better policy 4.0% of the time (was 87%)</td></tr>
+          <tr><td>Jev</td><td><span class="kind rule">rules · Phi-4-mini</span></td><td>Picks which model starts each task</td><td>60 tasks labelled by hand, labels committed before any model ran; rules vs 3 models on the 30 held out</td><td class="num">Rules 29/30 at $0. No model beats them</td></tr>
+          <tr><td>Writer</td><td><span class="kind agent">LLM · Gemini 3.8 Flash</span></td><td>Turns facts into stall reasons, ticket drafts, consumer text</td><td>4 models on 204 real tasks; the cheapest within 2 points of the best wins</td><td class="num">Flash 80.4%, then 100% after fixing the facts</td></tr>
+          <tr><td>Context builder</td><td><span class="kind tool">tool</span></td><td>Keeps only the files holding a team's bug fixes</td><td>Switched on by a rule written first: keep ≥ 90% of bug fixes and beat random by ≥ 10 points</td><td class="num">96.4% of fixes in 35% of files (random 72.7%)</td></tr>
+          <tr><td>Graph walkers</td><td><span class="kind gate">fallback</span></td><td>When the tool fails, query the code graph directly</td><td>Fixture with the tool made to fail and the cause outside its context: they find it. walk-v1 gets 20% of stalls, scored in shadow</td><td class="num">Ran for 20 real stalls; rerun makes 0 queries</td></tr>
+          <tr><td>Diff drafter</td><td><span class="kind rule">codemod · LLM</span></td><td>Drafts the replacement line</td><td>3 models on the 12 lines the codemod refuses; same rule as the writer</td><td class="num">0 of 12 each, so codemod only. Django 95.1%</td></tr>
+          <tr><td>Fact gate</td><td><span class="kind gate">code</span></td><td>Any number, path, ticket, SHA, date or team not in the facts ships the template</td><td>400 planted texts, then 2,000 over 10 seeds, then 816 real answers with every rejection read by hand</td><td class="num">All planted errors caught; 23 of 27 real rejects were right text, fixed in the facts</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>How we tested the LLMs</h2>
+    <p class="lede" style="margin-bottom:12px">Every model choice had its rule written and committed before its run. Every answer is cached, so each test reruns for $0.</p>
+    <div class="tablewrap">
+      <table class="wide">
+        <thead><tr><th>Test</th><th>On</th><th>Models and scores</th><th>Rule, written first</th><th>Picked</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td>Writer model</td><td class="num">204 real tasks</td><td class="num">Gemini 3.8 Flash 80.4% · Llama 4 Maverick 74.0% · Gemma 4 65.2% · Llama 4 Scout 54.4%</td><td>Cheapest within 2 points of the best pass rate</td><td>Gemini 3.8 Flash</td><td class="num">under $1</td></tr>
+          <tr><td>Jev router</td><td class="num">30 held-out tasks, hand-labelled</td><td class="num">Rules 29 · Phi-4-mini 29 · Gemma 4 29 · Gemini 3.8 Flash 26</td><td>A model routes only if it beats the rules</td><td>Rules; Phi-4-mini when a router runs</td><td class="num">$0.055</td></tr>
+          <tr><td>Diff drafter</td><td class="num">12 refused package lines</td><td class="num">Flash 0 · Pro 0 · Gemma 4 0 · Llama 4 unreachable</td><td>Cheapest within 2 points; ties go to open weights</td><td>None clears the checks: codemod only</td><td class="num">$0.003</td></tr>
+          <tr><td>Label audit</td><td class="num">20 commits, judged blind by a person</td><td class="num">Gemini 3.1 Pro agreed on 10 of 20</td><td>Use the LLM only at ≥ 15 of 20</td><td>Not used</td><td class="num">$2.52</td></tr>
+          <tr><td>Gate, planted errors</td><td class="num">400 texts; 4,000 over 10 seeds</td><td class="num">3 definitions of a fact; 3 team-name rules</td><td>Smallest option at 100% caught, ≤ 5% false rejects</td><td>Team names in; 2,000/2,000, 0 false rejects</td><td class="num">$0</td></tr>
+          <tr><td>Gate, real text</td><td class="num">816 answers, 4 models</td><td class="num">23 of 27 rejects were right</td><td>Fix the facts, never loosen the gate</td><td>80.4% → 98.0% → 100%, wrong texts still caught</td><td class="num">$0, re-gated from cache</td></tr>
+          <tr><td>Orchestrator, live</td><td class="num">68 real stalls</td><td class="num">Gemini 3.1 Pro plans, Flash writes</td><td>A plan is used only if every check passes</td><td>49 plans; 19 to the rules</td><td class="num">$1.10, 247 calls</td></tr>
+          <tr><td>LLM bias</td><td class="num">224 live texts</td><td class="num">Fallback by task kind, repo, team</td><td>Flag at &gt; 0.10 worse, N ≥ 30</td><td>Consumer 41/68 flagged → gate fix → 0</td><td class="num">$0, replayed</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Guardrails</h2>
+    <ul class="rules">
+      <li><b>Code decides, models write.</b> Facts come from rules over the block. An LLM never decides a fact.</li>
+      <li><b>Every plan ends.</b> One planning call, a closed menu, each step once. A bad answer gets the rules plan.</li>
+      <li><b>Code decides when a tool failed:</b> an error, a hang, nothing usable, or two gate misses. Then the walkers run.</li>
+      <li><b>Walkers are boxed in:</b> read-only, named queries only, 3 teams, 2 hops, 24 queries per stall.</li>
+      <li><b>No people in facts.</b> A fact with an email is refused before a prompt is built.</li>
+      <li><b>Every answer is cached</b> by model, prompt version and facts, so reruns cost nothing and match byte for byte.</li>
+    </ul>
+  </section>
 
   <footer>Every number has its source in the repo: <code>Model-Pipeline/report/REPORT.md</code> and each owner's section under <code>Model-Pipeline/packets/</code>. Model numbers come from block <code>c5118b019d642a9b</code>, product numbers from <code>bb6b5f4e32a4bee7</code>; both are builds of the same Oct 1 snapshot.</footer>
 </main>
