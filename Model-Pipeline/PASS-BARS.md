@@ -73,7 +73,7 @@ From [packets/utkarsh-data/pass-bars.md](packets/utkarsh-data/pass-bars.md), whe
 | Packages match | ≥ 90% on the 12 repos whose migration commit finished the job. The other 8 are reported, not judged | `test_diffs`, per repo |
 | Decision 10 | If the codemod alone clears 90% on Django, the LLM path is cut first (PLAN §9), and that is reported as a result | same test, codemod only |
 | Decision 11 | `url()` gets the replacement each migration actually used, per line. Judged by the packages match bar | same test |
-| Only its own line | A draft that changes any other line is refused, 100% | `test_diffs` |
+| Only its own statement | A draft that changes any other statement is refused, 100%. **Changed on Nov 15, after the drafts ran:** the bar said "any other line" until decision 14 drafted a `url(...)` call over several lines as one statement (packages 67.0% → 73.2%). Aniket's OK, Nov 15. `--one-line` keeps the old rule and gives the old numbers | `test_diffs` |
 | Resolves | A draft whose new name doesn't resolve to the target symbol is refused, 100% | `test_diffs` |
 | No LLM in `except` | A site inside `except` gets no LLM diff, 100% | `test_diffs` |
 | LLM off | With the LLM off, the codemod still drafts and the run completes | `test_diffs` |

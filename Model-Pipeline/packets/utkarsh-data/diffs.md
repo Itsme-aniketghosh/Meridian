@@ -23,7 +23,7 @@ Everything below comes from the team run `c5118b019d642a9b`. Each repo is drafte
 |---|---|
 | Django ≥ 90% (05-test) | ✅ **254 of 267 lines = 95.1%.** 265 drafted. 2 refused (`code.sample` isn't Python). 13 misses: 2 non-Python lines, and lines where the real commit did more than rename (e.g. `widgets.py` switched to `_`, a multi-line import merged into one) |
 | Packages ≥ 90% on the 12 finished repos | ❌ **73.2%** on the files the drafter wasn't shown (655 of 895), with the owner's style learned from their first files (decision 13) and whole statements (decision 14). 58.1% for the default style on the same lines. At the parent commit, with no owner lines: 58.6% (623 of 1,063; 677 of 1,236 = 54.8% over all 20). Django is unchanged at 254 of 267 |
-| Draft touching another line refused | ✅ test. With decision 14 it's "another statement": a `url(...)` call over several lines is drafted whole. **Needs Aniket's OK**, since it changes the PASS-BARS §2.5 row; `--one-line` keeps the old rule and gives the old numbers |
+| Draft touching another line refused | ✅ test. With decision 14 it's "another statement": a `url(...)` call over several lines is drafted whole. Aniket's OK, Nov 15 (PASS-BARS §2.5 now says "statement", and that it changed after the run); `--one-line` keeps the old rule and gives the old numbers |
 | New name that doesn't resolve refused | ✅ test (no `gettext` in the module: all 4 drafts refused) |
 | No LLM diff inside `except` | ✅ tests: `llm_allowed`, and a fixture run where the LLM is never called for an `except` site. The codemod may draft there; only the LLM may not |
 | LLM off: codemod drafts, run completes | ✅ test. Rows load into the `suggestion` table (#30) |
@@ -165,4 +165,4 @@ Built on Vishwa's cache and fact gate (#28, #48) and Rochan's `log_llm_call` (#3
 
 - ~~Writing to the real block~~ Done: the final product runs drafted on bb6b5f4e (538 rows, 0 by the LLM; `Model-Pipeline/reports/final/RUN-LOG.md`).
 - ~~Diff match rate per repo and per team, for Chaitali's LLM bias row~~ Done: Chaitali's `model/llm_bias.py` reads these per-repo counts from `packets/chaitali-bias/diff_match_by_repo.csv`.
-- Open after the freeze: real `outcome` rows, to measure learning from edits (decision 15); Aniket's OK on decision 14's statement rule (PASS-BARS §2.5).
+- Open after the freeze: real `outcome` rows, to measure learning from edits (decision 15). Decision 14's statement rule: Aniket's OK, Nov 15.

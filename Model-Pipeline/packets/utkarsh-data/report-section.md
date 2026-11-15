@@ -116,7 +116,7 @@ Run `5bc7deda64fcfa0a` uses `meridian.next.toml`: Django at its conversion commi
   - **Without the owner's lines:** at the parent commit, with no owner lines to read, it's 58.6% (623 of 1,063). The best single style is 49.5% over all 20 repos (decision 11).
   - **What closes most of the gap:** reading the owner's style from their first migrated files (decision 13) and drafting multi-line calls as one statement (decision 14).
   - **Of the 244 lines still missed,** only 14 (5.7%) are the owner doing more than migrating. The other 230 are owners choosing line by line, which nothing at the parent commit shows: `path` here and `re_path` there, joined here and kept there, a strict converter here and a loose one there.
-- **One rule change still needs Aniket's sign-off:** decision 14 changes PASS-BARS §2.5's rule from "a draft that changes any other line is refused" to "any other statement". `--one-line` keeps the old rule and gives the old numbers.
+- **One rule changed after the drafts ran:** decision 14 changes PASS-BARS §2.5's rule from "a draft that changes any other line is refused" to "any other statement". Aniket signed it off on Nov 15, and PASS-BARS says it came after the results. `--one-line` keeps the old rule and gives the old numbers.
 
 **In the product, the drafter doesn't guess a `url()` style** (decision 15). It waits for the owner's first migrated file, copies its style, learns from the owner's edits of earlier diffs, and never re-offers a diff they rejected. Learning from edits is built and tested on a fixture (`OwnerFirst`), but there are no real outcomes to measure it on yet.
 
