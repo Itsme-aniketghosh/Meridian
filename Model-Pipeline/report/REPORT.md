@@ -22,8 +22,8 @@ The tools exist to cut the noise. The context builder hands the LLM 35% of a tea
 | Val 2023 | Champion 0.4067 [0.365, 0.451] vs 0.319, paired +0.088 [+0.061, +0.113], N = 4,113 | `registry/champion.json` |
 | Simulated faults | 21 of 21 behave, on frozen main and again on `57adef0` | `python -m tests.faults.table` |
 | Product rerun | 68 stalls planned, 205 LLM texts, 19 templates, **0 LLM calls, $0** | `reports/final/RUN-LOG.md` |
-| Fact gate | 200 of 200 planted errors caught; 2,000 of 2,000 over 10 seeds, 0 false rejects | Vishwa's decisions 1, 11 |
-| Live LLM spend, the whole run | 247 calls, $1.10 | `packets/utkarsh-data/gaps.md` |
+| Fact gate | 200 of 200 planted errors caught; 2,000 of 2,000 over 10 seeds, 0 false rejects | [Fact gate decisions 1, 11](../packets/vishwa-agents/decisions.md) |
+| Live LLM spend, the whole run | 247 calls, $1.10 | [Live run notes](../packets/utkarsh-data/gaps.md) |
 
 ### Architecture
 
@@ -74,7 +74,7 @@ The dotted ↻ arrows are the self-improving loops (§8.6).
 
 ## 2. Model development (§2, §8)
 
-### 2.1 Data from the pipeline (§2.1, §8.2) · Utkarsh
+### 2.1 Data from the pipeline (§2.1, §8.2)
 
 - `model/data.py` reads `published/latest.json`, checks that it names the same run as `model.toml`, and writes `data/features.parquet`.
 - **Rows:** 41,163 first-parent Spark commits from 2015 on, no merges.
@@ -90,7 +90,7 @@ The dotted ↻ arrows are the self-improving loops (§8.6).
 | val, 2023 | 4,113 | 486 (11.8%) |
 | test, 2024 | 3,762 | 283 (7.5%) |
 
-### 2.2 Training and selection (§2.2, §8.3) · Rachna
+### 2.2 Training and selection (§2.2, §8.3)
 
 Three baselines, three model families, all on val 2023 with paired bootstrap intervals against lines × files:
 
@@ -109,13 +109,13 @@ Three baselines, three model families, all on val 2023 with paired bootstrap int
 - **Seed noise:** five seeds of the forest give SD 0.0021. A gap under about 0.004 is noise; the gate and the registry both use that number.
 - **Accuracy is useless here:** 88.5% for the forest, 88.2% for always saying "no bug". Every number is PR-AUC.
 
-### 2.3 Validation on held-out data (§2.3, §8.4) · Rochan
+### 2.3 Validation on held-out data (§2.3, §8.4)
 
 - **Split by time:** train 2015–2022, choose on 2023, test on 2024 once. Nothing is picked after 2024 is seen.
 - **Choices made on val:** PR-AUC as the main metric, recall at 20% of changed lines as the effort metric, 2,000 paired bootstrap resamples (41% narrower than unpaired).
 - **2024 stayed sealed:** `evaluate.py --split test` refuses unless `test_allowed` is true and the code is committed (fault 14). The champion first had to reproduce its val PR-AUC of 0.4067.
 
-**2024, once** (Nov 14, 01:57 UTC, commit `df12728`, Utkarsh ran it, Aniket watched; `reports/2024/RUN-LOG.md`):
+**2024, once** (Nov 14, 01:57 UTC, commit `df12728`, watched live; `reports/2024/RUN-LOG.md`):
 
 | 2024, N = 3,762 | Value |
 |---|---|
@@ -131,7 +131,7 @@ Three baselines, three model families, all on val 2023 with paired bootstrap int
 - PR-AUCs drop from 2023 because 2024's labels are thinner: 7.5% positive, against 11.8%. Bugs from 2024 haven't all been found yet.
 - Golden md5s of every input and output are in `golden/2024.json`.
 
-### 2.4 Bias detection and mitigation (§2.4–2.5, §6) · Chaitali
+### 2.4 Bias detection and mitigation (§2.4–2.5, §6)
 
 - **Slices:** module, component, author experience and commit size (quarters). Fairlearn `MetricFrame`.
 - **Rule (phase 1's, kept for comparison):** judged when the slice has 30 positives (for recall) or negatives (for false positives); flagged when its whole Wilson interval is more than 0.10 worse than overall. 62 judged tests.
@@ -161,11 +161,11 @@ Three baselines, three model families, all on val 2023 with paired bootstrap int
 - Equal recall by size would cost a third of all bugs caught (recall 0.52 → 0.34).
 - The precision limit came after the first results (Nov 8). A threshold fix leaves PR-AUC unchanged by construction, so the PR-AUC limit alone couldn't see its cost.
 
-### 2.5 Final selection (§8.6) · Chaitali
+### 2.5 Final selection (§8.6)
 
 The tuned forest. It beats lines × files, ties LightGBM (the simpler wins), and both have the same five size flags, so bias doesn't reopen the tie. Its bias report passes with the five accepted.
 
-### 2.6 Registry on GCP (§2.6, §8.7) · Rochan
+### 2.6 Registry on GCP (§2.6, §8.7)
 
 - **GCP Artifact Registry** `meridian-models` (us-east1). Each promoted model is a version named by its git SHA, with `champion.json` beside it; a `champion` pointer names the one in force.
 - **The champion:** version `85b4684…`, `model.joblib` md5 `2a0c9cc6…`, confirmed in the registry on Nov 14.
@@ -173,21 +173,21 @@ The tuned forest. It beats lines × files, ties LightGBM (the simpler wins), and
 - **Checked on the real repo:** two drill models pulled back with matching md5s (Nov 9); eight steps on Nov 10, all passing, including a rollback and a conflicting file stopped.
 - **Billing:** only `meridian-models`, 40 MB, on education credit.
 
-## 3. Hyperparameter tuning (§3) · Rachna
+## 3. Hyperparameter tuning (§3)
 
 - **Optuna** on three expanding time folds inside train (2020–2022), search space in `model.toml [search.*]`.
 - **Stopping rule:** 50 trials at a time while the last 30 still improve by at least 0.002. Logistic regression stopped at 50, the forest and LightGBM at 100.
 - **Tuning doesn't touch val.** Tuned logistic regression came out below untuned (0.382 vs 0.390), and we didn't re-tune on val, because that would leak it.
 - **CI doesn't re-search.** The full search took 27.7 minutes on a GitHub runner; CI retrains with the committed best parameters instead (§6).
 
-## 4. Experiment tracking and model comparison (§4) · Rachna, Rochan
+## 4. Experiment tracking and model comparison (§4)
 
 - **MLflow,** three experiments: `meridian-defect-risk`, `meridian-agents` (every LLM call), `meridian-auditor`.
 - **Every run carries the same tags:** `owner`, `block_run_id`, `git_sha`, `git_dirty`, `config_sha256`, `features_md5`, and `decision` on decision runs. 26 of 26 runs checked.
 - **Any number traces back** to its commit, its block and its feature table.
 - **Comparison charts** from `evaluate.py`: PR-AUC with intervals per model, confusion matrix, PR curves; on val in `reports/`, on 2024 in `reports/2024/`.
 
-## 5. Sensitivity analysis (§5) · Rachna
+## 5. Sensitivity analysis (§5)
 
 Charts redrawn on Nov 15 from the champion itself (`registry/model.joblib`), on val, N = 4,113 (`reports/sensitivity.json`).
 
@@ -201,7 +201,7 @@ Charts redrawn on Nov 15 from the champion itself (`registry/model.joblib`), on 
   - `n_estimators` ±50% moves it 0.0062, over the bar by the rule. fANOVA gives it no importance, and five noisy points span about 0.005 by chance alone, so we read it as noise near the bar, not a real dependence.
   - The choices of `max_features` spread 0.0075; of `max_depth`, 0.0026.
 
-## 6. CI/CD (§7) · Chaitali, Rochan
+## 6. CI/CD (§7)
 
 `model.yml` runs on every PR and push that touches `Model-Pipeline/`:
 
@@ -218,7 +218,7 @@ build image → data check → train → seed noise → evaluate → bias → ga
 - **Speed:** a PR's run takes 4.0 minutes (median; 3.4–5.3 over 24 runs), against a 15-minute bar.
 - **Shown red when it should be:** a shuffled-label model on a draft PR failed at 0.174 vs 0.319 and failed bias. Three product faults planted on a draft PR each turned `ci.yml` red on Linux and Windows.
 
-## 7. Docker (§8.1) · Rachna
+## 7. Docker (§8.1)
 
 `python -m model.run_all` runs data check, training, seed noise, evaluation and bias in order inside the model's image, and stops at the first failing step. Its fake mode runs every step on a synthetic table in 22 seconds on every PR.
 
@@ -230,15 +230,15 @@ Every LLM in Meridian sits behind three checks: the fact gate validates its text
 
 | Agent or tool | What it does | Model | How it was tested and picked | Result |
 |---|---|---|---|---|
-| **Orchestrator** · Aniket | Plans for each stalled team from a closed menu of 4 writer steps. Always ends | Gemini 3.1 Pro | The strongest model our billing can buy. Not compared: every answer is checked, and a failed check gets the rules plan | 68 stalls: 49 plans used, 19 to the rules (6 not JSON, 13 refused by the gate) |
-| **Auditors** · Rochan | Rank why a team stalled. Policies v0 and v1, ε-greedy (0.2), Elo | rules | Promotion guard picked from a sweep of 27 over 2,000 simulated seeds, rule committed first | Luck promotes a no-better policy 4.0% of the time (was 87%) |
-| **Jev** · Rachna | Picks which model starts each task | rules; Phi-4-mini | 60 tasks labelled by hand before any model ran; rules vs 3 models on the 30 held out | Rules 29 of 30, $0. No router beats them |
-| **Writer** · Vishwa | Turns facts into stall reasons, ticket drafts, consumer text, rewrites | Gemini 3.8 Flash | 4 models on 204 real tasks; cheapest within 2 points of the best | Flash 80.4%, then 100% after fixing the facts |
-| **Context builder** (tool) · Chaitali | Keeps the files holding 90% of a team's bug fixes, counts the rest | rules | Switched on by a rule written first: ≥ 90% of bug fixes kept, ≥ 10 points over random | 96.4% of fixes with 35% of files (random 72.7%); facts 46% shorter |
-| **Graph walkers** · Utkarsh | When the context builder fails, query the code graph: named queries only, read-only, capped | rules; walk-v0, walk-v1 | Fixture with the tool made to fail and the cause outside its context: found. walk-v1 on 20% of stalls, in shadow | Ran for 20 real stalls; a rerun makes 0 queries |
-| **Diff drafter** · Utkarsh | Drafts the replacement line, codemod first | codemod; LLM ladder | 3 models on the 12 lines the codemod refuses, same rule as the writer | 0 of 12 each: codemod only. Django 95.1%, packages 73.2% |
-| **Fact gate** · Vishwa | Every number, path, ticket, SHA, date and team in LLM text must be in the facts; any miss ships the template | code | 400 planted texts, 4,000 over 10 seeds, then 816 real answers with every rejection read by hand | All planted errors caught; 23 of 27 real rejects were right, fixed in the facts |
-| **LLM cache** · Vishwa | sha256(model, prompt version, facts), committed | | Fault 18: delete one entry, only that task calls again | Reruns: 0 calls, 1,353 entries before and after |
+| **Orchestrator** | Plans for each stalled team from a closed menu of 4 writer steps. Always ends | Gemini 3.1 Pro | The strongest model our billing can buy. Not compared: every answer is checked, and a failed check gets the rules plan | 68 stalls: 49 plans used, 19 to the rules (6 not JSON, 13 refused by the gate) |
+| **Auditors** | Rank why a team stalled. Policies v0 and v1, ε-greedy (0.2), Elo | rules | Promotion guard picked from a sweep of 27 over 2,000 simulated seeds, rule committed first | Luck promotes a no-better policy 4.0% of the time (was 87%) |
+| **Jev** | Picks which model starts each task | rules; Phi-4-mini | 60 tasks labelled by hand before any model ran; rules vs 3 models on the 30 held out | Rules 29 of 30, $0. No router beats them |
+| **Writer** | Turns facts into stall reasons, ticket drafts, consumer text, rewrites | Gemini 3.8 Flash | 4 models on 204 real tasks; cheapest within 2 points of the best | Flash 80.4%, then 100% after fixing the facts |
+| **Context builder** (tool) | Keeps the files holding 90% of a team's bug fixes, counts the rest | rules | Switched on by a rule written first: ≥ 90% of bug fixes kept, ≥ 10 points over random | 96.4% of fixes with 35% of files (random 72.7%); facts 46% shorter |
+| **Graph walkers** | When the context builder fails, query the code graph: named queries only, read-only, capped | rules; walk-v0, walk-v1 | Fixture with the tool made to fail and the cause outside its context: found. walk-v1 on 20% of stalls, in shadow | Ran for 20 real stalls; a rerun makes 0 queries |
+| **Diff drafter** | Drafts the replacement line, codemod first | codemod; LLM ladder | 3 models on the 12 lines the codemod refuses, same rule as the writer | 0 of 12 each: codemod only. Django 95.1%, packages 73.2% |
+| **Fact gate** | Every number, path, ticket, SHA, date and team in LLM text must be in the facts; any miss ships the template | code | 400 planted texts, 4,000 over 10 seeds, then 816 real answers with every rejection read by hand | All planted errors caught; 23 of 27 real rejects were right, fixed in the facts |
+| **LLM cache** | sha256(model, prompt version, facts), committed | | Fault 18: delete one entry, only that task calls again | Reruns: 0 calls, 1,353 entries before and after |
 
 ### 8.2 Validation: the fact gate
 
@@ -388,13 +388,13 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 
 ## Appendices
 
-Each owner's full section, with every decision table:
+Each part's full section, with every decision table:
 
-- [Data, labels, the diff drafter, the walkers](../packets/utkarsh-data/report-section.md) · Utkarsh
-- [The model, tuning, sensitivity, Jev](../packets/rachna-models/report-section.md) · Rachna
-- [Validation, tracking, the registry, the auditor](../packets/rochan-tracking/REPORT-SECTION.md) · Rochan
-- [Bias, the final pick, the gate, CI](../packets/chaitali-bias/report-section.md) · Chaitali
-- [The fact gate, the writer, the cache, the views](../packets/vishwa-agents/report-section.md) · Vishwa
-- [Integration, faults, the go, the final runs, the orchestrator](../packets/aniket-lead/report-section.md) · Aniket
+- [Data, labels, the diff drafter, the walkers](../packets/utkarsh-data/report-section.md)
+- [The model, tuning, sensitivity, Jev](../packets/rachna-models/report-section.md)
+- [Validation, tracking, the registry, the auditor](../packets/rochan-tracking/REPORT-SECTION.md)
+- [Bias, the final pick, the gate, CI](../packets/chaitali-bias/report-section.md)
+- [The fact gate, the writer, the cache, the views](../packets/vishwa-agents/report-section.md)
+- [Integration, faults, the go, the final runs, the orchestrator](../packets/aniket-lead/report-section.md)
 
 Run logs and fingerprints: [2024 run](../reports/2024/RUN-LOG.md) · [final runs](../reports/final/RUN-LOG.md) · [golden md5s](../golden/2024.json) · [end-to-end check](../reports/checks/E2E-CHECK-2026-11-14.md) · [open gaps](../GAPS.md) · [pass bars](../PASS-BARS.md)
