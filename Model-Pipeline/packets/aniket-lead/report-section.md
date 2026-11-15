@@ -110,5 +110,12 @@ On the fixture, with the context builder made to fail, they go from fulfillment 
 
 - Phase 3 deploys the product, which starts the auditor's live matches.
 - Make the walkers' facts carry the team names they write, so their texts can pass the gate.
-- Then smarter walkers. Today every walker runs the same named queries on every team in `blocked_by` order. A walk policy would choose which upstream team to visit next and which query to run first, from what the block already holds: the auditor champion's top reasons, call sites between teams, and bug fixes. It would be versioned code, run in shadow as a challenger beside today's walker, scored and promoted by the auditor's own rules (04-architecture §9). An LLM may propose the policy code for a person to review, but never picks a step. It needs 30 matches to be promoted; today there are 20 walked stalls and 0 live matches.
+- Score the smarter walker. Utkarsh added walk policies after this section's first draft (#129, Nov 15):
+  - **`walk-v0`** is today's walker and stays the champion.
+  - **`walk-v1`** is the challenger. It follows the ranking the auditor serves the stall, visiting first the upstream team with the most evidence for the top-ranked reasons, then the one with the most blocking call sites.
+  - **Rules only:** no model picks a step.
+  - **Which stalls get it:** ε-greedy picks the policy per stall (20% v1), seeded by run_id and task, and each walk records the other policy's teams in shadow, with no extra queries.
+  - **On bb6b5f4e:** 16 of 68 stalls draw v1, no walk differs (no real stall has two upstream teams competing for the cap), and the orchestrator's output is unchanged: 205 LLM texts, 19 templates, 0 calls.
+
+  Scoring v1 needs live verdicts, and promotion needs 30 matches (04-architecture §9). Today there are 0.
 - Fix `6921a` and gap 23's path-and-lines in the gate, each with planted-error tests like #122's.
