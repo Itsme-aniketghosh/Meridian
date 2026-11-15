@@ -163,5 +163,6 @@ Built on Vishwa's cache and fact gate (#28, #48) and Rochan's `log_llm_call` (#3
 
 ## What's left
 
-- Writing to the real block: `python -m meridian.diffs --run-id c5118b019d642a9b --config meridian.toml` writes `out/c5118b019d642a9b/suggestion.jsonl`. #30 is merged now, so this can run. All the evaluation runs wrote to a scratch folder.
-- Diff match rate per repo and per team, for Chaitali's LLM bias row: the per-repo table above is the input.
+- ~~Writing to the real block~~ Done: the final product runs drafted on bb6b5f4e (538 rows, 0 by the LLM; `Model-Pipeline/reports/final/RUN-LOG.md`).
+- ~~Diff match rate per repo and per team, for Chaitali's LLM bias row~~ Done: Chaitali's `model/llm_bias.py` reads these per-repo counts from `packets/chaitali-bias/diff_match_by_repo.csv`.
+- Open after the freeze: real `outcome` rows, to measure learning from edits (decision 15); Aniket's OK on decision 14's statement rule (PASS-BARS §2.5).
