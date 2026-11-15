@@ -1,0 +1,321 @@
+<title>Meridian Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one wide schematic (data on top, model and agents side by side, what people see at the bottom), then the evidence a judge checks. */
+:root {
+  --bg: #f6f7f4; --panel: #eceee8; --card: #ffffff; --ink: #1d2320; --muted: #5d6762; --line: #8a948e;
+  --agent: #1f6f5c; --agent-soft: #d9ece6; --rule: #3f4f8a; --rule-soft: #e1e5f3;
+  --tool: #8a5a12; --tool-soft: #f4e7cf; --gate: #a3361f; --gate-soft: #f6ddd5; --fall: #a3361f;
+  --display: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121614; --panel: #1a201d; --card: #202724; --ink: #e6ebe8; --muted: #9aa6a0; --line: #6f7b75;
+  --agent: #5cc3a6; --agent-soft: #1d3a32; --rule: #9aa9e6; --rule-soft: #242c4a;
+  --tool: #e0ad5c; --tool-soft: #3a2e19; --gate: #f08a70; --gate-soft: #3f231c; --fall: #f08a70; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121614; --panel: #1a201d; --card: #202724; --ink: #e6ebe8; --muted: #9aa6a0; --line: #6f7b75;
+  --agent: #5cc3a6; --agent-soft: #1d3a32; --rule: #9aa9e6; --rule-soft: #242c4a;
+  --tool: #e0ad5c; --tool-soft: #3a2e19; --gate: #f08a70; --gate-soft: #3f231c; --fall: #f08a70; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--display);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+main { max-width: 1240px; margin: 0 auto; display: grid; gap: 28px; }
+header { display: grid; gap: 8px; max-width: 76ch; }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font-size: 20px; margin: 0 0 10px; text-wrap: balance; }
+p { margin: 0; }
+.lede { color: var(--muted); font-size: 16px; }
+.lede b { color: var(--ink); font-weight: 600; }
+.diagram { background: var(--card); border: 1px solid var(--panel); border-radius: 10px; overflow-x: auto; }
+.diagram svg { display: block; min-width: 1100px; width: 100%; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font: 12px var(--mono); color: var(--muted); padding: 12px 16px 14px; border-top: 1px solid var(--panel); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 18px; height: 12px; border-radius: 3px; border: 1.5px solid; display: inline-block; }
+.sw.agent { background: var(--agent-soft); border-color: var(--agent); }
+.sw.rule { background: var(--rule-soft); border-color: var(--rule); }
+.sw.tool { background: var(--tool-soft); border-color: var(--tool); }
+.sw.gate { background: var(--gate-soft); border-color: var(--gate); }
+.sw.fall { background: transparent; border-color: var(--fall); border-style: dashed; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.stat { background: var(--card); border: 1px solid var(--panel); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; }
+.stat .num { font: 600 26px var(--display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.stat .what { color: var(--muted); font-size: 13.5px; }
+.stat .src { font: 11.5px var(--mono); color: var(--muted); }
+.two { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--panel); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 620px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--panel); vertical-align: top; }
+th { font: 500 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.kind { font: 500 11px var(--mono); padding: 2px 7px; border-radius: 99px; white-space: nowrap; border: 1px solid; }
+.kind.agent { color: var(--agent); background: var(--agent-soft); border-color: var(--agent); }
+.kind.rule { color: var(--rule); background: var(--rule-soft); border-color: var(--rule); }
+.kind.tool { color: var(--tool); background: var(--tool-soft); border-color: var(--tool); }
+.kind.gate { color: var(--gate); background: var(--gate-soft); border-color: var(--gate); }
+ul.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+ul.rules li { background: var(--card); border: 1px solid var(--panel); border-radius: 10px; padding: 11px 14px; font-size: 14px; }
+ul.rules li b { font-weight: 600; }
+code { font: 12.5px var(--mono); }
+footer { color: var(--muted); font-size: 13px; max-width: 90ch; }
+/* svg */
+.lane { fill: var(--panel); }
+.lane-t { font: 600 11.5px var(--mono); letter-spacing: .1em; fill: var(--muted); }
+.box { stroke-width: 1.6; }
+.b-agent { fill: var(--agent-soft); stroke: var(--agent); }
+.b-agent.hero { stroke-width: 2.6; }
+.b-rule { fill: var(--rule-soft); stroke: var(--rule); }
+.b-tool { fill: var(--tool-soft); stroke: var(--tool); }
+.b-gate { fill: var(--gate-soft); stroke: var(--gate); stroke-width: 2.2; }
+.b-fall { fill: var(--card); stroke: var(--fall); stroke-dasharray: 6 4; stroke-width: 1.8; }
+.b-plain { fill: var(--card); stroke: var(--line); }
+.t { font: 600 13px var(--display); fill: var(--ink); letter-spacing: .02em; }
+.s { font: 11px var(--mono); fill: var(--muted); }
+.chip { font: 500 10px var(--mono); letter-spacing: .04em; }
+.c-agent { fill: var(--agent); } .c-rule { fill: var(--rule); } .c-tool { fill: var(--tool); } .c-gate { fill: var(--gate); } .c-fall { fill: var(--fall); }
+.e { fill: none; stroke: var(--line); stroke-width: 1.6; }
+.e-fall { fill: none; stroke: var(--fall); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.e-ok { fill: none; stroke: var(--agent); stroke-width: 1.8; }
+.el { font: 10.5px var(--mono); fill: var(--muted); }
+.el-fall { font: 500 10.5px var(--mono); fill: var(--fall); }
+.el-ok { font: 500 10.5px var(--mono); fill: var(--agent); }
+.ah { fill: var(--line); } .ah-fall { fill: var(--fall); } .ah-ok { fill: var(--agent); }
+.screen { fill: var(--card); stroke: var(--line); stroke-width: 1.2; }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">Meridian · phase 2 · Nov 15, 2026</div>
+    <h1>How Meridian works</h1>
+    <p class="lede">Meridian finds every call to an API that's being retired, who owns it, how risky it is and which teams are stuck waiting on each other. <b>Rules decide the facts; LLM agents only write them up</b>, and a fact gate checks every word. The tools cut the noise so a model reads only what matters, and when a tool comes back empty, the graph walkers go straight to the code graph.</p>
+  </header>
+
+  <section class="diagram" aria-label="Architecture diagram">
+    <svg viewBox="0 0 1200 850" role="img" aria-labelledby="dg-t dg-d">
+      <title id="dg-t">Meridian architecture</title>
+      <desc id="dg-d">The data pipeline builds one SQLite block. The model pipeline trains, evaluates, checks bias, gates and pushes the defect-risk model to Artifact Registry for the push check. The multi-agent product finds stalled teams, auditors rank reasons, the orchestrator plans, Jev picks a model, the writer writes from the context builder's facts or the graph walkers' facts when the tool fails, and the fact gate passes the text or ships a template to the views.</desc>
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="af" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-fall" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-ok" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+
+      <!-- lanes -->
+      <rect class="lane" x="16" y="16" width="1168" height="120" rx="10"/>
+      <text class="lane-t" x="32" y="36">1 · DATA PIPELINE (PHASE 1)</text>
+      <rect class="lane" x="16" y="180" width="380" height="500" rx="10"/>
+      <text class="lane-t" x="32" y="200">2 · MODEL PIPELINE · CI ON EVERY PUSH</text>
+      <rect class="lane" x="412" y="180" width="772" height="500" rx="10"/>
+      <text class="lane-t" x="428" y="200">3 · PRODUCT · MULTI-AGENT SYSTEM</text>
+      <rect class="lane" x="16" y="700" width="1168" height="134" rx="10"/>
+      <text class="lane-t" x="32" y="720">4 · WHAT PEOPLE SEE</text>
+
+      <!-- band 1 -->
+      <rect class="box b-plain" x="32" y="50" width="200" height="66" rx="8"/>
+      <text class="t" x="46" y="74">SOURCES</text>
+      <text class="s" x="46" y="93">22 repos · Spark Jira</text>
+      <text class="s" x="46" y="108">GitLab issues</text>
+
+      <rect class="box b-rule" x="272" y="50" width="520" height="66" rx="8"/>
+      <text class="t" x="286" y="74">AIRFLOW DAGs · daily update, weekly rebuild</text>
+      <text class="s" x="286" y="93">collect → history → scan → resolve → owners</text>
+      <text class="s" x="286" y="108">→ join → graph → validate → publish</text>
+
+      <path class="box b-plain" d="M840,56 a164,10 0 0 1 328,0 v54 a164,10 0 0 1 -328,0 z"/>
+      <path class="e" d="M840,56 a164,10 0 0 0 328,0"/>
+      <text class="t" x="858" y="82">THE BLOCK · one SQLite file</text>
+      <text class="s" x="858" y="99">one run_id · 1.79M rows</text>
+      <text class="s" x="858" y="113">same inputs → same bytes</text>
+
+      <path class="e" d="M232,83 H266" marker-end="url(#a)"/>
+      <path class="e" d="M792,83 H834" marker-end="url(#a)"/>
+
+      <!-- bus: everything reads the block -->
+      <path class="e" d="M1004,121 V158 H206 V208" marker-end="url(#a)"/>
+      <path class="e" d="M540,158 V208" marker-end="url(#a)"/>
+      <text class="el" x="1012" y="152">reads the block</text>
+
+      <!-- band 2: model -->
+      <rect class="box b-rule" x="56" y="214" width="300" height="50" rx="8"/>
+      <text class="t" x="70" y="235">FEATURES</text>
+      <text class="s" x="70" y="252">41,163 Spark commits · md5 9c0ab220</text>
+      <rect class="box b-rule" x="56" y="284" width="300" height="54" rx="8"/>
+      <text class="t" x="70" y="305">TRAIN + TUNE (Optuna)</text>
+      <text class="s" x="70" y="323">logreg · forest · LightGBM</text>
+      <rect class="box b-rule" x="56" y="358" width="300" height="54" rx="8"/>
+      <text class="t" x="70" y="379">EVALUATE</text>
+      <text class="s" x="70" y="397">val 2023 · 2024 scored once</text>
+      <rect class="box b-rule" x="56" y="432" width="300" height="54" rx="8"/>
+      <text class="t" x="70" y="453">BIAS SLICES</text>
+      <text class="s" x="70" y="471">62 judged tests · 5 size flags</text>
+      <rect class="box b-gate" x="56" y="506" width="300" height="54" rx="8"/>
+      <text class="t" x="70" y="527">GATE</text>
+      <text class="s" x="70" y="545">5 checks · a fail blocks the push</text>
+      <path class="box b-plain" d="M56,592 a150,9 0 0 1 300,0 v52 a150,9 0 0 1 -300,0 z"/>
+      <path class="e" d="M56,592 a150,9 0 0 0 300,0"/>
+      <text class="t" x="70" y="621">ARTIFACT REGISTRY</text>
+      <text class="s" x="70" y="638">champion 85b4684 · rollback</text>
+      <path class="e" d="M206,264 V278" marker-end="url(#a)"/>
+      <path class="e" d="M206,338 V352" marker-end="url(#a)"/>
+      <path class="e" d="M206,412 V426" marker-end="url(#a)"/>
+      <path class="e" d="M206,486 V500" marker-end="url(#a)"/>
+      <path class="e" d="M206,560 V578" marker-end="url(#a)"/>
+      <path class="e" d="M206,653 V738" marker-end="url(#a)"/>
+
+      <!-- band 3: agents -->
+      <rect class="box b-rule" x="440" y="214" width="200" height="50" rx="8"/>
+      <text class="t" x="454" y="235">STALL RULE</text>
+      <text class="s" x="454" y="252">finds 68 stalled teams</text>
+
+      <rect class="box b-rule" x="440" y="290" width="200" height="94" rx="8"/>
+      <text class="chip c-rule" x="454" y="308">AGENTS · RULES</text>
+      <text class="t" x="454" y="328">AUDITORS</text>
+      <text class="s" x="454" y="346">rank why a team stalled</text>
+      <text class="s" x="454" y="361">policies v0, v1 · ε 0.2</text>
+      <text class="s" x="454" y="376">Elo · luck guard</text>
+
+      <rect class="box b-agent hero" x="680" y="214" width="260" height="118" rx="8"/>
+      <text class="chip c-agent" x="696" y="234">LLM AGENT · GEMINI 3.1 PRO</text>
+      <text class="t" x="696" y="256" style="font-size:15px">ORCHESTRATOR</text>
+      <text class="s" x="696" y="276">plans each stall from a closed</text>
+      <text class="s" x="696" y="291">menu of 4 writer steps</text>
+      <text class="s" x="696" y="306">always ends · one call a stall</text>
+      <text class="s" x="696" y="321">bad answer → the rules plan</text>
+
+      <rect class="box b-rule" x="980" y="214" width="188" height="92" rx="8"/>
+      <text class="chip c-rule" x="994" y="232">ROUTER</text>
+      <text class="t" x="994" y="252">JEV</text>
+      <text class="s" x="994" y="271">picks the starting model</text>
+      <text class="s" x="994" y="286">rules · Phi-4-mini</text>
+
+      <rect class="box b-agent" x="680" y="372" width="260" height="92" rx="8"/>
+      <text class="chip c-agent" x="696" y="390">LLM AGENT · GEMINI 3.8 FLASH</text>
+      <text class="t" x="696" y="410">WRITER</text>
+      <text class="s" x="696" y="429">turns facts into text, JSON only</text>
+      <text class="s" x="696" y="444">ladder: small → mid → large</text>
+
+      <rect class="box b-tool" x="440" y="420" width="200" height="84" rx="8"/>
+      <text class="chip c-tool" x="454" y="438">TOOL</text>
+      <text class="t" x="454" y="458">CONTEXT BUILDER</text>
+      <text class="s" x="454" y="477">35% of files kept,</text>
+      <text class="s" x="454" y="492">96.4% of bug fixes</text>
+
+      <rect class="box b-fall" x="440" y="548" width="200" height="110" rx="8"/>
+      <text class="chip c-fall" x="454" y="566">FALLBACK AGENTS</text>
+      <text class="t" x="454" y="586">GRAPH WALKERS</text>
+      <text class="s" x="454" y="605">query the code graph</text>
+      <text class="s" x="454" y="620">named queries only</text>
+      <text class="s" x="454" y="635">read-only · capped</text>
+      <text class="s" x="454" y="650">walk-v0 · walk-v1</text>
+
+      <path class="box b-plain" d="M980,478 a94,8 0 0 1 188,0 v56 a94,8 0 0 1 -188,0 z"/>
+      <path class="e" d="M980,478 a94,8 0 0 0 188,0"/>
+      <text class="t" x="994" y="505">LLM CACHE</text>
+      <text class="s" x="994" y="522">1,353 entries</text>
+      <text class="s" x="994" y="537">rerun = 0 calls, $0</text>
+
+      <rect class="box b-rule" x="980" y="572" width="188" height="86" rx="8"/>
+      <text class="chip c-rule" x="994" y="590">CODEMOD · LLM LADDER</text>
+      <text class="t" x="994" y="610">DIFF DRAFTER</text>
+      <text class="s" x="994" y="629">Django 254/267 matched</text>
+      <text class="s" x="994" y="644">packages 73.2%</text>
+
+      <path class="box b-gate" d="M736,500 H884 L904,532 L884,564 H736 L716,532 Z"/>
+      <text class="t" x="742" y="527">FACT GATE</text>
+      <text class="s" x="742" y="545">numbers, paths, teams</text>
+
+      <rect class="box b-plain" x="736" y="604" width="148" height="40" rx="8"/>
+      <text class="t" x="752" y="629">TEMPLATE</text>
+
+      <!-- agent edges -->
+      <path class="e" d="M540,264 V284" marker-end="url(#a)"/>
+      <path class="e" d="M640,320 H674" marker-end="url(#a)"/>
+      <text class="el" x="643" y="312">ranks</text>
+      <path class="e" d="M940,260 H974" marker-end="url(#a)"/>
+      <text class="el" x="944" y="252">tasks</text>
+      <path class="e" d="M810,332 V366" marker-end="url(#a)"/>
+      <text class="el" x="818" y="354">plan</text>
+      <path class="e" d="M1074,306 V418 H946" marker-end="url(#a)"/>
+      <text class="el" x="1082" y="360">model</text>
+      <path class="e" d="M640,440 H674" marker-end="url(#a)"/>
+      <path class="e-fall" d="M540,504 V542" marker-end="url(#af)"/>
+      <text class="el-fall" x="548" y="527">tool fails</text>
+      <path class="e-fall" d="M640,600 H660 V454 H674" marker-end="url(#af)"/>
+      <text class="el-fall" x="666" y="596">walk facts</text>
+      <path class="e" d="M946,450 H960 V500 H974" marker-start="url(#a)" marker-end="url(#a)"/>
+      <path class="e" d="M810,464 V494" marker-end="url(#a)"/>
+      <path class="e-fall" d="M810,564 V598" marker-end="url(#af)"/>
+      <text class="el-fall" x="818" y="586">miss</text>
+      <path class="e-ok" d="M904,532 H950 V738" marker-end="url(#ao)"/>
+      <text class="el-ok" x="912" y="524">pass</text>
+      <path class="e" d="M810,644 V738" marker-end="url(#a)"/>
+      <path class="e" d="M1074,658 V738" marker-end="url(#a)"/>
+
+      <!-- band 4 -->
+      <rect class="box b-rule" x="56" y="744" width="300" height="76" rx="8"/>
+      <text class="t" x="70" y="766">PUSH CHECK</text>
+      <text class="s" x="70" y="785">P1–P9 on every push</text>
+      <text class="s" x="70" y="800">P9: lines × files; the model ranks</text>
+
+      <rect class="box b-plain" x="440" y="744" width="728" height="76" rx="8"/>
+      <text class="t" x="454" y="766">VIEWS · read-only · run_id and coverage on every page</text>
+      <rect class="screen" x="454" y="778" width="120" height="30" rx="6"/><text class="s" x="472" y="797">Staff</text>
+      <rect class="screen" x="588" y="778" width="120" height="30" rx="6"/><text class="s" x="606" y="797">Owner</text>
+      <rect class="screen" x="722" y="778" width="120" height="30" rx="6"/><text class="s" x="740" y="797">Consumer</text>
+      <rect class="screen" x="856" y="778" width="120" height="30" rx="6"/><text class="s" x="874" y="797">Tickets</text>
+      <rect class="screen" x="990" y="778" width="120" height="30" rx="6"/><text class="s" x="1008" y="797">Push</text>
+    </svg>
+    <div class="legend">
+      <span><i class="sw agent"></i>LLM agent</span>
+      <span><i class="sw rule"></i>rules and code</span>
+      <span><i class="sw tool"></i>tool</span>
+      <span><i class="sw gate"></i>check that can stop the line</span>
+      <span><i class="sw fall"></i>fallback path</span>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="Headline numbers">
+    <div class="stat"><span class="num">+0.054</span><span class="what">2024 PR-AUC over lines × files, paired [+0.028, +0.081], N = 3,762. Scored once. The model ships</span><span class="src">reports/2024/metrics.json</span></div>
+    <div class="stat"><span class="num">21 / 21</span><span class="what">simulated faults behave, each with its expected result written first</span><span class="src">tests/faults/</span></div>
+    <div class="stat"><span class="num">0 calls</span><span class="what">on a full product rerun: 68 stalls, 205 LLM texts, $0</span><span class="src">reports/final/RUN-LOG.md</span></div>
+    <div class="stat"><span class="num">200 / 200</span><span class="what">planted errors caught by the fact gate; 2,000 / 2,000 over 10 seeds</span><span class="src">vishwa-agents/decisions.md</span></div>
+  </section>
+
+  <div class="two">
+    <section>
+      <h2>The agents and tools</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Part</th><th>Kind</th><th>Does</th><th>Measured</th></tr></thead>
+          <tbody>
+            <tr><td>Orchestrator</td><td><span class="kind agent">LLM · Gemini 3.1 Pro</span></td><td>Plans each stalled team from a closed menu of 4 writer steps</td><td class="num">68 stalls: 49 by the model, 19 by the rules</td></tr>
+            <tr><td>Auditors</td><td><span class="kind rule">rules</span></td><td>Rank why a team stalled; policies compete, Elo scores them</td><td class="num">Luck promotes a no-better policy 4.0% of the time (was 87%)</td></tr>
+            <tr><td>Jev</td><td><span class="kind rule">rules · Phi-4-mini</span></td><td>Picks which model starts each task</td><td class="num">Rules right on 29 of 30, $0</td></tr>
+            <tr><td>Writer</td><td><span class="kind agent">LLM · Gemini 3.8 Flash</span></td><td>Turns facts into stall reasons, ticket drafts, consumer text</td><td class="num">204 of 204 pass the gate</td></tr>
+            <tr><td>Context builder</td><td><span class="kind tool">tool</span></td><td>Keeps only the files holding a team's bug fixes</td><td class="num">96.4% of fixes in 35% of files (random 72.7%)</td></tr>
+            <tr><td>Graph walkers</td><td><span class="kind gate">fallback</span></td><td>When the tool fails, query the code graph directly</td><td class="num">Ran for 20 stalls; 0 extra cost on rerun</td></tr>
+            <tr><td>Diff drafter</td><td><span class="kind rule">codemod · LLM</span></td><td>Drafts the replacement line</td><td class="num">Django 95.1%; packages 73.2%</td></tr>
+            <tr><td>Fact gate</td><td><span class="kind gate">code</span></td><td>Any number, path, ticket, SHA, date or team not in the facts ships the template</td><td class="num">23 of 27 early rejects were right text; fixed in the facts, not by loosening</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>Guardrails</h2>
+      <ul class="rules">
+        <li><b>Code decides, models write.</b> Facts come from rules over the block. An LLM never decides a fact.</li>
+        <li><b>Every plan ends.</b> One planning call, a closed menu, each step once. A bad answer gets the rules plan.</li>
+        <li><b>Code decides when a tool failed:</b> an error, a hang, nothing usable, or two gate misses. Then the walkers run.</li>
+        <li><b>Walkers are boxed in:</b> read-only, named queries only, 3 teams, 2 hops, 24 queries per stall.</li>
+        <li><b>No people in facts.</b> A fact with an email is refused before a prompt is built.</li>
+        <li><b>Every answer is cached</b> by model, prompt version and facts, so reruns cost nothing and match byte for byte.</li>
+      </ul>
+    </section>
+  </div>
+
+  <footer>Every number has its source in the repo: <code>Model-Pipeline/report/REPORT.md</code> and each owner's section under <code>Model-Pipeline/packets/</code>. Model numbers come from block <code>c5118b019d642a9b</code>, product numbers from <code>bb6b5f4e32a4bee7</code>; both are builds of the same Oct 1 snapshot.</footer>
+</main>
