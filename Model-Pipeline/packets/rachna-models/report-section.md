@@ -41,7 +41,7 @@ The forest's ROC-AUC is 0.826 and its PR-AUC is 0.407: 3.4× chance. Three diffe
 
 ## What the model learned
 
-SHAP values on all of val are exact here (they add up to the model's output to 1.9e-15). The top five features are `la` (lines added), `nf` (files), `prior_bug_fixes`, `nd` (directories) and `ld` (lines deleted), and 63% of the model's attention is on commit size. Permutation importance with correlated features shuffled together agrees (Spearman 0.77 with SHAP): shuffling lines added and deleted together costs 0.135 PR-AUC, and files, directories and subsystems together 0.070. 500 rows already give SHAP's full ranking (Spearman 0.988 against all of val, decision 10).
+SHAP values on all of val are exact here (they add up to the model's output to 1.7e-15). The top five features are `la` (lines added), `nf` (files), `prior_bug_fixes`, `nd` (directories) and `ld` (lines deleted), and 63% of the model's attention is on commit size. Permutation importance with correlated features shuffled together agrees (Spearman 0.77 with SHAP): shuffling lines added and deleted together costs 0.136 PR-AUC, and files, directories and subsystems together 0.070. 500 rows already give SHAP's full ranking (Spearman 0.988 against all of val, decision 10).
 
 This bears on the question behind decision 2: SZZ blames the lines a fix changed, so big commits look risky partly by construction. The forest beats lines × files, but much of what it uses is size, measured better.
 
