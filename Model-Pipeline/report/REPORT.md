@@ -12,7 +12,7 @@ Phase 2 adds three things.
 - **A multi-agent product.** An orchestrator plans for each stalled team. Auditors rank why the team stalled. A router picks a model, writers turn facts into text, and graph walkers dig when the tools come up empty. A fact gate checks every word an LLM writes.
 - **Self-improving loops** (§8.6). The model retrains itself on each new block, auditor policies and walk-v1 compete for promotion, and the agents' text is corrected through the gate. Each loop changes production only through a rule written in advance.
 
-The tools exist to cut the noise. The context builder hands the LLM 35% of a team's files and still keeps 96.4% of its bug fixes, so the model reads what matters and nothing else. And when a tool comes back empty, the agents don't stop: the graph walkers go straight to the code graph and bring back what they find, through the same fact gate.
+The tools exist to cut the noise. The context builder hands the LLM 35% of a team's files and still keeps 96.4% of its bug fixes, so the model reads what matters and nothing else. And when a tool comes back empty, the agents don't stop: the graph walkers go straight to the code graph and bring back what they find, through the same fact gate. So far most of those findings reach the team as templates rather than prose: 19 of 20 walker texts fell back (§11).
 
 **Results in one place:**
 
@@ -27,7 +27,7 @@ The tools exist to cut the noise. The context builder hands the LLM 35% of a tea
 
 ### Architecture
 
-The full page, with every agent, tool, guardrail and the number behind each, is [architecture.html](architecture.html) (open it in a browser; also published at https://claude.ai/artifact/3vHhQ9ZBdH2TQQqNoKQd7n).
+The full page, with every agent, tool, guardrail and the number behind each, is [architecture.html](architecture.html) (open it in a browser).
 
 ```mermaid
 flowchart LR
@@ -68,16 +68,17 @@ flowchart LR
   views -.->|"↻2 stall verdicts: Elo, guard"| aud
   views -.->|"↻3 verdicts score walk-v0 vs walk-v1"| walk
   tmpl -.->|"↻4 fallback rate: fix, re-gate at $0"| writer
+  views -.->|"↻5 owner's edits: copy their style"| diffs
 ```
 
-The dotted ↻ arrows are the self-improving loops (§8.6).
+The dotted ↻ arrows are the five built self-improving loops (§8.6).
 
 ## 2. Model development (§2, §8)
 
 ### 2.1 Data from the pipeline (§2.1, §8.2)
 
 - `model/data.py` reads `published/latest.json`, checks that it names the same run as `model.toml`, and writes `data/features.parquet`.
-- **Rows:** 41,163 first-parent Spark commits from 2015 on, no merges.
+- **Rows:** 41,163 first-parent Spark commits from 2015 on, no merges. 33,925 are in a split (below); the other 7,238, from 2025–2026, have no split because their labels haven't settled yet (a bug can surface up to 365 days later).
 - **Columns:** the Kamei et al. (2013) just-in-time set (`la`, `ld`, `nf`, `nd`, `ns`, `entropy`, `ndev`, `age`, `nuc`, `exp`, `sexp`), `prior_bug_fixes`, the ticket fields and four slice columns.
 - **No future:** each history feature reads only earlier commits; `prior_bug_fixes` is counted as of each commit.
 - **No people:** authors are merged persons; `data.check()` refuses any value with `@`.
@@ -288,7 +289,7 @@ Every model choice had its rule written and committed before its run, and every 
 
 ### 8.6 Self-improving loops
 
-Five loops let Meridian get better as it runs. Each changes production only through a rule written in advance.
+Five built loops let Meridian get better as it runs; a sixth, the policy writer, was cut. Each changes production only through a rule written in advance.
 
 | Loop | How it turns | Status |
 |---|---|---|
