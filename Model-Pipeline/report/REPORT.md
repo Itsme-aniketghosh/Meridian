@@ -368,7 +368,7 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 - One gate gap left: 14 correct line lists written without their path (gap 23). It is fixed after phase 2, together with the walker fix above. The other, a number with letters glued on (`6921a`, gap 26), is fixed (Nov 15): such a token passes only if a fact spells it that way. No cached answer has one, so no number here changes.
 - No live matches: the auditor's policies and walk-v1 have never been scored, because nobody uses the product yet. Promotion needs 30 matches.
 
-## 12. Scope: what ships, and what comes next
+## 12. Scope: what is complete, and what comes next
 
 **What ships.** The product runs end to end on rule-based policies: two stall policies and two walk policies compete under ε-greedy with an Elo guard, and every LLM text passes the fact gate. Nothing in the product waits on an unbuilt feature.
 
