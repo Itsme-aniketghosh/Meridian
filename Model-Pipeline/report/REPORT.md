@@ -113,6 +113,7 @@ Three baselines, three model families, all on val 2023 with paired bootstrap int
 ### 2.3 Validation on held-out data (§2.3, §8.4)
 
 - **Split by time:** train 2015–2022, choose on 2023, test on 2024 once. Nothing is picked after 2024 is seen.
+- **Metrics on val** (champion, N = 4,113): PR-AUC 0.4067, ROC-AUC 0.826, accuracy 88.5% (always "no bug": 88.2%). At P9's alert rate (634 of 4,113 flagged): recall 0.519, false-positive rate 0.105, precision 0.397 and F1 0.45 (precision and F1 derived from the bias report's counts: 252 of 486 bugs caught). No cutoff reaches precision 0.80 on 30 alerts, so there's no alert threshold (§10).
 - **Choices made on val:** PR-AUC as the main metric, recall at 20% of changed lines as the effort metric, 2,000 paired bootstrap resamples (41% narrower than unpaired).
 - **2024 stayed sealed:** `evaluate.py --split test` refuses unless `test_allowed` is true and the code is committed (fault 14). The champion first had to reproduce its val PR-AUC of 0.4067.
 
@@ -136,6 +137,7 @@ Three baselines, three model families, all on val 2023 with paired bootstrap int
 
 - **Slices:** module, component, author experience and commit size (quarters). Fairlearn `MetricFrame`.
 - **Rule (phase 1's, kept for comparison):** judged when the slice has 30 positives (for recall) or negatives (for false positives); flagged when its whole Wilson interval is more than 0.10 worse than overall. 62 judged tests.
+- **Metrics per slice:** recall, false-positive rate and PR-AUC. Not accuracy or F1: at 11.8% positives, accuracy rewards saying "no bug", and recall and false-positive rate show the two harms (missed bugs, false alarms) separately. Code: `model/bias.py`, charts `reports/bias_*.png`, report `reports/champion/bias_report.json`.
 - **Result: 5 flags, all on commit size.** No module, component or experience slice is flagged.
 
 | Size quarter | Bug-inducing | Recall | False-positive rate |
@@ -176,7 +178,24 @@ The tuned forest. It beats lines × files, ties LightGBM (the simpler wins), and
 
 ## 3. Hyperparameter tuning (§3)
 
-- **Optuna** on three expanding time folds inside train (2020–2022), search space in `model.toml [search.*]`.
+- **Bayesian optimization:** Optuna's TPE sampler, seeded, on three expanding time folds inside train (2020–2022). Code: `model/train.py`; overrides in `model.toml [search.*]`.
+- **Search space:**
+
+| Model | Parameter | Range |
+|---|---|---|
+| Logistic regression | `C` | 0.001–100, log scale |
+| Random forest | `n_estimators` | 100–600, step 100 |
+| | `min_samples_leaf` | 5–200, log scale |
+| | `max_features` | `sqrt`, 0.3, 0.5 |
+| | `max_depth` | none, 8, 16 |
+| LightGBM | `learning_rate` | 0.01–0.2, log scale |
+| | `num_leaves` | 8–128, log scale |
+| | `min_child_samples` | 10–300, log scale |
+| | `n_estimators` | 100–1,000, step 50 |
+| | `subsample`, `colsample_bytree` | 0.5–1.0 |
+| | `reg_lambda` | 0.001–10, log scale |
+
+- **The champion's pick:** `n_estimators` 200, `min_samples_leaf` 5, `max_features` `sqrt`, `max_depth` 8, seed 1. Every trial's parameters and score are in `reports/tuning_<kind>.json`.
 - **Stopping rule:** 50 trials at a time while the last 30 still improve by at least 0.002. Logistic regression stopped at 50, the forest and LightGBM at 100.
 - **Tuning doesn't touch val.** Tuned logistic regression came out below untuned (0.382 vs 0.390), and we didn't re-tune on val, because that would leak it.
 - **CI doesn't re-search.** The full search took 27.7 minutes on a GitHub runner; CI retrains with the committed best parameters instead (§6).
@@ -214,7 +233,7 @@ build image → data check → train → seed noise → evaluate → bias → ga
 - **§7.2 Validation:** `gate.py` runs five checks and exits 1 on any fail. Its tolerance is 2√2 seed SDs: 20 of 20 same-config seed pairs pass, 3 of 3 planted bad models fail. Two of those bad models beat lines × files, so the bar alone wouldn't stop them; the champion check does.
 - **§7.3 Bias:** a failed bias report blocks the push.
 - **§7.4 Push:** main only, after the gate. CI signs in through Workload Identity, trusted for this repo's main branch; the university blocks service-account keys.
-- **§7.5 Notifications:** one alert per fail through `meridian/alert.py`, tested against local Slack and SMTP servers. A broken channel is logged and never changes the verdict.
+- **§7.5 Notifications:** one alert per failed run, a done message on every green run (training complete, gate passed), and a push message on main, through `meridian/alert.py`. Tested against local Slack and SMTP servers. A broken channel is logged and never changes the verdict. The repo has no Slack secret, so on GitHub the messages go to the run summary.
 - **§7.6 Rollback:** the champion moves only on a real gain; `registry.py --rollback` puts `previous` back, locally and in Artifact Registry (fault 10, and the Nov 10 drill).
 - **Speed:** a PR's run takes 4.0 minutes (median; 3.4–5.3 over 24 runs), against a 15-minute bar.
 - **Shown red when it should be:** a shuffled-label model on a draft PR failed at 0.174 vs 0.319 and failed bias. Three product faults planted on a draft PR each turned `ci.yml` red on Linux and Windows.
@@ -363,29 +382,29 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 
 ## 13. Guideline coverage
 
-| Guideline | Item | Where | Status |
-|---|---|---|---|
-| §2.1, §8.2 | Data from the pipeline, versioned | §2.1 | ✅ |
-| §2.2, §8.3 | Several models, selected by metrics | §2.2 | ✅ |
-| §2.3, §8.4 | Hold-out validation | §2.3 | ✅ 2024 once, model ships |
-| §2.4, §6.1–6.2 | Bias by slicing | §2.4 | ✅ 62 judged tests, 5 size flags |
-| §2.5, §8.5 | Bias code, reports, charts, mitigation | §2.4 | ✅ |
-| §6.3–6.4 | Mitigation and trade-offs | §2.4 | ✅ none qualifies, trade-offs measured |
-| §8.6 | Final pick after validation and bias | §2.5 | ✅ |
-| §2.6, §8.7 | Registry on GCP | §2.6 | ✅ Artifact Registry |
-| §3 | Hyperparameter tuning | §3 | ✅ Optuna |
-| §4 | Experiment tracking | §4 | ✅ MLflow, 26 of 26 runs tagged |
-| §4 | Comparison charts, why the pick | §4, §2.2 | ✅ |
-| §5 | Feature importance (SHAP) | §5 | ✅ |
-| §5 | Hyperparameter sensitivity | §5 | ✅ |
-| §7.1 | CI on push | §6 | ✅ |
-| §7.2 | Automated validation | §6 | ✅ |
-| §7.3 | Automated bias check | §6 | ✅ |
-| §7.4 | Automatic registry push | §6 | ✅ |
-| §7.5 | Notifications | §6 | ◐ tested on local servers; no Slack secret on the repo |
-| §7.6 | Rollback | §6 | ✅ |
-| §8.1 | Docker | §7 | ✅ |
-| Pretrained models | LLM validation, bias, tracking | §8 | ✅ |
+| Guideline | Item | Where | Code | Status |
+|---|---|---|---|---|
+| §2.1, §8.2 | Data from the pipeline, versioned | §2.1 | `model/data.py` | ✅ |
+| §2.2, §8.3 | Several models, selected by metrics | §2.2 | `model/train.py` | ✅ |
+| §2.3, §8.4 | Hold-out validation | §2.3 | `model/evaluate.py` | ✅ 2024 once, model ships |
+| §2.4, §6.1–6.2 | Bias by slicing | §2.4 | `model/bias.py` | ✅ 62 judged tests, 5 size flags |
+| §2.5, §8.5 | Bias code, reports, charts, mitigation | §2.4 | `model/bias.py` | ✅ |
+| §6.3–6.4 | Mitigation and trade-offs | §2.4 | `model/bias.py`, `model/train.py` | ✅ none qualifies, trade-offs measured |
+| §8.6 | Final pick after validation and bias | §2.5 | `model/gate.py` | ✅ |
+| §2.6, §8.7 | Registry on GCP | §2.6 | `model/registry.py` | ✅ Artifact Registry |
+| §3 | Hyperparameter tuning | §3 | `model/train.py` | ✅ Optuna |
+| §4 | Experiment tracking | §4 | `model/tracking.py` | ✅ MLflow, 26 of 26 runs tagged |
+| §4 | Comparison charts, why the pick | §4, §2.2 | `model/evaluate.py` | ✅ |
+| §5 | Feature importance (SHAP) | §5 | `model/sensitivity.py` | ✅ |
+| §5 | Hyperparameter sensitivity | §5 | `model/sensitivity.py` | ✅ |
+| §7.1 | CI on push | §6 | `.github/workflows/model.yml` | ✅ |
+| §7.2 | Automated validation | §6 | `model/gate.py` | ✅ |
+| §7.3 | Automated bias check | §6 | `model/bias.py` in `model.yml` | ✅ |
+| §7.4 | Automatic registry push | §6 | `model/registry.py --push` | ✅ |
+| §7.5 | Notifications | §6 | `Data-Pipeline/meridian/alert.py` | ◐ tested on local servers; no Slack secret on the repo |
+| §7.6 | Rollback | §6 | `model/registry.py --rollback` | ✅ |
+| §8.1 | Docker | §7 | `Model-Pipeline/Dockerfile`, `model/run_all.py` | ✅ |
+| Pretrained models | LLM validation, bias, tracking | §8 | `meridian/fact_gate.py`, `model/llm_bias.py`, `model/tracking.py` | ✅ |
 
 ## Appendices
 
