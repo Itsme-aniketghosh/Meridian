@@ -136,7 +136,7 @@ GAPS gap 16 asked for each stalled team's files ranked by risk, cut where 90% of
 
 ## Not done, and limits
 
-- **Slack:** the repo has no `MERIDIAN_SLACK_WEBHOOK` secret, so CI's fail, done and push messages have gone to each run's summary, not to Slack. The guideline's notification bar isn't shown on a real channel yet.
+- **Slack:** until Nov 15 the repo had no `MERIDIAN_SLACK_WEBHOOK` secret, so CI's messages went to each run's summary. The secret is set now, and run 43780539225 on main posted its done and registry messages to the team's Slack (`report/slack_ci_alerts.png`).
 - **Not run on a real fork:** a fork's PR gets no secrets. The workflow handles that and says so in the summary, but no fork PR has run.
 - **Small slices.** Most modules and components, and every owner team, are too small to judge at N ≥ 30, so the bias report can rarely tell a fair slice from an unfair one.
 - **Q2's 35% label noise** rests on 20 hand-checked commits (interval 0.18–0.57). Q4 wasn't hand-checked, so whether small commits are labelled worse than large ones can't be said.

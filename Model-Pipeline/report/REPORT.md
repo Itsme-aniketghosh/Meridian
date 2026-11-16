@@ -234,7 +234,9 @@ build image → data check → train → seed noise → evaluate → bias → ga
 - **§7.2 Validation:** `gate.py` runs five checks and exits 1 on any fail. Its tolerance is 2√2 seed SDs: 20 of 20 same-config seed pairs pass, 3 of 3 planted bad models fail. Two of those bad models beat lines × files, so the bar alone wouldn't stop them; the champion check does.
 - **§7.3 Bias:** a failed bias report blocks the push.
 - **§7.4 Push:** main only, after the gate. CI signs in through Workload Identity, trusted for this repo's main branch; the university blocks service-account keys.
-- **§7.5 Notifications:** one alert per failed run, a done message on every green run (training complete, gate passed), and a push message on main, through `meridian/alert.py`. Tested against local Slack and SMTP servers. A broken channel is logged and never changes the verdict. The repo has no Slack secret, so on GitHub the messages go to the run summary.
+- **§7.5 Notifications:** one alert per failed run, a done message on every green run (training complete, gate passed), and a push message on main, through `meridian/alert.py`. Live in the team's Slack since Nov 15: run [43780539225](https://github.com/Itsme-aniketghosh/Meridian/actions/runs/43780539225) on main posted the done message (forest 0.4067 vs lines × files 0.3191, bias and gate pass) and the registry message (champion `85b4684…` already there, nothing new to send). A broken channel is logged and never changes the verdict.
+
+  ![CI's done and registry messages in the team's Slack](slack_ci_alerts.png)
 - **§7.6 Rollback:** the champion moves only on a real gain; `registry.py --rollback` puts `previous` back, locally and in Artifact Registry (fault 10, and the Nov 10 drill).
 - **Speed:** a PR's run takes 4.0 minutes (median; 3.4–5.3 over 24 runs), against a 15-minute bar.
 - **Shown red when it should be:** a shuffled-label model on a draft PR failed at 0.174 vs 0.319 and failed bias. Three product faults planted on a draft PR each turned `ci.yml` red on Linux and Windows.
@@ -365,7 +367,6 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 - Walker texts mostly fall back: 19 of 20, each naming a team its facts don't hold. Their findings reach the team as templates, not prose. Fix: put the team names into the walk's facts (gap 27).
 - One gate gap left: 14 correct line lists written without their path (gap 23), with the walker fix after phase 2. The other, a number with letters glued on (`6921a`, gap 26), is fixed (Nov 15): such a token passes only if a fact spells it that way. No cached answer has one, so no number here changes.
 - No live matches: the auditor's policies and walk-v1 have never been scored, because nobody uses the product yet. Promotion needs 30 matches.
-- Slack: no webhook secret on the repo, so CI's alerts go to the run summary, not a real channel.
 
 ## 12. What was cut, and what phase 3 deploys
 
@@ -402,7 +403,7 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 | §7.2 | Automated validation | §6 | `model/gate.py` | ✅ |
 | §7.3 | Automated bias check | §6 | `model/bias.py` in `model.yml` | ✅ |
 | §7.4 | Automatic registry push | §6 | `model/registry.py --push` | ✅ |
-| §7.5 | Notifications | §6 | `Data-Pipeline/meridian/alert.py` | ◐ tested on local servers; no Slack secret on the repo |
+| §7.5 | Notifications | §6 | `Data-Pipeline/meridian/alert.py` | ✅ done and push messages seen in the team's Slack (run 43780539225); a fail goes to the same channel |
 | §7.6 | Rollback | §6 | `model/registry.py --rollback` | ✅ |
 | §8.1 | Docker | §7 | `Model-Pipeline/Dockerfile`, `model/run_all.py` | ✅ |
 | Pretrained models | LLM validation, bias, tracking | §8 | `meridian/fact_gate.py`, `model/llm_bias.py`, `model/tracking.py` | ✅ |
