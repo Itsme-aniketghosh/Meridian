@@ -106,7 +106,7 @@ On the fixture, with the context builder made to fail, they go from fulfillment 
 
 - **The walkers' texts mostly fall back.** 19 of the 20 walk texts become templates, each because it names a team the gate doesn't find in its facts. With N = 20 that can't be judged, but a walker's finding reaches the team today as a template, not prose.
 - **Two gaps in the gate, both left for after the freeze:**
-  - a number with letters glued on (`6921a`) isn't checked (on main before #122 too);
+  - a number with letters glued on (`6921a`) wasn't checked; fixed Nov 15 (gap 26), with no cached answer affected;
   - 14 correct line lists written without their path still fail (gap 23).
 - **The auditor has no live matches yet.** Its champion and challenger both sit at Elo 1500, because the product has no users.
 
@@ -122,4 +122,4 @@ On the fixture, with the context builder made to fail, they go from fulfillment 
   - **On bb6b5f4e:** 16 of 68 stalls draw v1, no walk differs (no real stall has two upstream teams competing for the cap), and the orchestrator's output is unchanged: 205 LLM texts, 19 templates, 0 calls.
 
   Scoring v1 needs live verdicts, and promotion needs 30 matches (04-architecture §9). Today there are 0.
-- Fix `6921a` and gap 23's path-and-lines in the gate, each with planted-error tests like #122's.
+- Fix gap 23's path-and-lines in the gate, with planted-error tests like #122's (`6921a` is done).

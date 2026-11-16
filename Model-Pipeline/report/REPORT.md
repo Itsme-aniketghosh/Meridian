@@ -151,7 +151,7 @@ Three baselines, three model families, all on val 2023 with paired bootstrap int
 - **Newcomers** (16 positives, too few to judge): the model catches 9, lines × files 7.
 - **Are Q2's labels right?** Hand check, blind, 20 commits: 7 wrong (0.35, Wilson 0.18–0.57). An LLM audit agreed with the person on only 10 of 20, so it wasn't used.
 
-**Mitigation.** Rule: adopt a fix that closes at least half the worst gap for at most 0.01 PR-AUC and 0.02 precision.
+**Mitigation.** We applied four techniques the guideline names (per-group thresholds and re-sampling) and scored each on the same val rows. Rule, written before: adopt a fix that closes at least half the worst gap for at most 0.01 PR-AUC and 0.02 precision.
 
 | Option | Q2 recall | Gap closed | Verdict |
 |---|---:|---:|---|
@@ -363,7 +363,7 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 - Package diffs: 73.2%, under the 90% bar, and frozen. 230 of the 244 misses are owners choosing line by line (`path` here, `re_path` there), which nothing at the parent commit shows. Decision 14 drafts whole statements; PASS-BARS §2.5 changed from "line" to "statement" after the drafts ran, and says so.
 - The diff LLM path drafts nothing on the real packages: Flash, Pro and Gemma each drafted 0 of 12. Its only lines need an import change in the same commit.
 - Walker texts mostly fall back: 19 of 20, each naming a team its facts don't hold. Their findings reach the team as templates, not prose. Fix: put the team names into the walk's facts (gap 27).
-- Two gate gaps, left for after the freeze: a number with letters glued on (`6921a`, gap 26) and 14 correct line lists written without their path (gap 23). Both go in one small PR with the walker fix.
+- One gate gap left: 14 correct line lists written without their path (gap 23), with the walker fix after phase 2. The other, a number with letters glued on (`6921a`, gap 26), is fixed (Nov 15): such a token passes only if a fact spells it that way. No cached answer has one, so no number here changes.
 - No live matches: the auditor's policies and walk-v1 have never been scored, because nobody uses the product yet. Promotion needs 30 matches.
 - Slack: no webhook secret on the repo, so CI's alerts go to the run summary, not a real channel.
 
@@ -390,7 +390,7 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 | §2.3, §8.4 | Hold-out validation | §2.3 | `model/evaluate.py` | ✅ 2024 once, model ships |
 | §2.4, §6.1–6.2 | Bias by slicing | §2.4 | `model/bias.py` | ✅ 62 judged tests, 5 size flags |
 | §2.5, §8.5 | Bias code, reports, charts, mitigation | §2.4 | `model/bias.py` | ✅ |
-| §6.3–6.4 | Mitigation and trade-offs | §2.4 | `model/bias.py`, `model/train.py` | ✅ none qualifies, trade-offs measured |
+| §6.3–6.4 | Mitigation and trade-offs | §2.4 | `model/bias.py`, `model/train.py` | ✅ 4 techniques applied (2 threshold, 2 re-sampling) and measured on the same val rows; none adopted, trade-offs in §2.4 |
 | §8.6 | Final pick after validation and bias | §2.5 | `model/gate.py` | ✅ |
 | §2.6, §8.7 | Registry on GCP | §2.6 | `model/registry.py` | ✅ Artifact Registry |
 | §3 | Hyperparameter tuning | §3 | `model/train.py` | ✅ Optuna |

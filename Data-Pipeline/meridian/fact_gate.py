@@ -43,6 +43,9 @@ _PATH = re.compile(rf"(?<![\w/.\-])((?:\./|/)?(?:[\w.\-]+/)*[\w\-][\w.\-]*\.{_EX
 _LINE_ONLY = re.compile(r"(?<![\w:/.])(:\d+)(?!\w)")  # ":231" after a path, as in "cart/pricing.py:214 and :231"
 _TICKET = re.compile(r"(?<![\w\-])([A-Z][A-Z0-9_]*-\d+)(?![\w\-])")
 _HASH_KEY = re.compile(r"(?<![\w&#])(#\d+)(?![\w\-])")  # a GitHub fix key, "#6921" (GAPS 24): a ticket, not a number
+# letters glued on (GAPS 26): "6921a", "SPARK-12a", "#6921a" are facts only when a fact holds that exact token
+_GLUED = re.compile(r"(?<![\w.\-#/:@])(\d+[A-Za-z]+)(?![\w])")
+_GLUED_KEY = re.compile(r"(?<![\w\-&])((?:[A-Z][A-Z0-9_]*-|#)\d+[A-Za-z]+)(?![\w\-])")
 # a path in a fact, whatever its extension: at least one '/' and a dot in the last part, or name.ext:line
 _ANY_PATH = re.compile(r"(?<![\w/.\-])((?:[\w.\-]+/)+[\w\-][\w.\-]*\.\w+|[\w\-][\w.\-]*\.\w+(?=:\d))"
                        r"(?::(\d+))?(?![\w/])")
@@ -100,6 +103,7 @@ class _Facts:
         self.numbers, self.raw_numbers, self.strings = set(), set(), set()
         self.shares = set()  # floats and "x%" strings: the only facts a percent in the text can be
         self.paths, self.path_lines, self.tickets, self.shas, self.dates = set(), set(), set(), set(), set()
+        self.glued = set()  # GAPS 26: tokens like 6921a, as the facts spell them
         self.teams = {t.lower() for t in teams}
         self._people = _words(people)
         self._walk(facts)
@@ -130,6 +134,7 @@ class _Facts:
         if _EMAIL.search(s) or (self._people and self._people.search(s)):
             raise ValueError(f"a fact names a person ({s[:40]!r}): no person is ever a fact (Contract 5)")
         self.strings.add(s.strip().lower())
+        self.glued.update(m.group(1).lower() for rx in (_GLUED, _GLUED_KEY) for m in rx.finditer(s))
         for m in _ANY_PATH.finditer(s):  # a fact path with any extension: tests/code.sample:4
             self.paths.add(m.group(1))
             if m.group(2):
@@ -268,6 +273,15 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
             checked += 1
             if not any(f.lower().startswith(m.group(1).lower()) for f in known.shas):
                 miss("sha", m.group(0), m.start())
+
+    for rx, kind in ((_GLUED_KEY, "ticket"), (_GLUED, "number")):  # after SHAs, so 9cabdef0 stays a SHA
+        for m in rx.finditer(text):
+            if kind == "number" and _NUMBER.fullmatch(m.group(1)):
+                continue  # a number with a unit (14d, 3rd, 10ms) is read below as a number
+            if take(m) and kind in on:
+                checked += 1
+                if m.group(1).lower() not in known.glued:
+                    miss(kind, m.group(0), m.start())
 
     for m in _ISO_DATE.finditer(text):
         if take(m) and "date" in on:

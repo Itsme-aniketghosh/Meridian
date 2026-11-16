@@ -106,5 +106,5 @@ Phase 2's open gaps and what happens to each: [GAPS.md](../Model-Pipeline/GAPS.m
 | Few Elo matches | 0 live matches: auditor policies and walk-v1 unscored, promotion needs 30 | Live use, phase 3 |
 | Package diffs under the bar | 73.2% vs 90%; 230 of 244 misses are owners choosing line by line | Learning from owners' edits, phase 3 |
 | Walker texts fall back | 19 of 20 name a team their facts don't hold, so they ship as templates | Team names into the walk's facts (gap 27) |
-| Gate misses two forms | `6921a` isn't checked; 14 right line lists without their path are rejected | Gate fix with planted-error tests (gaps 26, 23) |
+| Gate rejects one right form | 14 right line lists without their path are rejected (`6921a` is checked since Nov 15, gap 26) | Gate fix with planted-error tests (gap 23) |
 | No policy writer | Cut: the auditor's only challenger is the hand-written v1 | Phase 3, after live matches (gap 22) |

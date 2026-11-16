@@ -90,7 +90,7 @@ An independent review found 13 problems before the lead's review. In one, 9 para
 
 ## Limits
 
-- **The gate reads numbers only when they stand alone.** A number with letters glued on ("6921a", "SPARK-12a") isn't checked, on main as before #122. None of the 1,346 cached LLM answers has one. Left for after the freeze, with planted-error tests like #122's.
+- **Numbers with letters glued on** ("6921a", "SPARK-12a") weren't checked until Nov 15 (gap 26). Now such a token passes only if a fact spells it that way. None of the 1,346 cached LLM answers has one, so no result here changes.
 - **Line lists without their path are rejected.** 14 right texts from Scout and Maverick write "formsets.py at lines 9, 344 and 351". A line is a fact only next to its path. Reading "path at lines a, b" is a gate change, left for later.
 - **Other things the gate doesn't check:** a year alone when a fact date has that year, hashes under 7 characters, `1e3` and `1_526`, and spelling variants ("fulfilment").
 - **The walkers' texts mostly fall back.** 19 of 20 walk texts become templates, each naming a team its facts don't hold. N = 20 is too few to judge, and the fix is in the walkers' facts, not the gate.

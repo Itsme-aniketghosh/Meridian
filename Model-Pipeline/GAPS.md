@@ -34,7 +34,7 @@ The report is merged and nothing here changes a reported number. What's still op
 
 | Gap | What's open | What we do | When |
 |---|---|---|---|
-| 26 (new) | The gate doesn't check a number with letters glued on (`6921a`, `SPARK-12a`). None of the 1,346 cached answers has one | Check it like any other number, with planted-error tests like #122's; re-gate the cache at $0 | First PR after phase 2 |
+| 26 | ✓ Fixed Nov 15: a token like `6921a`, `SPARK-12a` or `#6921a` passes only if a fact spells it that way (`fact_gate._GLUED`, test `test_letters_glued_to_a_number_are_checked`). None of the 1,353 cached replies has one, so no reported number changes; the planted-error tables are unchanged | Done | — |
 | 23 | 14 right line lists written without their path ("formsets.py at lines 9, 344 and 351") fail the gate | Teach the gate "path at lines a, b", with planted-error tests; re-gate the cache at $0 | First PR after phase 2 |
 | 27 (new) | 19 of 20 walker texts fall back: each names a team its facts don't hold | Put the team names the walk visits into its facts, then re-gate the cache at $0 | First PR after phase 2 |
 | 3 | Package diffs at 73.2%, under the 90% bar | Nothing now: 230 of 244 misses are owners choosing line by line. Decision 15's learning from edits gets real outcomes once owners use it | Phase 3 |
@@ -42,7 +42,7 @@ The report is merged and nothing here changes a reported number. What's still op
 | 22 | No policy writer | Waits for live auditor matches, so each new challenger can be judged | Phase 3 |
 | — | The auditor's policies and walk-v1 have 0 live matches | Scored once people use the product; promotion needs 30 | Phase 3 |
 
-Gaps 26, 23 and 27 are small and go in one PR. Each is re-gated from the committed cache with 0 calls, and the planted-error sweep must stay at 200 of 200.
+Gap 26 is done (Nov 15). Gaps 23 and 27 are small and go in one PR. Each is re-gated from the committed cache with 0 calls, and the planted-error sweep must stay at 200 of 200.
 
 ## The gaps
 

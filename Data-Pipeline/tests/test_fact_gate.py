@@ -74,6 +74,15 @@ class Tokens(unittest.TestCase):
         self.assertFalse(ok("CHK-312"))
         self.assertFalse(ok("chk-311 and CHK-3110"))
 
+    def test_letters_glued_to_a_number_are_checked(self):
+        facts = {"files": [{"path": "a/x.py", "sites": 3, "bug_fixes": 2, "fix_keys": ["#6921"]}], "ticket": "SPARK-12"}
+        self.assertFalse(ok("a/x.py, fixed in 6921a.", facts))      # GAPS 26: was never read
+        self.assertFalse(ok("a/x.py, see #6921a.", facts))
+        self.assertFalse(ok("a/x.py, see SPARK-12a.", facts))
+        self.assertTrue(ok("a/x.py has 3 call sites, 2 bug fixes (#6921), ticket SPARK-12.", facts))
+        self.assertTrue(ok("a/x.py, release 2b.", {**facts, "release": "2b"}))   # spelled that way in a fact
+        self.assertTrue(ok("a/x.py has 3 call sites, stalled 14d.", {**facts, "days": 14}))  # a unit stays a number
+
     def test_github_fix_keys_are_tickets_not_numbers(self):
         # GAPS 24's fix keys: the writer cites "#6921", which the facts hold only as the key (LLM bias, Nov 13)
         facts = {"files": [{"path": "a/x.py", "sites": 3, "bug_fixes": 2, "fix_keys": ["#6921", "#7004"]}]}
