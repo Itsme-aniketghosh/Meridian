@@ -1,4 +1,4 @@
-# Meridian phase 2: the model and the product
+# Meridian phase 2: the model development pipeline
 
 Phase 1 built the data: one SQLite block holding Django, 20 Django packages, Spark and their tickets. Phase 2 trains a defect-risk model on it through the course's model-pipeline guideline, and builds the product around it: views, LLM agents, a fact gate and a learning auditor. Sections follow the guideline's order (PLAN §12). Every number has its N and a source. Each part's full write-up is linked at the end.
 
@@ -311,7 +311,7 @@ Every model choice had its rule written and committed before its run, and every 
 
 ### 8.6 Self-improving loops
 
-Five built loops let Meridian get better as it runs; a sixth, the policy writer, was cut. Each changes production only through a rule written in advance.
+Five loops run today and let Meridian get better as it runs; a sixth, a policy writer, is the next step (§12). Each changes production only through a rule written in advance.
 
 | Loop | How it turns | Status |
 |---|---|---|
@@ -320,7 +320,7 @@ Five built loops let Meridian get better as it runs; a sixth, the policy writer,
 | ↻3 walk-v1 | walk-v0 serves 80% of stalls, walk-v1 20%, each recording the other's route in shadow; stall verdicts score both; the same guard promotes | Built (#129); 16 of 68 real stalls drew v1, no walk differed |
 | ↻4 The agents | Per task: the gate checks, a miss moves one model up, then the template ships. Across runs: the fallback rate is sliced, a flagged slice is fixed, cached answers are re-gated at $0 | Built; consumer fallback 41 → 0 of 68 (#122). A person makes the fix |
 | ↻5 The diff drafter | Waits for the owner's first migrated file, copies their style, learns from their edits, never re-offers a rejected diff | Built; tested on the fixture only |
-| ↻6 Policy writer | An LLM writes a new stall policy from the champion's losses; a person reviews it; it enters loop 2 as a challenger | Cut (gap 22) |
+| ↻6 Policy writer | An LLM writes a new stall policy from the champion's losses; a person reviews it; it enters loop 2 as a challenger | Next (gap 22): plugs into ↻2, guard built |
 
 ## 9. Simulated faults
 
@@ -365,15 +365,17 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 - Package diffs: 73.2%, under the 90% bar, and frozen. 230 of the 244 misses are owners choosing line by line (`path` here, `re_path` there), which nothing at the parent commit shows. Decision 14 drafts whole statements; PASS-BARS §2.5 changed from "line" to "statement" after the drafts ran, and says so.
 - The diff LLM path drafts nothing on the real packages: Flash, Pro and Gemma each drafted 0 of 12. Its only lines need an import change in the same commit.
 - Walker texts mostly fall back: 19 of 20, each naming a team its facts don't hold. Their findings reach the team as templates, not prose. Fix: put the team names into the walk's facts (gap 27).
-- One gate gap left: 14 correct line lists written without their path (gap 23), with the walker fix after phase 2. The other, a number with letters glued on (`6921a`, gap 26), is fixed (Nov 15): such a token passes only if a fact spells it that way. No cached answer has one, so no number here changes.
+- One gate gap left: 14 correct line lists written without their path (gap 23). It is fixed after phase 2, together with the walker fix above. The other, a number with letters glued on (`6921a`, gap 26), is fixed (Nov 15): such a token passes only if a fact spells it that way. No cached answer has one, so no number here changes.
 - No live matches: the auditor's policies and walk-v1 have never been scored, because nobody uses the product yet. Promotion needs 30 matches.
 
-## 12. What was cut, and what phase 3 deploys
+## 12. Scope: what ships, and what comes next
 
-**Cut** (PLAN §9's order, from the top):
-- **The policy writer agent** (gap 22): an LLM that writes new stall policies from the champion's losses. The guard it needed is in place; the agent isn't.
-- **The explore job's fan-in and twin signals:** they need a whole-repo call graph (gaps G3, G4).
-- Never cut: the guideline, the gate, the LLM-off fallback, determinism.
+**What ships.** The product runs end to end on rule-based policies: two stall policies and two walk policies compete under ε-greedy with an Elo guard, and every LLM text passes the fact gate. Nothing in the product waits on an unbuilt feature.
+
+**Future scope** (in PLAN §9's priority order):
+- **A policy writer agent** (gap 22): an LLM that drafts new stall policies from the champion's losses, for a person to review. It plugs into loop ↻2 as one more challenger, and the guard it needs is already built and tested: a no-better policy gets promoted by luck only 4.0% of the time.
+- **Fan-in and twin signals for the explore job** (gaps G3, G4): these need a whole-repo call graph, which is an addition to the data pipeline.
+- Held fixed throughout: the guideline, the fact gate, the LLM-off fallback and determinism.
 
 **Phase 3** (PLAN §11):
 - Views and API on Cloud Run, the pipeline on a schedule, the champion served to the push check.
