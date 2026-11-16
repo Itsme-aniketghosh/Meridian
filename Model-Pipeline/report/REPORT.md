@@ -1,4 +1,4 @@
-# Meridian phase 2: the model and the product
+# Meridian phase 2: the model development pipeline
 
 Phase 1 built the data: one SQLite block holding Django, 20 Django packages, Spark and their tickets. Phase 2 trains a defect-risk model on it through the course's model-pipeline guideline, and builds the product around it: views, LLM agents, a fact gate and a learning auditor. Sections follow the guideline's order (PLAN §12). Every number has its N and a source. Each part's full write-up is linked at the end.
 
