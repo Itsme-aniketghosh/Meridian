@@ -60,13 +60,13 @@ flowchart LR
 | Step | What | Output | Owner |
 |---|---|---|---|
 | **S1** | Terraform for the project: APIs, buckets, registry repos, service accounts, Workload Identity for this repo, Cloud Run services and job, Scheduler, budget | `infra/terraform/`, `terraform apply` from zero | Rochan |
-| **S2** | The inference service: `GET /health`, `POST /score` (a commit's numstat, subject and author, or a known Spark SHA) → risk, its percentile on val, the P9 verdict, the model version. Loads the champion named by the registry pointer at start, checks its md5 | `Deploy-Pipeline/serve/`, its Dockerfile, tests | Rachna |
+| **S2** | The inference service: `GET /health`, `POST /score` (a commit's numstat, subject and author, or a known Spark SHA) → risk, its percentile on val, the P9 verdict, the model version. Loads the champion named by the registry pointer at start, checks its md5 | `Model-Deployment/serve/`, its Dockerfile, tests | Rachna |
 | **S3** | Deploy workflow: on a new champion (after `model.yml` on main, a `repository_dispatch`, or by hand) pull the champion, build and push the image, deploy a new revision with no traffic, smoke test it, then move traffic. A failed smoke test leaves traffic on the old revision and alerts | `.github/workflows/deploy.yml` | Chaitali |
-| **S4** | The refresh job: the data pipeline's update for Spark only, in a container, writing the new block to GCS. Then `model.refresh` when S5 says so, pushing to the registry | `Deploy-Pipeline/refresh/`, the job image | Utkarsh |
-| **S5** | Monitoring: data drift (the new commits' features against train, Evidently) and decay (PR-AUC on the newest window whose labels have matured, against lines × files). Writes a report, sets custom metrics, decides "retrain" by the thresholds in §5 | `Deploy-Pipeline/monitor/`, tests on a planted drift | Vishwa |
+| **S4** | The refresh job: the data pipeline's update for Spark only, in a container, writing the new block to GCS. Then `model.refresh` when S5 says so, pushing to the registry | `Model-Deployment/refresh/`, the job image | Utkarsh |
+| **S5** | Monitoring: data drift (the new commits' features against train, Evidently) and decay (PR-AUC on the newest window whose labels have matured, against lines × files). Writes a report, sets custom metrics, decides "retrain" by the thresholds in §5 | `Model-Deployment/monitor/`, tests on a planted drift | Vishwa |
 | **S6** | Cloud Monitoring: uptime check on `/health`, alert policies (5xx rate, p95 latency, job failure, drift flag), a dashboard, log-based metrics from S2's log lines. All in Terraform | `infra/terraform/monitoring.tf` | Vishwa, Rochan |
 | **S7** | Notifications: retrain triggered, new model deployed, deploy failed and rolled back, drift found. Through `alert.py` | Messages in Slack | Chaitali |
-| **S8** | Replication: `DEPLOY.md` and one script from a fresh machine to a working endpoint. Then the video | `Deploy-Pipeline/DEPLOY.md`, `bootstrap.sh`, the video | Aniket |
+| **S8** | Replication: `DEPLOY.md` and one script from a fresh machine to a working endpoint. Then the video | `Model-Deployment/DEPLOY.md`, `bootstrap.sh`, the video | Aniket |
 | S9 | Views on Cloud Run, read-only, from the GCS block | `meridian-views` | Vishwa (stretch) |
 
 ## 4. The endpoint
@@ -153,7 +153,7 @@ Every live GCP command that costs money goes through the project owner (Rochan) 
 ## 9. Running it
 
 ```
-git clone https://github.com/Itsme-aniketghosh/Meridian && cd Meridian/Deploy-Pipeline
+git clone https://github.com/Itsme-aniketghosh/Meridian && cd Meridian/Model-Deployment
 ./bootstrap.sh <project-id>          # gcloud login, enable APIs, terraform apply, first deploy
 curl -s -X POST "$(terraform -chdir=../infra/terraform output -raw risk_url)/score" \
      -H 'Content-Type: application/json' -d '{"repo": "apache/spark", "sha": "<sha>"}'
@@ -173,27 +173,45 @@ Cut from the top if behind: C8 docs → S9 views (and with it C4) → the dashbo
 
 ## 11. Schedule
 
-Due date: **to confirm**. With a two-week window:
+**Due Mon Dec 7.** Work starts Wed Nov 18 (day 1). Code freeze is **Wed Dec 2** at the end of the day, so the fresh-machine run, the video and the report have their own days. Two blocks of slack are planned in and nothing is scheduled on them: **Thanksgiving, Thu Nov 26 – Sun Nov 29**, and **Sat Dec 5 – Sun Dec 6** before the deadline. Anything late uses the first block, then follows the cut order (§10); it never eats the second.
 
-| Days | Rochan | Rachna | Chaitali | Utkarsh | Vishwa |
+| Date | Rochan | Rachna | Chaitali | Utkarsh | Vishwa |
 |---|---|---|---|---|---|
-| 1–2 | S1 Terraform plan, apply in the project | S2 endpoint local, tests | S3 workflow on a branch (dry run) | S4 job image, local run | S5 drift on 2025–26 commits, thresholds signed |
-| 3–4 | S1 Workload Identity for deploy, budget | S2 deployed, "same as p9.py" | S3 deploy + smoke + traffic | S4 in Cloud Run job, block in GCS | S5 decay, `--simulate` |
-| 5–6 | S6 with Vishwa | latency, cold start | rollback with a broken image, S7 | retrain step, `repository_dispatch` | S6 uptime, alerts, dashboard |
-| 7 | **Integration: one drift → retrain → redeploy end to end (Aniket)** | | | | |
-| 8–9 | fresh-project run | fixes | fixes | fixes | S9 views (stretch) |
-| 10 | **Video on a fresh machine, report** | | | | |
+| Tue Nov 17 | Plan merged. Decisions: project, thresholds signed | | | | |
+| Wed Nov 18, day 1 | S1 Terraform plan | S2 endpoint, local | S3 workflow on a branch, dry run | S4 job image, local | S5 drift on the 2025–26 commits |
+| Thu Nov 19, day 2 | S1 apply: buckets, registry repos, service accounts | S2 tests, "same as p9.py" | S3 build and push the image | S4 Spark-only update, local | S5 thresholds checked on real data |
+| Fri Nov 20, day 3 | S1 Workload Identity for deploy, budget (C7) | S2 image | S3 deploy with no traffic, smoke test | C1 walker facts | S5 decay on matured windows |
+| Sat Nov 21, day 4 | S1 Cloud Run service and job, Scheduler | S2 deployed | S3 traffic shift | C1 live rerun, through the GCP owner | C2 gate "path at lines" |
+| Sun Nov 22, day 5 | review, fixes | latency, cold start | rollback on a planted broken image | S4 in the Cloud Run job, block to GCS | S5 `--simulate`, C2 re-gate at $0 |
+| Mon Nov 23, day 6 | S6 with Vishwa | no-names test, 1,000 commits | S7 Slack messages | S4 retrain step, `repository_dispatch` | S6 uptime, alert policies |
+| Tue Nov 24, day 7 | S6 dashboard in Terraform | fixes | S3 triggers: `model.yml` done, dispatch | S4 retrain → deploy | S6 log-based metrics |
+| Wed Nov 25, day 8 | **Integration: one drift → retrain → redeploy end to end, and one "not better, kept" (Aniket)** | | | | |
+| Thu Nov 26 – Sun Nov 29 | **Slack: Thanksgiving. Nothing planned** | | | | |
+| Mon Nov 30, day 9 | fresh-project run | fixes | fixes | C8 docs | S9 views (stretch) |
+| Tue Dec 1, day 10 | C4 matches counted | fixes | pass bars checked | C8 docs | S9 views, C4 |
+| Wed Dec 2, day 11 | **Code freeze, end of day. Every report section in** | | | | |
+
+| Date | Aniket |
+|---|---|
+| Nov 17 – Dec 1 | Reviews and merges. Day-5 check-in (Sun Nov 22): anything behind is cut by §10's order, not squeezed |
+| Wed Nov 25 | Integration day: the whole loop end to end. Owners fix what breaks, same day |
+| Mon Nov 30 | C3 packets move, so `DEPLOY.md` links the final paths |
+| Wed Dec 2 | Freeze. `DEPLOY.md`, `bootstrap.sh` final. A teammate who didn't build it runs `bootstrap.sh` on a fresh project |
+| Thu Dec 3 | Video, recorded from Cloud Shell on a fresh project: from zero to `/score`, then drift → retrain → redeploy, Slack, Cloud Monitoring |
+| Fri Dec 4 | Report, with Utkarsh. Everyone reviews their own section |
+| Sat Dec 5 – Sun Dec 6 | **Slack** |
+| Mon Dec 7 | Submit |
 
 ## 12. What phase 3 outputs
 
 | Output | Where |
 |---|---|
 | Infrastructure | `infra/terraform/` |
-| Endpoint | `Deploy-Pipeline/serve/`, Cloud Run `meridian-risk` |
+| Endpoint | `Model-Deployment/serve/`, Cloud Run `meridian-risk` |
 | Deploy workflow | `.github/workflows/deploy.yml` |
-| Refresh job, monitoring | `Deploy-Pipeline/refresh/`, `Deploy-Pipeline/monitor/` |
-| Replication | `Deploy-Pipeline/DEPLOY.md`, `bootstrap.sh` |
-| Report and video | `Deploy-Pipeline/report/REPORT.md`, the video link |
+| Refresh job, monitoring | `Model-Deployment/refresh/`, `Model-Deployment/monitor/` |
+| Replication | `Model-Deployment/DEPLOY.md`, `bootstrap.sh` |
+| Report and video | `Model-Deployment/report/REPORT.md`, the video link |
 
 ## 13. Guideline coverage
 
@@ -220,13 +238,13 @@ Open at the end of phase 2 (`Model-Pipeline/GAPS.md`, "After phase 2"). None blo
 
 | # | Open point | What we do | Owner | When |
 |---|---|---|---|---|
-| C1 | **Graph walkers' texts fall back** 19 of 20 times: each names a team its facts don't hold (gap 27) | Put the teams the walk visits into its facts, then rerun the walk tasks. Needs new live LLM calls (about 20), so through the GCP owner | Utkarsh | Week 1, beside S4 |
-| C2 | **The gate rejects 14 correct line lists** written without their path, "formsets.py at lines 9, 344 and 351" (gap 23) | Teach the gate "path at lines a, b", with planted-error tests like #122's; re-gate the cache at $0. The planted-error tables must not change | Vishwa | Week 1, beside S5 |
-| C3 | **The packets folder** still holds the contracts, decision logs and report sections, under people's names; code reads three files from it | Move what matters to `docs/model/` and `Model-Pipeline/report/sections/`, the data files and scripts next to the code, update every path and CI's mount; delete the task READMEs | Aniket | Before S8, so `DEPLOY.md` links the final paths |
-| C4 | **walk-v1 and the auditor's policies have 0 live matches** | Once the views run on Cloud Run (S9), stall verdicts start the matches. Promotion needs 30, so phase 3 reports the count, not a winner | Rochan | After S9 |
+| C1 | **Graph walkers' texts fall back** 19 of 20 times: each names a team its facts don't hold (gap 27) | Put the teams the walk visits into its facts, then rerun the walk tasks. Needs new live LLM calls (about 20), so through the GCP owner | Utkarsh | Fri Nov 20 – Sat Nov 21 |
+| C2 | **The gate rejects 14 correct line lists** written without their path, "formsets.py at lines 9, 344 and 351" (gap 23) | Teach the gate "path at lines a, b", with planted-error tests like #122's; re-gate the cache at $0. The planted-error tables must not change | Vishwa | Sat Nov 21 – Sun Nov 22 |
+| C3 | **The packets folder** still holds the contracts, decision logs and report sections, under people's names; code reads three files from it | Move what matters to `docs/model/` and `Model-Pipeline/report/sections/`, the data files and scripts next to the code, update every path and CI's mount; delete the task READMEs | Aniket | Mon Nov 30, so `DEPLOY.md` links the final paths |
+| C4 | **walk-v1 and the auditor's policies have 0 live matches** | Once the views run on Cloud Run (S9), stall verdicts start the matches. Promotion needs 30, so phase 3 reports the count, not a winner | Rochan | Tue Dec 1, after S9 |
 | C5 | **No policy writer** (gap 22) | Stays cut until C4 has matches: every new challenger is another chance at a lucky promotion | Rochan | Not this phase |
 | C6 | **Package diffs at 73.2%** against the 90% bar (gap 3) | Learning from owners' edits (decision 15) needs real outcomes, which come only with users. Reported, not worked | Utkarsh | Not this phase |
-| C7 | **No shared spend alert** (gap 11) | `budget.tf` in S1 closes it | Rochan | With S1 |
-| C8 | **Docs that disagree:** Spark's "Incomplete" ticket count (141 in `03-data.md`, 145 in `05-test.md`); `03-data.md`'s schema sketch vs `schema.sql`; "replay equivalence" in 02 and 05 has no test or result | Settle each from the block or mark it as a design note | Utkarsh | Week 2 |
+| C7 | **No shared spend alert** (gap 11) | `budget.tf` in S1 closes it | Rochan | Fri Nov 20, with S1 |
+| C8 | **Docs that disagree:** Spark's "Incomplete" ticket count (141 in `03-data.md`, 145 in `05-test.md`); `03-data.md`'s schema sketch vs `schema.sql`; "replay equivalence" in 02 and 05 has no test or result | Settle each from the block or mark it as a design note | Utkarsh | Mon Nov 30 – Tue Dec 1 |
 
 C1 and C2 change texts the phase 2 report quotes (205 LLM texts, 19 templates; the writer comparison's pass rates), so their PRs also update those numbers in `Model-Pipeline/report/REPORT.md` and say the date they changed.
