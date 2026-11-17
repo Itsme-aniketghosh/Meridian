@@ -169,7 +169,7 @@ A fresh machine needs only a browser: Cloud Shell has `gcloud`, `terraform`, `do
 - **The block has real names.** Private bucket, no names in responses or logs, tests on both.
 - **Credits.** Everything scales to zero, the budget alerts are in Terraform, and `--destroy` takes it all down after grading.
 
-Cut from the top if behind: S9 views → the dashboard (keep the alert policies) → the Spark-only cloud data job (run S4 in GitHub Actions on a schedule instead). Never cut: the endpoint, automated deploy, rollback, drift → retrain → redeploy, the video.
+Cut from the top if behind: C8 docs → S9 views (and with it C4) → the dashboard (keep the alert policies) → the Spark-only cloud data job (run S4 in GitHub Actions on a schedule instead). Never cut: the endpoint, automated deploy, rollback, drift → retrain → redeploy, the video.
 
 ## 11. Schedule
 
@@ -213,3 +213,20 @@ Due date: **to confirm**. With a two-week window:
 | §6.1–6.5 | Scripts, repo link, monitoring code, environment config, logs | all | The folders in §12 |
 | §7 | Video, fresh environment, 5–10 minutes | S8 | Cloud Shell from zero to `/score`, then drift → retrain → redeploy |
 | §8 | Evaluation: automated, documented, CI/CD, logs, retraining, video | all | §6's pass bars |
+
+## 14. Carried over from phase 2
+
+Open at the end of phase 2 (`Model-Pipeline/GAPS.md`, "After phase 2"). None blocks deployment, and the first three are small. Deploying the views (S9) is what lets the last ones move at all: the auditor and the walkers only learn from real users.
+
+| # | Open point | What we do | Owner | When |
+|---|---|---|---|---|
+| C1 | **Graph walkers' texts fall back** 19 of 20 times: each names a team its facts don't hold (gap 27) | Put the teams the walk visits into its facts, then rerun the walk tasks. Needs new live LLM calls (about 20), so through the GCP owner | Utkarsh | Week 1, beside S4 |
+| C2 | **The gate rejects 14 correct line lists** written without their path, "formsets.py at lines 9, 344 and 351" (gap 23) | Teach the gate "path at lines a, b", with planted-error tests like #122's; re-gate the cache at $0. The planted-error tables must not change | Vishwa | Week 1, beside S5 |
+| C3 | **The packets folder** still holds the contracts, decision logs and report sections, under people's names; code reads three files from it | Move what matters to `docs/model/` and `Model-Pipeline/report/sections/`, the data files and scripts next to the code, update every path and CI's mount; delete the task READMEs | Aniket | Before S8, so `DEPLOY.md` links the final paths |
+| C4 | **walk-v1 and the auditor's policies have 0 live matches** | Once the views run on Cloud Run (S9), stall verdicts start the matches. Promotion needs 30, so phase 3 reports the count, not a winner | Rochan | After S9 |
+| C5 | **No policy writer** (gap 22) | Stays cut until C4 has matches: every new challenger is another chance at a lucky promotion | Rochan | Not this phase |
+| C6 | **Package diffs at 73.2%** against the 90% bar (gap 3) | Learning from owners' edits (decision 15) needs real outcomes, which come only with users. Reported, not worked | Utkarsh | Not this phase |
+| C7 | **No shared spend alert** (gap 11) | `budget.tf` in S1 closes it | Rochan | With S1 |
+| C8 | **Docs that disagree:** Spark's "Incomplete" ticket count (141 in `03-data.md`, 145 in `05-test.md`); `03-data.md`'s schema sketch vs `schema.sql`; "replay equivalence" in 02 and 05 has no test or result | Settle each from the block or mark it as a design note | Utkarsh | Week 2 |
+
+C1 and C2 change texts the phase 2 report quotes (205 LLM texts, 19 templates; the writer comparison's pass rates), so their PRs also update those numbers in `Model-Pipeline/report/REPORT.md` and say the date they changed.
