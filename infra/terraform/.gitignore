@@ -1,0 +1,11 @@
+# Terraform's working files and state never go in git: the state lives in the tfstate bucket (README.md)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+# Local settings: the billing account id and emails stay out of git (terraform.tfvars.example is the template)
+terraform.tfvars
+*.auto.tfvars
+# Local-only overrides, e.g. a local backend for a dry-run plan
+*_override.tf

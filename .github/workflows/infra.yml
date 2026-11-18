@@ -1,0 +1,49 @@
+# Checks the infrastructure code on every PR and push that touches it: deploy.toml's names and numbers, and the
+# Terraform's format and validity. No cloud access, no secrets: plan and apply stay with the project owner.
+name: infra
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - "Model-Deployment/deploy.toml"
+      - "Model-Deployment/deploy_config.py"
+      - "Model-Deployment/tests/**"
+      - ".github/workflows/infra.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - "Model-Deployment/deploy.toml"
+      - "Model-Deployment/deploy_config.py"
+      - "Model-Deployment/tests/**"
+      - ".github/workflows/infra.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: deploy.toml (D4)
+        run: python -m unittest discover -s Model-Deployment/tests -v
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.4"
+
+      - name: terraform fmt
+        run: terraform -chdir=infra/terraform fmt -check -recursive
+
+      - name: terraform validate
+        run: |
+          terraform -chdir=infra/terraform init -backend=false -input=false
+          terraform -chdir=infra/terraform validate

@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars (git ignores it): the billing account id stays out of git.
+
+# The budget (C7). Find it with: gcloud billing projects describe <project-id>
+billing_account = "000000-000000-000000"
+
+# The team's project only: take over phase 2's registry repo, CI account and Workload Identity pool.
+# Leave it false on a fresh project.
+adopt_existing = true
+
+# A fresh project: bootstrap.sh passes its id. Empty means deploy.toml's [gcp] project.
+# project_id = ""
