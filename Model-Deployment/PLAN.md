@@ -68,6 +68,7 @@ flowchart LR
 | **S7** | Notifications: retrain triggered, new model deployed, deploy failed and rolled back, drift found. Through `alert.py` | Messages in Slack | Chaitali |
 | **S8** | Replication: `DEPLOY.md` and one script from a fresh machine to a working endpoint. Then the video | `Model-Deployment/DEPLOY.md`, `bootstrap.sh`, the video | Aniket |
 | S9 | Views on Cloud Run, read-only, from the GCS block | `meridian-views` | Vishwa (stretch) |
+| **S10** | Speed-ups: the refresh job, retraining, deploys and the self-improving loops turn faster (§15) | Timings in the pass bars | everyone, one item each |
 
 ## 4. The endpoint
 
@@ -115,6 +116,10 @@ When drift or decay crosses its threshold, the job runs `model.refresh`: roll th
 | Retrain | Drift → retrain → "not better" keeps the old model; a better model gets deployed | a run of each |
 | Alerts | Slack hears: retrain triggered, new model deployed, deploy rolled back, drift found | screenshots |
 | Cost | Under $5 for the phase; budget alerts at 50, 90 and 100% of $25 | the billing page |
+| Refresh speed | The daily job, new block to monitoring report, in ≤ 10 min (phase 1's full update: 480 s with the SZZ cache) | job logs |
+| Retrain speed | Drift found to a new champion in the registry ≤ 15 min (refit); the full search only weekly | job logs |
+| Deploy speed | Image build ≤ 3 min with cached layers; new champion serving ≤ 15 min after `model.yml` | `deploy.yml` timestamps |
+| Loops turning | Replay matches give every stall policy and walk-v1 an Elo on day 1, marked as replay; the fallback-rate slice report runs on every refresh with no person in the loop | the auditor's match log, Slack |
 
 ## 7. Dependency graph
 
@@ -138,6 +143,8 @@ flowchart TD
 Critical path: S1 → S2 deployed → S3 → S8. S2 and S5 start on day 1 with no cloud at all: S2 runs locally against the block, S5 against the 2025–26 commits.
 
 ## 8. Roles
+
+Each person's steps, dates, checklist and "done when" are in [packets/](packets/README.md), with the contracts between the pieces (D1–D5).
 
 | Who | Work | Days |
 |---|---|---:|
@@ -241,7 +248,7 @@ Open at the end of phase 2 (`Model-Pipeline/GAPS.md`, "After phase 2"). None blo
 
 | # | Open point | What we do | Owner | When |
 |---|---|---|---|---|
-| C1 | **Graph walkers' texts fall back** 19 of 20 times: each names a team its facts don't hold (gap 27) | Put the teams the walk visits into its facts, then rerun the walk tasks. Needs new live LLM calls (about 20), so through the GCP owner | Utkarsh | Fri Nov 20 – Sat Nov 21 |
+| C1 | **Graph walkers' texts fall back** 19 of 20 times: each names a team its facts don't hold (gap 27) | Put the teams the walk visits into its facts, then rerun the walk tasks. Needs about 20 new live LLM calls, on Utkarsh's GCP project as in phase 2 | Utkarsh | Fri Nov 20 – Sat Nov 21 |
 | C2 | **The gate rejects 14 correct line lists** written without their path, "formsets.py at lines 9, 344 and 351" (gap 23) | Teach the gate "path at lines a, b", with planted-error tests like #122's; re-gate the cache at $0. The planted-error tables must not change | Vishwa | Sat Nov 21 – Sun Nov 22 |
 | C3 | **The packets folder** still holds the contracts, decision logs and report sections, under people's names; code reads three files from it | Move what matters to `docs/model/` and `Model-Pipeline/report/sections/`, the data files and scripts next to the code, update every path and CI's mount; delete the task READMEs | Aniket | Thu Nov 26 – Fri Nov 27, so `DEPLOY.md` links the final paths |
 | C4 | **walk-v1 and the auditor's policies have 0 live matches** | Once the views run on Cloud Run (S9), stall verdicts start the matches. Promotion needs 30, so phase 3 reports the count, not a winner | Rochan | Sat Nov 28, after S9 |
@@ -251,3 +258,17 @@ Open at the end of phase 2 (`Model-Pipeline/GAPS.md`, "After phase 2"). None blo
 | C8 | **Docs that disagree:** Spark's "Incomplete" ticket count (141 in `03-data.md`, 145 in `05-test.md`); `03-data.md`'s schema sketch vs `schema.sql`; "replay equivalence" in 02 and 05 has no test or result | Settle each from the block or mark it as a design note | Utkarsh | Thu Nov 26 – Fri Nov 27 |
 
 C1 and C2 change texts the phase 2 report quotes (205 LLM texts, 19 templates; the writer comparison's pass rates), so their PRs also update those numbers in `Model-Pipeline/report/REPORT.md` and say the date they changed.
+
+## 15. Speed-ups (S10)
+
+Phase 2's loops are built but slow to turn: the model retrains only when someone runs it, the auditor and walk-v1 wait for 30 live matches, and a gate problem waits for a person to notice the fallback rate. Phase 3 makes each turn on its own, and faster. One item per person, Nov 26–28, after integration.
+
+| Loop or stage | Today | Speed-up | Owner |
+|---|---|---|---|
+| **Data refresh** | Full update 480 s (phase 1, SZZ cache); every repo | Spark only, the clone and the SZZ cache kept in GCS between runs, so a daily run reads only new commits. Target ≤ 10 min end to end, monitoring report included | Utkarsh |
+| **↻1 Model** | `model.refresh` by hand; the full Optuna search took 27.7 min on a runner | Runs inside the daily job on drift or decay. Refit with the committed best parameters (minutes); the full search only on a weekly schedule. The champion is still replaced only on a 2-SD gain | Rachna |
+| **Deploy** | Image built from scratch | Cached base layers; only the model and serve layers rebuild. The model is baked into the image, so a cold start doesn't download it | Chaitali |
+| **↻2 Auditor, ↻3 walk-v1** | 0 live matches; promotion needs 30 | Replay matches on past stalls (04 §9: rows known by the stall time only, half K) run nightly, so every policy and walk-v1 has an Elo now. Replays are marked and never promote alone: the 30 live matches still decide | Rochan |
+| **↻4 Agents** | A person read the fallback rate and found the `#6921` bug (41 of 68) | The fallback-rate slice report runs on every refresh and posts to Slack when a slice is flagged. A person still makes the fix; finding it is automatic | Vishwa |
+
+None of these changes a model, a threshold or a reported number. Each one is timed before and after, and the report gives both.
