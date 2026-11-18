@@ -6,7 +6,7 @@
 |---|---|
 | Steps | S2 the endpoint · S10 retrain speed. About 3 days |
 | Code | `Model-Deployment/serve/` (app, Dockerfile, tests), `Model-Pipeline/model/refresh.py` (refit mode in the job) |
-| Waits on | nothing for the local build. Rochan's Cloud Run service (Nov 21) to deploy |
+| Waits on | nothing for the local build. Rochan's Cloud Run service (Nov 22) to deploy |
 | Hands to | Chaitali: an image `deploy.yml` builds and smoke-tests. Vishwa: D5 log lines. Aniket: the `/score` examples for `DEPLOY.md` and the video |
 
 ```mermaid
@@ -20,16 +20,16 @@ flowchart LR
 
 | Date | Due |
 |---|---|
-| Wed Nov 18 | `serve/` app: `/health`, `/score` for a known SHA and for a numstat push (D1), local |
-| Thu Nov 19 | Tests: the same risk as `p9.py` locally on 20 val commits, to 1e-9 |
-| Fri Nov 20 | The image: the champion baked in at build, md5 checked at start |
-| Sat Nov 21 | Deployed to `meridian-risk` |
-| Sun Nov 22 | Latency: p95 warm, cold start. Check-in |
-| Mon Nov 23 | No-names test over 1,000 scored commits |
-| Wed Nov 25 | Integration |
-| Thu Nov 26 | Fixes. S10: refit in the job |
-| Fri Nov 27 | `/score` examples and expected outputs for `DEPLOY.md` |
-| Sat Nov 28 | Latency and cost check against the bars |
+| Thu Nov 19 | `serve/` app: `/health`, `/score` for a known SHA and for a numstat push (D1), local |
+| Fri Nov 20 | Tests: the same risk as `p9.py` locally on 20 val commits, to 1e-9 |
+| Sat Nov 21 | The image: the champion baked in at build, md5 checked at start |
+| Sun Nov 22 | Deployed to `meridian-risk` |
+| Mon Nov 23 | Latency: p95 warm, cold start. Check-in |
+| Tue Nov 24 | No-names test over 1,000 scored commits |
+| Thu Nov 26 | Integration |
+| Fri Nov 27 | Fixes. S10: refit in the job |
+| Sat Nov 28 | `/score` examples and expected outputs for `DEPLOY.md` |
+| Sun Nov 29 | Latency and cost check against the bars |
 
 ## 1. The endpoint (S2)
 

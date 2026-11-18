@@ -6,7 +6,7 @@
 |---|---|
 | Steps | S4 the refresh job · C1 walker facts · C8 docs that disagree · S10 refresh speed. About 3 days |
 | Code | `Model-Deployment/refresh/` (job image, entrypoint), `Data-Pipeline/meridian/walkers.py` (C1), `docs/02`, `03`, `05` (C8) |
-| Waits on | Rochan's job and bucket (Nov 21), Vishwa's D2 report (Nov 20) |
+| Waits on | Rochan's job and bucket (Nov 22), Vishwa's D2 report (Nov 21) |
 | Hands to | Vishwa: the new block. Chaitali: the `champion-updated` dispatch (D3). Aniket: a retrain → deploy run |
 
 ```mermaid
@@ -20,16 +20,16 @@ flowchart LR
 
 | Date | Due |
 |---|---|
-| Wed Nov 18 | Job image, local run |
-| Thu Nov 19 | Spark-only update, local: collect new commits, history, the block |
-| Fri Nov 20 | C1: the teams the walk visits go into its facts |
-| Sat Nov 21 | C1: rerun the ~20 walk tasks live (your GCP project, as in phase 2) |
-| Sun Nov 22 | The job on Cloud Run, block to GCS. Check-in |
-| Mon Nov 23 | Retrain step: on D2's `retrain: true`, `model.refresh`; on a promotion, D3 dispatch |
-| Tue Nov 24 | Retrain → deploy end to end with Chaitali |
-| Wed Nov 25 | Integration |
-| Thu Nov 26 – Fri Nov 27 | C8 docs. S10: clone and SZZ cache in GCS |
-| Sat Nov 28 | Rerun on a new block, timed |
+| Thu Nov 19 | Job image, local run |
+| Fri Nov 20 | Spark-only update, local: collect new commits, history, the block |
+| Sat Nov 21 | C1: the teams the walk visits go into its facts |
+| Sun Nov 22 | C1: rerun the ~20 walk tasks live (your GCP project, as in phase 2) |
+| Mon Nov 23 | The job on Cloud Run, block to GCS. Check-in |
+| Tue Nov 24 | Retrain step: on D2's `retrain: true`, `model.refresh`; on a promotion, D3 dispatch |
+| Wed Nov 25 | Retrain → deploy end to end with Chaitali |
+| Thu Nov 26 | Integration |
+| Fri Nov 27 – Sat Nov 28 | C8 docs. S10: clone and SZZ cache in GCS |
+| Sun Nov 29 | Rerun on a new block, timed |
 
 ## 1. The job (S4)
 

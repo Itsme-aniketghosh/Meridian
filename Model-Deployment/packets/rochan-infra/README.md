@@ -6,7 +6,7 @@
 |---|---|
 | Steps | S1 Terraform · S6 Cloud Monitoring in Terraform (with Vishwa) · C7 spend alert · C4 live matches · S10 replay matches · the first fresh-project run. About 3 days |
 | Code | `infra/terraform/`, `Model-Deployment/deploy.toml`, `Data-Pipeline/meridian/auditor.py` (replay schedule) |
-| Waits on | Aniket's call on the project (Nov 17) |
+| Waits on | Aniket's call on the project (Nov 18) |
 | Hands to | everyone: `deploy.toml` (D4) and a project to deploy into. Rachna: the service. Utkarsh: the job and its bucket. Chaitali: deploy's identity. Vishwa: Monitoring resources |
 
 ```mermaid
@@ -22,16 +22,16 @@ flowchart LR
 
 | Date | Due |
 |---|---|
-| Wed Nov 18 | `deploy.toml` (D4) merged. `terraform plan` for APIs, buckets, registry repos, service accounts |
-| Thu Nov 19 | `terraform apply`: buckets (private, uniform access), Docker repo, service accounts |
-| Fri Nov 20 | Workload Identity for `deploy.yml`, limited to this repo's main. `budget.tf`: $25, alerts at 50, 90, 100% (C7) |
-| Sat Nov 21 | Cloud Run service `meridian-risk` (max 2 instances), job `meridian-refresh`, Cloud Scheduler daily |
-| Sun Nov 22 | Review and fixes. Check-in |
-| Mon Nov 23 – Tue Nov 24 | S6 with Vishwa: uptime check, alert policies, dashboard, all in Terraform |
-| Wed Nov 25 | Integration |
-| Thu Nov 26 | Fixes from integration. S10: replay matches nightly |
-| Fri Nov 27 | **First fresh-project run** of `bootstrap.sh`, from a project with nothing in it |
-| Sat Nov 28 | C4: live matches counted once the views run |
+| Thu Nov 19 | `deploy.toml` (D4) merged. `terraform plan` for APIs, buckets, registry repos, service accounts |
+| Fri Nov 20 | `terraform apply`: buckets (private, uniform access), Docker repo, service accounts |
+| Sat Nov 21 | Workload Identity for `deploy.yml`, limited to this repo's main. `budget.tf`: $25, alerts at 50, 90, 100% (C7) |
+| Sun Nov 22 | Cloud Run service `meridian-risk` (max 2 instances), job `meridian-refresh`, Cloud Scheduler daily |
+| Mon Nov 23 | Review and fixes. Check-in |
+| Tue Nov 24 – Wed Nov 25 | S6 with Vishwa: uptime check, alert policies, dashboard, all in Terraform |
+| Thu Nov 26 | Integration |
+| Fri Nov 27 | Fixes from integration. S10: replay matches nightly |
+| Sat Nov 28 | **First fresh-project run** of `bootstrap.sh`, from a project with nothing in it |
+| Sun Nov 29 | C4: live matches counted once the views run |
 
 ## 1. Terraform (S1)
 

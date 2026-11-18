@@ -6,7 +6,7 @@
 |---|---|
 | Steps | S3 `deploy.yml` · S7 Slack · S10 deploy speed · the planted failures · the pass-bar check. About 3 days |
 | Code | `.github/workflows/deploy.yml`, the smoke test, `Data-Pipeline/meridian/alert.py` (new message kinds) |
-| Waits on | Rochan's deploy identity (Nov 20), Rachna's image (Nov 20), Utkarsh's dispatch (D3, Nov 23) |
+| Waits on | Rochan's deploy identity (Nov 21), Rachna's image (Nov 21), Utkarsh's dispatch (D3, Nov 24) |
 | Hands to | everyone: a deployed endpoint on every new champion. Aniket: rollback evidence, Slack screenshots, the pass-bar table |
 
 ```mermaid
@@ -21,17 +21,17 @@ flowchart LR
 
 | Date | Due |
 |---|---|
-| Wed Nov 18 | `deploy.yml` on a branch, dry run: pull the champion pointer, build, no deploy |
-| Thu Nov 19 | Build and push the image to the Docker repo |
-| Fri Nov 20 | Deploy a new revision with **no traffic**, smoke test it (D1's `/health` and a known `/score`) |
-| Sat Nov 21 | Move traffic only after the smoke test passes |
-| Sun Nov 22 | Rollback: a planted broken image never takes traffic. Check-in |
-| Mon Nov 23 | S7: the four Slack messages |
-| Tue Nov 24 | Triggers: `model.yml` success on main, `repository_dispatch` (D3), by hand |
-| Wed Nov 25 | Integration |
-| Thu Nov 26 | Fixes. S10: cached layers |
-| Fri Nov 27 | The planted broken image again, on main's workflow |
-| Sat Nov 28 | Every pass bar in PLAN §6 checked, with its evidence |
+| Thu Nov 19 | `deploy.yml` on a branch, dry run: pull the champion pointer, build, no deploy |
+| Fri Nov 20 | Build and push the image to the Docker repo |
+| Sat Nov 21 | Deploy a new revision with **no traffic**, smoke test it (D1's `/health` and a known `/score`) |
+| Sun Nov 22 | Move traffic only after the smoke test passes |
+| Mon Nov 23 | Rollback: a planted broken image never takes traffic. Check-in |
+| Tue Nov 24 | S7: the four Slack messages |
+| Wed Nov 25 | Triggers: `model.yml` success on main, `repository_dispatch` (D3), by hand |
+| Thu Nov 26 | Integration |
+| Fri Nov 27 | Fixes. S10: cached layers |
+| Sat Nov 28 | The planted broken image again, on main's workflow |
+| Sun Nov 29 | Every pass bar in PLAN §6 checked, with its evidence |
 
 ## 1. Deploy and rollback (S3)
 

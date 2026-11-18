@@ -1,17 +1,17 @@
 # Aniket: lead, integration, replication, the video
 
-> You sit at the end of the graph. Review and merge until Nov 24, run the whole loop on Nov 25, make it reproducible from zero, record the video and write the report.
+> You sit at the end of the graph. Review and merge until Nov 25, run the whole loop on Nov 26, make it reproducible from zero, record the video and write the report.
 
 | | |
 |---|---|
 | Owns | the decisions, reviews and merges, integration, C3 packets move, S8 `DEPLOY.md` and `bootstrap.sh`, the video, the report |
-| Waits on | every step by Nov 24 |
+| Waits on | every step by Nov 25 |
 | Hands to | the course: `Model-Deployment/report/REPORT.md` and the video, Dec 7 |
 
 ```mermaid
 flowchart LR
   all["S1–S7, C1, C2"] --> me["Aniket"]
-  me --> integ["integration Nov 25"]
+  me --> integ["integration Nov 26"]
   me --> s8["DEPLOY.md, bootstrap.sh"]
   me --> vid["video Dec 3"]
   me --> rep["report Dec 4"]
@@ -19,20 +19,20 @@ flowchart LR
 
 | Date | Due |
 |---|---|
-| Tue Nov 17 | Decisions: the project; thresholds signed by everyone |
-| Nov 18 – 24 | Reviews and merges. Check-in Sun Nov 22: anything behind is cut by PLAN §10's order |
-| Wed Nov 25 | **Integration**: a planted shift → retrain → deploy, and one → retrain → keep. Owners fix the same day |
-| Thu Nov 26 – Fri Nov 27 | C3: the phase 2 packets move to `docs/model/` and `report/sections/`. `DEPLOY.md` and `bootstrap.sh` drafted |
-| Sat Nov 28 | Video dry run in Cloud Shell, timed |
-| Sun Nov 29 | Check-in: every pass bar met or cut. Report sections drafted |
-| Mon Nov 30 – Tue Dec 1 | Slack: catch-up only |
+| Wed Nov 18 | Decisions: the project; thresholds signed by everyone |
+| Nov 19 – 24 | Reviews and merges. Check-in Mon Nov 23: anything behind is cut by PLAN §10's order |
+| Thu Nov 26 | **Integration**: a planted shift → retrain → deploy, and one → retrain → keep. Owners fix the same day |
+| Fri Nov 27 – Sat Nov 28 | C3: the phase 2 packets move to `docs/model/` and `report/sections/`. `DEPLOY.md` and `bootstrap.sh` drafted |
+| Sun Nov 29 | Video dry run in Cloud Shell, timed |
+| Mon Nov 30 | Check-in: every pass bar met or cut. Report sections drafted |
+| Tue Dec 1 | Slack: catch-up only |
 | Wed Dec 2 | Code freeze. A teammate who didn't build it runs `bootstrap.sh` on a fresh project |
 | Thu Dec 3 | The video |
 | Fri Dec 4 | The report, with Utkarsh |
 | Sat Dec 5 – Sun Dec 6 | Slack |
 | Mon Dec 7 | Submit |
 
-## 1. Integration (Nov 25)
+## 1. Integration (Nov 26)
 
 - [ ] From a clean clone: `terraform apply`, deploy, `/score`, the dashboard
 - [ ] Planted shift → D2 `retrain` → `model.refresh` → promoted → D3 → `deploy.yml` → new revision serving, Slack at each step
@@ -60,5 +60,5 @@ flowchart LR
 
 ## Done when
 
-- [ ] The whole loop ran on Nov 25 and again on the fresh project
+- [ ] The whole loop ran on Nov 26 and again on the fresh project
 - [ ] The video and the report are submitted on Dec 7

@@ -6,7 +6,7 @@
 |---|---|
 | Steps | S5 drift and decay · S6 Cloud Monitoring (with Rochan) · C2 gate line lists · S9 views (stretch) · S10 fallback-rate report. About 3 days |
 | Code | `Model-Deployment/monitor/`, `infra/terraform/monitoring.tf` (with Rochan), `Data-Pipeline/meridian/fact_gate.py` (C2), the views' image |
-| Waits on | nothing for S5 (it starts on the 2025–26 commits). Rachna's D5 logs (Nov 21) for S6 |
+| Waits on | nothing for S5 (it starts on the 2025–26 commits). Rachna's D5 logs (Nov 22) for S6 |
 | Hands to | Utkarsh: the D2 report and its `retrain` flag. Rochan: Monitoring resources. Aniket: the drift result for the demo, the dashboard |
 
 ```mermaid
@@ -20,16 +20,16 @@ flowchart LR
 
 | Date | Due |
 |---|---|
-| Wed Nov 18 | **S5 drift on the 7,238 commits from 2025–26** against train. Record the result before tuning anything |
-| Thu Nov 19 | Thresholds checked on real data (PLAN §5), signed by the team |
-| Fri Nov 20 | Decay on the newest matured window against lines × files. D2 report written |
-| Sat Nov 21 | C2: the gate reads "path at lines a, b" |
-| Sun Nov 22 | `--simulate` (every commit 10× larger) crosses the threshold. C2 re-gated at $0. Check-in |
-| Mon Nov 23 | S6: uptime check on `/health`, alert policies (5xx, p95, job failure, drift) |
-| Tue Nov 24 | Log-based metrics from D5 lines |
-| Wed Nov 25 | Integration |
-| Thu Nov 26 – Fri Nov 27 | S9 views on Cloud Run (stretch). S10: fallback-rate report |
-| Sat Nov 28 | Dashboard has every signal |
+| Thu Nov 19 | **S5 drift on the 7,238 commits from 2025–26** against train. Record the result before tuning anything |
+| Fri Nov 20 | Thresholds checked on real data (PLAN §5), signed by the team |
+| Sat Nov 21 | Decay on the newest matured window against lines × files. D2 report written |
+| Sun Nov 22 | C2: the gate reads "path at lines a, b" |
+| Mon Nov 23 | `--simulate` (every commit 10× larger) crosses the threshold. C2 re-gated at $0. Check-in |
+| Tue Nov 24 | S6: uptime check on `/health`, alert policies (5xx, p95, job failure, drift) |
+| Wed Nov 25 | Log-based metrics from D5 lines |
+| Thu Nov 26 | Integration |
+| Fri Nov 27 – Sat Nov 28 | S9 views on Cloud Run (stretch). S10: fallback-rate report |
+| Sun Nov 29 | Dashboard has every signal |
 
 ## 1. Drift and decay (S5)
 

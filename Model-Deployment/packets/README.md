@@ -63,6 +63,6 @@ One JSON object per line on stdout, so Cloud Logging parses it:
 `{"severity": "INFO", "event": "score" | "refresh" | "deploy" | "drift" | "retrain", "model_version": str, "latency_ms": int, ...}`.
 Never an email, a name or a person id.
 
-## Integration day (Wed Nov 25)
+## Integration day (Thu Nov 26)
 
 Before it, each of these is merged and green: D1 behind a real URL, `deploy.yml` with a smoke test, the refresh job writing a D2 report, alert policies in Terraform. On the day, Aniket runs the whole loop twice: a planted shift that retrains and deploys, and one that retrains and keeps the old model.
