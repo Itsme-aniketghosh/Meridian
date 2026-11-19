@@ -4,6 +4,7 @@
 
 [gcp]
 project = "project-448b7a64-b5c5-43d3-893"   # the team's project (phase 2's registry); bootstrap.sh can override it
+project_number = "541739670966"              # the team project's; workflows need it to sign in, before any terraform output
 region = "us-east1"
 
 [github]
@@ -15,7 +16,12 @@ models = "meridian-models"   # generic, from phase 2: model versions and champio
 model_package = "defect-risk"
 pointer_package = "champion"
 images = "meridian-images"   # Docker: the serving and job images
-keep_images = 3              # cleanup keeps the newest 3 versions of each image, so a rollback has its image
+keep_images = 3              # cleanup keeps the newest 3 versions of each image and deletes older ones after a day
+
+[images]   # image names in registry.images: <region>-docker.pkg.dev/<project>/meridian-images/<name>
+risk = "risk"
+refresh = "refresh"
+views = "views"
 
 [buckets]   # all private, uniform access
 block = "{project}-meridian-block"       # the newest block: real names, never public
@@ -31,6 +37,7 @@ cpu = "1"
 memory = "1Gi"
 concurrency = 20
 timeout_s = 30
+max_request_kb = 1024   # S2 refuses a bigger body (PLAN §4's request size cap)
 public = true        # graders call it; no names out (PLAN §4)
 
 [services.views]   # S9, stretch
@@ -63,10 +70,12 @@ provider = "meridian"
 slack_webhook = "meridian-slack-webhook"       # MERIDIAN_SLACK_WEBHOOK
 github_dispatch = "meridian-github-dispatch"   # the job's token for repository_dispatch (D3)
 
-[budget]   # C7, PLAN §6
+[budget]   # C7, PLAN §6. The team's emails for the alerts stay out of git (terraform.tfvars)
 amount_usd = 25
 alert_at = [0.5, 0.9, 1.0]
 phase_target_usd = 5
+start = "2026-11-17"   # the phase, not the calendar month (a monthly budget would reset on Dec 1)
+end = "2026-12-07"
 
 [drift]   # PLAN §5: retrain on PSI ≥ psi for any top feature, or Evidently's dataset drift share ≥ dataset_share
 window_days = 30
@@ -79,6 +88,7 @@ dataset_share = 0.5
 # max_drop under the last measured window
 label_window_days = 365
 min_positives = 30
+min_paired_lower = 0.0   # the paired interval's lower bound must stay above this
 max_drop = 0.05
 
 [service_alerts]   # PLAN §5 and §6, for S6: they page Slack and never retrain

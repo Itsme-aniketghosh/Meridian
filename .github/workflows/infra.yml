@@ -1,5 +1,6 @@
-# Checks the infrastructure code on every PR and push that touches it: deploy.toml's names and numbers, and the
-# Terraform's format and validity. No cloud access, no secrets: plan and apply stay with the project owner.
+# Checks the infrastructure code on every PR and push that touches it: deploy.toml's names and numbers (and that
+# phase 2's copies in model.toml and model.yml agree), and the Terraform's format and validity. No cloud access,
+# no secrets: plan and apply stay with the project owner.
 name: infra
 
 on:
@@ -9,6 +10,8 @@ on:
       - "Model-Deployment/deploy.toml"
       - "Model-Deployment/deploy_config.py"
       - "Model-Deployment/tests/**"
+      - "Model-Pipeline/model.toml"
+      - ".github/workflows/model.yml"
       - ".github/workflows/infra.yml"
   push:
     branches: [main]
@@ -17,6 +20,8 @@ on:
       - "Model-Deployment/deploy.toml"
       - "Model-Deployment/deploy_config.py"
       - "Model-Deployment/tests/**"
+      - "Model-Pipeline/model.toml"
+      - ".github/workflows/model.yml"
       - ".github/workflows/infra.yml"
 
 permissions:
@@ -35,6 +40,11 @@ jobs:
 
       - name: deploy.toml (D4)
         run: python -m unittest discover -s Model-Deployment/tests -v
+
+      - name: flake8
+        run: |
+          python -m pip install flake8==7.4.1
+          python -m flake8 --max-line-length 120 --per-file-ignores="Model-Deployment/tests/*:E402" Model-Deployment/deploy_config.py Model-Deployment/tests
 
       - uses: hashicorp/setup-terraform@v3
         with:

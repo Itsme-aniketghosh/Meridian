@@ -4,16 +4,20 @@ variable "project_id" {
   default     = ""
 }
 
+# No defaults on purpose: an apply without terraform.tfvars stops and asks, instead of planning to remove the budget
+# or its recipients. Both stay out of git (terraform.tfvars.example is the template).
 variable "billing_account" {
-  description = "Billing account id for the budget (C7). Empty: no budget. Keep it out of git: terraform.tfvars or TF_VAR_billing_account."
+  description = "Billing account id for the budget (C7)."
   type        = string
-  default     = ""
 }
 
-variable "adopt_existing" {
-  description = "The team's project only: import phase 2's registry repo, CI service account and Workload Identity pool instead of creating them."
-  type        = bool
-  default     = false
+variable "alert_emails" {
+  description = "The team's emails for the budget alerts, besides the billing account's admins and users. At most 5."
+  type        = list(string)
+  validation {
+    condition     = length(var.alert_emails) <= 5
+    error_message = "A budget takes at most 5 notification channels."
+  }
 }
 
 variable "placeholder_service_image" {

@@ -1,9 +1,9 @@
 # The team's project already has these from phase 2, and CI's registry push uses them: adopt them, don't recreate
-# them (adopt_existing = true). A fresh project (bootstrap.sh) has none, so adopt_existing stays false there.
-# Once they're in the state, these blocks do nothing.
+# them. That happens on deploy.toml's own project only; a fresh project (bootstrap.sh) has none, so nothing is
+# imported there. Once they're in the state, these blocks do nothing.
 
 locals {
-  adopt = var.adopt_existing ? toset(["phase2"]) : toset([])
+  adopt = local.project == local.cfg.gcp.team_project ? toset(["phase2"]) : toset([])
 }
 
 import {

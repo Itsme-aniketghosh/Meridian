@@ -3,8 +3,12 @@
 resource "google_secret_manager_secret" "secret" {
   for_each  = local.cfg.secrets
   secret_id = each.value
-  replication {
-    auto {}
+  replication { # in the project's region only, like everything else (automatic replication is global)
+    user_managed {
+      replicas {
+        location = local.region
+      }
+    }
   }
 
   depends_on = [google_project_service.api]

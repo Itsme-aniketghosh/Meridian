@@ -1,5 +1,7 @@
 # The endpoint (S2, contract D1) and the daily refresh job (S4). Terraform makes them with a placeholder image;
 # deploy.yml ships the real images, and Terraform never puts its placeholder back (ignore_changes).
+# MERIDIAN_DEPLOY_PROJECT tells deploy_config.py which project the container runs in (Cloud Run sets no such
+# variable). It's set once at creation; env added later by deploy.yml is left alone, so an apply never drops it.
 
 locals {
   risk    = local.cfg.services.risk
@@ -24,6 +26,10 @@ resource "google_cloud_run_v2_service" "risk" {
 
     containers {
       image = var.placeholder_service_image
+      env {
+        name  = "MERIDIAN_DEPLOY_PROJECT"
+        value = local.project
+      }
       ports {
         container_port = 8080
       }
@@ -44,6 +50,7 @@ resource "google_cloud_run_v2_service" "risk" {
       client_version,
       traffic,
       template[0].containers[0].image,
+      template[0].containers[0].env,
       template[0].revision,
       template[0].labels,
       template[0].annotations,
@@ -82,6 +89,10 @@ resource "google_cloud_run_v2_job" "refresh" {
       max_retries     = local.refresh.max_retries
       containers {
         image = var.placeholder_job_image
+        env {
+          name  = "MERIDIAN_DEPLOY_PROJECT"
+          value = local.project
+        }
         resources {
           limits = {
             cpu    = local.refresh.cpu
@@ -97,6 +108,7 @@ resource "google_cloud_run_v2_job" "refresh" {
       client,
       client_version,
       template[0].template[0].containers[0].image,
+      template[0].template[0].containers[0].env,
       template[0].labels,
       template[0].annotations,
     ]

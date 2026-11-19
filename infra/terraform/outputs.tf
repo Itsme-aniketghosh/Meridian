@@ -29,3 +29,8 @@ output "refresh_job" {
   description = "The job Cloud Scheduler starts daily"
   value       = google_cloud_run_v2_job.refresh.name
 }
+
+output "project_number" {
+  description = "Must match deploy.toml [gcp] project_number on the team's project (workflows sign in with it)"
+  value       = local.project_number
+}

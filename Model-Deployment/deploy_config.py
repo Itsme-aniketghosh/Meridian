@@ -2,25 +2,31 @@
 
 In Python:
     from deploy_config import load
-    cfg = load()                        # "{project}" filled in from [gcp] project
-    cfg = load(project="other-project") # a fresh project (bootstrap.sh)
+    cfg = load()                         # "{project}" filled in; in Cloud Run, from $MERIDIAN_DEPLOY_PROJECT
+    cfg = load(project="other-project")  # a fresh project (bootstrap.sh)
+    cfg["derived"]["images"]["risk"]     # names built from the rest: account emails, image URLs, the sign-in provider
 
 From a shell or a workflow:
     python3 Model-Deployment/deploy_config.py --get services.risk.name
+    python3 Model-Deployment/deploy_config.py --get derived.workload_identity_provider
     python3 Model-Deployment/deploy_config.py --get buckets.monitor --project other-project
 
 Terraform reads it the same way (infra/terraform/main.tf, an external data source): --terraform takes the
-query on stdin and prints {"json": "<the whole config>"}. Needs Python 3.11+ (tomllib).
+query on stdin and prints {"json": "<the whole config>"}. Needs Python 3.11+ (tomllib), or tomli installed.
 """
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 try:
     import tomllib
 except ModuleNotFoundError:  # Python < 3.11
-    sys.exit("deploy_config.py needs Python 3.11 or later (tomllib)")
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        sys.exit("deploy_config.py needs Python 3.11 or later, or `pip install tomli`")
 
 HERE = Path(__file__).resolve().parent
 DEPLOY_TOML = HERE / "deploy.toml"
@@ -37,13 +43,38 @@ def _fill(value, project):
     return value
 
 
-def load(path=DEPLOY_TOML, project=None):
-    """deploy.toml as a dict, for `project` (default: its own [gcp] project)."""
+def _derived(cfg):
+    """Names built from the rest, so a workflow never types them. The provider needs the project's number,
+    which deploy.toml knows only for its own project."""
+    gcp, reg = cfg["gcp"], cfg["registry"]
+    project, region = gcp["project"], gcp["region"]
+    images_repo = f"{region}-docker.pkg.dev/{project}/{reg['images']}"
+    wif = cfg["workload_identity"]
+    number = gcp.get("project_number")
+    return {
+        "service_accounts": {k: f"{v}@{project}.iam.gserviceaccount.com" for k, v in cfg["service_accounts"].items()},
+        "images_repo": images_repo,
+        "images": {k: f"{images_repo}/{v}" for k, v in cfg["images"].items()},
+        "models_repo": f"{region}-generic.pkg.dev/{project}/{reg['models']}",
+        "workload_identity_provider": (f"projects/{number}/locations/global/workloadIdentityPools/{wif['pool']}"
+                                       f"/providers/{wif['provider']}") if number else None,
+    }
+
+
+def load(path=DEPLOY_TOML, project=None, project_number=None, use_env=True):
+    """deploy.toml as a dict, for `project`: the argument, else $MERIDIAN_DEPLOY_PROJECT (Terraform sets it in Cloud
+    Run; not $MERIDIAN_GCP_PROJECT, which turns on live LLM calls), else its own [gcp] project.
+    [gcp] team_project keeps deploy.toml's own project; project_number is known only for that one."""
     with open(path, "rb") as f:
         cfg = tomllib.load(f)
-    project = project or cfg["gcp"]["project"]
-    cfg["gcp"]["project"] = project
-    return _fill(cfg, project)
+    gcp = cfg["gcp"]
+    team = gcp["project"]
+    project = project or (os.environ.get("MERIDIAN_DEPLOY_PROJECT") if use_env else None) or team
+    gcp.update(project=project, team_project=team,
+               project_number=project_number or (gcp.get("project_number") if project == team else None))
+    cfg = _fill(cfg, project)
+    cfg["derived"] = _derived(cfg)
+    return cfg
 
 
 def get(cfg, key):
@@ -53,13 +84,16 @@ def get(cfg, key):
         if not isinstance(value, dict) or part not in value:
             raise KeyError(f"deploy.toml has no {key!r}")
         value = value[part]
+    if value is None:
+        raise KeyError(f"{key!r} isn't known for this project (pass --project-number)")
     return value
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", type=Path, default=DEPLOY_TOML)
-    ap.add_argument("--project", help="another project id (default: deploy.toml's)")
+    ap.add_argument("--project", help="another project id (default: $MERIDIAN_DEPLOY_PROJECT, else deploy.toml's)")
+    ap.add_argument("--project-number", help="that project's number, for derived.workload_identity_provider")
     ap.add_argument("--get", metavar="KEY", help="print one value, e.g. services.risk.name")
     ap.add_argument("--terraform", action="store_true",
                     help="Terraform's external data source: the query (JSON) on stdin, the config as one string")
@@ -69,7 +103,7 @@ def main(argv=None):
         query = json.loads(sys.stdin.read() or "{}")
         project = query.get("project") or project
     try:
-        cfg = load(a.config, project)
+        cfg = load(a.config, project, a.project_number, use_env=not a.terraform)  # Terraform: only its own query
         if a.terraform:
             print(json.dumps({"json": json.dumps(cfg)}))
         elif a.get:
