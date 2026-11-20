@@ -1,0 +1,124 @@
+# S3 (Model-Deployment/PLAN.md): ship the champion to Cloud Run. Day 1 is the dry run: read deploy.toml (D4), get the
+# champion and check its md5, build the serving image. Nothing is pushed, no revision is deployed, no traffic moves.
+# Next: push the image (Nov 20), a no-traffic revision and its smoke test (Nov 21), the traffic move (Nov 22),
+# rollback (Nov 23), Slack (Nov 24), and the triggers: model.yml on main and D3's repository_dispatch (Nov 25).
+#
+# The champion: on main, the registry pointer on Artifact Registry, read as the deploy account through Workload
+# Identity (main only, as in phase 2). Anywhere else, the committed Model-Pipeline/registry/. Either way its model
+# file's md5 must be the record's (Model-Deployment/champion.py).
+name: deploy
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/deploy.yml"
+      - "Model-Deployment/champion.py"
+      - "Model-Deployment/deploy.toml"
+      - "Model-Deployment/deploy_config.py"
+      - "Model-Deployment/serve/**"
+      - "Model-Deployment/tests/test_champion.py"
+      - "Model-Pipeline/registry/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write   # Workload Identity, on main only
+
+concurrency:   # one deploy at a time; a PR's newer push replaces its older dry run
+  group: deploy-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ON_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+      DRY_RUN: "true"   # day 1: every run is a dry run
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        id: py
+        with:
+          python-version: "3.11"
+
+      # model.registry reads md5s through model.evaluate, which needs the model's packages: the same cached
+      # environment model.yml uses on main
+      - uses: actions/cache@v4
+        id: venv
+        with:
+          path: .venv
+          key: venv-model-${{ runner.os }}-${{ steps.py.outputs.python-version }}-${{ hashFiles('Data-Pipeline/requirements.txt', 'Model-Pipeline/requirements.txt') }}
+      - name: Install the model's packages
+        run: |
+          [ "${{ steps.venv.outputs.cache-hit }}" = "true" ] || { python -m venv .venv && .venv/bin/pip install -r Model-Pipeline/requirements.txt; }
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Tests (champion.py, deploy.toml)
+        run: python -m unittest discover -s Model-Deployment/tests
+
+      - name: Names from deploy.toml (D4)
+        id: cfg
+        run: |
+          get() { python Model-Deployment/deploy_config.py --get "$1"; }
+          {
+            echo "project=$(get gcp.project)"
+            echo "region=$(get gcp.region)"
+            echo "service=$(get services.risk.name)"
+            echo "image=$(get derived.images.risk)"
+            echo "provider=$(get derived.workload_identity_provider)"
+            echo "deploy_sa=$(get derived.service_accounts.deploy)"
+          } | tee -a "$GITHUB_OUTPUT"
+
+      - uses: google-github-actions/auth@v2
+        if: env.ON_MAIN == 'true'
+        with:
+          workload_identity_provider: ${{ steps.cfg.outputs.provider }}
+          service_account: ${{ steps.cfg.outputs.deploy_sa }}
+      - uses: google-github-actions/setup-gcloud@v2
+        if: env.ON_MAIN == 'true'
+
+      - name: The champion, checked
+        id: champion
+        run: |
+          python Model-Deployment/champion.py --source "${{ env.ON_MAIN == 'true' && 'pointer' || 'committed' }}" \
+            --dest "$RUNNER_TEMP/champion" --stage "$RUNNER_TEMP/stage" --github-output "$GITHUB_OUTPUT"
+
+      # Rachna's image (S2) bakes the champion in at build: it's handed over as the build context's
+      # Model-Pipeline/registry/, which is the committed champion off main and the pointer's on main
+      - name: Build the serving image (not pushed)
+        id: build
+        env:
+          IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
+        run: |
+          if [ ! -f Model-Deployment/serve/Dockerfile ]; then
+            echo "built=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Model-Deployment/serve/Dockerfile isn't on this branch yet (S2's image, Nov 21): build skipped"
+            exit 0
+          fi
+          cp "$RUNNER_TEMP/stage/"* Model-Pipeline/registry/ 2>/dev/null || true
+          start=$(date +%s)
+          docker build -f Model-Deployment/serve/Dockerfile \
+            --build-arg MODEL_VERSION="${{ steps.champion.outputs.version }}" \
+            --build-arg MODEL_MD5="${{ steps.champion.outputs.md5 }}" \
+            -t "$IMAGE" .
+          { echo "built=true"; echo "build_s=$(( $(date +%s) - start ))"; } >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        if: always()
+        env:
+          VERSION: ${{ steps.champion.outputs.version }}
+        run: |
+          {
+            echo "### deploy (dry run: nothing pushed, no revision, no traffic moved)"
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Service | \`${{ steps.cfg.outputs.service }}\` in \`${{ steps.cfg.outputs.region }}\`, project \`${{ steps.cfg.outputs.project }}\` |"
+            echo "| Champion | \`${VERSION:0:12}\`, md5 \`${{ steps.champion.outputs.md5 }}\`, val PR-AUC ${{ steps.champion.outputs.pr_auc }}, from the ${{ steps.champion.outputs.source }} registry |"
+            echo "| Image | \`${{ steps.cfg.outputs.image }}:${VERSION:0:12}…\` $([ '${{ steps.build.outputs.built }}' = true ] && echo "built in ${{ steps.build.outputs.build_s }} s" || echo "not built: no serve/Dockerfile yet") |"
+            echo "| Outcome | champion ${{ steps.champion.outcome }}, build ${{ steps.build.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          # D5: one JSON line for Cloud Logging and S6's metrics. Versions only, never a person
+          printf '{"severity": "%s", "event": "deploy", "model_version": "%s", "dry_run": true, "outcome": "%s"}\n' \
+            "$([ '${{ job.status }}' = success ] && echo INFO || echo ERROR)" "$VERSION" "${{ job.status }}"
