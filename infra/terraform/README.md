@@ -85,7 +85,7 @@ cd infra/terraform
 cp terraform.tfvars.example terraform.tfvars    # the billing account id and the team's emails (both required)
 terraform init -backend-config="bucket=$S"
 terraform plan                                  # Nov 18: 4 to import, 46 to add (+1 per alert email), 1 to change, 0 to destroy
-terraform apply
+terraform apply                                 # Nov 19: 4 imported, 46 added, 1 changed, 0 destroyed; a plan after it: no changes
 ```
 
 **Phase 2's resources are taken over on `deploy.toml`'s own project** (`imports.tf`):

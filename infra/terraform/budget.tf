@@ -54,9 +54,14 @@ resource "google_billing_budget" "project" {
     }
   }
 
-  all_updates_rule {
-    monitoring_notification_channels = [for c in google_monitoring_notification_channel.budget : c.id]
-    disable_default_iam_recipients   = false
+  # Only with team emails. The admins and users get the alerts without it, and a rule holding only defaults reads
+  # back from Google as absent, so every plan would show it as a change (the Nov 19 apply did).
+  dynamic "all_updates_rule" {
+    for_each = length(var.alert_emails) > 0 ? [1] : []
+    content {
+      monitoring_notification_channels = [for c in google_monitoring_notification_channel.budget : c.id]
+      disable_default_iam_recipients   = false
+    }
   }
 
   depends_on = [google_project_service.api]
