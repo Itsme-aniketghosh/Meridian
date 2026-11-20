@@ -38,8 +38,12 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: deploy.toml (D4)
-        run: python -m unittest discover -s Model-Deployment/tests -v
+      # Only the tests that need nothing installed: the drift and serve tests need the model's environment and run in
+      # ci.yml's model job.
+      - name: deploy.toml (D4) and the champion pointer
+        run: |
+          python -m unittest discover -s Model-Deployment/tests -p "test_deploy_config.py" -v
+          python -m unittest discover -s Model-Deployment/tests -p "test_champion.py" -v
 
       - name: flake8
         run: |
