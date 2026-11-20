@@ -1,0 +1,159 @@
+{
+ "n_reference": 26050,
+ "n_current": 7238,
+ "features": {
+  "la": {
+   "psi": 2.1748,
+   "method": "wasserstein",
+   "score": 1.4969,
+   "drifted": true,
+   "ref_median": 29.0,
+   "cur_median": 340.0
+  },
+  "ld": {
+   "psi": 2.4784,
+   "method": "wasserstein",
+   "score": 0.5998,
+   "drifted": true,
+   "ref_median": 7.0,
+   "cur_median": 60.0
+  },
+  "nf": {
+   "psi": 7.5705,
+   "method": "wasserstein",
+   "score": 3.2348,
+   "drifted": true,
+   "ref_median": 2.0,
+   "cur_median": 20.0
+  },
+  "nd": {
+   "psi": 9.2737,
+   "method": "wasserstein",
+   "score": 3.5953,
+   "drifted": true,
+   "ref_median": 2.0,
+   "cur_median": 20.0
+  },
+  "ns": {
+   "psi": 0.0068,
+   "method": "wasserstein",
+   "score": 0.078,
+   "drifted": false,
+   "ref_median": 1.0,
+   "cur_median": 1.0
+  },
+  "entropy": {
+   "psi": 0.006,
+   "method": "wasserstein",
+   "score": 0.0285,
+   "drifted": false,
+   "ref_median": 0.987259,
+   "cur_median": 0.981941
+  },
+  "ndev": {
+   "psi": 0.1877,
+   "method": "wasserstein",
+   "score": 0.6298,
+   "drifted": true,
+   "ref_median": 31.0,
+   "cur_median": 44.0
+  },
+  "age": {
+   "psi": 0.0735,
+   "method": "wasserstein",
+   "score": 0.3709,
+   "drifted": true,
+   "ref_median": 19.872999999999998,
+   "cur_median": 25.85915
+  },
+  "nuc": {
+   "psi": 0.1437,
+   "method": "wasserstein",
+   "score": 0.7052,
+   "drifted": true,
+   "ref_median": 94.0,
+   "cur_median": 144.0
+  },
+  "exp": {
+   "psi": 0.6102,
+   "method": "wasserstein",
+   "score": 2.109,
+   "drifted": true,
+   "ref_median": 86.0,
+   "cur_median": 224.0
+  },
+  "sexp": {
+   "psi": 0.3619,
+   "method": "wasserstein",
+   "score": 1.5732,
+   "drifted": true,
+   "ref_median": 13.0,
+   "cur_median": 39.0
+  },
+  "prior_bug_fixes": {
+   "psi": 0.3295,
+   "method": "wasserstein",
+   "score": 0.3197,
+   "drifted": true,
+   "ref_median": 5.0,
+   "cur_median": 1.0
+  },
+  "fix": {
+   "psi": 0.1687,
+   "method": "jensenshannon",
+   "score": 0.1437,
+   "drifted": true,
+   "ref_median": 0.0,
+   "cur_median": 0.0
+  },
+  "has_ticket": {
+   "psi": 0.0238,
+   "method": "jensenshannon",
+   "score": 0.0541,
+   "drifted": false,
+   "ref_median": 1.0,
+   "cur_median": 1.0
+  },
+  "is_minor": {
+   "psi": 0.0006,
+   "method": "jensenshannon",
+   "score": 0.0084,
+   "drifted": false,
+   "ref_median": 0.0,
+   "cur_median": 0.0
+  },
+  "ticket_type": {
+   "psi": 0.8817,
+   "method": "jensenshannon",
+   "score": 0.3228,
+   "drifted": true,
+   "ref_median": null,
+   "cur_median": null
+  }
+ },
+ "psi_flags": [
+  "la",
+  "nf",
+  "prior_bug_fixes",
+  "nd",
+  "ld"
+ ],
+ "drifted_share": 0.75,
+ "dataset_drift": true,
+ "retrain": true,
+ "reasons": [
+  "PSI 2.1748 >= 0.2 on la",
+  "PSI 7.5705 >= 0.2 on nf",
+  "PSI 0.3295 >= 0.2 on prior_bug_fixes",
+  "PSI 9.2737 >= 0.2 on nd",
+  "PSI 2.4784 >= 0.2 on ld",
+  "75% of features drifted >= 50%"
+ ],
+ "window": {
+  "reference": "train",
+  "days": 0,
+  "simulated": true,
+  "current_from": "2025-01-01T01:20:08Z",
+  "current_to": "2026-10-01T01:23:03Z"
+ }
+}
