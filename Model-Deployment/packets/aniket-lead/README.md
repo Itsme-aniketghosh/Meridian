@@ -42,6 +42,7 @@ flowchart LR
 ## 2. Replication (S8)
 
 - [ ] `bootstrap.sh <project-id>`: login, APIs, `terraform apply`, first deploy, prints the URL. `--destroy` tears it down
+- [ ] `--destroy` refuses the team project unless the Workload Identity pool, its provider and `meridian-ci` are first `terraform state rm`'d: destroying them breaks phase 2's model push, and a deleted pool's id is held for 30 days (review of #138)
 - [ ] `DEPLOY.md`: Cloud Shell first (nothing to install), then laptop versions; setup, permissions, running, verifying with `curl`
 - [ ] A teammate who didn't build it runs it on a fresh project (Dec 2)
 

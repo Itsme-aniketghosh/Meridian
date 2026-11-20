@@ -99,19 +99,33 @@ def _model_modules():
     return data, train
 
 
-def push_features(db, repo, run_id, at, numstat, messages, author, key_regex, prior_fix_days):
-    """The push as one Contract 1 row (a one-row DataFrame), from the block's history as data.history reads it."""
+def load_history(db, repo, run_id):
+    """The block's history push_features reads, once: the endpoint keeps it in memory instead of re-reading the block
+    per request (Model-Deployment/serve). Read-only."""
+    import pandas as pd
+    q = lambda sql, *p: pd.read_sql(sql, db, params=[run_id, *p])
+    return {
+        "commits": q("SELECT sha, parent_sha, seq, is_merge, authored_at, author_email, subject FROM main.git_commit "
+                     "WHERE run_id = ? AND repo = ? AND first_parent = 1 ORDER BY seq", repo),
+        "files": q("SELECT sha, path, old_path, added, deleted FROM main.commit_file WHERE run_id = ? AND repo = ?",
+                   repo),
+        "tickets": q("SELECT ct.sha, ct.key, t.effective_type, t.resolution, t.bulk_closed, t.components "
+                     "FROM main.commit_ticket ct JOIN main.ticket t ON t.run_id = ct.run_id AND t.key = ct.key "
+                     "WHERE ct.run_id = ? AND ct.repo = ?", repo),
+        "alias": q("SELECT email, person_id FROM main.person_alias WHERE run_id = ?"),
+        "known_types": dict(db.execute("SELECT key, effective_type FROM main.ticket WHERE run_id = ?",
+                                       (run_id,)).fetchall()),
+    }
+
+
+def push_features(db, repo, run_id, at, numstat, messages, author, key_regex, prior_fix_days, history=None):
+    """The push as one Contract 1 row (a one-row DataFrame), from the block's history as data.history reads it.
+    history: load_history's result, to skip re-reading the block (the endpoint); None reads it from db."""
     import pandas as pd
     data, _ = _model_modules()
-    q = lambda sql, *p: pd.read_sql(sql, db, params=[run_id, *p])
-    commits = q("SELECT sha, parent_sha, seq, is_merge, authored_at, author_email, subject FROM main.git_commit "
-                "WHERE run_id = ? AND repo = ? AND first_parent = 1 ORDER BY seq", repo)
-    files = q("SELECT sha, path, old_path, added, deleted FROM main.commit_file WHERE run_id = ? AND repo = ?", repo)
-    tickets = q("SELECT ct.sha, ct.key, t.effective_type, t.resolution, t.bulk_closed, t.components "
-                "FROM main.commit_ticket ct JOIN main.ticket t ON t.run_id = ct.run_id AND t.key = ct.key "
-                "WHERE ct.run_id = ? AND ct.repo = ?", repo)
-    alias = q("SELECT email, person_id FROM main.person_alias WHERE run_id = ?")
-    known_types = dict(db.execute("SELECT key, effective_type FROM main.ticket WHERE run_id = ?", (run_id,)).fetchall())
+    h = history if history is not None else load_history(db, repo, run_id)
+    commits, files, tickets, alias, known_types = (h["commits"], h["files"], h["tickets"], h["alias"],
+                                                   h["known_types"])
 
     subject = messages[0][1] if messages else ""
     push = pd.DataFrame([{"sha": "push", "parent_sha": None, "seq": len(commits), "is_merge": 0, "authored_at": at,
