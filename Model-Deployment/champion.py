@@ -89,7 +89,7 @@ def expected(record, version=None, model_md5=None, champion=R.CHAMPION):
     if version or model_md5:
         want, why = {"version": version, "model_md5": model_md5}, "the dispatch (D3)"
     else:
-        want, why = R.read_champion(champion), str(Path(champion).relative_to(REPO))
+        want, why = R.read_champion(champion), Path(champion).relative_to(REPO).as_posix()
     for key in ("version", "model_md5"):
         if want.get(key) and want[key] != record[key]:
             raise ChampionError(f"the champion's {key} is {record[key]}, {why} says {want[key]}")

@@ -5,6 +5,7 @@ and its log line D5. On a small Spark block and a small forest; the real champio
 """
 import contextlib
 import hashlib
+import http.client
 import importlib.util
 import io
 import json
@@ -143,7 +144,9 @@ class Scoring(unittest.TestCase):
                  S.BadRequest: [[], {"sha": "x"}, {"repo": "apache/spark"}, {"repo": "apache/spark", "sha": "nope"},
                                 {**PUSH, "numstat": []}, {**PUSH, "numstat": [[1, 2]]},
                                 {**PUSH, "numstat": [[-1, 0, "a.py"]]}, {**PUSH, "author_email_hash": "ann@x.org"},
-                                {**PUSH, "subject": 7}]}
+                                {**PUSH, "subject": 7}, {**PUSH, "sha": "x"},
+                                {**PUSH, "numstat": [[S.MAX_LINES + 1, 0, "a.py"]]},
+                                {**PUSH, "numstat": [[1, 0, "a" * (S.MAX_PATH + 1)]]}]}
         for exc, bodies in cases.items():
             for b in bodies:
                 with self.subTest(body=b), self.assertRaises(exc):
@@ -161,6 +164,15 @@ class Scoring(unittest.TestCase):
             (Path(d) / "model.joblib").write_bytes(b"not the model")
             (Path(d) / "champion.json").write_text(json.dumps(c))
             with self.assertRaisesRegex(SystemExit, "md5"):
+                S.Scorer(**{**self.f.kw, "champion": Path(d) / "champion.json"})
+
+    def test_a_feature_table_the_champion_wasnt_judged_on_wont_start(self):
+        with tempfile.TemporaryDirectory() as d:
+            c = json.loads((self.f.d / "champion.json").read_text())
+            c["metrics"] = {"features_md5": "0" * 32}
+            (Path(d) / "model.joblib").write_bytes((self.f.d / "model.joblib").read_bytes())
+            (Path(d) / "champion.json").write_text(json.dumps(c))
+            with self.assertRaisesRegex(SystemExit, "judged on"):
                 S.Scorer(**{**self.f.kw, "champion": Path(d) / "champion.json"})
 
 
@@ -194,8 +206,9 @@ class Http(unittest.TestCase):
         return status, payload, [json.loads(line) for line in out.getvalue().splitlines() if line.strip()]
 
     def test_health(self):
-        status, payload, _ = self.call("GET", "/health")
+        status, payload, logs = self.call("GET", "/health")
         self.assertEqual(status, 200)
+        self.assertEqual([(x["event"], x["status"]) for x in logs], [("health", 200)])
         self.assertEqual(payload, {"ok": True, "model": {"version": "abc1234def", "md5": self.f.scorer(False).md5}})
 
     def test_score_and_its_log_line(self):
@@ -219,6 +232,18 @@ class Http(unittest.TestCase):
         self.assertEqual(self.call("GET", "/nope")[0], 404)
         status, payload, logs = self.call("POST", "/score", {"repo": "apache/spark"})
         self.assertEqual((logs[0]["status"], set(payload)), (400, {"error"}))
+
+    def test_a_negative_content_length_is_refused_at_once(self):
+        host, port = self.server.server_address
+        conn = http.client.HTTPConnection(host, port, timeout=10)    # a hang would read to EOF: the timeout catches it
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                conn.putrequest("POST", "/score")
+                conn.putheader("Content-Length", "-1")
+                conn.endheaders()
+                self.assertEqual(conn.getresponse().status, 400)
+        finally:
+            conn.close()
 
 
 if __name__ == "__main__":

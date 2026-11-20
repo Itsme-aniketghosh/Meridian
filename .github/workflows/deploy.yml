@@ -97,7 +97,9 @@ jobs:
             echo "::notice::Model-Deployment/serve/Dockerfile isn't on this branch yet (S2's image, Nov 21): build skipped"
             exit 0
           fi
-          cp "$RUNNER_TEMP/stage/"* Model-Pipeline/registry/ 2>/dev/null || true
+          if compgen -G "$RUNNER_TEMP/stage/*" > /dev/null; then  # the pointer's files; none for the committed champion
+            cp "$RUNNER_TEMP/stage/"* Model-Pipeline/registry/
+          fi
           start=$(date +%s)
           docker build -f Model-Deployment/serve/Dockerfile \
             --build-arg MODEL_VERSION="${{ steps.champion.outputs.version }}" \

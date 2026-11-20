@@ -40,6 +40,9 @@ DEFAULTS = {
     "config": DATA_PIPELINE / "meridian.toml",
 }
 MAX_FILES = 5000           # a push with more changed files than this is refused (the request size cap is in app.py)
+MAX_LINES = 10_000_000     # added or deleted per file; more isn't a real diff (and would overflow the features)
+MAX_PATH = 4096
+KIND_COLUMN = {"RandomForestClassifier": "forest", "LGBMClassifier": "lgbm"}   # model class -> val score column
 
 
 class BadRequest(ValueError):
@@ -79,8 +82,15 @@ class Scorer:
             pd.read_csv(paths["features"])
         self.table = table.set_index("sha", drop=False)
         self.features_version = _md5(paths["features"])
+        want = (record.get("metrics") or {}).get("features_md5")
+        if want and want != self.features_version:
+            raise SystemExit(f"won't start: {paths['features'].name} has md5 {self.features_version}, the champion was "
+                             f"judged on {want}")
         scores = pd.read_csv(paths["val_scores"])
-        column = "forest" if "forest" in scores.columns else scores.columns[-1]
+        column = KIND_COLUMN.get(type(model).__name__, "logreg")
+        if column not in scores.columns:
+            raise SystemExit(f"won't start: {paths['val_scores'].name} has no '{column}' column for a "
+                             f"{type(model).__name__} champion")
         self.val = sorted(scores[column].astype(float).tolist())
 
         push_cfg = tomllib.loads(paths["settings"].read_text(encoding="utf-8"))["push_check"]
@@ -130,6 +140,8 @@ class Scorer:
             raise BadRequest("'repo' is required")
         if repo != self.repo:
             raise WrongRepo(f"the model only scores {self.repo}, the repo it was trained on")
+        if "sha" in body and "numstat" in body:
+            raise BadRequest("give either 'sha' or 'numstat', not both")
         if "sha" in body:
             row, lines, files, kind = self._known(body["sha"])
         elif "numstat" in body:
@@ -167,8 +179,10 @@ class Scorer:
                 raise BadRequest("each numstat entry must be [added, deleted, path]")
             a, d, path = item
             for v in (a, d):                                    # None = a binary file, as git numstat's "-"
-                if v is not None and (not isinstance(v, int) or isinstance(v, bool) or v < 0):
-                    raise BadRequest("added and deleted must be counts (or null for a binary file)")
+                if v is not None and (not isinstance(v, int) or isinstance(v, bool) or not 0 <= v <= MAX_LINES):
+                    raise BadRequest(f"added and deleted must be counts up to {MAX_LINES:,} (null: a binary file)")
+            if len(path) > MAX_PATH:
+                raise BadRequest(f"a path over {MAX_PATH} characters")
             rows.append((path, a, d))
         subject = body.get("subject", "")
         if not isinstance(subject, str):

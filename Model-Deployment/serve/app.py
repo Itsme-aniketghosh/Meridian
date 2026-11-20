@@ -45,10 +45,15 @@ def make_handler(scorer):
         def log_message(self, *args):          # the D5 line replaces http.server's access log
             pass
 
-        def do_GET(self):
+        def do_GET(self):                      # a D5 line for every call, GETs included
+            t0 = time.perf_counter()
             if self.path == "/health":
-                return self._send(200, scorer.health())
-            self._send(404, {"error": "not found: GET /health or POST /score"})
+                status, payload = 200, scorer.health()
+            else:
+                status, payload = 404, {"error": "not found: GET /health or POST /score"}
+            log(event="health" if status == 200 else "not_found", status=status, model_version=scorer.version,
+                latency_ms=int(round((time.perf_counter() - t0) * 1000)))
+            self._send(status, payload)
 
         def do_POST(self):
             t0 = time.perf_counter()
@@ -64,7 +69,17 @@ def make_handler(scorer):
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
                 return 400, {"error": "bad Content-Length"}, {}
+            if length < 0:
+                return 400, {"error": "bad Content-Length"}, {}
             if length > MAX_BODY:
+                # read (and drop) up to 4 × the cap first: closing on a client still sending resets the connection
+                # (Windows), so the caller never sees the 413. Beyond that, it's not a client we owe an answer
+                left = min(length, 4 * MAX_BODY)
+                while left > 0:
+                    chunk = self.rfile.read(min(left, 64 * 1024))
+                    if not chunk:
+                        break
+                    left -= len(chunk)
                 return 413, {"error": f"body over {MAX_BODY // 1024} KB"}, {}
             try:
                 body = json.loads(self.rfile.read(length) or b"null")
