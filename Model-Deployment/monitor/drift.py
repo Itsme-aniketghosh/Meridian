@@ -1,4 +1,5 @@
-"""S5 data drift: new commits' features against train (Model-Deployment/PLAN.md §5). Owner: Vishwa. Run from Model-Deployment/.
+"""S5 data drift: new commits' features against train (Model-Deployment/PLAN.md §5). Owner: Vishwa.
+Run from Model-Deployment/.
 
     python -m monitor.drift                       # the last [drift] days days' commits against train
     python -m monitor.drift --days 0              # every commit outside a split (the 7,238 from 2025-26)
@@ -155,7 +156,8 @@ def print_report(r):
     print(f"{'feature':<16}{'PSI':>8}  {'method':<14}{'score':>8}  drifted  median ref -> cur")
     for col, f in r["features"].items():
         med = "" if f["ref_median"] is None else f"{f['ref_median']:g} -> {f['cur_median']:g}"
-        print(f"{col:<16}{f['psi']:>8.4f}  {f['method']:<14}{f['score']:>8.4f}  {'yes' if f['drifted'] else 'no':<7}  {med}")
+        drifted = "yes" if f["drifted"] else "no"
+        print(f"{col:<16}{f['psi']:>8.4f}  {f['method']:<14}{f['score']:>8.4f}  {drifted:<7}  {med}")
     print(f"drifted share {r['drifted_share']:.0%}; PSI flags {r['psi_flags'] or 'none'}")
     print(f"retrain: {'YES, ' + '; '.join(r['reasons']) if r['retrain'] else 'no'}")
 
