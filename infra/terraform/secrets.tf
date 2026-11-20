@@ -1,5 +1,5 @@
 # The secrets' names only. A person adds each value once, so it never lands in git or in Terraform's state:
-#   printf %s "$MERIDIAN_SLACK_WEBHOOK" | gcloud secrets versions add meridian-slack-webhook --data-file=-
+#   printf %s "$MERIDIAN_SLACK_WEBHOOK" | gcloud secrets versions add MERIDIAN_SLACK_WEBHOOK --data-file=-
 resource "google_secret_manager_secret" "secret" {
   for_each  = local.cfg.secrets
   secret_id = each.value

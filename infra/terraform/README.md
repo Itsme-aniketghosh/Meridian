@@ -12,7 +12,7 @@ Everything phase 3 runs on GCP, as code (`Model-Deployment/PLAN.md` §2–3). Ev
 | Artifact Registry | `registry.models`: `meridian-models` (phase 2's, adopted, and never deleted by `destroy`); `registry.images`: `meridian-images`, Docker, which keeps the newest 3 of each image | the registry; S3 |
 | Service accounts | `service_accounts`: `meridian-ci` (phase 2's), `-deploy`, `-risk`, `-refresh`, `-scheduler` | below |
 | Workload Identity: GitHub Actions on this repository's main branch only | `workload_identity`: pool `github`, provider `meridian` (phase 2's, adopted) | `model.yml`, `deploy.yml` |
-| Secret Manager: the names only, stored in us-east1 | `secrets`: `meridian-slack-webhook`, `meridian-github-dispatch` | S7, D3 |
+| Secret Manager: the names only, stored in us-east1 | `secrets`: `MERIDIAN_SLACK_WEBHOOK`, `MERIDIAN_GITHUB_DISPATCH` | S7, D3 |
 | Budget: $25 for Nov 17 – Dec 7, alerts at 50, 90 and 100%, counted before credits | `budget` | C7 |
 
 Cloud Monitoring (S6) is added in `monitoring.tf`, with Vishwa.
@@ -140,7 +140,7 @@ It isn't expected to fail here:
 Once, by a person, so it never lands in git or in Terraform's state:
 
 ```bash
-printf %s "$MERIDIAN_SLACK_WEBHOOK" | gcloud secrets versions add meridian-slack-webhook --data-file=- --project "$P"
+printf %s "$MERIDIAN_SLACK_WEBHOOK" | gcloud secrets versions add MERIDIAN_SLACK_WEBHOOK --data-file=- --project "$P"
 ```
 
 ### Tear it down (after grading)

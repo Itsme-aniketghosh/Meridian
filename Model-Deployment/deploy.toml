@@ -66,9 +66,9 @@ scheduler = "meridian-scheduler"   # Cloud Scheduler starts the job as this
 pool = "github"
 provider = "meridian"
 
-[secrets]   # Secret Manager names; a person adds the values, never git or Terraform
-slack_webhook = "meridian-slack-webhook"       # MERIDIAN_SLACK_WEBHOOK
-github_dispatch = "meridian-github-dispatch"   # the job's token for repository_dispatch (D3)
+[secrets]   # Secret Manager names, the same as the env vars; a person adds the values, never git or Terraform
+slack_webhook = "MERIDIAN_SLACK_WEBHOOK"       # D4's name, as in GitHub's secrets
+github_dispatch = "MERIDIAN_GITHUB_DISPATCH"   # the job's token for repository_dispatch (D3)
 
 [budget]   # C7, PLAN §6. The team's emails for the alerts stay out of git (terraform.tfvars)
 amount_usd = 25

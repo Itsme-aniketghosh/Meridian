@@ -135,7 +135,7 @@ class InsideCloudRun(unittest.TestCase):
 
 
 class Phase2AgreesWithIt(unittest.TestCase):
-    """Phase 2's registry settings and model.yml's sign-in predate deploy.toml. They must name the same things."""
+    """Phase 2's registry settings, model.yml's sign-in and its Slack secret predate deploy.toml. They must agree."""
 
     def setUp(self):
         self.cfg = deploy_config.load(use_env=False)
@@ -153,6 +153,12 @@ class Phase2AgreesWithIt(unittest.TestCase):
         account = re.search(r"service_account:\s*(\S+)", text).group(1)
         self.assertEqual(provider, self.cfg["derived"]["workload_identity_provider"])
         self.assertEqual(account, self.cfg["derived"]["service_accounts"]["ci"])
+
+    def test_the_slack_secret_has_d4s_name(self):
+        # D4: MERIDIAN_SLACK_WEBHOOK in GitHub and in Secret Manager; model.yml reads the GitHub one
+        name = self.cfg["secrets"]["slack_webhook"]
+        self.assertEqual(name, "MERIDIAN_SLACK_WEBHOOK")
+        self.assertIn("secrets." + name, (REPO / ".github" / "workflows" / "model.yml").read_text())
 
 
 class Cli(unittest.TestCase):
