@@ -1,0 +1,70 @@
+# One service account per job, each with only what it needs, granted on the resource it needs it on.
+
+locals {
+  service_accounts = {
+    ci        = "Meridian CI registry push" # phase 2's (model.yml), imported on the team's project
+    deploy    = "Meridian deploy: images, revisions, traffic"
+    risk      = "Meridian risk service"
+    refresh   = "Meridian refresh job"
+    scheduler = "Meridian scheduler: starts the refresh job"
+  }
+  sa = { for k, v in google_service_account.sa : k => "serviceAccount:${v.email}" }
+}
+
+resource "google_service_account" "sa" {
+  for_each     = local.service_accounts
+  account_id   = local.sa_ids[each.key]
+  display_name = each.value
+
+  depends_on = [google_project_service.api]
+}
+
+# Model registry: CI and the refresh job push models; deploy reads the champion to bake it into the image
+resource "google_artifact_registry_repository_iam_member" "models" {
+  for_each = {
+    ci      = "roles/artifactregistry.writer"
+    refresh = "roles/artifactregistry.writer"
+    deploy  = "roles/artifactregistry.reader"
+  }
+  location   = local.region
+  repository = google_artifact_registry_repository.models.name
+  role       = each.value
+  member     = local.sa[each.key]
+}
+
+# Docker repo: deploy pushes the images (Cloud Run's own agent pulls them)
+resource "google_artifact_registry_repository_iam_member" "images_deploy" {
+  location   = local.region
+  repository = google_artifact_registry_repository.images.name
+  role       = "roles/artifactregistry.writer"
+  member     = local.sa.deploy
+}
+
+# Buckets: the job writes all three; the service only reads the block
+resource "google_storage_bucket_iam_member" "refresh" {
+  for_each = google_storage_bucket.data
+  bucket   = each.value.name
+  role     = "roles/storage.objectAdmin"
+  member   = local.sa.refresh
+}
+
+resource "google_storage_bucket_iam_member" "risk_reads_block" {
+  bucket = google_storage_bucket.data["block"].name
+  role   = "roles/storage.objectViewer"
+  member = local.sa.risk
+}
+
+# The job writes the drift and decay numbers as custom metrics (S5, S6)
+resource "google_project_iam_member" "refresh_metrics" {
+  project = local.project
+  role    = "roles/monitoring.metricWriter"
+  member  = local.sa.refresh
+}
+
+# deploy.yml deploys revisions that run as the service's and the job's accounts
+resource "google_service_account_iam_member" "deploy_acts_as" {
+  for_each           = toset(["risk", "refresh"])
+  service_account_id = google_service_account.sa[each.key].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = local.sa.deploy
+}

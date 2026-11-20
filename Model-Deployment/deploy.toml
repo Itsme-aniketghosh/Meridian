@@ -1,0 +1,98 @@
+# Phase 3's names and settings: contract D4 (packets/README.md). Terraform, the workflows and every script read
+# this file through deploy_config.py, and no name or threshold below is written anywhere else. "{project}" stands
+# for the project id, so a fresh project (bootstrap.sh <project-id>) gets its own bucket names.
+
+[gcp]
+project = "project-448b7a64-b5c5-43d3-893"   # the team's project (phase 2's registry); bootstrap.sh can override it
+project_number = "541739670966"              # the team project's; workflows need it to sign in, before any terraform output
+region = "us-east1"
+
+[github]
+repository = "Itsme-aniketghosh/Meridian"   # Workload Identity trusts this repository's main branch only
+branch = "main"
+
+[registry]
+models = "meridian-models"   # generic, from phase 2: model versions and champion.json (model.registry --push)
+model_package = "defect-risk"
+pointer_package = "champion"
+images = "meridian-images"   # Docker: the serving and job images
+keep_images = 3              # cleanup keeps the newest 3 versions of each image and deletes older ones after a day
+
+[images]   # image names in registry.images: <region>-docker.pkg.dev/<project>/meridian-images/<name>
+risk = "risk"
+refresh = "refresh"
+views = "views"
+
+[buckets]   # all private, uniform access
+block = "{project}-meridian-block"       # the newest block: real names, never public
+monitor = "{project}-meridian-monitor"   # D2 reports: reports/<run_id>.json
+cache = "{project}-meridian-cache"       # the refresh job's clones, kept between runs
+tfstate = "{project}-tfstate"            # Terraform's state; bootstrap.sh makes it before terraform init
+
+[services.risk]   # D1, PLAN §4
+name = "meridian-risk"
+min_instances = 0    # scales to zero: idle costs $0
+max_instances = 2
+cpu = "1"
+memory = "1Gi"
+concurrency = 20
+timeout_s = 30
+max_request_kb = 1024   # S2 refuses a bigger body (PLAN §4's request size cap)
+public = true        # graders call it; no names out (PLAN §4)
+
+[services.views]   # S9, stretch
+name = "meridian-views"
+
+[jobs.refresh]   # S4
+name = "meridian-refresh"
+cpu = "2"
+memory = "4Gi"
+timeout_s = 3600
+max_retries = 1
+
+[schedule]   # Cloud Scheduler starts jobs.refresh
+cron = "0 3 * * *"   # daily, 03:00
+time_zone = "Etc/UTC"
+paused = true        # until S4's image is in; then false
+
+[service_accounts]   # ids, before @<project>.iam.gserviceaccount.com
+ci = "meridian-ci"                 # phase 2: model.yml's registry push
+deploy = "meridian-deploy"         # deploy.yml: push images, deploy revisions, move traffic
+risk = "meridian-risk"             # the service runs as this
+refresh = "meridian-refresh"       # the job runs as this
+scheduler = "meridian-scheduler"   # Cloud Scheduler starts the job as this
+
+[workload_identity]   # from phase 2: GitHub Actions on main, no keys
+pool = "github"
+provider = "meridian"
+
+[secrets]   # Secret Manager names, the same as the env vars; a person adds the values, never git or Terraform
+slack_webhook = "MERIDIAN_SLACK_WEBHOOK"       # D4's name, as in GitHub's secrets
+github_dispatch = "MERIDIAN_GITHUB_DISPATCH"   # the job's token for repository_dispatch (D3)
+
+[budget]   # C7, PLAN §6. The team's emails for the alerts stay out of git (terraform.tfvars)
+amount_usd = 25
+alert_at = [0.5, 0.9, 1.0]
+phase_target_usd = 5
+start = "2026-11-17"   # the phase, not the calendar month (a monthly budget would reset on Dec 1)
+end = "2026-12-07"
+
+[drift]   # PLAN §5: retrain on PSI ≥ psi for any top feature, or Evidently's dataset drift share ≥ dataset_share
+window_days = 30
+psi = 0.2
+top_features = ["la", "nf", "prior_bug_fixes", "nd", "ld"]
+dataset_share = 0.5
+
+[decay]   # PLAN §5: the newest quarter whose label window has closed, with at least min_positives positives.
+# Retrain when the paired interval's lower bound against lines × files drops below 0, or PR-AUC falls more than
+# max_drop under the last measured window
+label_window_days = 365
+min_positives = 30
+min_paired_lower = 0.0   # the paired interval's lower bound must stay above this
+max_drop = 0.05
+
+[service_alerts]   # PLAN §5 and §6, for S6: they page Slack and never retrain
+error_rate = 0.01
+error_window_min = 10
+p95_latency_s = 2
+cold_start_s = 15
