@@ -27,11 +27,13 @@ flowchart LR
 | Sat Nov 21 | Workload Identity for `deploy.yml`, limited to this repo's main. `budget.tf`: $25, alerts at 50, 90, 100% (C7) |
 | Sun Nov 22 | Cloud Run service `meridian-risk` (max 2 instances), job `meridian-refresh`, Cloud Scheduler daily |
 | Mon Nov 23 | Review and fixes. Check-in |
-| Tue Nov 24 – Wed Nov 25 | S6 with Vishwa: uptime check, alert policies, dashboard, all in Terraform |
+| Tue Nov 24 | S6 (now yours): uptime check on `/health`, alert policies (5xx, p95, job failure, drift) |
+| Wed Nov 25 | S6: dashboard, log-based metrics from D5 lines, **the SLO and cost panel** (latency budget, error budget, cost per 1,000 scores), in Terraform |
 | Thu Nov 26 | Integration |
 | Fri Nov 27 | Fixes from integration. S10: replay matches nightly |
 | Sat Nov 28 | **First fresh-project run** of `bootstrap.sh`, from a project with nothing in it |
 | Sun Nov 29 | C4: live matches counted once the views run |
+| Mon Dec 7 evening – Tue Dec 8 | One warm instance on `meridian-risk` and `meridian-views` for the expo, back to 0 after |
 
 ## 1. Terraform (S1)
 
