@@ -1,15 +1,15 @@
 # Phase 3 work packets
 
-Each person has one folder here with their steps, dates, checklist and "done when". The plan is [../PLAN.md](../PLAN.md). Due **Mon Dec 7**, code freeze **Wed Dec 2**.
+Each person has one folder here with their steps, dates, checklist and "done when". The plan is [../PLAN.md](../PLAN.md). Due **Mon Dec 7**, code freeze **Wed Dec 2**, **ML Expo Tue Dec 8**, 8:30–1:30 (PLAN §16).
 
 | Who | Packet | Steps |
 |---|---|---|
-| Rochan | [rochan-infra](rochan-infra/README.md) | S1 Terraform · S6 with Vishwa · C4, C7 · S10 replay matches |
-| Rachna | [rachna-serve](rachna-serve/README.md) | S2 the endpoint · S10 retrain speed |
-| Chaitali | [chaitali-cicd](chaitali-cicd/README.md) | S3 deploy and rollback · S7 Slack · S10 deploy speed |
+| Rochan | [rochan-infra](rochan-infra/README.md) | S1 Terraform · S6 Cloud Monitoring, SLO and cost panel · C4, C7 · S10 replay matches |
+| Rachna | [rachna-serve](rachna-serve/README.md) | S2 the endpoint · S11 "score a push" · S10 retrain speed |
+| Chaitali | [chaitali-cicd](chaitali-cicd/README.md) | S3 deploy, canary and rollback · S7 Slack · S10 deploy speed |
 | Utkarsh | [utkarsh-refresh](utkarsh-refresh/README.md) | S4 refresh job · C1 walker facts · C8 docs · S10 refresh speed |
-| Vishwa | [vishwa-monitor](vishwa-monitor/README.md) | S5 drift and decay · S6 monitoring · C2 gate line lists · S9 views · S10 fallback report |
-| Aniket | [aniket-lead](aniket-lead/README.md) | Reviews · integration · C3 packets move · S8 guide, bootstrap, video · report |
+| Vishwa | [vishwa-monitor](vishwa-monitor/README.md) | S5 drift and decay · **S9 views and S11 the product front** · S10 fallback report (C2 after the expo) |
+| Aniket | [aniket-lead](aniket-lead/README.md) | Reviews · integration · C3 packets move · S8 guide, bootstrap, video · report · **the expo demo** |
 
 ## Ground rules
 

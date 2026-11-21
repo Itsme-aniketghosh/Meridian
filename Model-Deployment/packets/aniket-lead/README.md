@@ -23,14 +23,16 @@ flowchart LR
 | Nov 19 – 24 | Reviews and merges. Check-in Mon Nov 23: anything behind is cut by PLAN §10's order |
 | Thu Nov 26 | **Integration**: a planted shift → retrain → deploy, and one → retrain → keep. Owners fix the same day |
 | Fri Nov 27 – Sat Nov 28 | C3: the phase 2 packets move to `docs/model/` and `report/sections/`. `DEPLOY.md` and `bootstrap.sh` drafted |
-| Sun Nov 29 | Video dry run in Cloud Shell, timed |
+| Sun Nov 29 | Video dry run in Cloud Shell, timed. The expo demo script (3 and 6 minutes) and the "what broke and how we fixed it" board |
 | Mon Nov 30 | Check-in: every pass bar met or cut. Report sections drafted |
 | Tue Dec 1 | Slack: catch-up only |
 | Wed Dec 2 | Code freeze. A teammate who didn't build it runs `bootstrap.sh` on a fresh project |
 | Thu Dec 3 | The video |
 | Fri Dec 4 | The report, with Utkarsh |
-| Sat Dec 5 – Sun Dec 6 | Slack |
-| Mon Dec 7 | Submit |
+| Sat Dec 5 | **Expo rehearsal 1**: the whole demo, everyone on their part |
+| Sun Dec 6 | Slack |
+| Mon Dec 7 | Submit. **Rehearsal 2** on the live URL |
+| **Tue Dec 8** | **ML Expo, 8:30–1:30, Google Cambridge** |
 
 ## 1. Integration (Nov 26)
 
@@ -58,6 +60,13 @@ flowchart LR
 - [ ] `Model-Deployment/report/REPORT.md`, in the order of PLAN §13, each row with its evidence
 - [ ] Each owner's numbers next to their pass bars; before and after timings for S10
 - [ ] The carried-over points (§14), done or stated
+
+## 5. The ML Expo (PLAN §16)
+
+- [ ] Three real stories: a stalled team whose cause is upstream (the walkers), a risky push scored live, drift → retrain → "kept the old model"
+- [ ] A 3-minute script for visitors, a 6-minute one for judges; everyone can run it
+- [ ] The "what broke and how we fixed it" board for the front
+- [ ] Rehearsals Dec 5 and Dec 7; warm instances from the evening of Dec 7
 
 ## Done when
 
