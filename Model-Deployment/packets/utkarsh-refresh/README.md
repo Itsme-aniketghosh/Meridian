@@ -28,7 +28,7 @@ flowchart LR
 | Tue Nov 24 | Retrain step: on D2's `retrain: true`, `model.refresh`; on a promotion, D3 dispatch |
 | Wed Nov 25 | Retrain → deploy end to end with Chaitali |
 | Thu Nov 26 | Integration |
-| Fri Nov 27 – Sat Nov 28 | C8 docs. S10: clone and SZZ cache in GCS |
+| Fri Nov 27 – Sat Nov 28 | C8 docs. S10: clone and SZZ cache in GCS. Front sprint: pick the demo's stalled-team story from the block (a cause upstream, found by the walkers) |
 | Sun Nov 29 | Rerun on a new block, timed |
 
 ## 1. The job (S4)

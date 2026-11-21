@@ -24,7 +24,7 @@ What doesn't exist yet: a serving endpoint, cloud infrastructure as code, a depl
 | Service | What runs on it | Why this one |
 |---|---|---|
 | **Cloud Run (service)** `meridian-risk` | The model's inference endpoint | Scales to zero, so idle costs $0. Runs the container we already build. The model is a 5 MB scikit-learn forest: no GPU, no Vertex endpoint needed |
-| Cloud Run (service) `meridian-views` | The product's views and API | Same container style. Stretch (§10 cut order) |
+| **Cloud Run (service)** `meridian-views` | The product: the views, a front page, "score a push", the live system panel (§16) | Same container style. **Required: it's what people see at the ML Expo on Dec 8** |
 | **Cloud Run job** `meridian-refresh` + Cloud Scheduler | Daily: new Spark commits → new block → drift and decay check → retrain when a threshold is crossed | A job runs to completion and costs only while it runs |
 | Artifact Registry | Model versions (exists) and the serving images | Already holds the champion |
 | Cloud Storage | The block and monitoring reports, private | The block has real names: never public |
@@ -52,7 +52,7 @@ flowchart LR
   mon --> cm
   cm -->|alert policy| slack["Slack"]
   job --> slack
-  risk -. stretch .- views["Cloud Run<br/>meridian-views"]
+  views["Cloud Run<br/>meridian-views<br/>the product front"] -->|score a push| risk
 ```
 
 ### Steps
@@ -67,7 +67,8 @@ flowchart LR
 | **S6** | Cloud Monitoring: uptime check on `/health`, alert policies (5xx rate, p95 latency, job failure, drift flag), a dashboard, log-based metrics from S2's log lines. All in Terraform | `infra/terraform/monitoring.tf` | Vishwa, Rochan |
 | **S7** | Notifications: retrain triggered, new model deployed, deploy failed and rolled back, drift found. Through `alert.py` | Messages in Slack | Chaitali |
 | **S8** | Replication: `DEPLOY.md` and one script from a fresh machine to a working endpoint. Then the video | `Model-Deployment/DEPLOY.md`, `bootstrap.sh`, the video | Aniket |
-| S9 | Views on Cloud Run, read-only, from the GCS block | `meridian-views` | Vishwa (stretch) |
+| **S9** | Views on Cloud Run, read-only, from the GCS block; a test that no person's name renders | `meridian-views` | Vishwa |
+| **S11** | The product website (§16), built after the plumbing: a front page with three doors, "score a push", the live system panel, demo-ready styling | the website | Aniket leads; everyone brings ideas and builds the piece that touches their part |
 | **S10** | Speed-ups: the refresh job, retraining, deploys and the self-improving loops turn faster (§15) | Timings in the pass bars | everyone, one item each |
 
 ## 4. The endpoint
@@ -137,7 +138,11 @@ flowchart TD
   S4 --> S8
   S6 --> S8
   S7 --> S8
-  S2d -. stretch .-> S9["S9: views · Vishwa"]
+  S2d --> S9["S9: views · Vishwa"]
+  INTF["integration Nov 26: plumbing done"] --> S11["S11: the website · Aniket + everyone"]
+  S9 --> S11
+  S11 --> EXPO["ML Expo Dec 8 · everyone"]
+  S8 --> EXPO
 ```
 
 Critical path: S1 → S2 deployed → S3 → S8. S2 and S5 start on day 1 with no cloud at all: S2 runs locally against the block, S5 against the 2025–26 commits.
@@ -148,12 +153,12 @@ Each person's steps, dates, checklist and "done when" are in [packets/](packets/
 
 | Who | Work | Days |
 |---|---|---:|
-| Rochan | S1 Terraform (the project's owner, Workload Identity already set up there) 2 · S6 with Vishwa 0.5 · budget and billing checks 0.5 | 3 |
-| Rachna | S2 the endpoint, its image and tests 2.5 · the "same as p9.py" check 0.5 | 3 |
-| Chaitali | S3 deploy, smoke test, rollback 2 · S7 notifications 0.5 · the planted broken image 0.5 | 3 |
+| Rochan | S1 Terraform (the project's owner, Workload Identity already set up there) 2 · S6 Cloud Monitoring, the SLO and cost panel 1 · budget and billing checks 0.5 | 3.5 |
+| Rachna | S2 the endpoint, its image and tests 2.5 · the "same as p9.py" check 0.5 · front sprint: `/score` for the website 0.5 | 3.5 |
+| Chaitali | S3 deploy, smoke test, rollback 2 · S7 notifications 0.5 · the planted broken image 0.5 · the canary step 0.5 | 3.5 |
 | Utkarsh | S4 the refresh job, Spark-only update in a container, block to GCS 2.5 · retrain step 0.5 | 3 |
-| Vishwa | S5 drift and decay 2 · S6 monitoring 1 · S9 views (stretch) | 3 |
-| Aniket | Reviews and merges · integration · S8 `DEPLOY.md`, `bootstrap.sh`, the fresh-machine run, the video · the report | end of the graph |
+| Vishwa | S5 drift and decay 2 · S10 fallback report 0.5 · front sprint: S9 views on Cloud Run, the panel's data 1.5 (S6 moves to Rochan; C2 after the expo) | 4 |
+| Aniket | Reviews and merges · integration · **leads the front sprint and builds S11 the website** · S8 `DEPLOY.md`, `bootstrap.sh`, the video · the report · the expo demo | end of the graph |
 
 Every live GCP command that costs money goes through the project owner (Rochan) or CI, as in phase 2.
 
@@ -176,11 +181,11 @@ A fresh machine needs only a browser: Cloud Shell has `gcloud`, `terraform`, `do
 - **The block has real names.** Private bucket, no names in responses or logs, tests on both.
 - **Credits.** Everything scales to zero, the budget alerts are in Terraform, and `--destroy` takes it all down after grading.
 
-Cut from the top if behind: C8 docs → S9 views (and with it C4) → the dashboard (keep the alert policies) → the Spark-only cloud data job (run S4 in GitHub Actions on a schedule instead). Never cut: the endpoint, automated deploy, rollback, drift → retrain → redeploy, the video.
+Cut from the top if behind: C8 docs → C4 live matches → the dashboard (keep the alert policies) → the Spark-only cloud data job (run S4 in GitHub Actions on a schedule instead). Never cut: the endpoint, automated deploy, rollback, drift → retrain → redeploy, **the product front (S9, S11)**, the video.
 
 ## 11. Schedule
 
-**Due Mon Dec 7.** Work starts **Thu Nov 19** (day 1); Wed Nov 18 is an optional head start for the decisions and reading the packets. Code freeze is **Wed Dec 2** at the end of the day, so the fresh-machine run, the video and the report have their own days. Thanksgiving (Thu Nov 26 – Sun Nov 29) is working time: integration, the stretch work, the packets move and the first fresh-project run. Two blocks of slack are planned in and nothing new starts on them: **Tue Dec 1** (catch-up only) and **Sat Dec 5 – Sun Dec 6** before the deadline. Anything late uses the first block, then follows the cut order (§10); it never eats the second.
+**Due Mon Dec 7.** Work starts **Thu Nov 19** (day 1); Wed Nov 18 is an optional head start for the decisions and reading the packets. Code freeze is **Wed Dec 2** at the end of the day, so the fresh-machine run, the video and the report have their own days. **Plumbing first, then the front:** everything through integration on Thu Nov 26 is the deployment itself. The front-end sprint (the website, the views on Cloud Run) runs Fri Nov 27 – Tue Dec 1, through Thanksgiving, led by Aniket, with everyone's ideas. Slack: **Tue Dec 1** (front polish and catch-up only) and **Sun Dec 6** before the deadline (Sat Dec 5 is the first expo rehearsal). Anything late uses the first block, then follows the cut order (§10); it never eats the second.
 
 | Date | Rochan | Rachna | Chaitali | Utkarsh | Vishwa |
 |---|---|---|---|---|---|
@@ -188,29 +193,31 @@ Cut from the top if behind: C8 docs → S9 views (and with it C4) → the dashbo
 | Thu Nov 19, day 1 | S1 Terraform plan | S2 endpoint, local | S3 workflow on a branch, dry run | S4 job image, local | S5 drift on the 2025–26 commits |
 | Fri Nov 20, day 2 | S1 apply: buckets, registry repos, service accounts | S2 tests, "same as p9.py" | S3 build and push the image | S4 Spark-only update, local | S5 thresholds checked on real data |
 | Sat Nov 21, day 3 | S1 Workload Identity for deploy, budget (C7) | S2 image | S3 deploy with no traffic, smoke test | C1 walker facts | S5 decay on matured windows |
-| Sun Nov 22, day 4 | S1 Cloud Run service and job, Scheduler | S2 deployed | S3 traffic shift | C1 live rerun, on Utkarsh's GCP project | C2 gate "path at lines" |
-| Mon Nov 23, day 5 | review, fixes | latency, cold start | rollback on a planted broken image | S4 in the Cloud Run job, block to GCS | S5 `--simulate`, C2 re-gate at $0 |
-| Tue Nov 24, day 6 | S6 with Vishwa | no-names test, 1,000 commits | S7 Slack messages | S4 retrain step, `repository_dispatch` | S6 uptime, alert policies |
-| Wed Nov 25, day 7 | S6 dashboard in Terraform | fixes | S3 triggers: `model.yml` done, dispatch | S4 retrain → deploy | S6 log-based metrics |
-| Thu Nov 26, day 8 | **Integration: one drift → retrain → redeploy end to end, and one "not better, kept" (Aniket)** | | | | |
-| Fri Nov 27, day 9 | fixes from integration | fixes from integration | fixes from integration | C8 docs | S9 views (stretch) |
-| Sat Nov 28, day 10 | first fresh-project run of `bootstrap.sh` | `/score` docs and examples for `DEPLOY.md` | planted broken image again, on main's workflow | C8 docs | S9 views deployed |
-| Sun Nov 29, day 11 | C4: live matches wired, counted | latency and cost check | every pass bar checked, with its evidence | retrain → deploy rerun on a new block | S6 dashboard has every signal |
+| Sun Nov 22, day 4 | S1 Cloud Run service and job, Scheduler | S2 deployed | S3 traffic shift | C1 live rerun, on Utkarsh's GCP project | S5 decay on matured windows |
+| Mon Nov 23, day 5 | review, fixes | latency, cold start | rollback on a planted broken image | S4 in the Cloud Run job, block to GCS | S5 `--simulate`, the D2 report's shape |
+| Tue Nov 24, day 6 | S6 uptime, alert policies | no-names test, 1,000 commits | S7 Slack messages | S4 retrain step, `repository_dispatch` | S10 fallback-rate report |
+| Wed Nov 25, day 7 | S6 dashboard, log-based metrics, the SLO and cost panel | fixes | S3 triggers: `model.yml` done, dispatch | S4 retrain → deploy | S5 tests, fixes |
+| Thu Nov 26, day 8 | **Integration: the plumbing end to end, drift → retrain → redeploy and one "not better, kept" (Aniket). Then front-end ideas: everyone brings two; Aniket picks** | | | | |
+| Fri Nov 27, day 9 | **Front sprint.** Warm instances, the website's hosting in Terraform | `/score` for the website: CORS for its origin, example pushes | the canary step; the website deployed by `deploy.yml` | C8 docs; the demo's stalled-team story picked from the block | S9 views on Cloud Run; test: no person's name renders |
+| Sat Nov 28, day 10 | first fresh-project run of `bootstrap.sh` | `/score` docs and examples for `DEPLOY.md` | planted broken image again, on main's workflow | C8 docs | the system panel's data: D2 reports, deploys, as JSON |
+| Sun Nov 29, day 11 | C4: live matches wired, counted | latency and cost check | every pass bar checked, with its evidence | retrain → deploy rerun on a new block | the views' pages the website links to, checked |
 | Mon Nov 30, day 12 | **Check-in: every pass bar met or cut by §10. Report sections drafted** | | | | |
-| Tue Dec 1 | **Slack: catch-up only, nothing new starts** | | | | |
+| Tue Dec 1 | **Front polish and catch-up only, nothing new starts** | | | | |
 | Wed Dec 2, day 13 | **Code freeze, end of day. Every report section in** | | | | |
 
 | Date | Aniket |
 |---|---|
 | Nov 18 – Dec 1 | Reviews and merges. Day-5 check-in (Mon Nov 23): anything behind is cut by §10's order, not squeezed |
-| Thu Nov 26 | Integration day: the whole loop end to end. Owners fix what breaks, same day |
-| Fri Nov 27 – Sat Nov 28 | C3 packets move, so `DEPLOY.md` links the final paths. `DEPLOY.md` and `bootstrap.sh` drafted |
+| Thu Nov 26 | Integration day: the plumbing end to end. Then front-end ideas from everyone; Aniket picks |
+| Fri Nov 27 – Tue Dec 1 | **The front sprint: S11 the website.** C3 packets move and `DEPLOY.md`, `bootstrap.sh` drafted alongside |
 | Sun Nov 29 | Video dry run in Cloud Shell, timed against 5–10 minutes |
 | Wed Dec 2 | Freeze. `DEPLOY.md`, `bootstrap.sh` final. A teammate who didn't build it runs `bootstrap.sh` on a fresh project |
 | Thu Dec 3 | Video, recorded from Cloud Shell on a fresh project: from zero to `/score`, then drift → retrain → redeploy, Slack, Cloud Monitoring |
 | Fri Dec 4 | Report, with Utkarsh. Everyone reviews their own section |
-| Sat Dec 5 – Sun Dec 6 | **Slack** |
-| Mon Dec 7 | Submit |
+| Sat Dec 5 | **Expo rehearsal 1**: the demo script end to end, every person on their part |
+| Sun Dec 6 | **Slack** |
+| Mon Dec 7 | Submit. **Rehearsal 2** on the live URL; one warm instance from the evening |
+| **Tue Dec 8** | **ML Expo, 8:30–1:30, Google Cambridge** |
 
 ## 12. What phase 3 outputs
 
@@ -244,12 +251,12 @@ Cut from the top if behind: C8 docs → S9 views (and with it C4) → the dashbo
 
 ## 14. Carried over from phase 2
 
-Open at the end of phase 2 (`Model-Pipeline/GAPS.md`, "After phase 2"). None blocks deployment, and the first three are small. Deploying the views (S9) is what lets the last ones move at all: the auditor and the walkers only learn from real users.
+Open at the end of phase 2 (`Model-Pipeline/GAPS.md`, "After phase 2"). None blocks deployment, and the first three are small. Deploying the views (S9, now required) is what lets the last ones move at all: the auditor and the walkers only learn from real users.
 
 | # | Open point | What we do | Owner | When |
 |---|---|---|---|---|
 | C1 | **Graph walkers' texts fall back** 19 of 20 times: each names a team its facts don't hold (gap 27) | Put the teams the walk visits into its facts, then rerun the walk tasks. Needs about 20 new live LLM calls, on Utkarsh's GCP project as in phase 2 | Utkarsh | Sat Nov 21 – Sun Nov 22 |
-| C2 | **The gate rejects 14 correct line lists** written without their path, "formsets.py at lines 9, 344 and 351" (gap 23) | Teach the gate "path at lines a, b", with planted-error tests like #122's; re-gate the cache at $0. The planted-error tables must not change | Vishwa | Sun Nov 22 – Mon Nov 23 |
+| C2 | **The gate rejects 14 correct line lists** written without their path, "formsets.py at lines 9, 344 and 351" (gap 23) | Teach the gate "path at lines a, b", with planted-error tests like #122's; re-gate the cache at $0. The planted-error tables must not change | Vishwa | After the expo: the front comes first |
 | C3 | **The packets folder** still holds the contracts, decision logs and report sections, under people's names; code reads three files from it | Move what matters to `docs/model/` and `Model-Pipeline/report/sections/`, the data files and scripts next to the code, update every path and CI's mount; delete the task READMEs | Aniket | Fri Nov 27 – Sat Nov 28, so `DEPLOY.md` links the final paths |
 | C4 | **walk-v1 and the auditor's policies have 0 live matches** | Once the views run on Cloud Run (S9), stall verdicts start the matches. Promotion needs 30, so phase 3 reports the count, not a winner | Rochan | Sun Nov 29, after S9 |
 | C5 | **No policy writer** (gap 22) | Stays cut until C4 has matches: every new challenger is another chance at a lucky promotion | Rochan | Not this phase |
@@ -272,3 +279,35 @@ Phase 2's loops are built but slow to turn: the model retrains only when someone
 | **↻4 Agents** | A person read the fallback rate and found the `#6921` bug (41 of 68) | The fallback-rate slice report runs on every refresh and posts to Slack when a slice is flagged. A person still makes the fix; finding it is automatic | Vishwa |
 
 None of these changes a model, a threshold or a reported number. Each one is timed before and after, and the report gives both.
+
+## 16. The ML Expo, Tue Dec 8: the product people see
+
+The expo (8:30–1:30, Google Cambridge, about 30 teams) asks for **working systems, not slides**: canary and rollback, drift detection, dashboards for latency and cost, data contracts, and failure cases with how they were fixed. A visitor has a few minutes. They should leave knowing what Meridian does for a team retiring an API, and that it runs and watches itself.
+
+**The front: built after the plumbing (Nov 27 – Dec 1). Aniket leads and builds the website (S11); everyone brings ideas on Nov 26 and builds the piece that touches their part: the views on Cloud Run (Vishwa), `/score` from the browser (Rachna), hosting and warm instances (Rochan), deploys and the canary (Chaitali), the demo's stories from the block (Utkarsh).**
+
+| Door | What a visitor does | What's behind it |
+|---|---|---|
+| **Front page** | Reads one line: every call to an API you're retiring, who owns it, how risky it is, and who's stuck waiting on whom. Picks a door | The block's run_id and snapshot, the model version |
+| **A stalled team** | Opens a team that's stuck: its stall reasons (ranked by the auditor), the orchestrator's plan, the writer's text with an LLM or template badge, what the graph walkers found upstream | Phase 2's views (staff, owner, consumer, tickets) on the real block |
+| **Score a push** | Pastes or picks a push and sees its risk, its percentile on val, and P9's verdict | `POST /score` on `meridian-risk` |
+| **The system, live** | Sees the model in production, the last deploy, the last drift report and why it did or didn't retrain, Slack's last messages, the Cloud Monitoring link | D2 reports, the registry, deploy logs |
+
+- **No person's name renders**, anywhere: a test on the real block before the views go public (the block has real names).
+- **Read-only, public, max 2 instances**, like the endpoint. One warm instance from the evening of Dec 7 to the end of the expo, so nobody waits on a cold start (cost: cents).
+- **Styling for a projector and a laptop:** readable at a distance, the same look on every page.
+- **The website calls `/score` from the browser**, so the endpoint sends CORS headers for the website's origin only. The system panel reads JSON the views service serves: D2 reports and deploys, no names.
+
+**What else the expo asks for:**
+
+| Expo theme | Ours | Gap closed by |
+|---|---|---|
+| Canary and rollback | Smoke test, then traffic; a failed test keeps the old revision | **A canary step:** 10% for a few minutes, checked on errors and latency, then 100% (Chaitali) |
+| Drift detection | Real drift on the 2025–26 commits (#139) | Already there; the system panel shows it |
+| Latency, cost and SLO dashboards | Cloud Monitoring (S6) | **An SLO and cost panel:** latency budget, error budget, cost per 1,000 scores (Rochan) |
+| Data contracts, reproducibility | D1–D5, phase 2's Contracts 1–6, golden md5s | Shown on the system panel |
+| Failure cases and fixes | Real ones | **A "what broke and how we fixed it" board** on the front: the `#6921` gate bug (41 of 68 → 0), the CI break when two PRs met, the Windows 413 flake, the negative Content-Length (Aniket) |
+
+**The demo (Aniket):** a 3-minute script for visitors and a 6-minute one for judges, each walking three real stories: a stalled team whose cause is upstream (the walkers), a risky push scored live, and drift → retrain → "kept the old model" from the panel. Rehearsal 1 on Sat Dec 5, rehearsal 2 on the live URL on Mon Dec 7. Everyone can run the demo.
+
+**On track?** Yes, if the plumbing passes integration on Nov 26 and the website works by Dec 1, a day before the freeze. C2 (the gate's line lists) moves after the expo to make room, and S6 moves to Rochan.

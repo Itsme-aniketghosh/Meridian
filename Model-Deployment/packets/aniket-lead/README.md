@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Owns | the decisions, reviews and merges, integration, C3 packets move, S8 `DEPLOY.md` and `bootstrap.sh`, the video, the report |
+| Owns | the decisions, reviews and merges, integration, **the front sprint and S11 the website**, C3 packets move, S8 `DEPLOY.md` and `bootstrap.sh`, the video, the report, the expo demo |
 | Waits on | every step by Nov 25 |
 | Hands to | the course: `Model-Deployment/report/REPORT.md` and the video, Dec 7 |
 
@@ -21,16 +21,18 @@ flowchart LR
 |---|---|
 | Wed Nov 18 | Decisions: the project; thresholds signed by everyone |
 | Nov 19 – 24 | Reviews and merges. Check-in Mon Nov 23: anything behind is cut by PLAN §10's order |
-| Thu Nov 26 | **Integration**: a planted shift → retrain → deploy, and one → retrain → keep. Owners fix the same day |
-| Fri Nov 27 – Sat Nov 28 | C3: the phase 2 packets move to `docs/model/` and `report/sections/`. `DEPLOY.md` and `bootstrap.sh` drafted |
-| Sun Nov 29 | Video dry run in Cloud Shell, timed |
+| Thu Nov 26 | **Integration**: the plumbing end to end, a planted shift → retrain → deploy, and one → retrain → keep. Owners fix the same day. Then front-end ideas: everyone brings two; you pick |
+| Fri Nov 27 – Tue Dec 1 | **Front sprint: S11 the website.** C3 packets move; `DEPLOY.md` and `bootstrap.sh` drafted alongside |
+| Sun Nov 29 | Video dry run in Cloud Shell, timed. The expo demo script (3 and 6 minutes) and the "what broke and how we fixed it" board |
 | Mon Nov 30 | Check-in: every pass bar met or cut. Report sections drafted |
 | Tue Dec 1 | Slack: catch-up only |
 | Wed Dec 2 | Code freeze. A teammate who didn't build it runs `bootstrap.sh` on a fresh project |
 | Thu Dec 3 | The video |
 | Fri Dec 4 | The report, with Utkarsh |
-| Sat Dec 5 – Sun Dec 6 | Slack |
-| Mon Dec 7 | Submit |
+| Sat Dec 5 | **Expo rehearsal 1**: the whole demo, everyone on their part |
+| Sun Dec 6 | Slack |
+| Mon Dec 7 | Submit. **Rehearsal 2** on the live URL |
+| **Tue Dec 8** | **ML Expo, 8:30–1:30, Google Cambridge** |
 
 ## 1. Integration (Nov 26)
 
@@ -42,6 +44,7 @@ flowchart LR
 ## 2. Replication (S8)
 
 - [ ] `bootstrap.sh <project-id>`: login, APIs, `terraform apply`, first deploy, prints the URL. `--destroy` tears it down
+- [ ] `--destroy` refuses the team project unless the Workload Identity pool, its provider and `meridian-ci` are first `terraform state rm`'d: destroying them breaks phase 2's model push, and a deleted pool's id is held for 30 days (review of #138)
 - [ ] `DEPLOY.md`: Cloud Shell first (nothing to install), then laptop versions; setup, permissions, running, verifying with `curl`
 - [ ] A teammate who didn't build it runs it on a fresh project (Dec 2)
 
@@ -57,6 +60,22 @@ flowchart LR
 - [ ] `Model-Deployment/report/REPORT.md`, in the order of PLAN §13, each row with its evidence
 - [ ] Each owner's numbers next to their pass bars; before and after timings for S10
 - [ ] The carried-over points (§14), done or stated
+
+## 5. The website (S11, PLAN §16): after the plumbing
+
+- [ ] Nov 26, after integration: everyone's ideas, two each; pick what fits Nov 27 – Dec 1
+- [ ] **Front page:** one line on what Meridian does, the snapshot and model version, three doors
+- [ ] **A stalled team:** links into the views on Cloud Run (Vishwa): stall reasons, the plan, the writer's text with its LLM or template badge, the walkers' finding
+- [ ] **Score a push:** a form that calls `/score` from the browser (Rachna adds CORS for the site's origin)
+- [ ] **The system, live:** the panel's JSON (Vishwa), the Monitoring link, the "what broke and how we fixed it" board
+- [ ] Deployed by `deploy.yml` (Chaitali); no person's name on any page; readable on a projector
+
+## 6. The ML Expo (PLAN §16)
+
+- [ ] Three real stories: a stalled team whose cause is upstream (the walkers), a risky push scored live, drift → retrain → "kept the old model"
+- [ ] A 3-minute script for visitors, a 6-minute one for judges; everyone can run it
+- [ ] The "what broke and how we fixed it" board for the front
+- [ ] Rehearsals Dec 5 and Dec 7; warm instances from the evening of Dec 7
 
 ## Done when
 
