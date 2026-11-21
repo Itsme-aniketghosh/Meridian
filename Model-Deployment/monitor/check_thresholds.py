@@ -98,7 +98,8 @@ def show(r):
               f"{'PSI ' if y['psi_flags'] else ''}{'share' if y['dataset_drift'] else ''}")
     print("\n2. Drift by month, against train: how often each rule fires")
     ms = pd.DataFrame(r["months"])
-    ms["period"] = np.where(ms["month"] < "2024", "2023 (val)", np.where(ms["month"] < "2025", "2024 (test)", "2025-26"))
+    later = np.where(ms["month"] < "2025", "2024 (test)", "2025-26")
+    ms["period"] = np.where(ms["month"] < "2024", "2023 (val)", later)
     s = ms.groupby("period").agg(months=("month", "size"), median_n=("n", "median"),
                                  psi_rule=("psi_rule", "sum"), share_rule=("dataset_drift", "sum"))
     print(s.to_string())
