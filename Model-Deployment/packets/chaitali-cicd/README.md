@@ -29,7 +29,7 @@ flowchart LR
 | Tue Nov 24 | S7: the four Slack messages |
 | Wed Nov 25 | Triggers: `model.yml` success on main, `repository_dispatch` (D3), by hand |
 | Thu Nov 26 | Integration |
-| Fri Nov 27 | **The canary step:** 10% of traffic for a few minutes, checked on errors and latency, then 100%. S10: cached layers |
+| Fri Nov 27 | **The canary step:** 10% of traffic for a few minutes, checked on errors and latency, then 100%. Front sprint: `deploy.yml` deploys the website too. S10: cached layers |
 | Sat Nov 28 | The planted broken image again, on main's workflow |
 | Sun Nov 29 | Every pass bar in PLAN §6 checked, with its evidence |
 

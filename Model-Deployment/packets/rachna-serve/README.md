@@ -27,7 +27,7 @@ flowchart LR
 | Mon Nov 23 | Latency: p95 warm, cold start. Check-in |
 | Tue Nov 24 | No-names test over 1,000 scored commits |
 | Thu Nov 26 | Integration |
-| Fri Nov 27 | **S11 "score a push" page** for the front: pick or paste a push, see risk, percentile, P9. S10: refit in the job |
+| Fri Nov 27 | **Front sprint:** `/score` for Aniket's website: CORS for its origin only, example pushes it can offer. S10: refit in the job |
 | Sat Nov 28 | `/score` examples and expected outputs for `DEPLOY.md` |
 | Sun Nov 29 | Latency and cost check against the bars |
 

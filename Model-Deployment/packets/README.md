@@ -5,11 +5,11 @@ Each person has one folder here with their steps, dates, checklist and "done whe
 | Who | Packet | Steps |
 |---|---|---|
 | Rochan | [rochan-infra](rochan-infra/README.md) | S1 Terraform · S6 Cloud Monitoring, SLO and cost panel · C4, C7 · S10 replay matches |
-| Rachna | [rachna-serve](rachna-serve/README.md) | S2 the endpoint · S11 "score a push" · S10 retrain speed |
+| Rachna | [rachna-serve](rachna-serve/README.md) | S2 the endpoint · S10 retrain speed · front sprint: `/score` for the website |
 | Chaitali | [chaitali-cicd](chaitali-cicd/README.md) | S3 deploy, canary and rollback · S7 Slack · S10 deploy speed |
 | Utkarsh | [utkarsh-refresh](utkarsh-refresh/README.md) | S4 refresh job · C1 walker facts · C8 docs · S10 refresh speed |
-| Vishwa | [vishwa-monitor](vishwa-monitor/README.md) | S5 drift and decay · **S9 views and S11 the product front** · S10 fallback report (C2 after the expo) |
-| Aniket | [aniket-lead](aniket-lead/README.md) | Reviews · integration · C3 packets move · S8 guide, bootstrap, video · report · **the expo demo** |
+| Vishwa | [vishwa-monitor](vishwa-monitor/README.md) | S5 drift and decay · S10 fallback report · front sprint: S9 views on Cloud Run, the panel's data (C2 after the expo) |
+| Aniket | [aniket-lead](aniket-lead/README.md) | Reviews · integration · **leads the front sprint, builds S11 the website** · C3 · S8 guide, bootstrap, video · report · the expo demo |
 
 ## Ground rules
 
@@ -66,3 +66,5 @@ Never an email, a name or a person id.
 ## Integration day (Thu Nov 26)
 
 Before it, each of these is merged and green: D1 behind a real URL, `deploy.yml` with a smoke test, the refresh job writing a D2 report, alert policies in Terraform. On the day, Aniket runs the whole loop twice: a planted shift that retrains and deploys, and one that retrains and keeps the old model.
+
+**After integration, the front sprint (Nov 27 – Dec 1):** everyone brings two ideas for the website on Nov 26; Aniket picks and builds it, and each person builds the piece that touches their part (PLAN §16).
