@@ -1,0 +1,19 @@
+# For Model-Deployment/refresh/Dockerfile only (Docker reads <Dockerfile>.dockerignore next to the Dockerfile in
+# place of the repo's .dockerignore). Allowlist: only what the Dockerfile COPYs reaches the build. A new COPY needs
+# a ! line. Data (snapshots/, out/, published/) never goes in the image: the job pulls it at run time.
+*
+!Data-Pipeline/requirements.txt
+!Data-Pipeline/meridian/*.py
+!Data-Pipeline/meridian.toml
+!Data-Pipeline/settings.toml
+!Data-Pipeline/schema.sql
+!Data-Pipeline/KNOWLEDGE-BASE.md
+!Model-Pipeline/requirements.txt
+!Model-Pipeline/model.toml
+!Model-Pipeline/model/*.py
+!Model-Pipeline/registry/champion.json
+!Model-Deployment/deploy.toml
+!Model-Deployment/deploy_config.py
+!Model-Deployment/refresh/*.py
+!Model-Deployment/monitor/*.py
+!Model-Deployment/monitor/monitor.toml
