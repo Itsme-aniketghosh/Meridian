@@ -1,6 +1,6 @@
 # S5 drift results
 
-Recorded **Thu Nov 19, 2026**, before any threshold was tuned (PLAN §5). Block `c5118b019d642a9b`, table md5 `9c0ab220…`. Thresholds as written in `monitor.toml`. Reports: `reports/`.
+Recorded **Thu Nov 19, 2026**, before any threshold was tuned (PLAN §5). Block `c5118b019d642a9b`, table md5 `9c0ab220…`. Thresholds as written in PLAN §5 (then `monitor.toml`, now `deploy.toml` [drift] and [decay], contract D4). Reports: `reports/`.
 
 ## 1. The 7,238 commits from 2025–26 against train (26,050 rows)
 
@@ -44,7 +44,7 @@ Run **Sat Nov 21, 2026**, same block. `python -m monitor.check_thresholds --out 
 
 **How a rule is judged, fixed before looking:** it must stay quiet on **val 2023** (the year the model was picked on, where it beats lines × files by +0.088 PR-AUC) and fire on 2025–26, which drifted in §1. As the vishwa-monitor packet says, nothing is judged on test 2024. Its commits appear only as the reference production would hold for 2025–26 (features, never labels), and its quarters are skipped.
 
-The alternatives in §7 were chosen after seeing this data. They are a proposal for the team, not a change: `monitor.toml` still holds the rules as written.
+The alternatives in §7 were chosen after seeing this data. They are a proposal for the team, not a change: `deploy.toml` [drift] and [decay] still hold the rules as written.
 
 ## 4. Drift by month (the window production checks)
 
@@ -115,4 +115,15 @@ What stays: the top-5 features, PSI's 10 decile bins, the 30-day window, and the
 - The half-year rule needs ≥ 100 positives. At 2025's 6% rate that is about 1,600 commits, so it may skip a half. If it does, the D2 report says so rather than reading a smaller window.
 - A latest-year reference follows slow drift: a change that creeps in over several years never fires. Decay (rule 3) is the backstop for that.
 
-Once signed off: `monitor.toml`, `drift.py` (the reference), the decay check, PLAN §5, and the tests, in one PR.
+Once signed off: `deploy.toml` [drift] and [decay] (and its pinned test, `tests/test_deploy_config.py`), the latest-year reference in `drift.py`, `[decay] window = "half"` and `min_positives = 100`, PLAN §5, and the tests, in one PR.
+
+# Decay on the newest settled window
+
+Run **Sat Nov 21, 2026**: `python -m monitor.decay`, with the champion `registry/model.joblib`, `deploy.toml` [decay] as written (quarters, ≥ 30 positives), and model.toml's 2,000 bootstrap reps at seed 1. Report: `reports/decay_c5118.json`.
+
+| Window | Commits | Positives | Model PR-AUC | Lines × files | Model − L×F [95%] | Flag |
+|---|---|---|---|---|---|---|
+| **2025Q3** | 927 | 52 | 0.215 | 0.168 | +0.046 [**−0.015**, +0.099] | **yes**: lower bound < 0 |
+| 2025Q2 (previous) | 654 | 47 | 0.217 | | | no drop |
+
+Under the rule as written, decay flags today. Under the proposal (§7: half-years, ≥ 100 positives) it would judge 2025H1 and flag too. The proposal is `[decay] window = "half"` in `deploy.toml`; `decay.py` already reads it.

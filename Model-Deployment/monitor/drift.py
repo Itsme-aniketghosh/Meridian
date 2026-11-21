@@ -6,13 +6,17 @@ Run from Model-Deployment/.
     python -m monitor.drift --simulate            # the same, with every commit 10x larger: must flag
     python -m monitor.drift --out report.json     # also write the report
 
-Two signals, both from monitor.toml, and either one sets retrain:
-- PSI per feature, binned on the reference's deciles. Retrain when PSI >= psi_threshold on any top-5 SHAP feature.
+Two signals, their thresholds from deploy.toml's [drift] (contract D4: PLAN §5's numbers live there and nowhere else),
+and either one sets retrain:
+- PSI per feature, binned on the reference's deciles. Retrain when PSI >= psi on any top-5 SHAP feature.
 - Evidently's dataset drift. Evidently 0.7 doesn't import under our pinned pandas 3.1, so its default stattests are
   reimplemented here with scipy, the same choice per column: for a reference over 1,000 rows, numeric columns with
   more than 5 distinct values use the Wasserstein distance divided by the reference's std, the rest the
   Jensen-Shannon distance of the value frequencies, each drifted at >= 0.1. For a smaller reference, KS or
-  chi-squared at p < 0.05. Retrain when the share of drifted columns is >= share_threshold.
+  chi-squared at p < 0.05. Retrain when the share of drifted columns is >= dataset_share.
+
+The method's own settings (the bins, Evidently's per-column cut-offs, --simulate's shift) are constants below: they
+are how the test works, not the retrain rule.
 
 The columns are the model's inputs: model.train's NUMERIC plus ticket_type. Labels are never read: drift is the
 signal that needs none. Exit 0 either way; the report's "retrain" says what to do.
@@ -20,7 +24,6 @@ signal that needs none. Exit 0 either way; the report's "retrain" says what to d
 import argparse
 import json
 import sys
-import tomllib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -35,16 +38,31 @@ PIPELINE = ROOT / "Model-Pipeline"
 sys.path.insert(0, str(PIPELINE))
 from model.train import CATEGORICAL, NUMERIC  # noqa: E402  the model's inputs, from one place
 
-CONFIG = HERE / "monitor.toml"
+sys.path.insert(0, str(HERE.parent))
+from deploy_config import DEPLOY_TOML, load  # noqa: E402  contract D4
+
 TABLE = PIPELINE / "data" / "features.parquet"
 FEATURES = NUMERIC + CATEGORICAL
 FMT = "%Y-%m-%dT%H:%M:%SZ"
 EPS = 1e-4  # an empty bin's share, so PSI stays finite
 
 
-def load_config(path=CONFIG):
-    with open(path, "rb") as f:
-        return tomllib.load(f)
+METHOD = {"reference": "train",            # the split new commits are compared against
+          "psi_bins": 10,                  # reference deciles
+          "wasserstein_threshold": 0.1,    # Evidently's defaults, per column (see the docstring)
+          "jensenshannon_threshold": 0.1,
+          "p_value": 0.05}
+SIMULATE = {"scale": 10, "columns": ["la", "ld", "nf", "nd"]}   # --simulate: every commit 10x larger
+
+
+def load_config(path=DEPLOY_TOML):
+    """{"drift", "decay", "simulate"}: deploy.toml's [drift] in the names drift_report reads, plus METHOD, and
+    deploy.toml's [decay] as it is."""
+    cfg = load(path, use_env=False)
+    d = cfg["drift"]
+    return {"drift": {**METHOD, "days": d["window_days"], "top_features": d["top_features"],
+                      "psi_threshold": d["psi"], "share_threshold": d["dataset_share"]},
+            "decay": dict(cfg["decay"]), "simulate": dict(SIMULATE)}
 
 
 def is_categorical(ref):
@@ -135,7 +153,7 @@ def simulate(cur, sim):
     return cur
 
 
-def run(table=TABLE, days=None, simulated=False, config=CONFIG):
+def run(table=TABLE, days=None, simulated=False, config=DEPLOY_TOML):
     cfg = load_config(config)
     days = cfg["drift"]["days"] if days is None else days
     df = pd.read_parquet(table)
@@ -165,7 +183,7 @@ def print_report(r):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--table", type=Path, default=TABLE)
-    ap.add_argument("--days", type=int, help="the last N days' commits; 0: all outside a split (default: monitor.toml)")
+    ap.add_argument("--days", type=int, help="the last N days' commits; 0: all outside a split (default: deploy.toml)")
     ap.add_argument("--simulate", action="store_true", help="plant a 10x size shift")
     ap.add_argument("--out", type=Path, help="write the report as JSON")
     args = ap.parse_args(argv)

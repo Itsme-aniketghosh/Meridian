@@ -1,0 +1,21 @@
+{
+ "window": "2025Q3",
+ "kind": "quarter",
+ "n": 927,
+ "positives": 52,
+ "pr_auc": 0.2147,
+ "lines_x_files": 0.1683,
+ "difference": 0.0464,
+ "paired": [
+  -0.0148,
+  0.0988
+ ],
+ "previous": {
+  "window": "2025Q2",
+  "n": 654,
+  "positives": 47,
+  "pr_auc": 0.2167
+ },
+ "flag": true,
+ "why": "model - lines x files lower bound -0.015 < 0.0 on 2025Q3"
+}
