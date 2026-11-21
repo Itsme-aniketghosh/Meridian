@@ -30,7 +30,7 @@ The same rule, run on labelled years against train:
 
 `prior_bug_fixes` falls year on year (train median 5, val and test 3, 2025–26 1). That is worth a look on the data side before it is called drift: the fix rule needs a Jira ticket resolved as Fixed, and recent tickets may not be resolved yet at the snapshot.
 
-**For Fri Nov 20 (thresholds checked on real data, signed by the team):** keep or change the 50% dataset-drift rule. Nothing is changed here until then.
+**Checked on real data below (§4–7), with a proposal for sign-off.**
 
 ## 3. Method notes
 
@@ -40,86 +40,79 @@ The same rule, run on labelled years against train:
 
 # Threshold check on real data
 
-Run **Sat Nov 21, 2026**, same block. `python -m monitor.check_thresholds --out reports/threshold_check.json` reproduces sections 4–6. The test for every rule was fixed before looking: **quiet on the months and quarters where the model is known to work (val 2023, test 2024), firing on 2025–26.** The proposals in section 7 were chosen after seeing this data, so they are proposals for the team to sign off, not changes. `monitor.toml` is unchanged.
+Run **Sat Nov 21, 2026**, same block. `python -m monitor.check_thresholds --out reports/threshold_check.json` reproduces it in about 10 s.
 
-## 4. Drift by year, against train
+**How a rule is judged, fixed before looking:** it must stay quiet on **val 2023** (the year the model was picked on, where it beats lines × files by +0.088 PR-AUC) and fire on 2025–26, which drifted in §1. As the vishwa-monitor packet says, nothing is judged on test 2024. Its commits appear only as the reference production would hold for 2025–26 (features, never labels), and its quarters are skipped.
 
-| Year | Split | PSI `prior_bug_fixes` | Drifted share | Fires |
-|---|---|---|---|---|
-| 2016 | train | 0.21 | 38% | PSI |
-| 2022 | train | 0.22 | 50% | PSI, share |
-| 2023 | val | 0.155 | 56% | share |
-| 2024 | test | 0.124 | 56% | share |
-| 2025 | none | 0.40 | 56% | PSI, share |
-| 2026 | none | 0.33 | 50% | PSI, share |
+The alternatives in §7 were chosen after seeing this data. They are a proposal for the team, not a change: `monitor.toml` still holds the rules as written.
 
-The other four top features never pass 0.09 in any year. `prior_bug_fixes` swings even inside train (2016 and 2022 fire against their own pool). Its median goes 12 (2016) → 4 (2019–21) → 2–3 (2022–24) → 1 (2025–26), and the share of commits that are bug fixes falls with it (0.35 → 0.11–0.16).
+## 4. Drift by month (the window production checks)
 
-## 5. Drift by month (the 30-day window production runs on), against train
+Months a rule fires on. On val, every firing is a false alarm.
 
-| Period | Months | Median commits | PSI rule fires | Share rule fires |
-|---|---|---|---|---|
-| 2023 (val) | 12 | 337 | **7** | **11** |
-| 2024 (test) | 12 | 303 | **5** | **12** |
-| 2025–26 | 22 | 339 | 22 | 22 |
-
-**Both rules fail the check.** On the 24 known-good months, the share rule fires 23 times and the PSI rule fires 12, every time on `prior_bug_fixes` alone. `la`, `nf`, `nd` and `ld` never reach 0.2 on a 2023–24 month (max 0.155).
-
-Alternatives, scored on the same months:
-
-| Reference | PSI threshold | val 2023 | test 2024 | 2025–26 |
-|---|---|---|---|---|
-| train (as written) | 0.2 | 7/12 | 5/12 | 21/21 |
-| train | 0.25 | 5/12 | 2/12 | 20/21 |
-| train | 0.3 | 5/12 | 2/12 | 16/21 |
-| the previous labelled year | 0.2 | 2/12 | 0/12 | 13/21 |
-| **the previous labelled year** | **0.25** | **0/12** | **0/12** | **10/21** |
-| the previous labelled year | 0.3 | 0/12 | 0/12 | 7/21 |
-
-Raising the threshold against train doesn't fix it: the 2015–22 pool is too old to be "normal". Comparing each month with the latest labelled year is quiet on all 24 known-good months and still fires on about half of the 2025–26 months, on `prior_bug_fixes` and `la`.
-
-## 6. Decay by quarter (champion vs lines × files, paired bootstrap, 1,000 reps)
-
-Every quarter up to 2025Q3 has a closed 365-day window and ≥ 30 positives (min 47), so the check can always run.
-
-| Quarter | Positives | PR-AUC | SD | Model − L×F [95%] |
-|---|---|---|---|---|
-| 2023Q1 | 129 | 0.459 | 0.045 | +0.130 [+0.079, +0.189] |
-| 2023Q2 | 126 | 0.426 | 0.043 | +0.052 [**−0.011**, +0.111] |
-| 2023Q3 | 121 | 0.372 | 0.043 | +0.041 [**−0.005**, +0.085] |
-| 2023Q4 | 110 | 0.389 | 0.046 | +0.080 [+0.038, +0.123] |
-| 2024Q1 | 70 | 0.298 | 0.051 | +0.103 [+0.056, +0.158] |
-| 2024Q2 | 89 | 0.347 | 0.049 | +0.113 [+0.067, +0.152] |
-| 2024Q3 | 72 | 0.272 | 0.045 | +0.011 [**−0.053**, +0.059] |
-| 2024Q4 | 52 | 0.202 | 0.046 | +0.011 [**−0.057**, +0.073] |
-| 2025Q1 | 56 | 0.233 | 0.057 | +0.069 [+0.017, +0.140] |
-| 2025Q2 | 47 | 0.217 | 0.049 | −0.004 [**−0.092**, +0.061] |
-| 2025Q3 | 52 | 0.215 | 0.051 | +0.046 [**−0.018**, +0.100] |
-
-**Both decay rules fail on quarters:**
-- *Lower bound < 0* fires on 6 of 11 quarters, including two val quarters where the model is fine for the year.
-- *PR-AUC falls more than 0.05* is about one SD of a single quarter (0.043–0.057), and it fires 3 times by 2024Q3. PR-AUC also falls on its own when the positive rate falls (12% in 2023 → 5–6% in 2025), so a drop in raw PR-AUC isn't decay by itself.
-
-Pooled by half-year (SD 0.032–0.038):
-
-| Half | Positives | PR-AUC | Model − L×F [95%] |
-|---|---|---|---|
-| 2023H1 | 255 | 0.439 | +0.104 [+0.063, +0.141] |
-| 2023H2 | 231 | 0.380 | +0.068 [+0.029, +0.102] |
-| 2024H1 | 159 | 0.317 | +0.105 [+0.069, +0.140] |
-| 2024H2 | 124 | 0.232 | +0.007 [**−0.044**, +0.044] |
-| 2025H1 | 103 | 0.213 | +0.032 [**−0.016**, +0.083] |
-| 2025H2 (Q3 only) | 52 | 0.215 | +0.046 [**−0.018**, +0.100] |
-
-By half-year, 2023H1 to 2024H1 are quiet. From 2024H2 on, the model's edge over lines × files is no longer clear of 0 in any half. 2024H2 is in the test year, so under the check's own test it counts as a false alarm, unless the decay started there. The test year as a whole still beat lines × files. Read it as: **the edge has been shrinking since late 2024, which is likely real decay and a second real trigger for the demo**, with 2024H2 the one known-good period where the proposed rule fires. 2025H2 (Q3 only, 52 positives) is under the proposed 100, so the newest half the rule would judge today is 2025H1.
-
-## 7. Proposals for sign-off
-
-| Rule as written | Check | Proposal |
+| Rule | val 2023 | 2025–26 |
 |---|---|---|
-| PSI ≥ 0.2 on a top-5 feature, against train | 12/24 false alarms | **Reference: the latest labelled year** (rolls forward with each refresh), **PSI ≥ 0.25**. 0/24 false alarms, 10/21 new months fire |
-| ≥ 50% of features drifted (Evidently) | 23/24 false alarms | **Not a retrain trigger.** Keep it in the report and on the dashboard |
-| Decay: lower bound < 0, newest quarter | 6/11 fire, 2 on val | **Newest half-year** with a closed window and ≥ 100 positives; retrain when the paired lower bound < 0. 1/4 known-good halves fire (2024H2); today it fires on 2025H1 |
-| Decay: PR-AUC falls > 0.05 | ≈ 1 SD; confounded by the positive rate | **Drop it.** The paired difference against lines × files already covers it, on the same rows |
+| ≥ 50% of features drifted *(as written)* | **11/12** | 22/22 |
+| PSI ≥ 0.2 on a top-5 feature, against train *(as written)* | **7/12** | 22/22 |
+| PSI ≥ 0.25, against train | 5/12 | 21/22 |
+| PSI ≥ 0.3, against train | 5/12 | 17/22 |
+| PSI ≥ 0.2, against the latest labelled year | 2/12 | 14/22 |
+| **PSI ≥ 0.25, against the latest labelled year** | **0/12** | **11/22** |
+| PSI ≥ 0.3, against the latest labelled year | 0/12 | 8/22 |
 
-Open on the data side: is the fall in `prior_bug_fixes` and in the bug-fix share real (Spark maturing), or tickets not yet resolved as Fixed at the snapshot? Either way, the proposed reference compares like with like.
+"The latest labelled year" is the newest year with settled labels before the month: 2022 for val months, 2024 for 2025–26. The 2025–26 column counts Oct 2026, a 5-commit partial month at the snapshot. Without it, the proposed rule fires on 10 of 21 full months.
+
+**Both rules as written fail.**
+- *The share rule* fires on 11 of 12 val months. The history features (`exp`, `sexp`, `ndev`, `nuc`, `age`) grow with the repo's age, so any later month differs from a 2015–22 pool.
+- *The PSI rule* fires on 7 of 12 val months, every time on `prior_bug_fixes` (up to 0.55 in Jan 2023). `la`, `nf`, `nd` and `ld` never reach 0.2 on a val month.
+- Raising the PSI threshold against train doesn't fix it: 5/12 even at 0.3. The 2015–22 pool is too old to be "normal" for a month in 2023. Against 2022, the largest val PSI is 0.229 (May 2023).
+
+`prior_bug_fixes` falls year on year: median 12 in 2016, 4 in 2019–21, 2–3 in 2022–24 and 1 in 2025–26. The share of commits that are bug fixes falls with it, from 0.35 to 0.11–0.16. Whether that is Spark maturing or fixes not yet found at the snapshot is open (packet §1, with Utkarsh).
+
+## 5. Decay by quarter (champion vs lines × files, paired bootstrap, 1,000 reps)
+
+Every quarter with a closed 365-day window has ≥ 30 positives (min 47), so the minimum is never the limit.
+
+| Quarter | Positives | Positive rate | PR-AUC | SD | Model − L×F [95%] |
+|---|---|---|---|---|---|
+| 2023Q1 | 129 | 12.4% | 0.459 | 0.045 | +0.130 [+0.079, +0.189] |
+| 2023Q2 | 126 | 13.9% | 0.426 | 0.043 | +0.052 [**−0.011**, +0.111] |
+| 2023Q3 | 121 | 11.2% | 0.372 | 0.043 | +0.041 [**−0.005**, +0.085] |
+| 2023Q4 | 110 | 10.2% | 0.389 | 0.046 | +0.080 [+0.038, +0.123] |
+| 2025Q1 | 56 | 6.1% | 0.233 | 0.057 | +0.069 [+0.017, +0.140] |
+| 2025Q2 | 47 | 7.2% | 0.217 | 0.049 | −0.004 [**−0.092**, +0.061] |
+| 2025Q3 | 52 | 5.6% | 0.215 | 0.051 | +0.046 [**−0.018**, +0.100] |
+
+**Both decay rules fail on quarters.**
+- *Lower bound < 0* fires on 2 of 4 val quarters.
+- *PR-AUC falls more than 0.05 under the last window*: one quarter's SD is 0.043–0.057, so 0.05 is about one SD. It fires on 1 of 3 val steps (Q2 → Q3, −0.054). PR-AUC also falls on its own when the positive rate does (12% in 2023, 6% in 2025): 2025's 0.215 against 2023's 0.389 is mostly base rate, and lines × files falls the same way (0.309 → 0.168).
+
+## 6. Decay by half-year
+
+| Half | Positives | Positive rate | PR-AUC | SD | Model − L×F [95%] |
+|---|---|---|---|---|---|
+| 2023H1 | 255 | 13.1% | 0.439 | 0.032 | +0.104 [+0.063, +0.141] |
+| 2023H2 | 231 | 10.7% | 0.380 | 0.032 | +0.068 [+0.029, +0.102] |
+| 2025H1 | 103 | 6.5% | 0.213 | 0.038 | +0.032 [**−0.016**, +0.083] |
+
+Both val halves are quiet, and 2025H1 fires: the model's edge over lines × files is no longer clear of 0. **That is decay, and a second real trigger for the demo.** 2025H2 isn't closed until Dec 31, 2026. The evidence is thin: two val halves, and 2025H1 has 103 positives, just over the proposed 100.
+
+## 7. Proposal for sign-off
+
+| # | Rule as written | On val 2023 | Proposal | On val 2023 | Today (2025–26) |
+|---|---|---|---|---|---|
+| 1 | PSI ≥ 0.2 on a top-5 feature, last 30 days against train | 7/12 false alarms | **PSI ≥ 0.25 on a top-5 feature, last 30 days against the latest labelled year** (rolls forward with each refresh; `[drift] reference = "latest_year"`, `psi_threshold = 0.25`) | 0/12 | 10/21 full months fire |
+| 2 | ≥ 50% of features drifted | 11/12 false alarms | **Report only**: in the D2 report and on the dashboard, never a retrain by itself | n/a | n/a |
+| 3 | Decay: the newest quarter's paired lower bound < 0 | 2/4 false alarms | **The newest half-year** with a closed window and ≥ 100 positives; retrain when its paired lower bound vs lines × files is < 0 | 0/2 | fires (2025H1) |
+| 4 | Decay: PR-AUC more than 0.05 under the last window | 1/3, and confounded by the positive rate | **Drop it.** Rule 3 already compares against lines × files on the same rows, which carries the base rate | n/a | n/a |
+
+What stays: the top-5 features, PSI's 10 decile bins, the 30-day window, and the registry's rule (promote only on a gain above 2 seed-noise SDs). The service rules (5xx, p95, uptime) need the live endpoint and are S6's, now with Rochan.
+
+**Retrain today under the proposal: yes, on both signals.** Drift: PSI against 2024 fires in 10 of 21 full 2025–26 months, from Jun 2025 to Dec 2025 in a row. The last 30 days (454 commits) fire on `la`, 0.347 (`prior_bug_fixes` 0.088). Decay: 2025H1. `--simulate` stays for the "not better, kept the old model" branch.
+
+**Risks the team should weigh:**
+- The proposals were picked on the same val months they are scored on. 0/12 at 0.25 against 0.229 at most is a small margin.
+- The half-year rule needs ≥ 100 positives. At 2025's 6% rate that is about 1,600 commits, so it may skip a half. If it does, the D2 report says so rather than reading a smaller window.
+- A latest-year reference follows slow drift: a change that creeps in over several years never fires. Decay (rule 3) is the backstop for that.
+
+Once signed off: `monitor.toml`, `drift.py` (the reference), the decay check, PLAN §5, and the tests, in one PR.
