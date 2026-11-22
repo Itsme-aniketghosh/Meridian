@@ -40,6 +40,12 @@ timeout_s = 30
 max_request_kb = 1024   # S2 refuses a bigger body (PLAN §4's request size cap)
 public = true        # graders call it; no names out (PLAN §4)
 
+[smoke]   # S3: a revision gets traffic only after this passes against it (Model-Deployment/smoke.py)
+sha = "3d819389819557523f373c192f88a594b665734d"   # a val commit (Rachna): its /score is the score it was judged on
+risk_tolerance = 1e-9   # /score's risk against the same champion scoring the same row on the runner
+timeout_s = 60          # per call: the first one may wait on a cold start
+tries = 5               # /health is retried while the revision starts, 5 s apart
+
 [services.views]   # S9, stretch
 name = "meridian-views"
 

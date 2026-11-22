@@ -132,3 +132,65 @@ The run tests skip when S5's `drift.py` isn't in the tree.
 - **Every block retrains** under the 50% rule (Vishwa's finding). This run shows it too: 75% drifted. The thresholds are signed off today.
 - **D2's owner is S5.** `job.d2()` wraps `monitor.drift`'s report until S5 writes D2 itself.
 - **No `--prev-run`** yet: the first Spark-only block has no earlier Spark-only run to compare with. From the second cloud run on, the job can pass the last block's run as prev, once its `out/` is kept in the cache bucket.
+
+---
+
+# Sat Nov 21 2026: history.pkl for the serve image (Rachna's #148 handoff)
+
+#148 (S2) scores a push from `Model-Deployment/serve/history.pkl` (`python -m serve.precompute --block …`), which has to be in the serve image's build context. CI has no block, so the refresh job makes it. Branch `utkarsh-history-pkl`, from main `99231cf`.
+
+| # | What | Verdict |
+|---|---|---|
+| 1 | #148's `model/data.py` refactor (`History` class) gives the same feature table | **PASS**: byte-identical on both blocks |
+| 2 | The job: `history_pkl` step after publish; push puts `history/<run_id>.pkl` and `history.pkl` after the block, before `latest.json` | Done |
+| 3 | Tests: 20 in `test_refresh.py` (4 new), 65 in `Model-Deployment/tests`; flake8 as CI runs it | **PASS** |
+| 4 | Run 4: the whole job with #148's serve code, on the local data root | **PASS**: 277 s, block `68c476cf891853a2`, history.pkl 7.6 MB in 7.7 s |
+| 5 | That history.pkl scores pushes like a block replay | **PASS**: 30 of 30 pushes, 0 feature rows differ, max risk gap 1.1e-16 |
+| 6 | Job image on main: copies `serve/*.py`, imports | **PASS**. `precompute.py` isn't on main yet, so the job skips the step and logs it |
+
+## 1. The feature table under #148
+
+`python -m model.data --config <model.toml> --published <published>`, from #148's tree (`cea3772`, a scratch worktree) and from main, same machine:
+
+| Block | #148 | main | Committed |
+|---|---|---|---|
+| `c5118b019d642a9b` (the training block) | `9c0ab22048fff931ac89e27c20112c56` | `9c0ab220…` | `9c0ab220…` |
+| `d18aa548f8ca5f98` (Nov 20) | `187cfd8a1a9692d2b4ece33a8ee00346` | `187cfd8a…` | n/a |
+
+`features.schema.json` is identical too. The refactor changes no feature.
+
+## 2. The step
+
+- `history_pkl` runs `python -m serve.precompute --block <data root>/published/<run_id>.sqlite --run-id <run_id> --out <work>/history.pkl` from `Model-Deployment/`. It uses the endpoint's own code, so the job and `/score` can't drift.
+- The D5 line carries `history_md5` and `history_mb`. While `serve/precompute.py` isn't in the tree, the step logs "skipped" and the job goes on.
+- Push order: block file → `history/<run_id>.pkl` → `history.pkl` → `latest.json` → D2 report. `history.pkl` is the name `deploy.yml` reads.
+- Image: `COPY Model-Deployment/serve/*.py`, plus its allowlist line. Never `history.pkl` itself.
+
+## 4. Run 4
+
+2026-11-22, from #148's tree with this branch's `job.py`. Data root `~/Desktop/Meridian-refresh-data`, local store.
+
+| Step | ms |
+|---|---:|
+| pull (last run d18aa548f8ca5f98) | 1 |
+| anything_new | 1,853 (published over 20 h ago: new) |
+| history · scan · resolve | 98,789 · 132 · 183 |
+| owners · join · graph · validate | 4,349 · 6,823 · 1,161 · 23,061 |
+| **history_pkl** | **7,742**: 7.6 MB, md5 `dac5da24f2c18f6fc1b7992fcfd4e5cc` |
+| table | 6,441 |
+| drift | 625 new commits, retrain = true (PSI 0.358 on `la`, 75% drifted) |
+| push | 145 |
+| **done** | **277,346**, exit 0 |
+
+277 s against run 2's 142 s: history took 99 s against 52 s, on a busier laptop. It's under the 10-minute bar either way.
+
+## 5. Does it score like the block?
+
+`serve.scorer.Scorer(history=<store>/block/history.pkl)` against `Scorer(block=<68c476cf block>)`, on the 30 newest first-parent Spark commits sent as pushes (numstat, subject, author hash):
+- 30 of 30 have identical feature rows, and the largest risk difference is 1.1e-16.
+- Start: 3.0 s from history.pkl against 4.65 s from the block. The slowest push took 102 ms, cold.
+- `/health` is ok, with champion `85b4684a…` and md5 `2a0c9cc6…`.
+
+## For Chaitali (deploy.yml)
+
+Before `docker build`, copy `gs://<buckets.block>/history.pkl` to `Model-Deployment/serve/history.pkl`. The deploy account needs read on the block bucket. Until the job runs in the cloud, one history.pkl from the current block can be put there by hand (through Rochan).

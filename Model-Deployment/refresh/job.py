@@ -12,12 +12,16 @@ One run, daily (Cloud Scheduler, deploy.toml [schedule]):
             graph, validate, publish. The same parts and commands as the meridian_update DAG, so a cloud block is
             made exactly like a laptop's. The other datasets (Django and its packages, GitLab) aren't collected:
             the model reads Spark only ([data] repo in model.toml).
-4. table    model.data on the new block with model.toml's split as it is. Only [data] run_id moves, so every
+4. history_pkl
+            S2's serve.precompute (Rachna) on the new block: history.pkl, the replayed history /score reads to score a
+            push in milliseconds. Only this job has the block, so it's made here; deploy.yml pulls history.pkl into
+            the serve image's build context. Skipped, and logged, while serve/precompute.py isn't in the tree.
+5. table    model.data on the new block with model.toml's split as it is. Only [data] run_id moves, so every
             commit past follow_up_end comes out as split "none": the new commits drift is measured on.
-5. drift    S5's monitor.drift (Vishwa) on that table, wrapped as the D2 report.
-6. push     The block (file, then latest.json, so a reader never sees a pointer to a missing file) and the D2 report
-            to the store: GCS buckets.block and buckets.monitor in the cloud.
-7. retrain  D2's retrain flag is logged and read. Acting on it (model.refresh, the registry, the D3 dispatch) is the
+6. drift    S5's monitor.drift (Vishwa) on that table, wrapped as the D2 report.
+7. push     The block file, then history.pkl (as history/<run_id>.pkl and history.pkl), then latest.json, so a reader
+            never sees a pointer to a missing file; then the D2 report. GCS buckets.block and buckets.monitor.
+8. retrain  D2's retrain flag is logged and read. Acting on it (model.refresh, the registry, the D3 dispatch) is the
             next step (packet, Tue Nov 24) and isn't wired yet.
 
 Every step writes one D5 log line (event "refresh", or "drift"), JSON on stdout, which Cloud Logging parses. The
@@ -25,6 +29,7 @@ parts' own logs go to stderr. No line carries an email, a name or a person id: o
 A failed step alerts (meridian.alert: Slack when MERIDIAN_SLACK_WEBHOOK is set) and the job exits 1.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -47,6 +52,7 @@ MERIDIAN_TOML = DATA_PIPELINE / "meridian.toml"
 SETTINGS_TOML = DATA_PIPELINE / "settings.toml"
 MODEL_TOML = MODEL_PIPELINE / "model.toml"
 CHAMPION = MODEL_PIPELINE / "registry" / "champion.json"
+PRECOMPUTE = DEPLOY / "serve" / "precompute.py"   # S2's (Rachna): the history state the endpoint scores pushes from
 sys.path.insert(0, str(DEPLOY))
 import deploy_config  # noqa: E402
 
@@ -228,6 +234,7 @@ class Job:
         self.work = self.root / "refresh"
         self.env = {**os.environ, "MERIDIAN_DATA": str(self.root), "PYTHONUNBUFFERED": "1"}
         self.timings = {}
+        self.history_path = None   # history.pkl for the new block, once made
 
     def event(self, step, ms, event="refresh", severity="INFO", **fields):
         """One D5 log line."""
@@ -301,6 +308,19 @@ class Job:
         self.part("publish", run_id, config)
         return run_id
 
+    def history_pkl(self, run_id):
+        """history.pkl for the new block (serve.precompute), or a skip while S2's precompute isn't in the tree."""
+        if not PRECOMPUTE.exists():
+            return {"history": "skipped: Model-Deployment/serve/precompute.py isn't here (S2)"}
+        out = self.work / "history.pkl"
+        block = self.root / "published" / f"{run_id}.sqlite"   # publish's name for the block
+        self.sh([self.python, "-m", "serve.precompute", "--block", block, "--run-id", run_id, "--out", out], DEPLOY)
+        if self.dry_run:
+            return {"history": "dry run"}
+        self.history_path = out
+        return {"history_md5": hashlib.md5(out.read_bytes()).hexdigest(),
+                "history_mb": round(out.stat().st_size / 1e6, 1)}
+
     def table(self, run_id):
         cfg_path = self.work / "model.toml"
         cfg_path.write_text(model_toml_for(MODEL_TOML.read_text(encoding="utf-8"), run_id), encoding="utf-8")
@@ -327,10 +347,15 @@ class Job:
         if latest["run_id"] != run_id:
             raise StepFailed(f"published/latest.json is {latest['run_id']}, not the new run {run_id}", "")
         self.store.put(published / latest["file"], "block", latest["file"])
+        out = {"block": self.store.where("block", latest["file"])}
+        if self.history_path:   # this block's, then the name deploy.yml reads
+            self.store.put(self.history_path, "block", f"history/{run_id}.pkl")
+            self.store.put(self.history_path, "block", "history.pkl")
+            out["history"] = self.store.where("block", "history.pkl")
         self.store.put(published / "latest.json", "block", "latest.json")
         name = f"reports/{run_id}.json"
         self.store.put(report_path, "monitor", name)
-        return {"block": self.store.where("block", latest["file"]), "report": self.store.where("monitor", name)}
+        return {**out, "report": self.store.where("monitor", name)}
 
     def run(self):
         started = time.monotonic()
@@ -346,6 +371,8 @@ class Job:
             step = "update"
             run_id = self.update(config)
             self.event("update", sum(self.timings.get(p, 0) for p in PARTS), run_id=run_id)
+            step = "history_pkl"
+            self.timed("history_pkl", lambda: self.history_pkl(run_id), run_id=run_id)
             step = "table"
             table = self.timed("table", lambda: self.table(run_id), run_id=run_id)
             step = "drift"

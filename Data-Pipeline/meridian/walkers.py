@@ -141,11 +141,18 @@ class Walk:
     shadow: dict = field(default_factory=dict)   # {the other walk policy: the teams it would have walked}
 
     def facts(self):
-        """Contract 5's facts object for the writer: only what the walk found, with where each part came from."""
-        f = {"team": self.team, "walked": self.walked, "path": self.path,
-             "found": {t: r for t, r in self.found.items() if r}}
+        """Contract 5's facts object for the writer: only what the walk found, with where each part came from.
+
+        `reasons` holds the reason labels found, as values. In `found` they're only keys ({team: {label: rows}}), and
+        the fact gate reads values, never keys, so a text quoting "Test gap" had "Test" read as Django's team `tests`
+        and fell back to the template (GAPS 27: 19 of 20 walk texts on bb6b5f4e). As values they're quoted words, like
+        the stall_reason task's {"reason": "Test gap"}. The teams are values already: `walked`, and each `path` row."""
+        found = {t: r for t, r in self.found.items() if r}
+        f = {"team": self.team, "walked": self.walked, "path": self.path, "found": found,
+             "reasons": sorted({label for r in found.values() for label in r})}
         src = {"team": f"stall:{self.stall_id}", "walked": "walkers", "path": "kb:stall_upstream (blocked_by)",
-               "found": "kb:" + ",".join(name for _, name in REASONS.values())}
+               "found": "kb:" + ",".join(name for _, name in REASONS.values()),
+               "reasons": "auditor.REASONS labels of found"}
         return {"facts": f, "source": src}
 
 

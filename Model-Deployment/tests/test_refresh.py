@@ -135,6 +135,8 @@ class FakeJob(job.Job):
             (pub / "latest.json").write_text(json.dumps({"run_id": RUN, "file": f"{RUN}.sqlite"}))
         if mod == "monitor.drift":
             Path(args[args.index("--out") + 1]).write_text(json.dumps(DRIFT))
+        if mod == "serve.precompute":
+            Path(args[args.index("--out") + 1]).write_bytes(b"history state")
         return 0, ""
 
     def modules(self):
@@ -152,6 +154,17 @@ class Run(unittest.TestCase):
         drift = DEPLOY / "monitor" / "drift.py"
         if not drift.exists():   # S5 isn't merged on this branch: the job only checks it's there
             self.skipTest("Model-Deployment/monitor/drift.py (S5) isn't here")
+        # S2's precompute: absent here unless a test says otherwise, so the result doesn't depend on #148 being merged
+        patch = mock.patch.object(job, "PRECOMPUTE", Path(self.tmp.name) / "no-precompute.py")
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def with_precompute(self):
+        here = Path(self.tmp.name) / "precompute.py"
+        here.write_text("")
+        patch = mock.patch.object(job, "PRECOMPUTE", here)
+        patch.start()
+        self.addCleanup(patch.stop)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -166,6 +179,46 @@ class Run(unittest.TestCase):
         for call in j.calls[2:10]:
             self.assertEqual(call[call.index("--run-id") + 1], RUN)
         self.assertTrue(all(c[c.index("--config") + 1].endswith("meridian.spark.toml") for c in j.calls[:10]))
+
+    def test_without_s2s_precompute_history_is_skipped_and_logged(self):
+        j = FakeJob(self.root, self.store)
+        with mock.patch.object(job, "alert"):
+            self.assertEqual(j.run(), 0)
+        self.assertNotIn("serve.precompute", j.modules())
+        line = next(x for x in j.lines() if x["step"] == "history_pkl")
+        self.assertTrue(line["history"].startswith("skipped"))
+        self.assertNotIn(("block", "history.pkl"), self.store.puts)
+
+    def test_history_pkl_is_made_from_the_new_block_after_publish(self):
+        self.with_precompute()
+        j = FakeJob(self.root, self.store)
+        with mock.patch.object(job, "alert"):
+            self.assertEqual(j.run(), 0)
+        mods = j.modules()
+        self.assertEqual(mods[mods.index("meridian.publish") + 1], "serve.precompute")
+        call = j.calls[mods.index("serve.precompute")]
+        self.assertEqual(call[call.index("--block") + 1], str(self.root / "published" / f"{RUN}.sqlite"))
+        self.assertEqual(call[call.index("--run-id") + 1], RUN)
+        line = next(x for x in j.lines() if x["step"] == "history_pkl")
+        self.assertEqual(line["history_md5"], "b38455638c286570b5786f99de19ba0d")   # md5 of b"history state"
+
+    def test_history_pkl_goes_up_after_the_block_and_before_the_pointer(self):
+        self.with_precompute()
+        j = FakeJob(self.root, self.store)
+        with mock.patch.object(job, "alert"):
+            j.run()
+        self.assertEqual(self.store.puts, [("block", f"{RUN}.sqlite"), ("block", f"history/{RUN}.pkl"),
+                                           ("block", "history.pkl"), ("block", "latest.json"),
+                                           ("monitor", f"reports/{RUN}.json")])
+        self.assertEqual((self.store.root / "block" / "history.pkl").read_bytes(), b"history state")
+
+    def test_a_failed_precompute_alerts_and_pushes_nothing(self):
+        self.with_precompute()
+        j = FakeJob(self.root, self.store, fail="serve.precompute")
+        with mock.patch.object(job, "alert") as alert:
+            self.assertEqual(j.run(), 1)
+        self.assertIn("history", alert.call_args[0][0])
+        self.assertEqual(self.store.puts, [])
 
     def test_pointer_after_its_file_then_the_report(self):
         j = FakeJob(self.root, self.store)

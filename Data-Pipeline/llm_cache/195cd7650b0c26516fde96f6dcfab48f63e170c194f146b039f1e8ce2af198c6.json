@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001407,
+ "facts_hash": "b92e43a233fea7e3",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The walked teams are graphql-python/graphene-django. The path is empty. The reasons found at graphql-python/graphene-django are Never notified, Orphaned owner, and Test gap.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"team\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 518,
+ "tokens_out": 84
+}

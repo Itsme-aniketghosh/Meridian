@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0073005,
+ "facts_hash": "e0f252c414401fa9",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\"text\": \"The walked teams are django-tastypie/django-tastypie. The path is empty. For team django-tastypie/django-tastypie, the reasons found are Never notified, Orphaned owner, and Test gap.\", \"used\": [\"walked\", \"path\", \"team\", \"reasons\"]}\n```",
+ "tokens_in": 587,
+ "tokens_out": 856
+}

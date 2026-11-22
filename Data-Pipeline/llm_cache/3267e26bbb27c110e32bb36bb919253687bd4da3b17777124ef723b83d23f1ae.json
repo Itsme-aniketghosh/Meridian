@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.004236,
+ "facts_hash": "3039bdc09e862789",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The team walked was jazzband/django-silk, with an empty path. For team jazzband/django-silk, the reasons found were Never notified, Orphaned owner, and Test gap.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"team\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 404,
+ "tokens_out": 484
+}

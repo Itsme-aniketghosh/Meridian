@@ -143,15 +143,61 @@ def push_features(db, repo, run_id, at, numstat, messages, author, key_regex, pr
     fixes = data.fix_commits(commits, tickets, rule, since)
     feats = data.history(commits, files, who, fixes, prior_fix_days)["push"]
 
+    row = dict(feats)
+    row.update(ticket_features(messages, known_types, key_regex))
+    return pd.DataFrame([row])
+
+
+def ticket_features(messages, known_types, key_regex):
+    """fix, has_ticket, ticket_type, is_minor for a push: its keys read as P8 reads them (the subject's, else the
+    body's) against the block's tickets; is_minor when every subject starts with [MINOR]."""
+    data, _ = _model_modules()
     rx = re.compile(key_regex)
     keys = set()
-    for _, s, body in messages:                                # as P8 reads keys: the subject's, else the body's
+    for _, s, body in messages:
         keys |= set(rx.findall(s)) or set(rx.findall(body))
     keys = sorted(k for k in keys if k in known_types)
-    row = dict(feats)
-    row.update(fix=int(any(known_types[k] == "Bug" for k in keys)), has_ticket=int(bool(keys)),
-               ticket_type=known_types[keys[0]] if keys else "none",
-               is_minor=int(bool(messages) and all(data.MINOR.match(s) for _, s, _ in messages)))
+    return {"fix": int(any(known_types[k] == "Bug" for k in keys)), "has_ticket": int(bool(keys)),
+            "ticket_type": known_types[keys[0]] if keys else "none",
+            "is_minor": int(bool(messages) and all(data.MINOR.match(s) for _, s, _ in messages))}
+
+
+def email_hash(email):
+    """How an author is named outside the block: sha256 of the trimmed, lower-cased email, hex."""
+    return hashlib.sha256(str(email).strip().lower().encode("utf-8")).hexdigest()
+
+
+def precompute(history, at, prior_fix_days):
+    """The block's history replayed once to its snapshot (data.History), for scoring pushes without replaying it per
+    push (Model-Deployment/serve). Authors are keyed by email_hash: the state holds no email. Same people, fixes
+    and order as push_features, so a push scores the same from it."""
+    data, _ = _model_modules()
+    commits, files, tickets, alias = history["commits"], history["files"], history["tickets"], history["alias"]
+    person = dict(zip(alias.email, alias.person_id))
+    ids = {p: i for i, p in enumerate(sorted(set(person.values())))}
+    who = {e: ids[p] for e, p in person.items()}
+    for e in sorted(set(commits.author_email) - set(who)):
+        who[e] = len(ids) + len(who)
+    rule, since = data.fix_rule()
+    fixes = data.fix_commits(commits, tickets, rule, since)
+    walker = data.History(prior_fix_days)
+    by_sha = data.files_by_sha(files)
+    for c in commits.itertuples(index=False):
+        fs = sorted(by_sha.get(c.sha, []))
+        w = who[c.author_email]
+        walker.add(c.authored_at, w, fs, walker.features(c.authored_at, w, fs)["module"], c.sha in fixes)
+    return {"walker": walker, "who": {email_hash(e): i for e, i in who.items()}, "next_id": len(ids) + len(who) + 1,
+            "known_types": dict(history["known_types"]), "at": at, "commits": len(commits)}
+
+
+def push_features_from(state, numstat, messages, author_hash, key_regex):
+    """push_features, read from precompute's state: the push's files against the block's history at its snapshot,
+    the author by email hash (an unknown hash is a new person). A one-row DataFrame, the same as push_features."""
+    import pandas as pd
+    fs = sorted((p, None, 0 if a is None else int(a), 0 if d is None else int(d)) for p, a, d in numstat)
+    who = state["who"].get(author_hash, state["next_id"])
+    row = state["walker"].features(state["at"], who, fs)
+    row.update(ticket_features(messages, state["known_types"], key_regex))
     return pd.DataFrame([row])
 
 
