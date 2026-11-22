@@ -136,7 +136,7 @@ jobs:
           IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
         run: |
           docker run -d --name risk -p 8080:8080 "$IMAGE" >/dev/null
-          trap 'echo "--- the container's log"; docker logs risk 2>&1 | tail -20; docker rm -f risk >/dev/null' EXIT
+          trap 'echo "--- the container log"; docker logs risk 2>&1 | tail -20; docker rm -f risk >/dev/null' EXIT
           python Model-Deployment/smoke.py --url http://localhost:8080 --wait 2 \
             --version "${{ steps.champion.outputs.version }}" --md5 "${{ steps.champion.outputs.md5 }}" \
             --champion "$RUNNER_TEMP/stage/champion.json"
