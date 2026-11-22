@@ -29,10 +29,12 @@ COPY Data-Pipeline/meridian.toml Data-Pipeline/settings.toml Data-Pipeline/schem
 COPY Model-Pipeline/model.toml Model-Pipeline/model.toml
 COPY Model-Pipeline/model Model-Pipeline/model
 COPY Model-Pipeline/registry/champion.json Model-Pipeline/registry/champion.json
-# Phase 3: names (D4), the job, and S5's monitor
+# Phase 3: names (D4), the job, S5's monitor
 COPY Model-Deployment/deploy.toml Model-Deployment/deploy_config.py Model-Deployment/
 COPY Model-Deployment/refresh Model-Deployment/refresh
 COPY Model-Deployment/monitor Model-Deployment/monitor
+# S2's serve code: the job makes history.pkl with serve.precompute (the endpoint's own code, so they can't drift)
+COPY Model-Deployment/serve/*.py Model-Deployment/serve/
 
 RUN mkdir -p /work
 WORKDIR /app
