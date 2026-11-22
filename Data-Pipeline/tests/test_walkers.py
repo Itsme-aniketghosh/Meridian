@@ -102,6 +102,30 @@ class Walkers(unittest.TestCase):
         with self.assertRaises(sqlite3.OperationalError):
             db.execute("INSERT INTO t VALUES (1)")
 
+    def test_the_reason_labels_are_facts_so_quoting_one_passes_the_gate(self):
+        """GAPS 27: in `found` a reason label is only a key, which the gate never reads, so "Test gap" in a walk text
+        had "Test" read as the team `tests` (19 of 20 walk texts on bb6b5f4e fell back). `reasons` lists them as
+        values. The gate itself is unchanged: a team the walk didn't visit still fails."""
+        f = W.walk(self.db, CFG, stall_of(self.db, "fulfillment"), RUN, AT).facts()
+        self.assertEqual(f["facts"]["reasons"], sorted({k for r in f["facts"]["found"].values() for k in r}))
+        self.assertIn("Test gap", f["facts"]["reasons"])
+        teams = ["fulfillment", "platform", "tests", "checkout"]
+        text = ("Fulfillment's S_f1 waits on platform's S_shared. "
+                "At platform the reason found is Test gap at shared.client.")
+        self.assertEqual(check(text, f, teams=teams, people=[]).misses, ())
+        old = {"facts": {k: v for k, v in f["facts"].items() if k != "reasons"}}     # the facts before the fix
+        self.assertEqual([(m.kind, m.token) for m in check(text, old, teams=teams, people=[]).misses],
+                         [("team", "Test")])
+        swapped = text.replace("At platform", "At checkout")
+        self.assertEqual([(m.kind, m.token) for m in check(swapped, f, teams=teams, people=[]).misses],
+                         [("team", "checkout")])
+
+    def test_a_walk_that_finds_nothing_has_no_reasons(self):
+        q = {**W.kb_queries(), **{name: "SELECT NULL, NULL WHERE 0" for _, name in A.REASONS.values()}}
+        stall = SimpleNamespace(task_id="t0", repo="acme/shop", symbol="x", team="A")
+        f = W.walk(self.db, CFG, stall, RUN, AT, q=q, policy=W.CHAMPION).facts()["facts"]
+        self.assertEqual((f["found"], f["reasons"]), ({}, []))
+
     def test_no_person_is_a_fact(self):
         stall = stall_of(self.db, "checkout")
         f = W.walk(self.db, CFG, stall, RUN, AT).facts()

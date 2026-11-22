@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0019275,
+ "facts_hash": "01531ddbf0d84ae3",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"Beyond its own files, the graph shows that cookiecutter/cookiecutter-django was walked, with no sites waiting on another in path. The reasons found at cookiecutter/cookiecutter-django are Never notified (16), Orphaned owner ({{cookiecutter.project_slug}}/config/urls.py line 3097, {{cookiecutter.project_slug}}/{{cookiecutter.project_slug}}/users/urls.py line 3097), and Test gap ({{cookiecutter.project_slug}}.config.urls, {{cookiecutter.project_slug}}.{{cookiecutter.project_slug}}.users.urls).\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 430,
+ "tokens_out": 171
+}
