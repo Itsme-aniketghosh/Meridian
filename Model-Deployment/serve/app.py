@@ -8,17 +8,20 @@
                           "features_version"}
                      400 {"error"} on a bad body · 413 over the size cap · 422 a repo the model wasn't trained on
 
-Settings by environment, so Cloud Run sets them and nothing is hard-coded: PORT (8080), MERIDIAN_CHAMPION,
-MERIDIAN_FEATURES, MERIDIAN_VAL_SCORES, MERIDIAN_BLOCK, MERIDIAN_RUN_ID (defaults: the repo's own files; no block,
-so known SHAs only). Every call writes one JSON line to stdout (contract D5) that Cloud Logging parses: event "score",
-the status, latency, model version and, on a scored call, its kind, feature values and risk. Never the body, an
-email, a name or a person id.
+Settings by environment, so Cloud Run sets them and nothing is hard-coded: PORT (8080); MERIDIAN_CHAMPION,
+MERIDIAN_FEATURES, MERIDIAN_VAL_SCORES; MERIDIAN_HISTORY, the image's precomputed history state (serve.precompute),
+or MERIDIAN_BLOCK and MERIDIAN_RUN_ID to replay the block at start (local runs; neither: known SHAs only); and
+MERIDIAN_CORS_ORIGINS, the comma-separated origins a browser may call /score from (the website's, and only it;
+unset: no CORS headers at all). Every call writes one JSON line to stdout (contract D5) that Cloud Logging parses:
+the event, status, latency, model version and, on a scored call, its kind, feature values and risk. Never the body,
+an email, a name or a person id.
 """
 import json
 import os
 import sys
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from serve.scorer import BadRequest, Scorer, WrongRepo, describe
 
@@ -30,7 +33,9 @@ def log(**fields):
                      separators=(",", ":")), flush=True)
 
 
-def make_handler(scorer):
+def make_handler(scorer, cors_origins=()):
+    cors = frozenset(o.strip().rstrip("/") for o in cors_origins if o.strip())
+
     class Handler(BaseHTTPRequestHandler):
         server_version = "meridian-risk"
 
@@ -44,6 +49,26 @@ def make_handler(scorer):
 
         def log_message(self, *args):          # the D5 line replaces http.server's access log
             pass
+
+        def end_headers(self):                  # CORS on every reply, for the allowed origins only
+            origin = self.headers.get("Origin")
+            if origin and origin in cors:
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Vary", "Origin")
+            super().end_headers()
+
+        def do_OPTIONS(self):                  # a browser's preflight for POST /score from the website
+            t0 = time.perf_counter()
+            allowed = self.path == "/score" and self.headers.get("Origin") in cors
+            self.send_response(204 if allowed else 403)
+            if allowed:
+                self.send_header("Access-Control-Allow-Methods", "POST")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                self.send_header("Access-Control-Max-Age", "600")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            log(event="preflight", status=204 if allowed else 403, model_version=scorer.version,
+                latency_ms=int(round((time.perf_counter() - t0) * 1000)))
 
         def do_GET(self):                      # a D5 line for every call, GETs included
             t0 = time.perf_counter()
@@ -100,15 +125,23 @@ def make_handler(scorer):
 
 def scorer_from_env():
     env = os.environ.get
+    history = env("MERIDIAN_HISTORY")
+    if history and not Path(history).is_file():   # an image built without history.pkl: known SHAs only, said at start
+        history = None
     return Scorer(champion=env("MERIDIAN_CHAMPION"), features=env("MERIDIAN_FEATURES"),
-                  val_scores=env("MERIDIAN_VAL_SCORES"), block=env("MERIDIAN_BLOCK"), run_id=env("MERIDIAN_RUN_ID"))
+                  val_scores=env("MERIDIAN_VAL_SCORES"), block=env("MERIDIAN_BLOCK"), run_id=env("MERIDIAN_RUN_ID"),
+                  history=history)
+
+
+def cors_from_env():
+    return [o for o in os.environ.get("MERIDIAN_CORS_ORIGINS", "").split(",") if o.strip()]
 
 
 def main():
     t0 = time.perf_counter()
     scorer = scorer_from_env()
     port = int(os.environ.get("PORT", "8080"))
-    server = ThreadingHTTPServer(("0.0.0.0", port), make_handler(scorer))
+    server = ThreadingHTTPServer(("0.0.0.0", port), make_handler(scorer, cors_from_env()))
     log(event="start", status=200, model_version=scorer.version, latency_ms=int((time.perf_counter() - t0) * 1000),
         detail=json.loads(describe(scorer)))
     try:

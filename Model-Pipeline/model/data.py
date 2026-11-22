@@ -176,20 +176,31 @@ def entropy(lines):
     return 0.0 - sum(n / total * math.log2(n / total) for n in lines if n > 0)  # 0.0 - 0.0 is 0.0, never -0.0
 
 
-def history(commits, files, person, fixes, prior_fix_days):
-    """Per-commit change and history features, walking first-parent commits in order. {sha: {feature: value}}"""
+def files_by_sha(files):
+    """{sha: [(path, old_path or None, added, deleted)]} from commit_file rows; a binary file (no counts) is 0 lines."""
     by_sha = defaultdict(list)
     for r in files.itertuples(index=False):
         a = 0 if pd.isna(r.added) else int(r.added)
         d = 0 if pd.isna(r.deleted) else int(r.deleted)
         by_sha[r.sha].append((r.path, None if pd.isna(r.old_path) else r.old_path, a, d))
-    state = {}  # path -> [last change (days), {author idx}, {commit idx}, [(fix time, fix idx)]]
-    exp, sexp = defaultdict(int), defaultdict(int)
-    out = {}
-    for i, c in enumerate(commits.itertuples(index=False)):
-        t = days(c.authored_at)
-        who = person[c.author_email]
-        fs = sorted(by_sha.get(c.sha, []))
+    return by_sha
+
+
+class History:
+    """The state history() walks first-parent commits with: per path, its last change (days), its authors, its
+    commits and its fixes; per author, how many commits, and how many in each module. features() reads it for one
+    commit, add() makes that commit history. The endpoint keeps one replayed to a block's snapshot, so a push is
+    scored from its own files' state, not by replaying the block (Model-Deployment/serve)."""
+
+    def __init__(self, prior_fix_days):
+        self.prior_fix_days = prior_fix_days
+        self.state = {}   # path -> [last change (days), {author idx}, {commit idx}, [(fix time, fix idx)]]
+        self.exp, self.sexp = defaultdict(int), defaultdict(int)
+        self.n = 0        # commits added so far: the next commit's index
+
+    def features(self, authored_at, who, fs):
+        """The change and history features of a commit with files fs (sorted (path, old, added, deleted)) by who."""
+        t = days(authored_at)
         lines = [a + d for _, _, a, d in fs]
         if fs:
             mod_lines = defaultdict(int)
@@ -198,14 +209,13 @@ def history(commits, files, person, fixes, prior_fix_days):
             module = min(mod_lines, key=lambda m: (-mod_lines[m], m))
         else:
             module = "(none)"
-        prev = [state.get(old or p) for p, old, _, _ in fs]
-        seen = [s for s in prev if s is not None]
+        seen = [s for s in (self.state.get(old or p) for p, old, _, _ in fs) if s is not None]
         authors, earlier, fixed = set(), set(), set()
         for s in seen:
             authors |= s[1]
             earlier |= s[2]
-            fixed.update(j for ft, j in s[3] if t - prior_fix_days <= ft < t)
-        out[c.sha] = {
+            fixed.update(j for ft, j in s[3] if t - self.prior_fix_days <= ft < t)
+        return {
             "la": sum(a for _, _, a, _ in fs), "ld": sum(d for _, _, _, d in fs), "nf": len(fs),
             "nd": len({p.rsplit("/", 1)[0] if "/" in p else "" for p, _, _, _ in fs}),
             "ns": len({top(p) for p, _, _, _ in fs}),
@@ -213,24 +223,40 @@ def history(commits, files, person, fixes, prior_fix_days):
             "ndev": len(authors),
             "age": round(sum(t - s[0] for s in seen) / len(seen), 4) if seen else 0.0,
             "nuc": len(earlier),
-            "exp": exp[who], "sexp": sexp[(who, module)],
+            "exp": self.exp.get(who, 0), "sexp": self.sexp.get((who, module), 0),
             "prior_bug_fixes": len(fixed),
             "module": module,
         }
-        # now this commit is history
-        is_fix = c.sha in fixes
+
+    def add(self, authored_at, who, fs, module, is_fix):
+        """Now this commit is history."""
+        t, i = days(authored_at), self.n
+        prev = [self.state.get(old or p) for p, old, _, _ in fs]
         for (p, old, _, _), s in zip(fs, prev):
-            if old and old in state:
-                state.pop(old)
+            if old and old in self.state:
+                self.state.pop(old)
             s = s or [t, set(), set(), []]
             s[0] = t
             s[1].add(who)
             s[2].add(i)
             if is_fix:
                 s[3].append((t, i))
-            state[p] = s
-        exp[who] += 1
-        sexp[(who, module)] += 1
+            self.state[p] = s
+        self.exp[who] += 1
+        self.sexp[(who, module)] += 1
+        self.n += 1
+
+
+def history(commits, files, person, fixes, prior_fix_days):
+    """Per-commit change and history features, walking first-parent commits in order. {sha: {feature: value}}"""
+    by_sha = files_by_sha(files)
+    h = History(prior_fix_days)
+    out = {}
+    for c in commits.itertuples(index=False):
+        who = person[c.author_email]
+        fs = sorted(by_sha.get(c.sha, []))
+        out[c.sha] = h.features(c.authored_at, who, fs)
+        h.add(c.authored_at, who, fs, out[c.sha]["module"], c.sha in fixes)
     return out
 
 

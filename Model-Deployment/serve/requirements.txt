@@ -1,0 +1,8 @@
+# The serving image's packages only, at the repo's own pins (Data-Pipeline/ and Model-Pipeline/requirements.txt):
+# the champion and its feature code need nothing else (no mlflow, optuna, shap or dvc in the image).
+pandas==3.1.0
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.9.1
+pyarrow==22.0.0
+lightgbm==4.7.0     # only if a LightGBM champion is ever promoted; the forest doesn't load it
