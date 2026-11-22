@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0080775,
+ "facts_hash": "a79d3ef8b4362cec",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The walked teams were django-oscar/django-oscar. The path is empty, showing no sites waiting on other sites. The reasons found at django-oscar/django-oscar were Never notified, Orphaned owner, and Test gap.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 915,
+ "tokens_out": 894
+}

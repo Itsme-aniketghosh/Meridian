@@ -17,3 +17,4 @@
 !Model-Deployment/refresh/*.py
 !Model-Deployment/monitor/*.py
 !Model-Deployment/monitor/monitor.toml
+!Model-Deployment/serve/*.py

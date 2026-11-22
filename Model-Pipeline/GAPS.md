@@ -36,13 +36,13 @@ The report is merged and nothing here changes a reported number. What's still op
 |---|---|---|---|
 | 26 | ✓ Fixed Nov 15: a token like `6921a`, `SPARK-12a` or `#6921a` passes only if a fact spells it that way (`fact_gate._GLUED`, test `test_letters_glued_to_a_number_are_checked`). None of the 1,353 cached replies has one, so no reported number changes; the planted-error tables are unchanged | Done | — |
 | 23 | 14 right line lists written without their path ("formsets.py at lines 9, 344 and 351") fail the gate | Teach the gate "path at lines a, b", with planted-error tests; re-gate the cache at $0 | First PR after phase 2 |
-| 27 (new) | 19 of 20 walker texts fall back: each names a team its facts don't hold | Put the team names the walk visits into its facts, then re-gate the cache at $0 | First PR after phase 2 |
+| 27 | ✓ Fixed Nov 21: 19 of 20 walker texts fell back. The cause wasn't a team: every miss was "Test" from the reason label "Test gap", read as Django's team `tests`, because in the walk's facts the labels were only keys of `found`, which the gate never reads. `walkers.Walk.facts()` now lists them in `reasons`. Re-gated at $0: 1/20 → 20/20; then 20 live calls ($0.0456) for the new cache keys: 224 LLM texts, 0 templates (were 205 and 19). The gate is unchanged, 200 of 200 planted errors still caught (`reports/c1-walkers/RUN-LOG.md`) | Done (C1) | Nov 21 |
 | 3 | Package diffs at 73.2%, under the 90% bar | Nothing now: 230 of 244 misses are owners choosing line by line. Decision 15's learning from edits gets real outcomes once owners use it | Phase 3 |
 | 11 | No shared spend alert | The client's $25 cap per run stays; a budget alert once there's a shared billing account | Phase 3 |
 | 22 | No policy writer | Waits for live auditor matches, so each new challenger can be judged | Phase 3 |
 | — | The auditor's policies and walk-v1 have 0 live matches | Scored once people use the product; promotion needs 30 | Phase 3 |
 
-Gap 26 is done (Nov 15). Gaps 23 and 27 are small and go in one PR. Each is re-gated from the committed cache with 0 calls, and the planted-error sweep must stay at 200 of 200.
+Gap 26 is done (Nov 15), gap 27 too (Nov 21, C1). Gap 23 moves after the expo (C2). Each is re-gated from the committed cache with 0 calls, and the planted-error sweep must stay at 200 of 200.
 
 ## The gaps
 

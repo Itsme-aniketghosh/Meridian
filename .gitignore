@@ -79,3 +79,9 @@ mlartifacts/
 # The models train.py saves in reports/: too big to keep each one in git. The champion's is in registry/, in git
 # (GAPS 8), and the registry pushes it to Artifact Registry
 Model-Pipeline/reports/*.joblib
+
+# The serve image's history state: built from the block at image build (serve.precompute), not committed
+Model-Deployment/serve/history.pkl
+
+# The serve image's history state: built from the block at image build (serve.precompute), not committed
+Model-Deployment/serve/history.pkl

@@ -5,18 +5,21 @@ model file's md5 checked at start; a mismatch refuses to start):
 
 - a known commit, {"repo", "sha"}: its row of the feature table (Model-Pipeline/data/features.parquet, Contract 1),
   so its risk is the one the model was judged on (val's scores in reports/champion/champion_val_scores.csv)
-- a new push, {"repo", "numstat", "subject", "author_email_hash"}: Data-Pipeline/meridian/p9.py's push_features on the
-  base block, the push check's own code path, so serving can't drift from training. The block's history is read
-  once at start (p9.load_history), not per request
+- a new push, {"repo", "numstat", "subject", "author_email_hash"}: the push check's own feature code
+  (Data-Pipeline/meridian/p9.py, model/data.py's History) against the base block's history at its snapshot. That
+  history is replayed once, not per push: at image build into a state file (python -m serve.precompute,
+  MERIDIAN_HISTORY), or at start from the block (MERIDIAN_BLOCK, for local runs). A push then reads only its own
+  files' state: milliseconds, and the same features as p9.push_features (tests: to 1e-9)
 
-The author comes in as sha256 of the lower-cased email and is matched against the block's aliases hashed the same
-way, inside this process only: no email is ever received, logged or returned. A repo the model wasn't trained on
+The author comes in as sha256 of the lower-cased email, and the history state is keyed by that hash: no email is
+received, logged, returned, or stored in the image. A repo the model wasn't trained on
 (model.toml [data] repo) is refused. The P9 verdict is the push check's: decision 15b's rule when adopted for this
 champion, else lines × files above [push_check] defect_risk_threshold (P9 is LLM-free and stays lines × files).
 """
 import bisect
 import hashlib
 import json
+import pickle
 import sqlite3
 import sys
 import tomllib
@@ -45,6 +48,25 @@ MAX_PATH = 4096
 KIND_COLUMN = {"RandomForestClassifier": "forest", "LGBMClassifier": "lgbm"}   # model class -> val score column
 
 
+STATE_FORMAT = 1
+
+
+def state_from_block(path, run_id, repo, prior_fix_days):
+    """The block's history replayed to its snapshot (p9.precompute), with what it came from. No email in it."""
+    with closing(sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)) as db:
+        if run_id is None:
+            rows = db.execute("SELECT run_id, snapshot_at FROM run").fetchall()
+            if len(rows) != 1:
+                raise SystemExit(f"{path} holds {len(rows)} runs: name one with MERIDIAN_RUN_ID")
+            run_id, at = rows[0]
+        else:
+            at = db.execute("SELECT snapshot_at FROM run WHERE run_id = ?", (run_id,)).fetchone()[0]
+        history = p9.load_history(db, repo, run_id)
+    state = p9.precompute(history, at, prior_fix_days)
+    state.update(format=STATE_FORMAT, repo=repo, run_id=run_id)
+    return state
+
+
 class BadRequest(ValueError):
     """400: the body isn't a scorable request."""
 
@@ -53,9 +75,7 @@ class WrongRepo(ValueError):
     """422: a repo the model wasn't trained on."""
 
 
-def email_hash(email):
-    """How a caller hashes an author: sha256 of the trimmed, lower-cased email, hex."""
-    return hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()
+email_hash = p9.email_hash       # sha256 of the trimmed, lower-cased email, hex
 
 
 def _md5(path):
@@ -63,7 +83,7 @@ def _md5(path):
 
 
 class Scorer:
-    def __init__(self, champion=None, features=None, val_scores=None, block=None, run_id=None, rule=None,
+    def __init__(self, champion=None, features=None, val_scores=None, block=None, run_id=None, history=None, rule=None,
                  settings=None, config=None):
         import pandas as pd
         paths = {k: Path(v) for k, v in DEFAULTS.items()}
@@ -101,24 +121,24 @@ class Scorer:
                   {})
         generic = cfg.get("tickets", {}).get("key_regex_generic", r"\b[A-Z][A-Z0-9]+-\d+\b")
         self.key_regex = ds.get("key_regex") or generic
-        self.block = None
-        if block:                                                # pushes need the base block; known SHAs don't
+        self.block = None                                        # pushes need the base block's history; SHAs don't
+        if history:
+            self._load_state(Path(history))
+        elif block:
             self._load_block(Path(block), run_id)
 
     # ---------- the block, once ----------
     def _load_block(self, path, run_id):
-        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as db:
-            if run_id is None:
-                rows = db.execute("SELECT run_id, snapshot_at FROM run").fetchall()
-                if len(rows) != 1:
-                    raise SystemExit(f"{path} holds {len(rows)} runs: name one with MERIDIAN_RUN_ID")
-                run_id, at = rows[0]
-            else:
-                at = db.execute("SELECT snapshot_at FROM run WHERE run_id = ?", (run_id,)).fetchone()[0]
-            self.history = p9.load_history(db, self.repo, run_id)
-        alias = self.history["alias"]
-        self.by_hash = {email_hash(e): e for e in alias["email"].dropna()}     # stays in this process
-        self.block = {"path": str(path), "run_id": run_id, "at": at}
+        """Replay the block's history now (a local run): what serve.precompute does at image build."""
+        self.state = state_from_block(path, run_id, self.repo, self.prior_fix_days)
+        self.block = {"source": "block", "run_id": self.state["run_id"], "at": self.state["at"]}
+
+    def _load_state(self, path):
+        with open(path, "rb") as f:
+            self.state = pickle.load(f)                           # our own build artifact (serve.precompute)
+        if self.state.get("format") != STATE_FORMAT or self.state.get("repo") != self.repo:
+            raise SystemExit(f"won't start: {path.name} isn't a {self.repo} history state of format {STATE_FORMAT}")
+        self.block = {"source": "state", "run_id": self.state["run_id"], "at": self.state["at"]}
 
     # ---------- scoring ----------
     def percentile(self, risk):
@@ -167,7 +187,7 @@ class Scorer:
 
     def _push(self, body):
         if self.block is None:
-            raise BadRequest("this server has no base block, so it scores known SHAs only")
+            raise BadRequest("this server has no base block history, so it scores known SHAs only")
         numstat = body.get("numstat")
         if not isinstance(numstat, list) or not numstat:
             raise BadRequest("'numstat' must be a non-empty list of [added, deleted, path]")
@@ -190,9 +210,7 @@ class Scorer:
         h = body.get("author_email_hash")
         if h is not None and not (isinstance(h, str) and len(h) == 64 and all(c in "0123456789abcdef" for c in h)):
             raise BadRequest("'author_email_hash' must be the sha256 hex of the lower-cased email (never the email)")
-        author = self.by_hash.get(h, h or "")                   # unknown: a new author, as the push check reads one
-        row = p9.push_features(None, self.repo, self.block["run_id"], self.block["at"], rows, [("push", subject, "")],
-                               author, self.key_regex, self.prior_fix_days, history=self.history)
+        row = p9.push_features_from(self.state, rows, [("push", subject, "")], h, self.key_regex)
         lines = sum((a or 0) + (d or 0) for _, a, d in rows if a is not None and d is not None)
         return row, lines, len(rows), "push"
 
@@ -201,5 +219,6 @@ class Scorer:
 
 
 def describe(s):
-    return json.dumps({"model": s.version[:10], "md5": s.md5[:8], "repo": s.repo, "block": bool(s.block),
+    return json.dumps({"model": s.version[:10], "md5": s.md5[:8], "repo": s.repo,
+                       "pushes": s.block["source"] if s.block else "known SHAs only",
                        "features": s.features_version[:8], "val_scores": len(s.val)})

@@ -1,0 +1,20 @@
+# For Model-Deployment/serve/Dockerfile only (Docker reads <Dockerfile>.dockerignore next to the Dockerfile in place
+# of the repo's .dockerignore). Allowlist: only what the Dockerfile COPYs reaches the build; a new COPY needs a ! line.
+# The block never goes in: pushes read history.pkl (serve.precompute), which holds no email.
+*
+!Data-Pipeline/meridian/__init__.py
+!Data-Pipeline/meridian/p9.py
+!Data-Pipeline/meridian.toml
+!Data-Pipeline/settings.toml
+!Model-Pipeline/model.toml
+!Model-Pipeline/model/__init__.py
+!Model-Pipeline/model/data.py
+!Model-Pipeline/model/train.py
+!Model-Pipeline/data/features.parquet
+!Model-Pipeline/reports/champion/champion_val_scores.csv
+!Model-Pipeline/reports/p9_rule.json
+!Model-Pipeline/registry/champion.json
+!Model-Pipeline/registry/*.joblib
+!Model-Deployment/serve/*.py
+!Model-Deployment/serve/requirements.txt
+!Model-Deployment/serve/history.pkl

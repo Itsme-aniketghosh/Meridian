@@ -12,7 +12,7 @@ Phase 2 adds three things.
 - **A multi-agent product.** An orchestrator plans for each stalled team. Auditors rank why the team stalled. A router picks a model, writers turn facts into text, and graph walkers dig when the tools come up empty. A fact gate checks every word an LLM writes.
 - **Self-improving loops** (§8.6). The model retrains itself on each new block, auditor policies and walk-v1 compete for promotion, and the agents' text is corrected through the gate. Each loop changes production only through a rule written in advance.
 
-The tools are there to cut the noise. The context builder hands the LLM 35% of a team's files and still keeps 96.4% of its bug fixes, so the model reads what matters and nothing else. And when a tool comes back empty, the agents don't stop: the graph walkers go straight to the code graph and bring back what they find, through the same fact gate. So far most of those findings reach the team as templates rather than prose: 19 of 20 walker texts fell back (§11).
+The tools are there to cut the noise. The context builder hands the LLM 35% of a team's files and still keeps 96.4% of its bug fixes, so the model reads what matters and nothing else. And when a tool comes back empty, the agents don't stop: the graph walkers go straight to the code graph and bring back what they find, through the same fact gate. Since Nov 21 those findings reach the team as prose: all 20 walker texts pass the gate. Until then 19 of 20 fell back (§11, gap 27).
 
 **Results in one place:**
 
@@ -21,9 +21,9 @@ The tools are there to cut the noise. The context builder hands the LLM 35% of a
 | 2024, scored once on frozen code | Forest PR-AUC **0.268** vs lines × files 0.214, paired **+0.054 [+0.028, +0.081]**, N = 3,762. The model ships | `reports/2024/metrics.json` |
 | Val 2023 | Champion 0.4067 [0.365, 0.451] vs 0.319, paired +0.088 [+0.061, +0.113], N = 4,113 | `registry/champion.json` |
 | Simulated faults | 21 of 21 behave, on frozen main and again on `57adef0` | `python -m tests.faults.table` |
-| Product rerun | 68 stalls planned, 205 LLM texts, 19 templates, **0 LLM calls, $0** | `reports/final/RUN-LOG.md` |
+| Product rerun | 68 stalls planned, 224 LLM texts, 0 templates, **0 LLM calls, $0** (Nov 21, after gap 27's fix; 205 and 19 before) | `reports/final/RUN-LOG.md`, `reports/c1-walkers/RUN-LOG.md` |
 | Fact gate | 200 of 200 planted errors caught; 2,000 of 2,000 over 10 seeds, 0 false rejects | [Fact gate decisions 1, 11](../packets/vishwa-agents/decisions.md) |
-| Live LLM spend, the whole run | 247 calls, $1.10 | [Live run notes](../packets/utkarsh-data/gaps.md) |
+| Live LLM spend, the whole run | 247 calls, $1.10; gap 27's walk rerun (Nov 21) added 20 calls, $0.05 | [Live run notes](../packets/utkarsh-data/gaps.md) |
 
 ### Architecture
 
@@ -364,8 +364,8 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 - The labels cap everything. Not the model. SZZ picks the right commit 44% of the time (130 hand-verified Defects4J and Fonte commits). An AI read of 20 random positives found 9 real (45%). Three model families stop within 0.004 ROC-AUC of each other: the limit is the data.
 - Package diffs: 73.2%, under the 90% bar, and frozen. 230 of the 244 misses are owners choosing line by line (`path` here, `re_path` there), which nothing at the parent commit shows. Decision 14 drafts whole statements; PASS-BARS §2.5 changed from "line" to "statement" after the drafts ran, and says so.
 - The diff LLM path drafts nothing on the real packages: Flash, Pro and Gemma each drafted 0 of 12. Its only lines need an import change in the same commit.
-- Walker texts mostly fall back: 19 of 20, each naming a team its facts don't hold. Their findings reach the team as templates, not prose. Fix: put the team names into the walk's facts (gap 27).
-- One gate gap left: 14 correct line lists written without their path (gap 23). It is fixed after phase 2, together with the walker fix above. The other, a number with letters glued on (`6921a`, gap 26), is fixed (Nov 15): such a token passes only if a fact spells it that way. No cached answer has one, so no number here changes.
+- Walker texts fell back 19 of 20 times. Not for a missing team, as first thought: the reason label "Test gap" was only a key in the walk's facts, which the gate never reads, so "Test" was taken for Django's team `tests`. Fixed Nov 21 (gap 27): the labels are facts now, and after a 20-call rerun ($0.05) all 20 walk texts pass. On this block every walk stays at its own team, since `blocked_by` has no rows.
+- One gate gap left: 14 correct line lists written without their path (gap 23). It is fixed after the expo (phase 3's C2). The other, a number with letters glued on (`6921a`, gap 26), is fixed (Nov 15): such a token passes only if a fact spells it that way. No cached answer has one, so no number here changes.
 - No live matches: the auditor's policies and walk-v1 have never been scored, because nobody uses the product yet. Promotion needs 30 matches.
 
 ## 12. Scope: what is complete, and what comes next

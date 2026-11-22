@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.0017145,
+ "facts_hash": "6f3e7f705ddadb4c",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The team walked is yourlabs/django-autocomplete-light. The reasons found for yourlabs/django-autocomplete-light are Never notified, Orphaned owner, and Test gap.\",\n \"used\": [\n  \"walked\",\n  \"team\",\n  \"reasons\"\n ]\n}\n```",
+ "tokens_in": 773,
+ "tokens_out": 74
+}

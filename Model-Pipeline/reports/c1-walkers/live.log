@@ -1,0 +1,7 @@
+68 stalled teams planned: {'orchestrator': 49, 'rules': 19}; the graph walkers ran for 20 (their tool failed; gap 17)
+  49 orchestrator
+  6 refused: not the JSON asked for
+  13 refused: the reason says something not in the facts
+steps written: {'ticket_draft': 68, 'stall_reason': 68, 'consumer': 68, 'walk': 20}, 224 LLM texts, 0 templates
+20 calls, $0.0456 (orchestrator $0.0000)
+time (MERIDIAN_GCP_PROJECT=project-4e32b2ab-…-b3a python -m meridian.orchestrator …):    18.65s user 3.01s system 71% cpu 30.214 total

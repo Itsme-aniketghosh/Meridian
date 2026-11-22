@@ -1,0 +1,9 @@
+{
+ "cost_usd": 0.001254,
+ "facts_hash": "2fa89cd8fc8c8194",
+ "model": "gemini-flash",
+ "prompt_version": "f8a1f6a831cb",
+ "reply": "```json\n{\n \"text\": \"The walked team is carltongibson/django-filter. The path is empty, showing no sites waiting on another. The reasons found for carltongibson/django-filter are Never notified at line 7, and Test gap at tests.urls and tests.rest_framework.test_integration.\",\n \"used\": [\n  \"walked\",\n  \"path\",\n  \"found\"\n ]\n}\n```",
+ "tokens_in": 331,
+ "tokens_out": 101
+}
