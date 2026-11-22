@@ -1,0 +1,347 @@
+[
+ {
+  "team": "carltongibson/django-filter",
+  "reasons": [
+   "Never notified",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "cookiecutter/cookiecutter-django",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "django-extensions/django-extensions",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "django-haystack/django-haystack",
+  "reasons": [
+   "Never notified",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "django-oscar/django-oscar",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "django-tastypie/django-tastypie",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "django-tenants/django-tenants",
+  "reasons": [
+   "Never notified",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "django/channels",
+  "reasons": [
+   "Never notified",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "contrib.admindocs",
+  "reasons": [
+   "Never notified",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "contrib.gis",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner"
+  ],
+  "cached": true,
+  "before": [],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "contrib.humanize",
+  "reasons": [
+   "Never notified",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "contrib.messages",
+  "reasons": [
+   "Never notified",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "contrib.sessions",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "contrib.sitemaps",
+  "reasons": [
+   "Never notified",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "contrib.syndication",
+  "reasons": [
+   "Never notified",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "graphql-python/graphene-django",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "jazzband/django-debug-toolbar",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "jazzband/django-silk",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "jazzband/django-two-factor-auth",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ },
+ {
+  "team": "yourlabs/django-autocomplete-light",
+  "reasons": [
+   "Never notified",
+   "Orphaned owner",
+   "Test gap"
+  ],
+  "cached": true,
+  "before": [
+   [
+    "team",
+    "Test"
+   ]
+  ],
+  "after": [],
+  "template_misses": [],
+  "new_key_cached": false
+ }
+]
