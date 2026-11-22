@@ -1,6 +1,7 @@
-# S3 (Model-Deployment/PLAN.md): ship the champion to Cloud Run. Day 1 is the dry run: read deploy.toml (D4), get the
-# champion and check its md5, build the serving image. Nothing is pushed, no revision is deployed, no traffic moves.
-# Next: push the image (Nov 20), a no-traffic revision and its smoke test (Nov 21), the traffic move (Nov 22),
+# S3 (Model-Deployment/PLAN.md): ship the champion to Cloud Run. Every run reads deploy.toml (D4), gets the champion
+# and checks its md5, builds the serving image (S2's Dockerfile) and smoke-tests it on the runner. On main it then
+# pushes the image, deploys it as a revision with no traffic, and smoke-tests that revision through its tag URL.
+# Traffic never moves here yet: the old revision keeps 100% whatever happens. Next: the traffic move (Nov 22),
 # rollback (Nov 23), Slack (Nov 24), and the triggers: model.yml on main and D3's repository_dispatch (Nov 25).
 #
 # The champion: on main, the registry pointer on Artifact Registry, read as the deploy account through Workload
@@ -13,10 +14,12 @@ on:
     paths:
       - ".github/workflows/deploy.yml"
       - "Model-Deployment/champion.py"
+      - "Model-Deployment/smoke.py"
       - "Model-Deployment/deploy.toml"
       - "Model-Deployment/deploy_config.py"
       - "Model-Deployment/serve/**"
       - "Model-Deployment/tests/test_champion.py"
+      - "Model-Deployment/tests/test_smoke.py"
       - "Model-Pipeline/registry/**"
   workflow_dispatch: {}
 
@@ -34,7 +37,7 @@ jobs:
     timeout-minutes: 30
     env:
       ON_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
-      DRY_RUN: "true"   # day 1: every run is a dry run
+      DRY_RUN: ${{ !(github.ref == 'refs/heads/main' && github.event_name != 'pull_request') }}   # PRs: build, never push
     steps:
       - uses: actions/checkout@v4
 
@@ -55,8 +58,13 @@ jobs:
           [ "${{ steps.venv.outputs.cache-hit }}" = "true" ] || { python -m venv .venv && .venv/bin/pip install -r Model-Pipeline/requirements.txt; }
           echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
 
-      - name: Tests (champion.py, deploy.toml)
+      - name: Tests (champion.py, smoke.py, deploy.toml)
         run: python -m unittest discover -s Model-Deployment/tests
+
+      - name: flake8 (champion.py, smoke.py)
+        run: |
+          python -m pip install --quiet flake8==7.4.1
+          python -m flake8 --max-line-length 120 Model-Deployment/champion.py Model-Deployment/smoke.py
 
       - name: Names from deploy.toml (D4)
         id: cfg
@@ -69,6 +77,7 @@ jobs:
             echo "image=$(get derived.images.risk)"
             echo "provider=$(get derived.workload_identity_provider)"
             echo "deploy_sa=$(get derived.service_accounts.deploy)"
+            echo "block_bucket=$(get buckets.block)"
           } | tee -a "$GITHUB_OUTPUT"
 
       - uses: google-github-actions/auth@v2
@@ -85,27 +94,97 @@ jobs:
           python Model-Deployment/champion.py --source "${{ env.ON_MAIN == 'true' && 'pointer' || 'committed' }}" \
             --dest "$RUNNER_TEMP/champion" --stage "$RUNNER_TEMP/stage" --github-output "$GITHUB_OUTPUT"
 
+      # S2's handoff: pushes are scored from the block's precomputed history, baked into the image. It holds no email
+      # (serve.precompute) and is never committed. Without it the image scores known SHAs only, which the smoke test
+      # still passes; it must be there before the traffic move (Nov 22)
+      - name: history.pkl, for pushes
+        id: history
+        env:
+          SRC: gs://${{ steps.cfg.outputs.block_bucket }}/history.pkl
+        run: |
+          if [ "$ON_MAIN" = true ] && gcloud storage cp "$SRC" Model-Deployment/serve/history.pkl; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            if [ "$ON_MAIN" = true ]; then
+              echo "::warning::no $SRC (or no read access to it): the image scores known SHAs only, not pushes"
+            else
+              echo "::notice::off main there's no GCS: the image scores known SHAs only, not pushes"
+            fi
+          fi
+
       # Rachna's image (S2) bakes the champion in at build: it's handed over as the build context's
       # Model-Pipeline/registry/, which is the committed champion off main and the pointer's on main
-      - name: Build the serving image (not pushed)
+      - name: Build the serving image
         id: build
         env:
           IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
         run: |
-          if [ ! -f Model-Deployment/serve/Dockerfile ]; then
-            echo "built=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Model-Deployment/serve/Dockerfile isn't on this branch yet (S2's image, Nov 21): build skipped"
-            exit 0
-          fi
-          if compgen -G "$RUNNER_TEMP/stage/*" > /dev/null; then  # the pointer's files; none for the committed champion
-            cp "$RUNNER_TEMP/stage/"* Model-Pipeline/registry/
-          fi
+          cp "$RUNNER_TEMP/stage/"* Model-Pipeline/registry/
           start=$(date +%s)
           docker build -f Model-Deployment/serve/Dockerfile \
             --build-arg MODEL_VERSION="${{ steps.champion.outputs.version }}" \
             --build-arg MODEL_MD5="${{ steps.champion.outputs.md5 }}" \
             -t "$IMAGE" .
-          { echo "built=true"; echo "build_s=$(( $(date +%s) - start ))"; } >> "$GITHUB_OUTPUT"
+          { echo "build_s=$(( $(date +%s) - start ))"
+            echo "size_mb=$(( $(docker image inspect --format '{{.Size}}' "$IMAGE") / 1000000 ))"; } >> "$GITHUB_OUTPUT"
+
+      # The image itself, before anything leaves the runner: a failure here stops the run before the push
+      - name: Smoke test, the image on the runner
+        id: smoke_local
+        env:
+          IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
+        run: |
+          docker run -d --name risk -p 8080:8080 "$IMAGE" >/dev/null
+          trap 'echo "--- the container's log"; docker logs risk 2>&1 | tail -20; docker rm -f risk >/dev/null' EXIT
+          python Model-Deployment/smoke.py --url http://localhost:8080 --wait 2 \
+            --version "${{ steps.champion.outputs.version }}" --md5 "${{ steps.champion.outputs.md5 }}" \
+            --champion "$RUNNER_TEMP/stage/champion.json"
+
+      - name: Push the image (main)
+        id: push
+        if: env.ON_MAIN == 'true'
+        env:
+          IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
+        run: |
+          gcloud auth configure-docker "${IMAGE%%/*}" --quiet
+          start=$(date +%s)
+          docker push --quiet "$IMAGE"
+          { echo "digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE")"
+            echo "push_s=$(( $(date +%s) - start ))"; } >> "$GITHUB_OUTPUT"
+
+      # A new revision with 0% of traffic, reachable only at its tag's URL: the old revision keeps serving
+      - name: Deploy a revision with no traffic (main)
+        id: revision
+        if: env.ON_MAIN == 'true'
+        env:
+          SERVICE: ${{ steps.cfg.outputs.service }}
+          WHERE: --region=${{ steps.cfg.outputs.region }} --project=${{ steps.cfg.outputs.project }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+          VERSION: ${{ steps.champion.outputs.version }}
+        run: |
+          tag="c-${VERSION:0:12}"
+          start=$(date +%s)
+          # shellcheck disable=SC2086
+          gcloud run deploy "$SERVICE" $WHERE --image "$DIGEST" --no-traffic --tag "$tag" --quiet
+          # shellcheck disable=SC2086
+          gcloud run services describe "$SERVICE" $WHERE --format=json > "$RUNNER_TEMP/service.json"
+          python - "$RUNNER_TEMP/service.json" "$tag" >> "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          status = json.load(open(sys.argv[1]))["status"]
+          t = next(t for t in status["traffic"] if t.get("tag") == sys.argv[2])
+          serving = ", ".join(f"{x.get('revisionName', 'latest')} {x.get('percent', 0)}%" for x in status["traffic"] if x.get("percent"))
+          print(f"url={t['url']}\nname={t['revisionName']}\npercent={t.get('percent', 0)}\nserving={serving}")
+          PY
+          echo "deploy_s=$(( $(date +%s) - start ))" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test, the revision (main)
+        id: smoke
+        if: env.ON_MAIN == 'true'
+        run: |
+          python Model-Deployment/smoke.py --url "${{ steps.revision.outputs.url }}" \
+            --version "${{ steps.champion.outputs.version }}" --md5 "${{ steps.champion.outputs.md5 }}" \
+            --champion "$RUNNER_TEMP/stage/champion.json" --github-output "$GITHUB_OUTPUT"
 
       - name: Summary
         if: always()
@@ -113,14 +192,26 @@ jobs:
           VERSION: ${{ steps.champion.outputs.version }}
         run: |
           {
-            echo "### deploy (dry run: nothing pushed, no revision, no traffic moved)"
+            if [ "$DRY_RUN" = true ]; then
+              echo "### deploy (dry run: built and smoke-tested on the runner; nothing pushed, no revision)"
+            else
+              echo "### deploy: a revision with no traffic (traffic not moved)"
+            fi
             echo "| | |"
             echo "|---|---|"
             echo "| Service | \`${{ steps.cfg.outputs.service }}\` in \`${{ steps.cfg.outputs.region }}\`, project \`${{ steps.cfg.outputs.project }}\` |"
             echo "| Champion | \`${VERSION:0:12}\`, md5 \`${{ steps.champion.outputs.md5 }}\`, val PR-AUC ${{ steps.champion.outputs.pr_auc }}, from the ${{ steps.champion.outputs.source }} registry |"
-            echo "| Image | \`${{ steps.cfg.outputs.image }}:${VERSION:0:12}…\` $([ '${{ steps.build.outputs.built }}' = true ] && echo "built in ${{ steps.build.outputs.build_s }} s" || echo "not built: no serve/Dockerfile yet") |"
-            echo "| Outcome | champion ${{ steps.champion.outcome }}, build ${{ steps.build.outcome }} |"
+            echo "| Image | \`${{ steps.cfg.outputs.image }}:${VERSION:0:12}…\`: built in ${{ steps.build.outputs.build_s }} s, ${{ steps.build.outputs.size_mb }} MB uncompressed; history.pkl ${{ steps.history.outputs.present == 'true' && 'in (pushes scored)' || 'not in (known SHAs only)' }} |"
+            echo "| Smoke test, on the runner | ${{ steps.smoke_local.outcome }} |"
+            if [ "$DRY_RUN" != true ]; then
+              echo "| Pushed | \`${{ steps.push.outputs.digest }}\` in ${{ steps.push.outputs.push_s }} s |"
+              echo "| Revision | \`${{ steps.revision.outputs.name }}\`, ${{ steps.revision.outputs.percent }}% of traffic, deployed in ${{ steps.revision.outputs.deploy_s }} s, at ${{ steps.revision.outputs.url }} |"
+              echo "| Serving | ${{ steps.revision.outputs.serving }} (unchanged) |"
+              echo "| Smoke test, the revision | ${{ steps.smoke.outcome }}: /health ${{ steps.smoke.outputs.smoke_health_s }} s, /score ${{ steps.smoke.outputs.smoke_score_s }} s, risk ${{ steps.smoke.outputs.smoke_risk }} |"
+            fi
+            echo "| Outcome | ${{ job.status }} |"
           } >> "$GITHUB_STEP_SUMMARY"
           # D5: one JSON line for Cloud Logging and S6's metrics. Versions only, never a person
-          printf '{"severity": "%s", "event": "deploy", "model_version": "%s", "dry_run": true, "outcome": "%s"}\n' \
-            "$([ '${{ job.status }}' = success ] && echo INFO || echo ERROR)" "$VERSION" "${{ job.status }}"
+          printf '{"severity": "%s", "event": "deploy", "model_version": "%s", "dry_run": %s, "revision": "%s", "traffic_percent": 0, "smoke": "%s", "outcome": "%s"}\n' \
+            "$([ '${{ job.status }}' = success ] && echo INFO || echo ERROR)" "$VERSION" "$DRY_RUN" \
+            "${{ steps.revision.outputs.name }}" "${{ env.ON_MAIN == 'true' && steps.smoke.outcome || steps.smoke_local.outcome }}" "${{ job.status }}"
