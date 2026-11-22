@@ -246,5 +246,122 @@ class Http(unittest.TestCase):
             conn.close()
 
 
+class Precomputed(unittest.TestCase):
+    """The history state (serve.precompute): the same features as p9.push_features, from a file with no email."""
+
+    @classmethod
+    def setUpClass(cls):
+        from serve import precompute as P
+        cls.f = Fixture()
+        cls.state_path = cls.f.d / "history.pkl"
+        cls.state, _, _ = P.build(cls.f.d / "meridian.sqlite", cls.state_path)
+        cls.s = S.Scorer(**cls.f.kw, history=cls.state_path)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.f.tmp.cleanup()
+
+    def original(self, numstat, subject, email):
+        import sqlite3
+        db = sqlite3.connect(self.f.d / "meridian.sqlite")
+        try:
+            row = S.p9.push_features(db, "apache/spark", TP9.RUN, TP9.AT, [(p, a, d) for a, d, p in numstat],
+                                     [("push", subject, "")], email, self.s.key_regex, self.s.prior_fix_days)
+        finally:
+            db.close()
+        return row
+
+    def test_many_pushes_score_as_p9_does(self):
+        import random
+        rng = random.Random(4)
+        files = ["core/a.py", "sql/b.py", "core/new.py", "docs/x.md", "img/logo.png"]
+        people = ["ann@x.org", "bob@x.org", "new@x.org", " ANN@x.org "]
+        for _ in range(30):
+            numstat = [[None, None, p] if p.endswith(".png") else [rng.randint(0, 50), rng.randint(0, 20), p]
+                       for p in rng.sample(files, rng.randint(1, 4))]
+            subject = rng.choice(["SPARK-1 more", "[MINOR] tidy", "no key", "SPARK-9 unknown"])
+            email = rng.choice(people)
+            body = {"repo": "apache/spark", "numstat": numstat, "subject": subject,
+                    "author_email_hash": S.email_hash(email)}
+            row = self.original(numstat, subject, email.strip().lower())
+            expected = float(self.s.train.score_with(self.s.model, row)[0])
+            got, fields = self.s.score(body)
+            with self.subTest(body=body):
+                self.assertLessEqual(abs(got["risk"] - expected), 1e-9)
+                feats = self.s.train.inputs_for(self.s.model, row).iloc[0]
+                for c, v in fields["features"].items():
+                    self.assertAlmostEqual(v, float(feats[c]), places=9)
+
+    def test_the_state_holds_no_email(self):
+        blob = self.state_path.read_bytes()
+        for e in (b"ann@x.org", b"bob@x.org", b"@x.org"):
+            self.assertNotIn(e, blob)
+
+    def test_a_state_for_another_format_or_repo_wont_start(self):
+        import pickle
+        with tempfile.TemporaryDirectory() as d:
+            bad = Path(d) / "h.pkl"
+            bad.write_bytes(pickle.dumps({**self.state, "format": 99}))
+            with self.assertRaisesRegex(SystemExit, "history state"):
+                S.Scorer(**self.f.kw, history=bad)
+
+    def test_the_state_needs_no_block(self):
+        self.assertEqual(self.s.block["source"], "state")
+        self.assertIn("risk", self.s.score(PUSH)[0])
+
+
+class Cors(unittest.TestCase):
+    """Only the website's origin gets CORS headers; a browser's preflight from any other origin is refused."""
+
+    SITE = "https://meridian.example"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.f = Fixture()
+        cls.server = A.ThreadingHTTPServer(("127.0.0.1", 0), A.make_handler(cls.f.scorer(), [cls.SITE + "/"]))
+        cls.host, cls.port = cls.server.server_address
+        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+        cls.f.tmp.cleanup()
+
+    def request(self, method, origin, body=None):
+        conn = http.client.HTTPConnection(self.host, self.port, timeout=30)
+        headers = {"Content-Type": "application/json"}
+        if origin:
+            headers["Origin"] = origin
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                conn.request(method, "/score", body=json.dumps(body) if body is not None else None, headers=headers)
+                r = conn.getresponse()
+                r.read()
+            return r.status, {k.lower(): v for k, v in r.getheaders()}
+        finally:
+            conn.close()
+
+    def test_the_site_gets_cors_and_its_preflight_passes(self):
+        status, h = self.request("OPTIONS", self.SITE)
+        self.assertEqual(status, 204)
+        self.assertEqual(h["access-control-allow-origin"], self.SITE)
+        self.assertIn("POST", h["access-control-allow-methods"])
+        status, h = self.request("POST", self.SITE, {"repo": "apache/spark", "sha": self.f.val["sha"].iloc[0]})
+        self.assertEqual((status, h.get("access-control-allow-origin")), (200, self.SITE))
+
+    def test_another_origin_gets_none(self):
+        status, h = self.request("OPTIONS", "https://evil.example")
+        self.assertEqual(status, 403)
+        self.assertNotIn("access-control-allow-origin", h)
+        status, h = self.request("POST", "https://evil.example", {"repo": "apache/spark", "sha": "x"})
+        self.assertNotIn("access-control-allow-origin", h)
+
+    def test_no_origin_no_header(self):
+        status, h = self.request("POST", None, {"repo": "apache/spark", "sha": self.f.val["sha"].iloc[0]})
+        self.assertEqual(status, 200)
+        self.assertNotIn("access-control-allow-origin", h)
+
+
 if __name__ == "__main__":
     unittest.main()
