@@ -83,6 +83,10 @@ jobs:
         working-directory: Model-Deployment
       - run: python -m unittest discover -s tests -t . -p "test_drift.py"
         working-directory: Model-Deployment
+      - run: python -m unittest discover -s tests -t . -p "test_decay.py"
+        working-directory: Model-Deployment
+      - run: python -m unittest discover -s tests -t . -p "test_report.py"
+        working-directory: Model-Deployment
       - run: python -m unittest discover -s tests -t . -p "test_refresh.py"
         working-directory: Model-Deployment
       - run: python -m unittest discover -s serve/tests -t .

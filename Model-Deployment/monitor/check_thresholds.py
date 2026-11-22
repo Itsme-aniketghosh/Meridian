@@ -6,7 +6,7 @@
 Judged on val 2023 only (the vishwa-monitor packet): a rule that fires on a val month or quarter, where the model is
 known to work, is a false alarm. 2025-26 shows what the rule says today. 2024 (test) judges nothing: its rows are
 used only as the reference that production would hold for 2025-26 (features, never labels), and its quarters are
-skipped. Nothing here changes monitor.toml.
+skipped. Nothing here changes deploy.toml.
 
 1. Drift by month, the window production checks. Each rule as written, and the alternatives in the proposal:
    PSI against train or against the latest labelled year (2022 for val months, 2024 for 2025-26), at 0.2/0.25/0.3.
