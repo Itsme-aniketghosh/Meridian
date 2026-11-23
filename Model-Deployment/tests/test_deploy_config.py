@@ -98,6 +98,11 @@ class Names(unittest.TestCase):
         self.assertLessEqual(start, date(2026, 11, 18))
         self.assertGreaterEqual(end, date(2026, 12, 7))
 
+    def test_history_pkl_is_kept_away_from_the_names(self):
+        # deploy.yml bakes history.pkl into the image, and the deploy account never reads the block's real names
+        # (Aniket, Nov 22). iam.tf grants deploy only history.pkl's folder in this bucket
+        self.assertNotEqual(self.cfg["serve_history"]["bucket"], "block")
+
 
 class Derived(unittest.TestCase):
     def test_names_built_from_the_rest(self):
