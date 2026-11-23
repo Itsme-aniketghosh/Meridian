@@ -29,6 +29,12 @@ monitor = "{project}-meridian-monitor"   # D2 reports: reports/<run_id>.json
 cache = "{project}-meridian-cache"       # the refresh job's clones, kept between runs
 tfstate = "{project}-tfstate"            # Terraform's state; bootstrap.sh makes it before terraform init
 
+[serve_history]   # S2's history.pkl: the refresh job (S4) writes it, deploy.yml (S3) bakes it into the image. It holds no
+# email, but the deploy account must never read anything else in a bucket with real names: either the cache bucket, or
+# the block bucket with read granted on history/ only (an IAM condition). Both readers take the location from here
+bucket = "cache"                # a [buckets] key. PENDING Rochan's pick: "cache", or "block" with the prefix grant
+object = "history/latest.pkl"   # always under history/, so a prefix grant covers it; history/<run_id>.pkl beside it
+
 [services.risk]   # D1, PLAN §4
 name = "meridian-risk"
 min_instances = 0    # scales to zero: idle costs $0
