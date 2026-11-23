@@ -20,6 +20,7 @@ on:
       - "Model-Deployment/serve/**"
       - "Model-Deployment/tests/test_champion.py"
       - "Model-Deployment/tests/test_smoke.py"
+      - "Model-Deployment/tests/test_serve_history.py"
       - "Model-Pipeline/registry/**"
   workflow_dispatch: {}
 
@@ -77,7 +78,7 @@ jobs:
             echo "image=$(get derived.images.risk)"
             echo "provider=$(get derived.workload_identity_provider)"
             echo "deploy_sa=$(get derived.service_accounts.deploy)"
-            echo "block_bucket=$(get buckets.block)"
+            echo "history=gs://$(get "buckets.$(get serve_history.bucket)")/$(get serve_history.object)"
           } | tee -a "$GITHUB_OUTPUT"
 
       - uses: google-github-actions/auth@v2
@@ -95,12 +96,12 @@ jobs:
             --dest "$RUNNER_TEMP/champion" --stage "$RUNNER_TEMP/stage" --github-output "$GITHUB_OUTPUT"
 
       # S2's handoff: pushes are scored from the block's precomputed history, baked into the image. It holds no email
-      # (serve.precompute) and is never committed. Without it the image scores known SHAs only, which the smoke test
-      # still passes; it must be there before the traffic move (Nov 22)
+      # (serve.precompute) and is never committed, and it's read from deploy.toml [serve_history], never from anywhere
+      # the deploy account could see real names. Without it the image scores known SHAs only
       - name: history.pkl, for pushes
         id: history
         env:
-          SRC: gs://${{ steps.cfg.outputs.block_bucket }}/history.pkl
+          SRC: ${{ steps.cfg.outputs.history }}
         run: |
           if [ "$ON_MAIN" = true ] && gcloud storage cp "$SRC" Model-Deployment/serve/history.pkl; then
             echo "present=true" >> "$GITHUB_OUTPUT"
