@@ -194,3 +194,19 @@ The run tests skip when S5's `drift.py` isn't in the tree.
 ## For Chaitali (deploy.yml)
 
 Before `docker build`, copy `gs://<buckets.block>/history.pkl` to `Model-Deployment/serve/history.pkl`. The deploy account needs read on the block bucket. Until the job runs in the cloud, one history.pkl from the current block can be put there by hand (through Rochan).
+
+## 6. history.pkl moves to deploy.toml [serve_history] (Nov 22)
+
+Chaitali's PR 1 adds `[serve_history]` (D4): `bucket = "cache"`, `object = "history/latest.pkl"`, read by deploy.yml. The job now reads the same table, so the two can't disagree.
+
+| Check | Result |
+|---|---|
+| `job.main` passes `cfg["serve_history"]` to `Job` | PASS (`test_main_reads_serve_history_from_deploy_toml`) |
+| Push order: block → `cache/history/<run_id>.pkl` → `cache/history/latest.pkl` → `latest.json` → report | PASS |
+| No root `history.pkl` in the block bucket any more | PASS |
+| With `bucket = "block"` it writes `block/history/latest.pkl` (Rochan's other option, one value) | PASS |
+| `python -m unittest discover -s Model-Deployment/tests -p "test_*.py"` | PASS, 93 tests |
+| `flake8 --config ../Data-Pipeline/setup.cfg refresh tests/test_refresh.py` | PASS |
+| Job's write access to the cache bucket | already granted: `iam.tf` `refresh` is objectAdmin on all three buckets |
+
+No live run: the change is only where the file goes. The "For Chaitali" note above is replaced by `[serve_history]`. The deploy account's read on that location is Rochan's grant.
