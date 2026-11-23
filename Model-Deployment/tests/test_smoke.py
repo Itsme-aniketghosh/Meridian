@@ -7,6 +7,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import unittest.mock
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -126,7 +127,21 @@ class ExpectedRisk(unittest.TestCase):
         model, _, _ = scorer.p9.load_champion(scorer.DEFAULTS["champion"])
         scores = pd.read_csv(scorer.DEFAULTS["val_scores"]).set_index("sha")
         judged = float(scores.loc[sha, scorer.KIND_COLUMN.get(type(model).__name__, "logreg")])
-        self.assertAlmostEqual(S.expected_risk(sha, REPO), judged, delta=1e-9)
+        self.assertAlmostEqual(S.expected_risk(sha), judged, delta=1e-9)
+
+    def test_it_doesnt_use_the_serve_code(self):
+        # a broken serve/scorer.py must not change what the smoke test expects
+        import builtins
+        real = builtins.__import__
+
+        def no_serve(name, *args, **kw):
+            if name.startswith("serve"):
+                raise AssertionError("expected_risk imported serve")
+            return real(name, *args, **kw)
+        with open(S.DEPLOY_TOML, "rb") as f:
+            sha = S.tomllib.load(f)["smoke"]["sha"]
+        with unittest.mock.patch("builtins.__import__", no_serve):
+            S.expected_risk(sha)
 
 
 if __name__ == "__main__":

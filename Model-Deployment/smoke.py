@@ -2,8 +2,9 @@
 
 Three checks, against a URL: the image built on the runner (every run) or a Cloud Run revision's tag URL (main):
 - GET /health answers 200 with the champion deploy.yml checked: its version and its md5
-- POST /score for [smoke] sha in deploy.toml answers 200, and its risk is the one the same champion gives the same
-  row on the runner (serve.scorer, the image's own code, with the staged champion) to [smoke] risk_tolerance
+- POST /score for [smoke] sha in deploy.toml answers 200, and its risk is the one the model pipeline gives the same
+  feature-table row with the staged champion (model.train.score_with), to [smoke] risk_tolerance. Never the serve
+  code's own answer: a bug in the image's scorer would agree with itself
 - the reply names the same model as /health
 
 A failed check exits 1 and nothing moves: the new revision keeps 0% of traffic and the old one serves. Standard
@@ -25,6 +26,8 @@ DEPLOY = Path(__file__).resolve().parent
 REPO = DEPLOY.parent
 DEPLOY_TOML = DEPLOY / "deploy.toml"
 MODEL_TOML = REPO / "Model-Pipeline" / "model.toml"
+CHAMPION = REPO / "Model-Pipeline" / "registry" / "champion.json"
+FEATURES = REPO / "Model-Pipeline" / "data" / "features.parquet"
 
 
 def call(url, path, body=None, timeout=60):
@@ -58,12 +61,24 @@ def health(url, timeout=60, tries=5, wait=5.0):
         time.sleep(wait)
 
 
-def expected_risk(sha, repo, champion=None):
-    """The risk the champion gives sha's row here, through the image's own scorer: what /score must answer."""
-    sys.path.insert(0, str(DEPLOY))
-    from serve.scorer import Scorer
-    reply, _ = Scorer(champion=champion).score({"repo": repo, "sha": sha})
-    return reply["risk"]
+def expected_risk(sha, champion=None, features=FEATURES):
+    """What /score must answer for sha: the champion's risk for its feature-table row, scored by the model pipeline
+    (the code it was judged with), not by serve/. The model file must be the record's."""
+    import hashlib
+    import joblib
+    import pandas as pd
+    sys.path.insert(0, str(REPO / "Model-Pipeline"))
+    from model import train
+    champion = Path(champion or CHAMPION)
+    record = json.loads(champion.read_text(encoding="utf-8"))
+    model_path = champion.parent / record["model_file"]
+    if hashlib.md5(model_path.read_bytes()).hexdigest() != record["model_md5"]:
+        raise SystemExit(f"smoke: {model_path.name} isn't the model {champion.name} records")
+    table = pd.read_parquet(features)
+    row = table[table["sha"] == sha]
+    if len(row) != 1:
+        raise SystemExit(f"smoke: {sha[:12]} is in {features.name} {len(row)} times, not once")
+    return float(train.score_with(joblib.load(model_path), row)[0])
 
 
 def check(url, version, model_md5, sha, repo, risk, tolerance, timeout=60, tries=5, wait=5.0):
@@ -114,7 +129,7 @@ def main(argv=None):
     ap.add_argument("--github-output", type=Path, help="append the results as smoke_* lines")
     a = ap.parse_args(argv)
 
-    risk = a.expect_risk if a.expect_risk is not None else expected_risk(a.sha, repo, a.champion)
+    risk = a.expect_risk if a.expect_risk is not None else expected_risk(a.sha, a.champion)
     problems, seen = check(a.url, a.version, a.md5, a.sha, repo, risk, float(smoke["risk_tolerance"]),
                            timeout=float(smoke["timeout_s"]), tries=int(smoke["tries"]), wait=a.wait)
     if a.github_output:
