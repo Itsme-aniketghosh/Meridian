@@ -83,3 +83,60 @@ resource "google_service_account_iam_member" "deploy_acts_as" {
   role               = "roles/iam.serviceAccountUser"
   member             = local.sa.deploy
 }
+
+# People who build, deploy and run the refresh job by hand (S4), from terraform.tfvars, so no email is in git. A fresh
+# project has none. Google's roles for deploying and running a job are granted on that job, not the project
+# (cloud.google.com/run/docs/create-jobs and /execute/jobs), so these people can't change meridian-risk
+locals {
+  refresh_developers = toset([for email in var.refresh_developers : "user:${email}"])
+}
+
+# Deploy an image to the job, run it, see and cancel its executions: this job only
+resource "google_cloud_run_v2_job_iam_member" "refresh_developers" {
+  for_each = local.refresh_developers
+  location = local.region
+  name     = google_cloud_run_v2_job.refresh.name
+  role     = "roles/run.developer"
+  member   = each.value
+}
+
+# A deploy makes the job run as its own account
+resource "google_service_account_iam_member" "refresh_developers" {
+  for_each           = local.refresh_developers
+  service_account_id = google_service_account.sa["refresh"].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = each.value
+}
+
+# Push the job's image (writer includes the reader a deploy needs)
+resource "google_artifact_registry_repository_iam_member" "refresh_developers" {
+  for_each   = local.refresh_developers
+  location   = local.region
+  repository = google_artifact_registry_repository.images.name
+  role       = "roles/artifactregistry.writer"
+  member     = each.value
+}
+
+# See what the job wrote to the cache bucket (history.pkl), read only. Nothing in the block (real names)
+resource "google_storage_bucket_iam_member" "refresh_developers" {
+  for_each = local.refresh_developers
+  bucket   = google_storage_bucket.data["cache"].name
+  role     = "roles/storage.objectViewer"
+  member   = each.value
+}
+
+# Read the job's logs, to see why a run failed. Cloud Logging grants reading per project, not per job
+resource "google_project_iam_member" "refresh_developers" {
+  for_each = local.refresh_developers
+  project  = local.project
+  role     = "roles/logging.viewer"
+  member   = each.value
+}
+
+# Put in the job's secret values (secrets.tf): add a version, never read one, so no token goes through anyone else
+resource "google_secret_manager_secret_iam_member" "refresh_developers" {
+  for_each  = { for pair in setproduct(keys(local.cfg.secrets), local.refresh_developers) : join(" ", pair) => pair }
+  secret_id = google_secret_manager_secret.secret[each.value[0]].id
+  role      = "roles/secretmanager.secretVersionAdder"
+  member    = each.value[1]
+}

@@ -345,5 +345,48 @@ class TerraformReadsDeployToml(unittest.TestCase):
                 self.assertNotIn(f'"{name}"', code, f"{tf.name} types {name!r}: read it from deploy.toml")
 
 
+class People(unittest.TestCase):
+    """iam.tf: whoever deploys the refresh job by hand (refresh_developers in terraform.tfvars) gets that job and what
+    deploying it needs, never the project or the service, and their emails never reach git."""
+
+    def blocks(self, kind):
+        # each `resource "<kind>" "<name>" {...}` in the .tf files: {name: body}
+        return {name: body for tf in TERRAFORM.glob("*.tf")
+                for name, body in re.findall(rf'^resource "{kind}" "([^"]+)" \{{\n(.*?)^\}}', tf.read_text(),
+                                             re.M | re.S)}
+
+    def test_project_wide_roles_only_read_logs_or_write_metrics(self):
+        # a project-wide run.developer would let the people on the list change meridian-risk too
+        roles = sorted(re.search(r'role\s*=\s*"([^"]+)"', body).group(1)
+                       for body in self.blocks("google_project_iam_member").values())
+        self.assertEqual(roles, ["roles/logging.viewer", "roles/monitoring.metricWriter"])
+
+    def test_people_get_the_job_its_account_the_images_and_the_cache(self):
+        on = {"google_cloud_run_v2_job_iam_member": ("roles/run.developer", "google_cloud_run_v2_job.refresh.name"),
+              "google_service_account_iam_member": ("roles/iam.serviceAccountUser",
+                                                    'google_service_account.sa["refresh"]'),
+              "google_artifact_registry_repository_iam_member": ("roles/artifactregistry.writer",
+                                                                 "google_artifact_registry_repository.images.name"),
+              "google_storage_bucket_iam_member": ("roles/storage.objectViewer", 'google_storage_bucket.data["cache"]'),
+              "google_project_iam_member": ("roles/logging.viewer", "local.project"),
+              "google_secret_manager_secret_iam_member": ("roles/secretmanager.secretVersionAdder",
+                                                          "google_secret_manager_secret.secret[")}
+        for kind, (role, resource) in on.items():
+            body = self.blocks(kind).get("refresh_developers")
+            self.assertIsNotNone(body, f"iam.tf has no {kind} for refresh_developers")
+            self.assertRegex(body, rf'role\s*=\s*"{re.escape(role)}"\n', kind)
+            self.assertIn(resource, body, kind)
+        # those six grants are the only ones the list gets
+        code = "\n".join(tf.read_text() for tf in TERRAFORM.glob("*.tf"))
+        self.assertEqual(len(re.findall(r"local\.refresh_developers\b", code)), 6)
+
+    def test_emails_stay_out_of_git(self):
+        # terraform.tfvars holds them, and git ignores it; the files git keeps name example.com only
+        self.assertRegex((TERRAFORM / ".gitignore").read_text(), r"(?m)^terraform\.tfvars$")
+        for f in [*TERRAFORM.glob("*.tf"), TERRAFORM / "terraform.tfvars.example"]:
+            for email in re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", f.read_text()):
+                self.assertTrue(email.endswith("@example.com"), f"{f.name} has an email in it: {email}")
+
+
 if __name__ == "__main__":
     unittest.main()

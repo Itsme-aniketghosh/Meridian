@@ -10,6 +10,9 @@ alert_emails = ["teammate@example.com"]
 # Once Slack is connected in the console (README.md, "Alerts"): its display name there. The service alerts page it
 # slack_channel = "Meridian Slack"
 
+# People who deploy and run the refresh job by hand (S4): plain emails. They get that job, not the project (iam.tf)
+# refresh_developers = ["teammate@example.com"]
+
 # A fresh project: bootstrap.sh passes its id. Empty means deploy.toml's [gcp] project, where phase 2's registry,
 # CI account and Workload Identity are taken over (imports.tf).
 # project_id = ""
