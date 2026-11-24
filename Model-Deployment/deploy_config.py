@@ -12,7 +12,9 @@ From a shell or a workflow:
     python3 Model-Deployment/deploy_config.py --get buckets.monitor --project other-project
 
 Terraform reads it the same way (infra/terraform/main.tf, an external data source): --terraform takes the
-query on stdin and prints {"json": "<the whole config>"}. Needs Python 3.11+ (tomllib), or tomli installed.
+query on stdin and prints {"json": "<the whole config>"}. Before that it checks that the run's state is the
+project's own bucket, so a run for one project can never plan with another's state. Needs Python 3.11+
+(tomllib), or tomli installed.
 """
 import argparse
 import json
@@ -89,6 +91,23 @@ def get(cfg, key):
     return value
 
 
+def check_state_bucket(cfg, data_dir=None):
+    """A run's state must be its project's own bucket ([buckets] tfstate). A fresh project's run left on the team's
+    state would plan to replace the team's resources, and `apply -target` skips infra/terraform/guard.tf. Terraform
+    starts this script on every plan, targeted or not, so a mismatch stops it before anything is planned."""
+    backend_file = Path(data_dir or os.environ.get("TF_DATA_DIR") or ".terraform") / "terraform.tfstate"
+    if not backend_file.is_file():
+        return  # not initialised here, e.g. `terraform validate` after `init -backend=false`
+    backend = json.loads(backend_file.read_text()).get("backend") or {}
+    if backend.get("type") != "gcs":
+        return  # a local dry run (an *_override.tf backend) has its own state
+    bucket, want = (backend.get("config") or {}).get("bucket"), cfg["buckets"]["tfstate"]
+    if bucket != want:
+        raise ValueError(f"this checkout's Terraform state is gs://{bucket}, but the run is for "
+                         f"{cfg['gcp']['project']}, whose state is gs://{want}. Run `terraform init "
+                         f"-reconfigure -backend-config=bucket={want}` first (infra/terraform/README.md)")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", type=Path, default=DEPLOY_TOML)
@@ -105,13 +124,14 @@ def main(argv=None):
     try:
         cfg = load(a.config, project, a.project_number, use_env=not a.terraform)  # Terraform: only its own query
         if a.terraform:
+            check_state_bucket(cfg)
             print(json.dumps({"json": json.dumps(cfg)}))
         elif a.get:
             value = get(cfg, a.get)
             print(value if isinstance(value, str) else json.dumps(value))
         else:
             print(json.dumps(cfg, indent=2))
-    except (OSError, KeyError, tomllib.TOMLDecodeError) as e:
+    except (OSError, KeyError, ValueError) as e:  # ValueError: a TOML or JSON error, or the state check
         sys.exit(f"deploy_config.py: {e}")
 
 

@@ -20,6 +20,12 @@ variable "alert_emails" {
   }
 }
 
+variable "allow_team_destroy" {
+  description = "true only to tear the team's project down on purpose (guard.tf): apply with it, then destroy."
+  type        = bool
+  default     = false
+}
+
 variable "slack_channel" {
   description = "The Slack channel's display name in Cloud Monitoring, once a person has connected it in the console (README.md). Empty: no Slack."
   type        = string
