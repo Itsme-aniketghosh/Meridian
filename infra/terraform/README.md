@@ -22,8 +22,8 @@ Cloud Monitoring (S6) is added in `monitoring.tf`, with Vishwa.
 | Account | Can |
 |---|---|
 | `meridian-ci` (`model.yml`) | push models to `meridian-models` |
-| `meridian-deploy` (`deploy.yml`) | read the champion from `meridian-models`; push to `meridian-images`; deploy revisions and move traffic on `meridian-risk` and `meridian-refresh`, running as their own accounts |
-| `meridian-risk` (the service runs as it) | read the block bucket |
+| `meridian-deploy` (`deploy.yml`) | read the champion from `meridian-models`; read `history.pkl` from `[serve_history]`'s folder only (`history/` in the cache bucket, by an IAM condition), so nothing else there and nothing in the block; push to `meridian-images`; deploy revisions and move traffic on `meridian-risk` and `meridian-refresh`, running as their own accounts |
+| `meridian-risk` (the service runs as it) | no bucket: its champion and `history.pkl` are baked into its image |
 | `meridian-refresh` (the job runs as it) | read and write the three buckets; push models; read the two secrets; write custom metrics |
 | `meridian-scheduler` | start `meridian-refresh` |
 
