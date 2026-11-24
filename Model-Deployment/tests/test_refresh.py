@@ -114,8 +114,8 @@ class D2(unittest.TestCase):
 class FakeJob(job.Job):
     """Records commands instead of running them, and makes the files a real run would."""
 
-    def __init__(self, root, store, status=0, fail=None):
-        super().__init__(root, store, out=io.StringIO())
+    def __init__(self, root, store, status=0, fail=None, serve_history=None):
+        super().__init__(root, store, out=io.StringIO(), serve_history=serve_history)
         self.calls, self.status, self.fail = [], status, fail
 
     def sh(self, args, cwd, ok=(0,)):
@@ -187,7 +187,7 @@ class Run(unittest.TestCase):
         self.assertNotIn("serve.precompute", j.modules())
         line = next(x for x in j.lines() if x["step"] == "history_pkl")
         self.assertTrue(line["history"].startswith("skipped"))
-        self.assertNotIn(("block", "history.pkl"), self.store.puts)
+        self.assertFalse([p for p in self.store.puts if p[1].startswith("history")])
 
     def test_history_pkl_is_made_from_the_new_block_after_publish(self):
         self.with_precompute()
@@ -207,10 +207,26 @@ class Run(unittest.TestCase):
         j = FakeJob(self.root, self.store)
         with mock.patch.object(job, "alert"):
             j.run()
-        self.assertEqual(self.store.puts, [("block", f"{RUN}.sqlite"), ("block", f"history/{RUN}.pkl"),
-                                           ("block", "history.pkl"), ("block", "latest.json"),
+        self.assertEqual(self.store.puts, [("block", f"{RUN}.sqlite"), ("cache", f"history/{RUN}.pkl"),
+                                           ("cache", "history/latest.pkl"), ("block", "latest.json"),
                                            ("monitor", f"reports/{RUN}.json")])
-        self.assertEqual((self.store.root / "block" / "history.pkl").read_bytes(), b"history state")
+        self.assertEqual((self.store.root / "cache" / "history" / "latest.pkl").read_bytes(), b"history state")
+        self.assertFalse((self.store.root / "block" / "history.pkl").exists())   # no root history.pkl any more
+
+    def test_history_pkl_goes_where_deploy_toml_serve_history_says(self):
+        self.with_precompute()
+        j = FakeJob(self.root, self.store, serve_history={"bucket": "block", "object": "history/latest.pkl"})
+        with mock.patch.object(job, "alert"):
+            j.run()
+        self.assertIn(("block", f"history/{RUN}.pkl"), self.store.puts)
+        self.assertIn(("block", "history/latest.pkl"), self.store.puts)
+        self.assertNotIn(("block", "history.pkl"), self.store.puts)
+
+    def test_main_reads_serve_history_from_deploy_toml(self):
+        with mock.patch.object(job, "Job") as J:
+            job.main(["--store", f"local:{self.root / 'store'}", "--dry-run"])
+        cfg = job.deploy_config.load()
+        self.assertEqual(J.call_args.kwargs["serve_history"], cfg["serve_history"])
 
     def test_a_failed_precompute_alerts_and_pushes_nothing(self):
         self.with_precompute()

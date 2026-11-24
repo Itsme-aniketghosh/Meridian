@@ -14,13 +14,15 @@ One run, daily (Cloud Scheduler, deploy.toml [schedule]):
             the model reads Spark only ([data] repo in model.toml).
 4. history_pkl
             S2's serve.precompute (Rachna) on the new block: history.pkl, the replayed history /score reads to score a
-            push in milliseconds. Only this job has the block, so it's made here; deploy.yml pulls history.pkl into
-            the serve image's build context. Skipped, and logged, while serve/precompute.py isn't in the tree.
+            push in milliseconds. Only this job has the block, so it's made here; deploy.yml pulls history.pkl
+            from deploy.toml [serve_history] into the serve image's build context. Skipped, and logged, while
+            serve/precompute.py isn't in the tree.
 5. table    model.data on the new block with model.toml's split as it is. Only [data] run_id moves, so every
             commit past follow_up_end comes out as split "none": the new commits drift is measured on.
 6. drift    S5's monitor.drift (Vishwa) on that table, wrapped as the D2 report.
-7. push     The block file, then history.pkl (as history/<run_id>.pkl and history.pkl), then latest.json, so a reader
-            never sees a pointer to a missing file; then the D2 report. GCS buckets.block and buckets.monitor.
+7. push     The block file, then history.pkl (as history/<run_id>.pkl and deploy.toml [serve_history]'s object, in
+            its bucket), then latest.json, so a reader never sees a pointer to a missing file; then the D2 report.
+            GCS buckets.block, the [serve_history] bucket and buckets.monitor.
 8. retrain  D2's retrain flag is logged and read. Acting on it (model.refresh, the registry, the D3 dispatch) is the
             next step (packet, Tue Nov 24) and isn't wired yet.
 
@@ -228,8 +230,11 @@ def model_version(path=CHAMPION):
 
 
 class Job:
-    def __init__(self, data_root, store, python=sys.executable, dry_run=False, out=sys.stdout):
+    def __init__(self, data_root, store, python=sys.executable, dry_run=False, out=sys.stdout, serve_history=None):
         self.root, self.store, self.python, self.dry_run, self.out = Path(data_root), store, python, dry_run, out
+        # where deploy.yml reads history.pkl: deploy.toml [serve_history], a [buckets] key and an object under history/
+        h = serve_history or {"bucket": "cache", "object": "history/latest.pkl"}
+        self.history_bucket, self.history_object = h["bucket"], h["object"]
         self.version = model_version()
         self.work = self.root / "refresh"
         self.env = {**os.environ, "MERIDIAN_DATA": str(self.root), "PYTHONUNBUFFERED": "1"}
@@ -348,10 +353,11 @@ class Job:
             raise StepFailed(f"published/latest.json is {latest['run_id']}, not the new run {run_id}", "")
         self.store.put(published / latest["file"], "block", latest["file"])
         out = {"block": self.store.where("block", latest["file"])}
-        if self.history_path:   # this block's, then the name deploy.yml reads
-            self.store.put(self.history_path, "block", f"history/{run_id}.pkl")
-            self.store.put(self.history_path, "block", "history.pkl")
-            out["history"] = self.store.where("block", "history.pkl")
+        if self.history_path:   # this block's, then the name deploy.yml reads ([serve_history]), side by side
+            folder = self.history_object.rsplit("/", 1)[0]
+            self.store.put(self.history_path, self.history_bucket, f"{folder}/{run_id}.pkl")
+            self.store.put(self.history_path, self.history_bucket, self.history_object)
+            out["history"] = self.store.where(self.history_bucket, self.history_object)
         self.store.put(published / "latest.json", "block", "latest.json")
         name = f"reports/{run_id}.json"
         self.store.put(report_path, "monitor", name)
@@ -435,7 +441,8 @@ def main(argv=None):
     ap.add_argument("--dry-run", action="store_true", help="print the commands, run none, write nothing to the store")
     a = ap.parse_args(argv)
     cfg = deploy_config.load()
-    return Job(Path(a.data_root).expanduser(), make_store(a.store, cfg), dry_run=a.dry_run).run()
+    return Job(Path(a.data_root).expanduser(), make_store(a.store, cfg), dry_run=a.dry_run,
+               serve_history=cfg["serve_history"]).run()
 
 
 if __name__ == "__main__":
