@@ -2,8 +2,9 @@
 # and checks its md5, builds the serving image (S2's Dockerfile) and smoke-tests it on the runner. On main it then
 # pushes the image, deploys it as a revision with no traffic, and smoke-tests that revision through its tag URL. Only
 # when that passes, and the image holds history.pkl, does 100% of traffic move to it; then the service's own URL is
-# smoke-tested. Until then the old revision keeps serving. Next: rollback (Nov 23), Slack (Nov 24), and the
-# triggers: model.yml on main and D3's repository_dispatch (Nov 25).
+# smoke-tested. Until then the old revision keeps serving. If the move or that test fails, traffic goes straight back
+# to the revision that served before (rollback) and the run is red. Next: Slack (Nov 24), and the triggers:
+# model.yml on main and D3's repository_dispatch (Nov 25).
 #
 # The champion: on main, the registry pointer on Artifact Registry, read as the deploy account through Workload
 # Identity (main only, as in phase 2). Anywhere else, the committed Model-Pipeline/registry/. Either way its model
@@ -210,6 +211,7 @@ jobs:
           fi
           start=$(date +%s)
           # shellcheck disable=SC2086
+          echo "moved=true" >> "$GITHUB_OUTPUT"   # from here on, a failure rolls back
           gcloud run services update-traffic "$SERVICE" $WHERE --to-revisions "$REVISION=100" --quiet
           # shellcheck disable=SC2086
           gcloud run services describe "$SERVICE" $WHERE --format=json > "$RUNNER_TEMP/after.json"
@@ -225,8 +227,35 @@ jobs:
           python Model-Deployment/smoke.py --url "${{ steps.traffic.outputs.url }}" \
             --version "${{ steps.champion.outputs.version }}" --md5 "${{ steps.champion.outputs.md5 }}" \
             --champion "$RUNNER_TEMP/stage/champion.json" --github-output "$GITHUB_OUTPUT" || {
-            echo "::error::the service fails its smoke test after the move: ${{ steps.revision.outputs.previous }} served before (rollback is Nov 23's step)"
+            echo "::error::the service fails its smoke test after the move: rolling back to ${{ steps.revision.outputs.previous_revision }}"
             exit 1; }
+
+      # Rollback: the move happened (or may have) and something after it failed. All traffic goes back, by name, to
+      # the revision that served before this run; the new one stays deployed at 0% for a look. The run stays red
+      - name: Roll back to the revision that served before (main)
+        id: rollback
+        if: always() && steps.traffic.outputs.moved == 'true' && (steps.traffic.outcome == 'failure' || steps.smoke_live.outcome == 'failure')
+        env:
+          SERVICE: ${{ steps.cfg.outputs.service }}
+          WHERE: --region=${{ steps.cfg.outputs.region }} --project=${{ steps.cfg.outputs.project }}
+          PREVIOUS: ${{ steps.revision.outputs.previous_revision }}
+          FAILED: ${{ steps.revision.outputs.name }}
+        run: |
+          if [ -z "$PREVIOUS" ] || [ "$PREVIOUS" = "$FAILED" ]; then
+            echo "::error::no earlier revision to roll back to: $FAILED keeps the traffic. Move it by hand"
+            exit 1
+          fi
+          start=$(date +%s)
+          # shellcheck disable=SC2086
+          gcloud run services update-traffic "$SERVICE" $WHERE --to-revisions "$PREVIOUS=100" --quiet
+          # shellcheck disable=SC2086
+          gcloud run services describe "$SERVICE" $WHERE --format=json > "$RUNNER_TEMP/rolled_back.json"
+          python Model-Deployment/traffic.py serving "$RUNNER_TEMP/rolled_back.json" --key serving --expect "$PREVIOUS" \
+            >> "$GITHUB_OUTPUT"
+          echo "rollback_s=$(( $(date +%s) - start ))" >> "$GITHUB_OUTPUT"
+          url=$(grep '^url=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)
+          echo "health=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 "$url/health")" >> "$GITHUB_OUTPUT"
+          echo "::error::rolled back: $FAILED failed after the move; $PREVIOUS serves 100% again"
 
       - name: Summary
         if: always()
@@ -237,7 +266,11 @@ jobs:
             if [ "$DRY_RUN" = true ]; then
               echo "### deploy (dry run: built and smoke-tested on the runner; nothing pushed, no revision)"
             else
-              if [ "${{ steps.traffic.outcome }}" = success ]; then
+              if [ "${{ steps.rollback.outcome }}" = success ]; then
+                echo "### deploy: rolled back, the revision that served before serves 100% again"
+              elif [ "${{ steps.rollback.outcome }}" = failure ]; then
+                echo "### deploy: ROLLBACK FAILED, check the service's traffic by hand"
+              elif [ "${{ steps.traffic.outcome }}" = success ] && [ "${{ steps.smoke_live.outcome }}" = success ]; then
                 echo "### deploy: the new revision serves 100% of traffic"
               else
                 echo "### deploy: a revision with no traffic (traffic not moved)"
@@ -256,11 +289,13 @@ jobs:
               echo "| Smoke test, the revision | ${{ steps.smoke.outcome }}: /health ${{ steps.smoke.outputs.smoke_health_s }} s, /score ${{ steps.smoke.outputs.smoke_score_s }} s, risk ${{ steps.smoke.outputs.smoke_risk }} |"
               echo "| Traffic | ${{ steps.traffic.outcome == 'success' && format('moved in {0} s: {1}', steps.traffic.outputs.move_s, steps.traffic.outputs.serving) || (env.MOVE_TRAFFIC == 'true' && 'not moved' || 'not moved (move_traffic off)') }} |"
               echo "| Smoke test, the service | ${{ steps.smoke_live.outcome }}: ${{ steps.traffic.outputs.url }} |"
+              echo "| Rollback | ${{ steps.rollback.outcome == 'skipped' && 'not needed' || format('{0} in {1} s: {2}; /health {3}', steps.rollback.outcome, steps.rollback.outputs.rollback_s, steps.rollback.outputs.serving, steps.rollback.outputs.health) }} |"
             fi
             echo "| Outcome | ${{ job.status }} |"
           } >> "$GITHUB_STEP_SUMMARY"
           # D5: one JSON line for Cloud Logging and S6's metrics. Versions only, never a person
-          printf '{"severity": "%s", "event": "deploy", "model_version": "%s", "dry_run": %s, "revision": "%s", "traffic_percent": %s, "smoke": "%s", "outcome": "%s"}\n' \
+          printf '{"severity": "%s", "event": "deploy", "model_version": "%s", "dry_run": %s, "revision": "%s", "traffic_percent": %s, "rolled_back": %s, "smoke": "%s", "outcome": "%s"}\n' \
             "$([ '${{ job.status }}' = success ] && echo INFO || echo ERROR)" "$VERSION" "$DRY_RUN" \
-            "${{ steps.revision.outputs.name }}" "${{ steps.traffic.outcome == 'success' && '100' || '0' }}" \
+            "${{ steps.revision.outputs.name }}" "${{ steps.traffic.outcome == 'success' && steps.rollback.outcome != 'success' && '100' || '0' }}" \
+            "${{ steps.rollback.outcome == 'success' }}" \
             "${{ steps.smoke_live.outcome == 'success' && steps.smoke_live.outcome || (env.ON_MAIN == 'true' && steps.smoke.outcome || steps.smoke_local.outcome) }}" "${{ job.status }}"
