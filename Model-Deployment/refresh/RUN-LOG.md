@@ -210,3 +210,57 @@ Chaitali's PR 1 adds `[serve_history]` (D4): `bucket = "cache"`, `object = "hist
 | Job's write access to the cache bucket | already granted: `iam.tf` `refresh` is objectAdmin on all three buckets |
 
 No live run: the change is only where the file goes. The "For Chaitali" note above is replaced by `[serve_history]`. The deploy account's read on that location is Rochan's grant.
+
+## 7. Run 5: the first history/latest.pkl, for the hand upload (Nov 24)
+
+The tracker: the first `history/latest.pkl` goes up by hand before deploy.yml is unpaused. My account has no role on the team project (run.jobs.get, artifactregistry and storage.objects.list all denied), so the job can't be deployed or run in Cloud Run from here. Main's job (after #156) ran locally instead, and the file goes to Rochan to upload.
+
+```bash
+.venv/bin/python Model-Deployment/refresh/job.py --data-root ~/Desktop/Meridian-refresh-data --store local:~/Desktop/Meridian-refresh-data/store
+```
+
+| Step | ms |
+|---|---:|
+| pull (last run 68c476cf891853a2) · anything_new | 0 · 2,860 (new) |
+| history · validate · update total | 115,806 · 22,542 · 151,511 |
+| history_pkl | 8,149: 7.6 MB, md5 `3b766ff017b23595323dd4142bb4ed56` |
+| table · drift | 6,328 · 634 new commits, retrain = true (PSI 0.3585 on `la`, 75% drifted) |
+| push | 155: `cache/history/a0274ceee5c11a53.pkl`, `cache/history/latest.pkl`, no root history.pkl |
+| **done** | **242,012**, exit 0. Block `a0274ceee5c11a53`, Spark at `26c4d283` |
+
+Check (scratchpad `check_history.py`, run 4's check as a script), 30 newest first-parent Spark commits as pushes: 30 of 30 identical feature rows, max risk difference 1.1e-16. Start 2.96 s from history.pkl against 5.16 s from the block; slowest push 93 ms. `/health` ok, champion `85b4684a…`, md5 `2a0c9cc6…`. No email-like string in the file's bytes. PASS.
+
+Handed to Rochan for `gs://<buckets.cache>/history/` (both names). Open: the job itself in Cloud Run needs a person with access, or roles for me.
+
+## 8. The five review fixes (Nov 24)
+
+| Fix | Change | Check |
+|---|---|---|
+| GCS token per call | `GcsStore.token()` keeps nothing; every call asks the metadata server (which renews it itself), else `gcloud` | PASS: 2 calls, 2 tokens, each sent |
+| Stream the upload | `put` hands the open file to urllib with `Content-Length`: sent in blocks, the 361 MB block never in memory | PASS: the body is the file object, size 5000 |
+| Model version at run time | `event()` reads `champion.json` for every D5 line, so a promotion mid-run shows | PASS: "old" then "new" |
+| Non-root, pinned base | `python:3.11.15-slim-trixie@sha256:90744cff…`; user `meridian` uid 10001 owns `/work` only | PASS: test on the Dockerfile; built image: `uid=10001`, `/work` writable, `/app` not, `--dry-run` ok |
+| Guard the Slack tail | `scrub()`: emails, bearer and key=value tokens, `ya29.` and GitHub tokens, the Slack webhook, `user:pw@` URLs, signed-URL signatures. Applied to the alert's subject, its last 10 lines (300 chars each) and the D5 `error`. A guard that fails withholds the text | PASS: 4 tests, ordinary errors kept as they are |
+
+`python -m unittest discover -s Model-Deployment/tests`: 110 tests, OK. flake8 clean. Image build 168 s, 2.07 GB (trimming it is a separate step).
+
+Not checked here: a real upload to GCS (no access on the team project yet), and a full run inside the container.
+
+## 9. Trimmed image, and run 6 in the image (Nov 24)
+
+**Trim.** `refresh/requirements.txt` holds only what the job imports, at the pipeline's pins (a test checks each pin against Data-Pipeline's and Model-Pipeline's). Out: dvc, dvc-gs, gcsfs, anthropic, google-genai, google-auth, requests, shap (with numba and llvmlite). Every module the update, the table, drift, precompute and the retrain (`model.run_all --refit`: train, evaluate, bias, gate, registry) import loads in the image. **2.07 GB → 1.54 GB.**
+
+**Run 6**, the real job in the trimmed image as uid 10001, on the laptop's data root (a macOS folder mount):
+
+```bash
+docker run --rm -v "$HOME/Desktop/Meridian-refresh-data:/work" meridian-refresh:trim --data-root /work --store local:/work/store
+```
+
+| Attempt | Result |
+|---|---|
+| 1 | **FAIL at collect in 3.6 s**: `curl` isn't in the image (collect fetches Jira with it). Every earlier container run was `--dry-run`, which never calls it, so the first cloud run would have failed here. Fixed: `curl` in the apt line, and a test on the Dockerfile's tools |
+| 2 | collect PASS (Spark at `d1c23f14`, Jira base + 6 deltas, run `d185bd9d4e1e4bea`), as the non-root user. history ran 21 min and was stopped by hand: SZZ's `git blame` through the macOS mount (settings.toml warns: over an hour on a Mac folder mount). Cloud Run uses its own disk |
+
+**Memory, sampled every 5 s (73 samples): peak 5.151 GiB**, over the job's 4 GiB ([jobs.refresh] memory). `szz_workers = 4` ran 4 SZZ processes on a 2-CPU job. Fixed: the job's settings set `szz_workers` to its CPUs (2), tested against `deploy.toml`. Expected about 2.5–3 GiB; **not yet measured**: the first cloud run (native disk, 2 CPUs) measures it.
+
+Tests: 115, OK. flake8 clean. Nothing published by run 6 (stopped before publish): `latest.json` is still `a0274ceee5c11a53`.

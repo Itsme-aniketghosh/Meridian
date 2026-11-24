@@ -101,10 +101,16 @@ MIGRATION_TABLES = ("candidate", "resolution", "call_site", "call_edge", "module
 MIGRATION_COVERAGE = ("call_sites_resolved", "call_sites_owned")
 
 
-def spark_settings(text):
-    """settings.toml's text without the row floors of MIGRATION_TABLES and the floors of MIGRATION_COVERAGE."""
+# SZZ processes in the job: one per CPU of [jobs.refresh] (2). settings.toml's 4 peaked at 5.15 GiB in the image
+# (run 6, Nov 24), over the job's 4 GiB, with 4 processes on 2 CPUs
+SZZ_WORKERS = 2
+
+
+def spark_settings(text, szz_workers=SZZ_WORKERS):
+    """settings.toml's text without the row floors of MIGRATION_TABLES and the floors of MIGRATION_COVERAGE, and
+    with [history] szz_workers set to the job's CPUs."""
     drop = {"validate.rows": MIGRATION_TABLES, "validate.coverage": MIGRATION_COVERAGE}
-    out, section = [], None
+    out, section, set_workers = [], None, False
     for line in text.splitlines(keepends=True):
         head = re.match(r"\[([^\]]+)\]\s*(#.*)?$", line)
         if head:
@@ -112,8 +118,12 @@ def spark_settings(text):
         key = re.match(r"\s*([A-Za-z_]+)\s*=", line)
         if key and key.group(1) in drop.get(section, ()):
             continue
+        if key and section == "history" and key.group(1) == "szz_workers":
+            line, set_workers = f"szz_workers = {szz_workers}   # the refresh job: one per CPU (job.py)\n", True
         out.append(line)
     new = "".join(out)
+    if not set_workers or tomllib.loads(new)["history"]["szz_workers"] != szz_workers:
+        raise SystemExit("spark_settings: settings.toml has no [history] szz_workers to set")
     old, cfg = tomllib.loads(text)["validate"], tomllib.loads(new)["validate"]
     if set(old["rows"]) - set(cfg["rows"]) != set(MIGRATION_TABLES) or \
             set(old["coverage"]) - set(cfg["coverage"]) != set(MIGRATION_COVERAGE):
@@ -159,30 +169,33 @@ class LocalStore:
 class GcsStore:
     """deploy.toml's buckets through the Cloud Storage JSON API. The token comes from the metadata server in Cloud
     Run (the job's own service account, meridian-refresh), else from `gcloud auth print-access-token`. No client
-    library: the image stays the pipeline's pins."""
+    library: the image stays the pipeline's pins.
+
+    The token is fetched for every call, never kept: a token lives about an hour, and the uploads come at the end of
+    a run that may take longer. The metadata server keeps and renews the token itself, so asking it is cheap."""
 
     API = "https://storage.googleapis.com"
 
     def __init__(self, buckets):
-        self.buckets, self._token = buckets, None
+        self.buckets = buckets
 
     def token(self):
-        if self._token is None:
-            try:
-                req = urllib.request.Request(
-                    "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
-                    headers={"Metadata-Flavor": "Google"})
-                with urllib.request.urlopen(req, timeout=5) as r:
-                    self._token = json.load(r)["access_token"]
-            except OSError:
-                self._token = subprocess.run(["gcloud", "auth", "print-access-token"], check=True,
-                                             capture_output=True, text=True).stdout.strip()
-        return self._token
+        try:
+            req = urllib.request.Request(
+                "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+                headers={"Metadata-Flavor": "Google"})
+            with urllib.request.urlopen(req, timeout=5) as r:
+                return json.load(r)["access_token"]
+        except OSError:
+            return subprocess.run(["gcloud", "auth", "print-access-token"], check=True,
+                                  capture_output=True, text=True).stdout.strip()
 
-    def _call(self, url, data=None, method="GET", ctype=None):
+    def _call(self, url, data=None, method="GET", ctype=None, size=None):
         headers = {"Authorization": f"Bearer {self.token()}"}
         if ctype:
             headers["Content-Type"] = ctype
+        if size is not None:   # a file object as the body: http.client sends it in blocks, never all in memory
+            headers["Content-Length"] = str(size)
         return urllib.request.urlopen(urllib.request.Request(url, data, headers, method=method), timeout=600)
 
     def get(self, bucket, name, dest):
@@ -204,8 +217,8 @@ class GcsStore:
         b = self.buckets[bucket]
         url = f"{self.API}/upload/storage/v1/b/{b}/o?uploadType=media&name={urllib.parse.quote(name, safe='')}"
         ctype = "application/json" if name.endswith(".json") else "application/octet-stream"
-        with open(src, "rb") as f:
-            self._call(url, f.read(), "POST", ctype).close()
+        with open(src, "rb") as f:   # streamed: the 361 MB block never sits in memory
+            self._call(url, f, "POST", ctype, size=os.fstat(f.fileno()).st_size).close()
 
     def where(self, bucket, name):
         return f"gs://{self.buckets[bucket]}/{name}"
@@ -235,7 +248,6 @@ class Job:
         # where deploy.yml reads history.pkl: deploy.toml [serve_history], a [buckets] key and an object under history/
         h = serve_history or {"bucket": "cache", "object": "history/latest.pkl"}
         self.history_bucket, self.history_object = h["bucket"], h["object"]
-        self.version = model_version()
         self.work = self.root / "refresh"
         self.env = {**os.environ, "MERIDIAN_DATA": str(self.root), "PYTHONUNBUFFERED": "1"}
         self.timings = {}
@@ -243,7 +255,8 @@ class Job:
 
     def event(self, step, ms, event="refresh", severity="INFO", **fields):
         """One D5 log line."""
-        line = {"severity": severity, "event": event, "step": step, "model_version": self.version,
+        # read per line, not once at start: a promotion during the run (the retrain step) changes champion.json
+        line = {"severity": severity, "event": event, "step": step, "model_version": model_version(),
                 "latency_ms": ms, **fields}
         print(json.dumps(line, sort_keys=True), file=self.out, flush=True)
 
@@ -394,10 +407,11 @@ class Job:
             self.event("done", int((time.monotonic() - started) * 1000), run_id=run_id, outcome="ok")
             return 0
         except (StepFailed, subprocess.CalledProcessError, OSError, SystemExit) as e:
+            error = scrub(str(e))
             self.event(step, int((time.monotonic() - started) * 1000), severity="ERROR", outcome="failed",
-                       error=str(e)[:500])
-            tail = getattr(e, "tail", "")
-            alert(f"refresh job failed at {step}: {e}", tail.splitlines()[-10:] if tail else [])
+                       error=error[:500])
+            tail = getattr(e, "tail", "") or ""
+            alert(f"refresh job failed at {step}: {error[:300]}", [scrub(x)[:300] for x in tail.splitlines()[-10:]])
             return 1
 
 
@@ -418,6 +432,31 @@ def d2(run_id, at, drift):
                       "evidently_share": drift["drifted_share"], "flag": drift["retrain"],
                       "why": "; ".join(drift["reasons"]) or "no threshold crossed", "window": drift.get("window")},
             "decay": None, "retrain": bool(drift["retrain"])}
+
+
+# What a step's output may hold that must never reach Slack or the logs: an email (git's author lines), a token, a
+# password in a URL, a signed URL's signature. Each is replaced by a label; the rest of the line stays, for debugging
+SCRUB = [
+    (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "<email>"),
+    (re.compile(r"(?i)\b(bearer\s+)[^\s\"',]+"), r"\1<redacted>"),
+    (re.compile(r"(?i)\b(token|access_token|password|passwd|secret|api_key|key)([\"']?\s*[:=]\s*[\"']?)[^\s\"',&]+"),
+     r"\1\2<redacted>"),
+    (re.compile(r"\bya29\.[A-Za-z0-9_.-]+"), "<token>"),                           # a Google access token
+    (re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"), "<token>"),                      # a GitHub token
+    (re.compile(r"https://hooks\.slack\.com/\S+"), "<slack webhook>"),
+    (re.compile(r"(?i)(https?://)[^\s/:@]+:[^\s/@]+@"), r"\1<user>:<redacted>@"),   # user:password@host
+    (re.compile(r"(?i)([?&](x-goog-signature|signature|sig|token)=)[^&\s]+"), r"\1<redacted>"),
+]
+
+
+def scrub(text):
+    """text with emails, tokens and credentials replaced. Never raises: a broken guard mustn't hide the failure."""
+    try:
+        for pattern, label in SCRUB:
+            text = pattern.sub(label, text)
+        return text
+    except Exception:   # noqa: BLE001
+        return "<output withheld: the guard failed>"
 
 
 def alert(subject, lines):
