@@ -8,17 +8,6 @@ locals {
   budget_end     = [for p in split("-", local.cfg.budget.end) : tonumber(p)]
 }
 
-resource "google_monitoring_notification_channel" "budget" {
-  for_each     = toset(var.alert_emails)
-  display_name = "Meridian budget alerts"
-  type         = "email"
-  labels = {
-    email_address = each.value
-  }
-
-  depends_on = [google_project_service.api]
-}
-
 resource "google_billing_budget" "project" {
   billing_account = var.billing_account
   display_name    = "meridian ${local.project}"
@@ -59,7 +48,7 @@ resource "google_billing_budget" "project" {
   dynamic "all_updates_rule" {
     for_each = length(var.alert_emails) > 0 ? [1] : []
     content {
-      monitoring_notification_channels = [for c in google_monitoring_notification_channel.budget : c.id]
+      monitoring_notification_channels = [for c in google_monitoring_notification_channel.team : c.id] # monitoring.tf
       disable_default_iam_recipients   = false
     }
   }

@@ -12,12 +12,18 @@ variable "billing_account" {
 }
 
 variable "alert_emails" {
-  description = "The team's emails for the budget alerts, besides the billing account's admins and users. At most 5."
+  description = "The team's emails for the budget and service alerts, besides the billing account's admins and users. At most 5."
   type        = list(string)
   validation {
     condition     = length(var.alert_emails) <= 5
     error_message = "A budget takes at most 5 notification channels."
   }
+}
+
+variable "slack_channel" {
+  description = "The Slack channel's display name in Cloud Monitoring, once a person has connected it in the console (README.md). Empty: no Slack."
+  type        = string
+  default     = ""
 }
 
 variable "placeholder_service_image" {

@@ -103,8 +103,10 @@ min_positives = 30
 min_paired_lower = 0.0   # the paired interval's lower bound must stay above this
 max_drop = 0.05
 
-[service_alerts]   # PLAN §5 and §6, for S6: they page Slack and never retrain
+[service_alerts]   # PLAN §5 and §6, for S6 (infra/terraform/monitoring.tf): they page Slack and never retrain
 error_rate = 0.01
-error_window_min = 10
+error_window_min = 10   # the 5xx and p95 alerts look at the last 10 minutes
 p95_latency_s = 2
-cold_start_s = 15
+cold_start_s = 15       # PLAN §6's bar: a chart on S6's dashboard (Wed), not an alert
+uptime_period_s = 300   # /health from each region every 5 min: about 26,000 checks a month, of 1 million free
+uptime_regions = ["USA_OREGON", "USA_IOWA", "USA_VIRGINIA"]   # Google's minimum is 3 locations
