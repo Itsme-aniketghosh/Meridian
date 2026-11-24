@@ -1,0 +1,32 @@
+{
+ "bar": "no email, name or person id in any /score response or log line, over 1,000 scored commits",
+ "checked_at": "2026-11-24T18:09:14Z",
+ "block_run_id": "70dd1dabfed544b8",
+ "model_version": "85b4684ae33697e771ba4defa5cc4cb5618bcd6a",
+ "model_md5": "2a0c9cc656b43fc4e471c70223c4b4ca",
+ "scored": {
+  "by_sha": 500,
+  "as_push": 500
+ },
+ "responses": 1000,
+ "log_lines": 1000,
+ "identifiers_checked": {
+  "emails": 9896,
+  "person_ids": 8378,
+  "name_words": 9102,
+  "request_hashes": 222
+ },
+ "junk_emails_not_checked": {
+  "count": 4,
+  "why": "no @ and under 6 characters: names nobody, matches any line",
+  "values": [
+   "=",
+   "bas",
+   "roter",
+   "x"
+  ]
+ },
+ "name_words_excluded_as_the_responses_own_keys": [],
+ "hits": [],
+ "passed": true
+}
