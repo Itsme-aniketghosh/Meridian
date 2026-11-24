@@ -15,6 +15,7 @@ Everything phase 3 runs on GCP, as code (`Model-Deployment/PLAN.md` §2–3). Ev
 | Secret Manager: the names only, stored in us-east1 | `secrets`: `MERIDIAN_SLACK_WEBHOOK`, `MERIDIAN_GITHUB_DISPATCH` | S7, D3 |
 | Budget: $25 for Nov 17 – Dec 7, alerts at 50, 90 and 100%, counted before credits | `budget` | C7 |
 | An uptime check on `/health` from 3 US regions every 5 minutes, and 5 alerts ([Alerts](#alerts-s6)) | `service_alerts` | S6 |
+| A guard: on the team's project, nothing is deleted or replaced by accident ([Tear it down](#tear-it-down-after-grading)) | | Aniket's review |
 
 **What each account can do.** Every grant is on the one resource it's needed on, except the metrics writer:
 
@@ -144,7 +145,33 @@ printf %s "$MERIDIAN_SLACK_WEBHOOK" | gcloud secrets versions add MERIDIAN_SLACK
 
 ### Tear it down (after grading)
 
-`terraform destroy` removes everything except `meridian-models`. That repository is released from Terraform's management, not deleted (`deletion_policy = "ABANDON"`), so phase 2's model versions stay. CI's sign-in goes with the rest.
+**On the team's project, a run stops before deleting anything** (`guard.tf`, from Aniket's review) if it would:
+- destroy it, even with `-target`;
+- replace CI's sign-in, its account, the registry or a bucket.
+
+**No run can use another project's state** (`deploy_config.py`). A fresh project's run left on the team's state stops before it plans anything, even with `-target`.
+
+**Ordinary changes go through.**
+- Deleting a resource from the code fails the plan until it's also taken out of `guard.tf`'s list.
+- Dropping CI's key from a list fails the plan too, since the guard names it.
+- An `apply -target` skips the guard. Before you type yes, read its plan for "must be replaced".
+
+To tear the team's project down on purpose:
+
+```bash
+terraform apply -var allow_team_destroy=true   # 1 change: the guard steps aside
+terraform destroy
+```
+
+`terraform destroy -var allow_team_destroy=true` alone does nothing, because the guard keeps the setting from the last apply. The next plain `apply` turns it back on.
+
+That removes everything except `meridian-models`. That repository is released from Terraform's management, not deleted (`deletion_policy = "ABANDON"`), so phase 2's model versions stay. CI's sign-in goes with the rest.
+
+**Two cases need a different route:** replacing a guarded resource on purpose, or the apply above being refused because a guarded replacement is already pending. In either case, run `terraform state rm terraform_data.team_guard`, then `terraform apply`. The change goes through, and the guard is created again, last.
+
+The guard stops accidents, not intent: deleting `guard.tf`, or `terraform state rm` or `taint` on the guard, gets past it. It also protects only runs from a checkout that has `guard.tf`.
+
+A fresh project tears down with no extra step. Its run (S8's `bootstrap.sh`, still to come) must start Terraform on that project's own state bucket with `terraform init -reconfigure`, never `-migrate-state`, which would copy the team's state.
 
 ## Alerts (S6)
 

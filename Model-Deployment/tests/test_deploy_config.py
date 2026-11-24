@@ -6,8 +6,10 @@ copies of the same names agree with it, and the Terraform takes every name from 
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
@@ -167,10 +169,35 @@ class Phase2AgreesWithIt(unittest.TestCase):
 
 
 class Cli(unittest.TestCase):
-    def cli(self, *args, stdin=""):
-        env = {k: v for k, v in os.environ.items() if k != "MERIDIAN_DEPLOY_PROJECT"}
+    def cli(self, *args, stdin="", cwd=None):
+        env = {k: v for k, v in os.environ.items() if k not in ("MERIDIAN_DEPLOY_PROJECT", "TF_DATA_DIR")}
         return subprocess.run([sys.executable, str(DEPLOY / "deploy_config.py"), *args], input=stdin,
-                              capture_output=True, text=True, env=env)
+                              capture_output=True, text=True, env=env, cwd=cwd)
+
+    def workdir(self, bucket, kind="gcs"):
+        # a directory whose Terraform state is `bucket`, the way `terraform init` records it
+        d = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, d)
+        (d / ".terraform").mkdir()
+        backend = {"backend": {"type": kind, "config": {"bucket": bucket, "prefix": "terraform"}}}
+        (d / ".terraform" / "terraform.tfstate").write_text(json.dumps(backend))
+        return d
+
+    def test_terraform_refuses_another_projects_state(self):
+        # a fresh project's run left on the team's state stops before any plan, targeted or not
+        team_state = deploy_config.load(use_env=False)["buckets"]["tfstate"]
+        r = self.cli("--terraform", stdin=json.dumps({"project": "fresh-project-123"}), cwd=self.workdir(team_state))
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("gs://fresh-project-123-tfstate", r.stderr)
+        self.assertEqual(r.stdout, "")
+
+    def test_terraform_runs_on_its_own_state(self):
+        team_state = deploy_config.load(use_env=False)["buckets"]["tfstate"]
+        for query, bucket, kind in (({"project": ""}, team_state, "gcs"),
+                                    ({"project": "fresh-project-123"}, "fresh-project-123-tfstate", "gcs"),
+                                    ({"project": "fresh-project-123"}, team_state, "local")):  # a local dry run
+            r = self.cli("--terraform", stdin=json.dumps(query), cwd=self.workdir(bucket, kind))
+            self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_get_a_string(self):
         r = self.cli("--get", "services.risk.name")
@@ -256,6 +283,45 @@ class ServiceAlerts(unittest.TestCase):
         self.assertRegex(job, r'self\.event\(\s*"drift"[^)]*event="drift"[^)]*retrain=')
         self.assertIn('jsonPayload.event = \\"drift\\"', self.tf)
         self.assertIn("jsonPayload.retrain = true", self.tf)
+
+
+class TeamGuard(unittest.TestCase):
+    """guard.tf: on the team's project, a destroy, a run pointed at another project, or a replacement of CI's sign-in
+    stops at the guard before anything goes."""
+
+    def setUp(self):
+        self.guard = (TERRAFORM / "guard.tf").read_text()
+
+    def listed(self, name):
+        # the entries of `name = [...]`, closed by a line of its own, comments stripped
+        m = re.search(rf"^\s*{name}\s*=\s*\[\n(.*?)^\s*\]", self.guard, re.M | re.S)
+        self.assertIsNotNone(m, f"guard.tf has no {name}")
+        body = "\n".join(line.split("#", 1)[0] for line in m.group(1).splitlines())
+        return {entry.strip() for entry in body.split(",") if entry.strip()}
+
+    def test_every_resource_waits_for_the_guard(self):
+        # exactly the resources in the .tf files: one left out could be deleted around the guard
+        resources = {f"{kind}.{name}" for tf in TERRAFORM.glob("*.tf")
+                     for kind, name in re.findall(r'^resource\s+"([^"]+)"\s+"([^"]+)"', tf.read_text(), re.M)}
+        resources.discard("terraform_data.team_guard")
+        self.assertGreater(len(resources), 20)
+        self.assertEqual(self.listed("depends_on"), resources)
+
+    def test_what_cant_be_rebuilt_stops_at_the_guard(self):
+        self.assertEqual(self.listed("replace_triggered_by"), {
+            "google_iam_workload_identity_pool.github.id", "google_iam_workload_identity_pool_provider.github.id",
+            'google_service_account.sa["ci"].id', 'google_service_account_iam_member.github["ci"].id',
+            'google_artifact_registry_repository_iam_member.models["ci"].id',
+            "google_artifact_registry_repository.models.id", 'google_storage_bucket.data["block"].id',
+            'google_storage_bucket.data["monitor"].id', 'google_storage_bucket.data["cache"].id'})
+        self.assertRegex(self.guard, r"triggers_replace\s*=\s*local\.project\n")   # a run pointed at another project
+
+    def test_the_guard_refuses_on_the_team_project(self):
+        # the part that refuses: a destroy-time command that fails while armed, and no `on_failure` to swallow it
+        self.assertRegex(self.guard, r"input\s*=\s*length\(local\.adopt\) > 0 && !var\.allow_team_destroy")
+        self.assertRegex(self.guard, r"when\s*=\s*destroy\n")
+        self.assertRegex(self.guard, r'command\s*=\s*self\.input \? "[^"]*&& exit 1" : "exit 0"\n')
+        self.assertNotIn("on_failure", self.guard)
 
 
 class TerraformReadsDeployToml(unittest.TestCase):
