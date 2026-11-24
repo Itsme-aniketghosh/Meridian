@@ -4,8 +4,11 @@
 # The budget (C7). Find it with: gcloud billing projects describe <project-id>
 billing_account = "000000-000000-000000"
 
-# The team's emails for the budget alerts, besides the billing account's admins and users. At most 5.
+# The team's emails for the budget and service alerts, besides the billing account's admins and users. At most 5.
 alert_emails = ["teammate@example.com"]
+
+# Once Slack is connected in the console (README.md, "Alerts"): its display name there. The service alerts page it
+# slack_channel = "Meridian Slack"
 
 # A fresh project: bootstrap.sh passes its id. Empty means deploy.toml's [gcp] project, where phase 2's registry,
 # CI account and Workload Identity are taken over (imports.tf).

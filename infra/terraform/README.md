@@ -14,8 +14,7 @@ Everything phase 3 runs on GCP, as code (`Model-Deployment/PLAN.md` §2–3). Ev
 | Workload Identity: GitHub Actions on this repository's main branch only | `workload_identity`: pool `github`, provider `meridian` (phase 2's, adopted) | `model.yml`, `deploy.yml` |
 | Secret Manager: the names only, stored in us-east1 | `secrets`: `MERIDIAN_SLACK_WEBHOOK`, `MERIDIAN_GITHUB_DISPATCH` | S7, D3 |
 | Budget: $25 for Nov 17 – Dec 7, alerts at 50, 90 and 100%, counted before credits | `budget` | C7 |
-
-Cloud Monitoring (S6) is added in `monitoring.tf`, with Vishwa.
+| An uptime check on `/health` from 3 US regions every 5 minutes, and 5 alerts ([Alerts](#alerts-s6)) | `service_alerts` | S6 |
 
 **What each account can do.** Every grant is on the one resource it's needed on, except the metrics writer:
 
@@ -95,7 +94,7 @@ terraform apply                                 # Nov 19: 4 imported, 46 added, 
 
 They keep the settings they already have, so CI's registry push keeps working through the change. The plan's one change is Terraform's own `deletion_policy` on `meridian-models`, going from `"DELETE"` to `"ABANDON"`; nothing changes in GCP.
 
-A plain `apply` makes all of it at once, and nothing runs or bills until S2–S4 ship:
+A plain `apply` makes all of it at once, and nothing costs money until S2–S4 ship:
 - the service and the job start on Google's placeholder images;
 - the schedule is paused.
 
@@ -147,14 +146,42 @@ printf %s "$MERIDIAN_SLACK_WEBHOOK" | gcloud secrets versions add MERIDIAN_SLACK
 
 `terraform destroy` removes everything except `meridian-models`. That repository is released from Terraform's management, not deleted (`deletion_policy = "ABANDON"`), so phase 2's model versions stay. CI's sign-in goes with the rest.
 
+## Alerts (S6)
+
+`monitoring.tf` checks `/health` from 3 US regions every 5 minutes and pages on PLAN §5's service rules. Every threshold from the plan is in `deploy.toml` `[service_alerts]`; the rest are Google's usual settings, such as the uptime alert's 2 regions.
+
+| Alert | Fires when |
+|---|---|
+| `meridian-risk: /health failing` | `/health` fails from 2 or more regions |
+| `meridian-risk: 5xx above 1% of requests` | over the last 10 minutes |
+| `meridian-risk: p95 latency above 2 s` | over the last 10 minutes; container start-up isn't counted |
+| `meridian-refresh failed` | an execution of the job fails |
+| `Drift found: retrain due` | the job's D5 line has `"event": "drift"` and `"retrain": true` (a log-based alert) |
+
+- **An alert closes within 30 minutes** once its data stops (missing data counts as resolved), so the next failure pages again. Google's default would keep it open 7 days.
+- **The 5xx and p95 alerts count the uptime check's own `/health` calls too:** Cloud Run's metrics can't tell paths apart. They also count revisions with no traffic, so a smoke test that fails on one (`deploy.yml`) can page.
+- **Cost: $0.**
+  - The uptime check runs about 26,000 times a month, and Google gives each project 1 million.
+  - Google charges nothing for alerting until at least Sept 1, 2027. After that it's about $0.35 a month per alert, except the uptime alert.
+- **Cold start** (≤ 15 s, PLAN §6) will be a chart on S6's dashboard (Wed), not an alert. The uptime check keeps an instance warm, so cold starts are rare: the 15 s bar needs a deliberate test.
+- **Alerts never retrain:** that's the refresh job's decision (S4, S5).
+
+**Who hears them.** Until one of these is set, the alerts only open incidents in the console, and every plan warns.
+- the team's emails, from `alert_emails` in `terraform.tfvars`;
+- **Slack**, once a person connects it. Google does this only in the console:
+  1. Monitoring → Alerting → **Edit notification channels** → Slack → **Add new**.
+  2. Sign in to the team's Slack, pick the channel, and give it a display name.
+  3. Set `slack_channel = "<that display name>"` in `terraform.tfvars` and apply.
+
 ## Cost
 
 - **Idle costs $0:**
-  - the service scales to zero;
+  - the service is billed only while a request runs (`cpu_idle`), so the instance the uptime check keeps warm costs nothing;
   - the schedule is paused until S4;
   - the buckets and the image repo start empty, and keep no soft-deleted copies;
   - a secret with no value isn't billed.
 - **The bar** is under $5 for the phase (PLAN §6).
+- **The alerts and the uptime check** cost nothing ([Alerts](#alerts-s6)).
 - **The budget** covers Nov 17 – Dec 7, not a calendar month.
   - **When:** at $12.50, $22.50 and $25 of use.
   - **Who:** the billing account's administrators and users, plus the team's emails from `terraform.tfvars`.

@@ -206,6 +206,58 @@ class Cli(unittest.TestCase):
             self.assertEqual(cfg["buckets"]["cache"], f"{project}-meridian-cache")
 
 
+class ServiceAlerts(unittest.TestCase):
+    """S6 (monitoring.tf): every alert threshold comes from [service_alerts], within Google's limits."""
+
+    def setUp(self):
+        self.cfg = deploy_config.load(use_env=False)
+        self.alerts = self.cfg["service_alerts"]
+        self.tf = (TERRAFORM / "monitoring.tf").read_text()
+
+    def test_monitoring_tf_reads_each_threshold(self):
+        # The assignments themselves, so a number typed into the .tf file fails here. cold_start_s is a dashboard
+        # chart (Wed), not an alert
+        for pattern in (r"threshold_value\s*=\s*local\.alerts\.error_rate\n",
+                        r"threshold_value\s*=\s*local\.alerts\.p95_latency_s \* 1000\s",
+                        r'window\s*=\s*"\$\{local\.alerts\.error_window_min \* 60\}s"',
+                        r'period\s*=\s*"\$\{local\.alerts\.uptime_period_s\}s"',
+                        r"selected_regions\s*=\s*local\.alerts\.uptime_regions\n"):
+            self.assertRegex(self.tf, pattern)
+        # the 5xx alert (both halves of its ratio), the p95 alert and the job alert all use that window
+        self.assertEqual(len(re.findall(r"alignment_period\s*=\s*local\.window\n", self.tf)), 4)
+
+    def test_the_sparse_alerts_close_so_the_next_failure_pages(self):
+        # Google keeps an incident open 7 days once its data stops, unless no data counts as resolved, which it
+        # honours only with a duration of at least 60 s
+        for name in ("errors", "slow", "job_failed"):
+            block = self.tf.split(f'resource "google_monitoring_alert_policy" "{name}"', 1)[1].split("\nresource ")[0]
+            self.assertRegex(block, r'evaluation_missing_data\s*=\s*"EVALUATION_MISSING_DATA_INACTIVE"', name)
+            self.assertRegex(block, r'duration\s*=\s*"60s"', name)
+            self.assertRegex(block, r'auto_close\s*=\s*"1800s"', name)
+
+    def test_the_uptime_check_fits_googles_limits(self):
+        # Google: a period of 1, 5, 10 or 15 minutes, a timeout of at most 60 s and within it, at least 3 locations
+        period = self.alerts["uptime_period_s"]
+        self.assertIn(period, (60, 300, 600, 900))
+        self.assertLessEqual(self.cfg["services"]["risk"]["timeout_s"], min(60, period))
+        regions = set(self.alerts["uptime_regions"])
+        self.assertLessEqual(regions, {"USA", "USA_OREGON", "USA_IOWA", "USA_VIRGINIA", "EUROPE", "SOUTH_AMERICA",
+                                       "ASIA_PACIFIC"})
+        self.assertGreaterEqual(len(regions), 3)
+
+    def test_every_alert_pages_the_channels(self):
+        # each policy pages local.alert_channels, never a list of its own: an empty one would page nobody
+        self.assertEqual(len(re.findall(r'^resource "google_monitoring_alert_policy"', self.tf, re.M)), 5)
+        self.assertEqual(len(re.findall(r"notification_channels\s*=\s*local\.alert_channels\n", self.tf)), 5)
+
+    def test_the_drift_alert_matches_the_jobs_log_line(self):
+        # D5: the refresh job logs event "drift" with D2's retrain flag; the log-based alert matches both fields
+        job = (DEPLOY / "refresh" / "job.py").read_text()
+        self.assertRegex(job, r'self\.event\(\s*"drift"[^)]*event="drift"[^)]*retrain=')
+        self.assertIn('jsonPayload.event = \\"drift\\"', self.tf)
+        self.assertIn("jsonPayload.retrain = true", self.tf)
+
+
 class TerraformReadsDeployToml(unittest.TestCase):
     def test_no_name_is_typed_into_a_tf_file(self):
         # Comments may mention a name, and block labels (resource "…" "github") are Terraform's own names; every
