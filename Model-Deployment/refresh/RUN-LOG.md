@@ -311,3 +311,39 @@ No failure, no retry, no out-of-memory error in 54 min. Nothing was written to t
 **Fix:** `deploy.toml [jobs.refresh] timeout_s` 3600 → **7200**, and the live job set the same (`gcloud run jobs update --task-timeout 2h`) so Terraform agrees once this merges. Next: rerun once, cold, with 2 h.
 
 Not measured: memory (my account reads logs, not Cloud Monitoring metrics).
+
+## 12. Run 9: the first complete run on Cloud Run (Nov 25)
+
+Execution `meridian-refresh-hcx2c`, image `refresh:7900227ad8f2`, 2 CPUs, 8Gi, 2-hour limit (#166). Cold: no cache, empty block bucket. **Succeeded in 1 h 6 min 21 s**, no retry, no failure.
+
+| Step | Time |
+|---|---:|
+| pull · restore_cache · anything_new | 0.1 s · 0.05 s (cold: none in the store yet) · 0.5 s (nothing published yet) |
+| collect (clone + all 61,916 Jira tickets) | ~36 min (02:26 → 03:02) |
+| history (SZZ cold: **9,972 fix commits, 0 reused**, 26,994 bug_inducing rows) | 27.6 min |
+| scan · resolve · owners · join · graph · validate | 0.4 · 1.0 · 8.0 · 13.2 · 2.8 · 37.9 s |
+| history_pkl | 17.0 s: 7.6 MB, md5 `e02c1aa7f353dc240c99ff8205afb823` |
+| table | 12.9 s: 42,138 rows, md5 `399fa60b…` |
+| drift | 645 new commits, **retrain = true** (PSI 0.3679 on `la`, 75% drifted) |
+| push | 6.8 s: block `952ff020887c15b3`, `history/952ff020887c15b3.pkl` and `history/latest.pkl`, `latest.json`, the D2 report |
+| save_cache | 41.6 s: **831.4 MB** to `job-cache/snapshots-cache.tar.gz` (Spark only) |
+| **done** | **3,963.9 s**, exit 0 |
+
+Checked in the cache bucket: `history/latest.pkl` md5 `e02c1aa7…` matches the log line, and `job-cache/snapshots-cache.tar.gz` is 831,413,669 bytes. The block bucket now holds the first block and `latest.json` (written by the job; my account can't read that bucket).
+
+A cold run is a one-time cost: 36 min collect and 28 min SZZ. The next run restores the cache and should take ~5 min (run 7: 269 s).
+
+## 13. Run 10: the first warm run on Cloud Run (Nov 25)
+
+Execution `meridian-refresh-rrt4w`, 18 min after run 9. **Succeeded in 45 s** (22.2 s in the job itself).
+
+| Step | ms |
+|---|---:|
+| pull (last run `952ff020887c15b3`, the block from GCS) | 4,753 |
+| restore_cache | **16,673: restored, 831.4 MB** |
+| anything_new | 780: "0 new commits", nothing new |
+| done | 22,228, outcome "nothing new", exit 0 |
+
+Proven in the cloud: run 9's cache comes back on Cloud Run's empty disk in 17 s, and a day with nothing new ends in under a minute, with nothing pushed. Not yet proven in the cloud: a warm run with new commits (Spark had none in the 18 minutes). Locally that took 269 s (run 7); the next run after Spark's next commits measures it.
+
+**End to end:** Chaitali's live deploy runs (no-traffic 03:34 UTC, normal 03:38 UTC) copied `history/latest.pkl` 3 minutes after run 9 wrote it, so live `/score` (`meridian-risk-00003-biw`) serves run 9's history (block `952ff020`, md5 `e02c1aa7…`): refresh job → `latest.pkl` → deploy → `/score`.
