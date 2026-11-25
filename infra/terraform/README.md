@@ -15,6 +15,7 @@ Everything phase 3 runs on GCP, as code (`Model-Deployment/PLAN.md` §2–3). Ev
 | Secret Manager: the names only, stored in us-east1 | `secrets`: `MERIDIAN_SLACK_WEBHOOK`, `MERIDIAN_GITHUB_DISPATCH` | S7, D3 |
 | Budget: $25 for Nov 17 – Dec 7, alerts at 50, 90 and 100%, counted before credits | `budget` | C7 |
 | An uptime check on `/health` from 3 US regions every 5 minutes, and 5 alerts ([Alerts](#alerts-s6)) | `service_alerts` | S6 |
+| A dashboard whose top row is the SLO and cost panel, the endpoint's 2 SLOs, and 4 log-based metrics from the D5 lines ([Dashboard](#dashboard-slos-and-cost-s6)) | `slo`, `cost` | S6 |
 | A guard: on the team's project, nothing is deleted or replaced by accident ([Tear it down](#tear-it-down-after-grading)) | | Aniket's review |
 | Access for the people who deploy and run the refresh job by hand: that job, not the project ([Add or remove a person](#add-or-remove-a-person)) | `refresh_developers` in `terraform.tfvars`, so no email is in git | S4 |
 
@@ -208,7 +209,7 @@ A fresh project tears down with no extra step. Its run (S8's `bootstrap.sh`, sti
 - **Cost: $0.**
   - The uptime check runs about 26,000 times a month, and Google gives each project 1 million.
   - Google charges nothing for alerting until at least Sept 1, 2027. After that it's about $0.35 a month per alert, except the uptime alert.
-- **Cold start** (≤ 15 s, PLAN §6) will be a chart on S6's dashboard (Wed), not an alert. The uptime check keeps an instance warm, so cold starts are rare: the 15 s bar needs a deliberate test.
+- **Cold start** (≤ 15 s, PLAN §6) is a chart on the dashboard, not an alert. The uptime check keeps an instance warm, so cold starts are rare: the 15 s bar needs a deliberate test.
 - **Alerts never retrain:** that's the refresh job's decision (S4, S5).
 
 **Who hears them.** Until one of these is set, the alerts only open incidents in the console, and every plan warns.
@@ -218,6 +219,40 @@ A fresh project tears down with no extra step. Its run (S8's `bootstrap.sh`, sti
   2. Sign in to the team's Slack, pick the channel, and give it a display name.
   3. Set `slack_channel = "<that display name>"` in `terraform.tfvars` and apply.
 
+  On the team's project that's `#meridian-alerts`, display name `Meridian Slack`, connected Nov 24. The console's **Add new** opens Slack in a pop-up, so a browser that blocks pop-ups shows "Unable to open the Slack app".
+
+## Dashboard, SLOs and cost (S6)
+
+`dashboard.tf` makes one dashboard (`terraform output dashboard_url`). Its top row is the **SLO and cost panel** the expo asks for (PLAN §6 and §16), over the last 7 days:
+
+| Tile | What it shows |
+|---|---|
+| Error budget left | SLO `availability`: 99% of requests aren't 5xx. 100% means untouched; below 0% means the SLO is missed |
+| Latency budget left | SLO `latency`: 95% of requests within 2 s |
+| Cost per 1,000 scores | Cloud Run's list price for the service's instance time and requests, over the scores it answered |
+| Scores answered | from the service's D5 lines |
+
+- **The bars are the plan's.** The error budget is the 5xx alert's 1% (`[slo] availability_goal`, which a test keeps at 1 − `[service_alerts] error_rate`). The latency budget is the p95 bar. The window is `[slo] window_days`.
+- **Below the panel:**
+  - the budgets and the cost over time;
+  - requests by response class, and the 5xx share against the alert's 1%;
+  - latency p50 and p95 against 2 s, and cold starts against PLAN §6's 15 s;
+  - instances against the max of 2, scores per hour by model version (a canary shows two), and `/health` by region;
+  - refresh-job runs by outcome, drift checks by verdict, and billable seconds of the service and the job;
+  - the incidents from the 5 alerts.
+- **Cost per 1,000 scores** is `1000 × (billable instance seconds × (CPU × vCPU price + GiB × memory price) + requests × request price) ÷ scores`.
+  - The prices are `deploy.toml` `[cost]`: us-east1, request-based billing, from Google's pricing page on Nov 24.
+  - It's before the free tier, which makes the real bill $0, so it shows what the scores would cost at scale.
+  - It counts the uptime check's requests, which cost money but aren't scores.
+  - It shows no data until the service answers scores: the placeholder image writes no D5 lines.
+- **4 log-based metrics** read the D5 lines:
+  - `meridian_scores`: answered scores, by model version;
+  - `meridian_score_latency`: the service's own time per score;
+  - `meridian_refresh_runs`: the job's runs, by outcome (ok, nothing new, failed);
+  - `meridian_drift_checks`: S5's drift verdicts, by retrain.
+- **Both SLOs count every request,** the uptime check's `/health` included, as the alerts do.
+- **Cost: $0.** Google doesn't bill dashboards or SLOs. The log-based metrics are custom metrics of a few MiB a month, within the 150 MiB each billing account gets free.
+
 ## Cost
 
 - **Idle costs $0:**
@@ -226,7 +261,7 @@ A fresh project tears down with no extra step. Its run (S8's `bootstrap.sh`, sti
   - the buckets and the image repo start empty, and keep no soft-deleted copies;
   - a secret with no value isn't billed.
 - **The bar** is under $5 for the phase (PLAN §6).
-- **The alerts and the uptime check** cost nothing ([Alerts](#alerts-s6)).
+- **The alerts and the uptime check** cost nothing ([Alerts](#alerts-s6)), and neither do the dashboard, the SLOs and the log-based metrics ([Dashboard](#dashboard-slos-and-cost-s6)).
 - **The budget** covers Nov 17 – Dec 7, not a calendar month.
   - **When:** at $12.50, $22.50 and $25 of use.
   - **Who:** the billing account's administrators and users, plus the team's emails from `terraform.tfvars`.
@@ -236,5 +271,6 @@ A fresh project tears down with no extra step. Its run (S8's `bootstrap.sh`, sti
 
 `terraform output` gives:
 - `risk_url`, for PLAN §9's `curl`;
+- `dashboard_url`, S6's dashboard;
 - `workload_identity_provider`, `service_accounts` and `project_number`, which should match `deploy.toml`;
 - `images_repo`, `buckets` and `refresh_job`.

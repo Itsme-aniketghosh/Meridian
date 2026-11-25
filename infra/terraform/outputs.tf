@@ -1,5 +1,10 @@
 # What the other steps need: the endpoint's URL (PLAN §9's curl), and the names deploy.yml signs in and pushes with.
 
+output "dashboard_url" {
+  description = "S6's dashboard: the SLO and cost panel, the service, the refresh job"
+  value       = "https://console.cloud.google.com/monitoring/dashboards/builder/${element(split("/", google_monitoring_dashboard.meridian.id), 3)}?project=${local.project}"
+}
+
 output "risk_url" {
   description = "The endpoint (D1): POST <risk_url>/score"
   value       = google_cloud_run_v2_service.risk.uri
