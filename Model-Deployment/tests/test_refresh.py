@@ -49,7 +49,7 @@ class SparkOnly(unittest.TestCase):
 
 
 class SparkSettings(unittest.TestCase):
-    def test_drops_only_the_migration_floors(self):
+    def test_drops_only_the_migration_floors(self):   # and sets szz_workers (SzzWorkers)
         text = job.SETTINGS_TOML.read_text(encoding="utf-8")
         old, new = tomllib.loads(text), tomllib.loads(job.spark_settings(text))
         v, w = old["validate"], new["validate"]
@@ -58,7 +58,7 @@ class SparkSettings(unittest.TestCase):
         self.assertIn("tickets_mapped_jira", w["coverage"])           # Spark's own coverage stays
         for t in ("git_commit", "bug_inducing", "ticket", "commit_ticket", "person_alias"):
             self.assertIn(t, w["rows"])
-        for section in set(old) - {"validate"}:
+        for section in set(old) - {"validate", "history"}:
             self.assertEqual(new[section], old[section], section)
         self.assertEqual({k: x for k, x in w.items() if k not in ("rows", "coverage")},
                          {k: x for k, x in v.items() if k not in ("rows", "coverage")})
@@ -280,6 +280,138 @@ class Run(unittest.TestCase):
             self.assertIn(line["event"], ("refresh", "drift", "retrain"))
             self.assertIsInstance(line["latency_ms"], int)
             self.assertNotIn("@", json.dumps(line))   # no email, ever
+
+
+class ReviewFixes(unittest.TestCase):
+    """The five review fixes (Nov 24)."""
+
+    def test_the_gcs_token_is_fetched_for_every_call(self):
+        store = job.GcsStore({"block": "b"})
+        with mock.patch.object(store, "token", side_effect=["t1", "t2"]) as token, \
+                mock.patch.object(job.urllib.request, "urlopen") as urlopen:
+            store._call("https://x/1")
+            store._call("https://x/2")
+        self.assertEqual(token.call_count, 2)
+        sent = [c.args[0].get_header("Authorization") for c in urlopen.call_args_list]
+        self.assertEqual(sent, ["Bearer t1", "Bearer t2"])
+
+    def test_an_upload_streams_the_file(self):
+        store = job.GcsStore({"block": "b"})
+        with tempfile.TemporaryDirectory() as d:
+            src = Path(d) / "x.sqlite"
+            src.write_bytes(b"0" * 5000)
+            with mock.patch.object(store, "_call") as call:
+                store.put(src, "block", "x.sqlite")
+        body = call.call_args.args[1]
+        self.assertTrue(hasattr(body, "read"), "the body is the open file, not its bytes")
+        self.assertEqual(call.call_args.kwargs["size"], 5000)
+
+    def test_the_model_version_is_read_for_every_line(self):
+        out = io.StringIO()
+        j = job.Job(Path(tempfile.mkdtemp()), job.LocalStore(tempfile.mkdtemp()), out=out)
+        with mock.patch.object(job, "model_version", side_effect=["old", "new"]):
+            j.event("a", 0)
+            j.event("b", 0)
+        self.assertEqual([json.loads(x)["model_version"] for x in out.getvalue().splitlines()], ["old", "new"])
+
+    def test_scrub_hides_emails_tokens_and_credentials(self):
+        text = ("Author: Jane <jane.doe@example.com> token=abc123 Authorization: Bearer ya29.AbC-def "
+                "https://hooks.slack.com/services/T0/B0/xyz https://user:pw@github.com/x "
+                "https://storage.googleapis.com/o?X-Goog-Signature=deadbeef&a=1 ghp_" + "a" * 36)
+        out = job.scrub(text)
+        for secret in ("jane.doe@example.com", "abc123", "ya29.AbC-def", "hooks.slack.com/services", "pw@",
+                       "deadbeef", "ghp_aaaa"):
+            self.assertNotIn(secret, out)
+        self.assertIn("<email>", out)
+
+    def test_scrub_keeps_an_ordinary_error(self):
+        for line in ("FileNotFoundError: published/latest.json (exit 1: meridian.collect)",
+                     "sqlite3.IntegrityError: UNIQUE constraint failed: the primary key of commit",
+                     "validate: 3 errors, token budget fine"):
+            self.assertEqual(job.scrub(line), line)
+
+    def test_a_broken_guard_withholds_the_text(self):
+        with mock.patch.object(job, "SCRUB", [(None, "")]):
+            self.assertEqual(job.scrub("anything"), "<output withheld: the guard failed>")
+
+    def test_a_failure_alert_carries_no_email_or_token(self):
+        root = Path(tempfile.mkdtemp())
+        j = FakeJob(root, RecordingStore(root / "store"), fail="meridian.scan")
+        orig = j.sh
+
+        def sh(args, cwd, ok=(0,)):
+            if "meridian.scan" in map(str, args):
+                raise job.StepFailed("exit 1: meridian.scan for dev@corp.io",
+                                     "x\n" * 12 + "commit by dev@corp.io\nBearer ya29.secret\n")
+            return orig(args, cwd, ok)
+        j.sh = sh
+        with mock.patch.object(job, "alert") as alert:
+            self.assertEqual(j.run(), 1)
+        subject, lines = alert.call_args[0]
+        text = subject + "\n".join(lines)
+        self.assertNotIn("dev@corp.io", text)
+        self.assertNotIn("ya29.secret", text)
+        self.assertLessEqual(len(lines), 10)
+        error = next(x for x in j.lines() if x.get("outcome") == "failed")["error"]
+        self.assertNotIn("dev@corp.io", error)
+
+    def test_the_image_has_the_tools_collect_runs(self):
+        # collect shells out to git (the clone) and curl (Jira): a dry run never calls them, a real run does
+        text = (DEPLOY / "refresh" / "Dockerfile").read_text(encoding="utf-8")
+        install = next(x for x in text.splitlines() if "apt-get install" in x)
+        for tool in ("git", "curl", "libgomp1", "ca-certificates"):
+            self.assertIn(f" {tool}", install, tool)
+
+    def test_the_image_has_a_pinned_base_and_no_root(self):
+        text = (DEPLOY / "refresh" / "Dockerfile").read_text(encoding="utf-8")
+        base = next(x for x in text.splitlines() if x.startswith("FROM "))
+        self.assertRegex(base, r"^FROM python:3\.11\.\d+-slim-\w+@sha256:[0-9a-f]{64}$")
+        user = [x for x in text.splitlines() if x.startswith("USER ")]
+        self.assertTrue(user and user[-1].split()[1].split(":")[0] not in ("0", "root"), user)
+
+
+class SzzWorkers(unittest.TestCase):
+    def test_the_job_runs_one_szz_process_per_cpu(self):
+        text = (DEPLOY.parent / "Data-Pipeline" / "settings.toml").read_text(encoding="utf-8")
+        cfg = tomllib.loads(job.spark_settings(text))
+        with open(DEPLOY / "deploy.toml", "rb") as f:
+            cpus = int(tomllib.load(f)["jobs"]["refresh"]["cpu"])
+        self.assertEqual(cfg["history"]["szz_workers"], cpus)
+        self.assertEqual(job.SZZ_WORKERS, cpus)
+
+    def test_the_rest_of_history_is_kept(self):
+        text = (DEPLOY.parent / "Data-Pipeline" / "settings.toml").read_text(encoding="utf-8")
+        old, new = tomllib.loads(text)["history"], tomllib.loads(job.spark_settings(text))["history"]
+        self.assertEqual({k: v for k, v in old.items() if k != "szz_workers"},
+                         {k: v for k, v in new.items() if k != "szz_workers"})
+
+
+class ImagePackages(unittest.TestCase):
+    """refresh/requirements.txt: the job's packages only, each at the pipeline's own pin."""
+
+    @staticmethod
+    def pins(path):
+        out = {}
+        for line in Path(path).read_text(encoding="utf-8").splitlines():
+            line = line.split("#")[0].strip()
+            if line and not line.startswith("-r"):
+                name, version = line.split("==")
+                out[name.split("[")[0].lower()] = version
+        return out
+
+    def test_every_pin_matches_the_pipeline(self):
+        repo = DEPLOY.parent
+        source = {**self.pins(repo / "Data-Pipeline" / "requirements.txt"),
+                  **self.pins(repo / "Model-Pipeline" / "requirements.txt")}
+        mine = self.pins(DEPLOY / "refresh" / "requirements.txt")
+        self.assertTrue(mine)
+        for name, version in mine.items():
+            self.assertEqual(source.get(name), version, name)
+
+    def test_what_the_job_never_imports_is_left_out(self):
+        mine = self.pins(DEPLOY / "refresh" / "requirements.txt")
+        for name in ("dvc", "dvc-gs", "gcsfs", "anthropic", "google-genai", "shap"):
+            self.assertNotIn(name, mine)
 
 
 class RecordingStore(job.LocalStore):
