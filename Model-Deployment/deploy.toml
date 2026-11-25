@@ -65,6 +65,12 @@ timeout_s = 7200    # 2 h: a cold run (empty cache) clones Spark and pulls all ~
                     # Nov 25), then blames every fix commit. A warm run takes ~5 min (S10, RUN-LOG §10-11)
 max_retries = 1
 
+[retrain]   # S4's retrain step (PLAN §5): what the refresh job does when D2 says retrain. Off until the team turns it on
+enabled = false     # off: the job logs "retrain due, switch off" and does nothing else
+until = "gate"      # on: model.refresh --refit on the new block, stopped after this step. "gate" registers nothing:
+                    # the registry versions a model by its git sha and won't push from an image (team decision, Nov 25)
+dispatch = false    # D3: repository_dispatch "champion-updated" after a promotion (needs MERIDIAN_GITHUB_DISPATCH)
+
 [schedule]   # Cloud Scheduler starts jobs.refresh
 cron = "0 3 * * *"   # daily, 03:00
 time_zone = "Etc/UTC"

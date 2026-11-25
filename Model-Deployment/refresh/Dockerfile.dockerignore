@@ -10,6 +10,10 @@
 !Model-Pipeline/model.toml
 !Model-Pipeline/model/*.py
 !Model-Pipeline/registry/champion.json
+!Model-Pipeline/registry/model.joblib
+!Model-Pipeline/reports/tuning_logreg.json
+!Model-Pipeline/reports/tuning_forest.json
+!Model-Pipeline/reports/tuning_lgbm.json
 !Model-Deployment/deploy.toml
 !Model-Deployment/deploy_config.py
 !Model-Deployment/refresh/*.py

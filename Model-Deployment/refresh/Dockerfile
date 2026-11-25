@@ -30,7 +30,10 @@ COPY Data-Pipeline/meridian.toml Data-Pipeline/settings.toml Data-Pipeline/schem
 # The model's feature table code and config, and the champion's pointer (its version goes on every D5 line)
 COPY Model-Pipeline/model.toml Model-Pipeline/model.toml
 COPY Model-Pipeline/model Model-Pipeline/model
-COPY Model-Pipeline/registry/champion.json Model-Pipeline/registry/champion.json
+COPY Model-Pipeline/registry/champion.json Model-Pipeline/registry/model.joblib Model-Pipeline/registry/
+# The retrain step (deploy.toml [retrain]): the committed best params a refit uses. The gate re-scores the champion's
+# model.joblib (above) on the new val rows
+COPY Model-Pipeline/reports/tuning_logreg.json Model-Pipeline/reports/tuning_forest.json Model-Pipeline/reports/tuning_lgbm.json Model-Pipeline/reports/
 # Phase 3: names (D4), the job, S5's monitor
 COPY Model-Deployment/deploy.toml Model-Deployment/deploy_config.py Model-Deployment/
 COPY Model-Deployment/refresh Model-Deployment/refresh

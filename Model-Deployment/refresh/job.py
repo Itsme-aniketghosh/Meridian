@@ -28,8 +28,12 @@ One run, daily (Cloud Scheduler, deploy.toml [schedule]):
             GCS buckets.block, the [serve_history] bucket and buckets.monitor.
    cache    After the push, snapshots/_cache back to the cache bucket for the next run (S10). A failed save warns
             and the run still succeeds: the block is already up, and the next run is only slower.
-8. retrain  D2's retrain flag is logged and read. Acting on it (model.refresh, the registry, the D3 dispatch) is the
-            next step (packet, Tue Nov 24) and isn't wired yet.
+8. retrain  When D2 says retrain, deploy.toml [retrain] decides. Off (the default): "due, switch off" is logged and
+            nothing else happens. On: model.refresh --refit on the new block, in a writable copy of Model-Pipeline
+            under /work, stopped after [retrain] until ("gate": nothing is registered). A refit that doesn't pass
+            warns; the run still succeeds, the block is already up. Past the registry, a promotion sends D3
+            (repository_dispatch "champion-updated") when [retrain] dispatch is on. notify() is where S7's Slack
+            messages (Chaitali) go.
 
 Every step writes one D5 log line (event "refresh", or "drift"), JSON on stdout, which Cloud Logging parses. The
 parts' own logs go to stderr. No line carries an email, a name or a person id: only counts, ids and timings.
@@ -67,6 +71,8 @@ import deploy_config  # noqa: E402
 
 DATASET = "spark"         # model.toml [data] repo = "apache/spark"
 BRANCH = "master"         # apache/spark's default branch: collect follows a ref that names a branch
+RETRAIN_OFF = {"enabled": False, "until": "gate", "dispatch": False}
+D3_EVENT = "champion-updated"   # packets/README.md D3, received by deploy.yml
 CACHE_OBJECT = "job-cache/snapshots-cache.tar.gz"   # buckets.cache, beside history/ (deploy reads only history/)
 PARTS = ("history", "scan", "resolve", "owners", "join", "graph", "validate")   # the DAG's CORE, in its order
 NOTHING_NEW = 99          # meridian.status and model.refresh: nothing new since the last block
@@ -251,11 +257,14 @@ def model_version(path=CHAMPION):
 
 
 class Job:
-    def __init__(self, data_root, store, python=sys.executable, dry_run=False, out=sys.stdout, serve_history=None):
+    def __init__(self, data_root, store, python=sys.executable, dry_run=False, out=sys.stdout, serve_history=None,
+                 retrain=None, github=None):
         self.root, self.store, self.python, self.dry_run, self.out = Path(data_root), store, python, dry_run, out
         # where deploy.yml reads history.pkl: deploy.toml [serve_history], a [buckets] key and an object under history/
         h = serve_history or {"bucket": "cache", "object": "history/latest.pkl"}
         self.history_bucket, self.history_object = h["bucket"], h["object"]
+        self.retrain_cfg = {**RETRAIN_OFF, **(retrain or {})}   # deploy.toml [retrain]; missing: off
+        self.github = github                                     # deploy.toml [github] repository, for D3
         self.work = self.root / "refresh"
         self.env = {**os.environ, "MERIDIAN_DATA": str(self.root), "PYTHONUNBUFFERED": "1"}
         self.timings = {}
@@ -410,6 +419,64 @@ class Job:
         path.write_text(json.dumps(report, indent=1, sort_keys=True) + "\n", encoding="utf-8")
         return report, path
 
+    def retrain_workspace(self):
+        """A writable Model-Pipeline for model.refresh, which rolls model.toml and writes data/ and reports/ in place:
+        /app is read-only for the job's user. The code, model.toml, the champion and the committed best params are
+        copied; Data-Pipeline is linked, read only."""
+        ws = self.work / "retrain"
+        shutil.rmtree(ws, ignore_errors=True)
+        mp = ws / "Model-Pipeline"
+        shutil.copytree(MODEL_PIPELINE / "model", mp / "model", ignore=shutil.ignore_patterns("__pycache__"))
+        shutil.copy2(MODEL_TOML, mp / "model.toml")
+        (mp / "registry").mkdir()
+        for f in (CHAMPION, CHAMPION.parent / "model.joblib"):
+            if f.exists():
+                shutil.copy2(f, mp / "registry" / f.name)
+        (mp / "reports").mkdir()
+        for f in (MODEL_PIPELINE / "reports").glob("tuning_*.json"):
+            shutil.copy2(f, mp / "reports" / f.name)
+        (mp / "data").mkdir()
+        (ws / "Data-Pipeline").symlink_to(DATA_PIPELINE, target_is_directory=True)
+        return mp
+
+    def retrain(self, report, run_id):
+        """D2's retrain flag, acted on as deploy.toml [retrain] says."""
+        if not report.get("retrain"):
+            return {"retrain": False, "outcome": "not needed"}
+        notify("drift", report, run_id)
+        cfg = self.retrain_cfg
+        if not cfg["enabled"]:
+            return {"retrain": True, "outcome": "due, switch off ([retrain] enabled = false)"}
+        if self.dry_run:
+            return {"retrain": True, "outcome": "dry run"}
+        mp = self.retrain_workspace()
+        before = json.loads((mp / "registry" / "champion.json").read_text(encoding="utf-8"))["version"]
+        args = [self.python, "-m", "model.refresh", "--refit", "--config", mp / "model.toml",
+                "--published", self.root / "published"]
+        if cfg.get("until"):
+            args += ["--until", cfg["until"]]
+        try:
+            self.sh(args, mp)
+        except StepFailed as e:   # a worse model fails the gate: a warning, never a failed run
+            notify("retrain", report, run_id, outcome="not better, kept")
+            return {"retrain": True, "outcome": "refit didn't pass: the champion stays", "severity": "WARNING",
+                    "error": scrub(str(e))[:300]}
+        out = {"retrain": True}
+        if cfg.get("until") and cfg["until"] != "registry":
+            out["outcome"] = f"refit passed {cfg['until']}; stopped there, nothing registered"
+            notify("retrain", report, run_id, outcome=out["outcome"])
+            return out
+        champion = json.loads((mp / "registry" / "champion.json").read_text(encoding="utf-8"))
+        if champion["version"] == before:
+            out["outcome"] = "not better, kept"
+        else:
+            out.update(outcome="promoted", version=champion["version"], md5=champion["model_md5"])
+            if cfg.get("dispatch"):
+                out["dispatch"] = dispatch(self.github, champion, report.get("drift", {}).get("why", ""),
+                                           self.store.where("monitor", f"reports/{run_id}.json"))
+        notify("retrain", report, run_id, outcome=out["outcome"])
+        return out
+
     def push(self, run_id, report_path):
         if self.dry_run:
             return {}
@@ -458,9 +525,7 @@ class Job:
             step = "save_cache"
             self.timed("save_cache", self.save_cache, run_id=run_id)
             step = "retrain"
-            # Tue Nov 24: on retrain, model.refresh --refit, the registry, and D3 on a promotion
-            self.event("retrain", 0, run_id=run_id, retrain=report["retrain"],
-                       outcome="due, not wired yet" if report["retrain"] else "not needed")
+            self.timed("retrain", lambda: self.retrain(report, run_id), run_id=run_id)
             self.event("done", int((time.monotonic() - started) * 1000), run_id=run_id, outcome="ok")
             return 0
         except (StepFailed, subprocess.CalledProcessError, OSError, SystemExit) as e:
@@ -489,6 +554,31 @@ def d2(run_id, at, drift):
                       "evidently_share": drift["drifted_share"], "flag": drift["retrain"],
                       "why": "; ".join(drift["reasons"]) or "no threshold crossed", "window": drift.get("window")},
             "decay": None, "retrain": bool(drift["retrain"])}
+
+
+def notify(kind, report, run_id, outcome=None):
+    """S7's Slack messages for "drift found" and "retrain triggered" (Chaitali writes them, with D2's why). Until
+    they're in, nothing is sent: the D5 lines already carry the same facts."""
+    return None
+
+
+def dispatch(repository, champion, reason, report_where, token=None, opener=None):
+    """D3: repository_dispatch "champion-updated" with {version, md5, reason, report}, which deploy.yml receives.
+    The token is MERIDIAN_GITHUB_DISPATCH (a fine-grained token, this repo only). Never raises: the outcome says."""
+    token = token if token is not None else os.environ.get("MERIDIAN_GITHUB_DISPATCH", "")
+    if not repository or not token:
+        return "skipped: no repository or no MERIDIAN_GITHUB_DISPATCH"
+    body = json.dumps({"event_type": D3_EVENT, "client_payload": {
+        "version": champion["version"], "md5": champion["model_md5"], "reason": reason[:300],
+        "report": report_where}}).encode()
+    req = urllib.request.Request(f"https://api.github.com/repos/{repository}/dispatches", body, method="POST",
+                                 headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
+                                          "Content-Type": "application/json"})
+    try:
+        with (opener or urllib.request.urlopen)(req, timeout=30) as r:
+            return f"sent ({r.status})"
+    except (OSError, ValueError) as e:
+        return f"failed: {scrub(str(e))[:200]}"
 
 
 # What a step's output may hold that must never reach Slack or the logs: an email (git's author lines), a token, a
@@ -538,7 +628,8 @@ def main(argv=None):
     a = ap.parse_args(argv)
     cfg = deploy_config.load()
     return Job(Path(a.data_root).expanduser(), make_store(a.store, cfg), dry_run=a.dry_run,
-               serve_history=cfg["serve_history"]).run()
+               serve_history=cfg["serve_history"], retrain=cfg.get("retrain"),
+               github=cfg.get("github", {}).get("repository")).run()
 
 
 if __name__ == "__main__":

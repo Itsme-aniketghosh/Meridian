@@ -4,6 +4,7 @@
     python -m model.refresh --every 24      # the loop: check every 24 hours, forever
     python -m model.refresh --refit         # refit the committed best params instead of a full search (faster)
     python -m model.refresh --dry-run       # say what it would do, change nothing
+    python -m model.refresh --refit --until gate   # stop after that step (the refresh job, S4: never the registry)
 
 One cycle:
 1. Read published/latest.json. If it names the block model.toml was built from, nothing is new: exit 99, the
@@ -94,7 +95,8 @@ def latest_block(published):
     return latest["run_id"], row[0]
 
 
-def cycle(config, published, refit=False, dry_run=False, run=run_all.run, build=data.main, data_dir=HERE / "data"):
+def cycle(config, published, refit=False, dry_run=False, run=run_all.run, build=data.main, data_dir=HERE / "data",
+          until=None):
     """One cycle. Returns NOTHING_NEW, or the pipeline's exit code (0: every step passed, promoted or not)."""
     config = Path(config)
     text = config.read_text(encoding="utf-8")
@@ -123,7 +125,7 @@ def cycle(config, published, refit=False, dry_run=False, run=run_all.run, build=
     try:
         config.write_text(new, encoding="utf-8")
         build(["--config", str(config), "--published", str(published), "--out", str(data_dir)])
-        code = run(plan)
+        code = run(plan) if until is None else run(plan, until=until)
     finally:
         if code != 0:
             for f, b in kept.items():
@@ -139,11 +141,12 @@ def main(argv=None):
     p.add_argument("--refit", action="store_true", help="refit the committed best params instead of searching")
     p.add_argument("--every", type=float, help="loop: check again every this many hours")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--until", help="stop after this step of model.run_all (e.g. gate: nothing is registered)")
     a = p.parse_args(argv)
     published = a.published or data.published_dir()
     while True:
         try:
-            code = cycle(a.config, published, a.refit, a.dry_run)
+            code = cycle(a.config, published, a.refit, a.dry_run, until=a.until)
         except SystemExit as e:          # a step that stops with a message: the loop says so and tries again later
             if not a.every:
                 raise
