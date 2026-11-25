@@ -290,3 +290,24 @@ Cloud Run starts every run on an empty disk, so without this each run re-clones 
 **Memory finding:** Cloud Run's disk is memory. A run's files: snapshots 1.1 GB (mirror and checkout), `out/` 0.65 GB, two blocks 0.69 GB, the archive 0.86 GB at save, ~3.3 GB in all, plus SZZ's processes (5.15 GiB peak with 4, run 6). `deploy.toml [jobs.refresh] memory` goes 4Gi → **8Gi**, the most 2 CPUs allow (about 1 cent a run). Terraform applies it.
 
 Tests: 123, OK (8 new for the caches). flake8 clean. Not checked: the GCS round trip itself (no access yet), and memory on Cloud Run.
+
+## 11. Run 8: the first run on Cloud Run, cancelled; the timeout goes to 2 h (Nov 25)
+
+Image `refresh:7900227ad8f2` (main, `linux/amd64`, digest `a33b09fe…`, uid 10001) pushed to `meridian-images`; `meridian-refresh` updated with `--image` only (8Gi, 2 CPUs). Execution `meridian-refresh-95gln`, started 00:59 UTC.
+
+| Step | Time (UTC) | Note |
+|---|---|---|
+| pull | 00:59:32 | the block bucket is empty: no `latest.json` |
+| restore_cache | 00:59:32 | cold: none in the store yet |
+| anything_new | 00:59:33 | nothing published yet: a full first build |
+| collect | 00:59:33 → 01:34:36 | **35 min**: clone (~1.7 min), then every Jira ticket, 61,915 at ~2,000 a minute. Run `c5247e95d77998d3`, Spark at `581c83b7` |
+| history | 01:34:36 → | commits and tickets keyed by 01:36:24, then SZZ cold (every fix blamed) |
+| cancelled | 01:53:09 | SZZ had run 17 min with ~6 min to the 1-hour limit and ~5 min of steps after it, so it couldn't finish. Cancelled by hand so the job's retry wouldn't start another cold hour |
+
+No failure, no retry, no out-of-memory error in 54 min. Nothing was written to the buckets: the cache is saved only at the end.
+
+**Why:** with an empty cache, collect alone takes 35 min on Cloud Run, then SZZ has every fix commit to blame. A cold run doesn't fit in 1 h. It happens once: the first run that finishes saves `job-cache/`, and the next ones take ~5 min (run 7).
+
+**Fix:** `deploy.toml [jobs.refresh] timeout_s` 3600 → **7200**, and the live job set the same (`gcloud run jobs update --task-timeout 2h`) so Terraform agrees once this merges. Next: rerun once, cold, with 2 h.
+
+Not measured: memory (my account reads logs, not Cloud Monitoring metrics).

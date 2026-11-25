@@ -61,7 +61,8 @@ cpu = "2"
 memory = "8Gi"      # Cloud Run's disk is memory: ~3.2 GB of files (mirror, checkout, out/, two blocks, the cache
                     # archive) plus SZZ's 2 processes (~2.5-3 GB). 4Gi can't hold both (RUN-LOG §9-10). 8Gi is
                     # the most 2 CPUs allow; about 1 cent a run
-timeout_s = 3600
+timeout_s = 7200    # 2 h: a cold run (empty cache) clones Spark and pulls all ~62k Jira tickets (35 min on Cloud Run,
+                    # Nov 25), then blames every fix commit. A warm run takes ~5 min (S10, RUN-LOG §10-11)
 max_retries = 1
 
 [schedule]   # Cloud Scheduler starts jobs.refresh
