@@ -26,6 +26,9 @@ One run, daily (Cloud Scheduler, deploy.toml [schedule]):
 7. push     The block file, then history.pkl (as history/<run_id>.pkl and deploy.toml [serve_history]'s object, in
             its bucket), then latest.json, so a reader never sees a pointer to a missing file; then the D2 report.
             GCS buckets.block, the [serve_history] bucket and buckets.monitor.
+   fallback S10's fallback-rate slice report (monitor.fallback, Vishwa): the writer on the new block with no LLM (the
+            committed cache answers), the gate's fallback rate per repo, team and task, and Slack when a slice is
+            flagged. To buckets.monitor as fallback/<run_id>.json. A failed report warns; the run still succeeds.
    cache    After the push, snapshots/_cache back to the cache bucket for the next run (S10). A failed save warns
             and the run still succeeds: the block is already up, and the next run is only slower.
 8. retrain  When D2 says retrain, deploy.toml [retrain] decides. Off (the default): "due, switch off" is logged and
@@ -477,6 +480,25 @@ class Job:
         notify("retrain", report, run_id, outcome=out["outcome"])
         return out
 
+    def fallback(self, run_id):
+        """S10's fallback-rate slice report (monitor.fallback) on the new block, LLM off; Slack when a slice is
+        flagged. Like the cache's save, a report that fails warns and the run still succeeds."""
+        out = self.work / "fallback.json"
+        block = self.root / "published" / f"{run_id}.sqlite"
+        try:
+            self.sh([self.python, "-m", "monitor.fallback", "--db", block, "--run-id", run_id, "--out", out], DEPLOY)
+            if self.dry_run:
+                return {"fallback": "dry run"}
+            rep = json.loads(out.read_text(encoding="utf-8"))
+            name = f"fallback/{run_id}.json"
+            self.store.put(out, "monitor", name)
+            return {"texts": rep.get("texts", 0), "open_flags": len(rep.get("open_flags", [])),
+                    "posted": ",".join(rep.get("posted", [])) or "none", "where": self.store.where("monitor", name),
+                    **({"fallback": f"not measured ({rep['error'][:200]})", "severity": "WARNING"}
+                       if "error" in rep else {})}
+        except (StepFailed, OSError, ValueError, urllib.error.URLError) as e:
+            return {"fallback": f"not run ({scrub(str(e))[:200]})", "severity": "WARNING"}
+
     def push(self, run_id, report_path):
         if self.dry_run:
             return {}
@@ -522,6 +544,8 @@ class Job:
                        n_new=report["n_new"], why=report["drift"]["why"])
             step = "push"
             self.timed("push", lambda: self.push(run_id, path), run_id=run_id)
+            step = "fallback"
+            self.timed("fallback", lambda: self.fallback(run_id), run_id=run_id)
             step = "save_cache"
             self.timed("save_cache", self.save_cache, run_id=run_id)
             step = "retrain"

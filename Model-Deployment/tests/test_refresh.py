@@ -137,6 +137,9 @@ class FakeJob(job.Job):
             Path(args[args.index("--out") + 1]).write_text(json.dumps(DRIFT))
         if mod == "serve.precompute":
             Path(args[args.index("--out") + 1]).write_bytes(b"history state")
+        if mod == "monitor.fallback":
+            Path(args[args.index("--out") + 1]).write_text(json.dumps(
+                {"texts": 204, "open_flags": [{"slice": "task=stall_reason"}], "posted": ["slack"]}))
         return 0, ""
 
     def modules(self):
@@ -175,7 +178,7 @@ class Run(unittest.TestCase):
             self.assertEqual(j.run(), 0)
         alert.assert_not_called()
         self.assertEqual(j.modules(), ["meridian.status", "meridian.collect", *[f"meridian.{p}" for p in job.PARTS],
-                                       "meridian.publish", "model.data", "monitor.drift"])
+                                       "meridian.publish", "model.data", "monitor.drift", "monitor.fallback"])
         for call in j.calls[2:10]:
             self.assertEqual(call[call.index("--run-id") + 1], RUN)
         self.assertTrue(all(c[c.index("--config") + 1].endswith("meridian.spark.toml") for c in j.calls[:10]))
@@ -209,7 +212,8 @@ class Run(unittest.TestCase):
             j.run()
         self.assertEqual(self.store.puts, [("block", f"{RUN}.sqlite"), ("cache", f"history/{RUN}.pkl"),
                                            ("cache", "history/latest.pkl"), ("block", "latest.json"),
-                                           ("monitor", f"reports/{RUN}.json")])
+                                           ("monitor", f"reports/{RUN}.json"),
+                                           ("monitor", f"fallback/{RUN}.json")])
         self.assertEqual((self.store.root / "cache" / "history" / "latest.pkl").read_bytes(), b"history state")
         self.assertFalse((self.store.root / "block" / "history.pkl").exists())   # no root history.pkl any more
 
@@ -241,10 +245,33 @@ class Run(unittest.TestCase):
         with mock.patch.object(job, "alert"):
             j.run()
         self.assertEqual(self.store.puts, [("block", f"{RUN}.sqlite"), ("block", "latest.json"),
-                                           ("monitor", f"reports/{RUN}.json")])
+                                           ("monitor", f"reports/{RUN}.json"),
+                                           ("monitor", f"fallback/{RUN}.json")])
         report = json.loads((self.store.root / "monitor" / "reports" / f"{RUN}.json").read_text())
         self.assertTrue(report["retrain"])
         self.assertEqual(report["run_id"], RUN)
+
+    def test_the_fallback_report_runs_on_the_new_block_after_the_push(self):
+        j = FakeJob(self.root, self.store)
+        with mock.patch.object(job, "alert"):
+            self.assertEqual(j.run(), 0)
+        call = j.calls[j.modules().index("monitor.fallback")]
+        self.assertEqual(call[call.index("--db") + 1], str(self.root / "published" / f"{RUN}.sqlite"))
+        names = [p[1] for p in self.store.puts]
+        self.assertEqual(names[-1], f"fallback/{RUN}.json")
+        self.assertLess(names.index(f"reports/{RUN}.json"), names.index(f"fallback/{RUN}.json"))
+        line = next(x for x in j.lines() if x["step"] == "fallback")
+        self.assertEqual((line["texts"], line["open_flags"], line["posted"]), (204, 1, "slack"))
+
+    def test_a_failed_fallback_report_warns_and_the_run_succeeds(self):
+        j = FakeJob(self.root, self.store, fail="monitor.fallback")
+        with mock.patch.object(job, "alert") as alert:
+            self.assertEqual(j.run(), 0)
+        alert.assert_not_called()
+        line = next(x for x in j.lines() if x["step"] == "fallback")
+        self.assertEqual(line["severity"], "WARNING")
+        self.assertTrue(line["fallback"].startswith("not run"))
+        self.assertIn(f"reports/{RUN}.json", [p[1] for p in self.store.puts])
 
     def test_nothing_new_ends_the_run(self):
         j = FakeJob(self.root, self.store, status=job.NOTHING_NEW)
