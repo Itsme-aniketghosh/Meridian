@@ -70,7 +70,8 @@ stale_after_hours = 20                # a publish older than this counts as new:
 # ───────────── alerts ─────────────
 
 [alerts]
-on = ["failure", "error", "warn"]     # what sends one: a failed task, a data error, a data warning
+on = ["failure", "error", "warn", "deployed"]   # what sends one: a failed task, a data error, a data warning, a new
+                                                 # model serving (deploy.yml, S7)
 email_to = []                         # addresses, e.g. ["team@example.com"]. Empty: no email
 email_from = "meridian@localhost"
 smtp_host = "localhost"
