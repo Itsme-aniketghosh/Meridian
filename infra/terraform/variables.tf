@@ -32,6 +32,16 @@ variable "slack_channel" {
   default     = ""
 }
 
+variable "refresh_developers" {
+  description = "Emails of the people who build, deploy and run the refresh job by hand (S4). They get that job, not the project (iam.tf). Empty on a fresh project."
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = alltrue([for e in var.refresh_developers : can(regex("^[^@:\\s]+@[^@:\\s]+\\.[^@:\\s]+$", e))])
+    error_message = "Plain emails, as in alert_emails: iam.tf adds the user: prefix."
+  }
+}
+
 variable "placeholder_service_image" {
   description = "The service's first image, until deploy.yml ships the real one. Terraform leaves the image alone after."
   type        = string

@@ -68,5 +68,11 @@ resource "terraform_data" "team_guard" {
     google_monitoring_alert_policy.slow,
     google_monitoring_alert_policy.job_failed,
     google_monitoring_alert_policy.drift,
+    google_cloud_run_v2_job_iam_member.refresh_developers,
+    google_service_account_iam_member.refresh_developers,
+    google_artifact_registry_repository_iam_member.refresh_developers,
+    google_storage_bucket_iam_member.refresh_developers,
+    google_project_iam_member.refresh_developers,
+    google_secret_manager_secret_iam_member.refresh_developers,
   ]
 }

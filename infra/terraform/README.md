@@ -16,8 +16,9 @@ Everything phase 3 runs on GCP, as code (`Model-Deployment/PLAN.md` §2–3). Ev
 | Budget: $25 for Nov 17 – Dec 7, alerts at 50, 90 and 100%, counted before credits | `budget` | C7 |
 | An uptime check on `/health` from 3 US regions every 5 minutes, and 5 alerts ([Alerts](#alerts-s6)) | `service_alerts` | S6 |
 | A guard: on the team's project, nothing is deleted or replaced by accident ([Tear it down](#tear-it-down-after-grading)) | | Aniket's review |
+| Access for the people who deploy and run the refresh job by hand: that job, not the project ([Add or remove a person](#add-or-remove-a-person)) | `refresh_developers` in `terraform.tfvars`, so no email is in git | S4 |
 
-**What each account can do.** Every grant is on the one resource it's needed on, except the metrics writer:
+**What each account can do.** Every grant is on the one resource it's needed on, except two that Google grants only per project: the job's metrics writer and the people's log reader:
 
 | Account | Can |
 |---|---|
@@ -26,6 +27,7 @@ Everything phase 3 runs on GCP, as code (`Model-Deployment/PLAN.md` §2–3). Ev
 | `meridian-risk` (the service runs as it) | no bucket: its champion and `history.pkl` are baked into its image |
 | `meridian-refresh` (the job runs as it) | read and write the three buckets; push models; read the two secrets; write custom metrics |
 | `meridian-scheduler` | start `meridian-refresh` |
+| The people in `refresh_developers` (S4) | deploy an image to `meridian-refresh`, run it, see and cancel its executions: that job only, never `meridian-risk`. Its deploys run as `meridian-refresh`. Push to `meridian-images`; read the cache bucket, never the block; read the project's logs; add the two secrets' values without being able to read them |
 
 ## For `deploy.yml` and the images
 
@@ -49,6 +51,10 @@ So that Terraform and the deploys never undo each other:
 - **Deploys change the image and the traffic only.** Use `gcloud run deploy --image … --no-traffic --tag …`, then `gcloud run services update-traffic`. The instances, CPU, memory, concurrency and account live here and in `deploy.toml`, and the next `apply` puts them back if a deploy changes them.
 - **Each container's settings.** Terraform sets `MERIDIAN_DEPLOY_PROJECT` on the service and the job when it creates them. Inside a container, `deploy_config.load()` reads it, so a fresh project gets its own bucket names. Any other variable a deploy adds is left alone.
 - **The service listens on port 8080.**
+- **The job, by hand (S4).** `gcloud run jobs update meridian-refresh --image … --region us-east1`, then `gcloud run jobs execute meridian-refresh --region us-east1 --wait`.
+  - Add variables with `--update-env-vars` or `--update-secrets`, never `--set-env-vars`: it drops `MERIDIAN_DEPLOY_PROJECT`, and Terraform doesn't put it back.
+  - No `--args` or `--command`: the image's entrypoint and `job.py`'s defaults need none, and the next `apply` would take them off.
+  - CPU, memory, timeout and retries are `deploy.toml` `[jobs.refresh]`. Mounting the cache bucket is a change here. Both go through an `apply`.
 
 ## Run it
 
@@ -142,6 +148,18 @@ Once, by a person, so it never lands in git or in Terraform's state:
 ```bash
 printf %s "$MERIDIAN_SLACK_WEBHOOK" | gcloud secrets versions add MERIDIAN_SLACK_WEBHOOK --data-file=- --project "$P"
 ```
+
+The people in `refresh_developers` can add the job's two values themselves, from their own machine: they can add a version but never read one.
+
+### Add or remove a person
+
+The people who deploy and run the refresh job by hand are listed in `terraform.tfvars`, which git ignores:
+
+```hcl
+refresh_developers = ["teammate@example.com"]
+```
+
+Then `terraform apply`. To remove someone, delete their email and `apply`: only their grants go, and the guard doesn't stop it. A fresh project has nobody on the list.
 
 ### Tear it down (after grading)
 
