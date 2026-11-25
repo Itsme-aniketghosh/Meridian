@@ -18,12 +18,16 @@ on:
       - "Model-Deployment/champion.py"
       - "Model-Deployment/smoke.py"
       - "Model-Deployment/traffic.py"
+      - "Model-Deployment/notify.py"
       - "Model-Deployment/deploy.toml"
       - "Model-Deployment/deploy_config.py"
       - "Model-Deployment/serve/**"
       - "Model-Deployment/tests/test_champion.py"
       - "Model-Deployment/tests/test_smoke.py"
       - "Model-Deployment/tests/test_traffic.py"
+      - "Model-Deployment/tests/test_notify.py"
+      - "Data-Pipeline/meridian/alert.py"
+      - "Data-Pipeline/settings.toml"
       - "Model-Deployment/tests/test_serve_history.py"
       - "Model-Pipeline/registry/**"
   workflow_dispatch:
@@ -72,10 +76,11 @@ jobs:
       - name: Tests (champion.py, smoke.py, deploy.toml)
         run: python -m unittest discover -s Model-Deployment/tests
 
-      - name: flake8 (champion.py, smoke.py, traffic.py)
+      - name: flake8 (champion.py, smoke.py, traffic.py, notify.py)
         run: |
           python -m pip install --quiet flake8==7.4.1
-          python -m flake8 --max-line-length 120 Model-Deployment/champion.py Model-Deployment/smoke.py Model-Deployment/traffic.py
+          python -m flake8 --max-line-length 120 Model-Deployment/champion.py Model-Deployment/smoke.py Model-Deployment/traffic.py \
+            Model-Deployment/notify.py
 
       - name: Names from deploy.toml (D4)
         id: cfg
@@ -257,6 +262,38 @@ jobs:
           echo "health=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 "$url/health")" >> "$GITHUB_OUTPUT"
           echo "::error::rolled back: $FAILED failed after the move; $PREVIOUS serves 100% again"
 
+      # S7: one Slack message per run on main, through meridian.alert: deployed, rolled back, rollback failed, or
+      # stopped before any traffic moved. A no-traffic run that passes sends none. Slack never changes the outcome
+      - name: Slack (main)
+        id: slack
+        if: always() && env.ON_MAIN == 'true'
+        continue-on-error: true
+        env:
+          MERIDIAN_SLACK_WEBHOOK: ${{ secrets.MERIDIAN_SLACK_WEBHOOK }}
+          VERSION: ${{ steps.champion.outputs.version }}
+          REVISION: ${{ steps.revision.outputs.name }}
+          PREVIOUS: ${{ steps.revision.outputs.previous_revision }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -n "$VERSION" ] || VERSION=unknown
+          why="${{ steps.traffic.outcome == 'failure' && 'the traffic check' || 'the live smoke test' }}"
+          set -- --version "$VERSION" --revision "$REVISION" --serving "$PREVIOUS" \
+            --run-url "$RUN_URL" --github-output "$GITHUB_OUTPUT"
+          if [ "${{ steps.rollback.outcome }}" = success ]; then
+            python Model-Deployment/notify.py rolled_back "$@" --why "$why" --health "${{ steps.rollback.outputs.health }}"
+          elif [ "${{ steps.rollback.outcome }}" = failure ]; then
+            python Model-Deployment/notify.py rollback_failed "$@" --why "$why"
+          elif [ "${{ steps.traffic.outcome }}" = success ] && [ "${{ steps.smoke_live.outcome }}" = success ]; then
+            python Model-Deployment/notify.py deployed "$@" --md5 "${{ steps.champion.outputs.md5 }}" \
+              --pr-auc "${{ steps.champion.outputs.pr_auc }}" --url "${{ steps.traffic.outputs.url }}"
+          elif [ "${{ job.status }}" != success ]; then
+            step="${{ (steps.champion.outcome == 'failure' && 'The champion, checked') || (steps.build.outcome == 'failure' && 'Build the serving image') || (steps.smoke_local.outcome == 'failure' && 'Smoke test, the image on the runner') || (steps.push.outcome == 'failure' && 'Push the image') || (steps.revision.outcome == 'failure' && 'Deploy a revision with no traffic') || (steps.smoke.outcome == 'failure' && 'Smoke test, the revision') || (steps.traffic.outcome == 'failure' && 'Move traffic (before the move)') || 'an earlier step' }}"
+            python Model-Deployment/notify.py stopped "$@" --step "$step"
+          else
+            echo "no message: a run that stops at the no-traffic revision and passes"
+            echo "slack_sent=none" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Summary
         if: always()
         env:
@@ -290,6 +327,7 @@ jobs:
               echo "| Traffic | ${{ steps.traffic.outcome == 'success' && format('moved in {0} s: {1}', steps.traffic.outputs.move_s, steps.traffic.outputs.serving) || (env.MOVE_TRAFFIC == 'true' && 'not moved' || 'not moved (move_traffic off)') }} |"
               echo "| Smoke test, the service | ${{ steps.smoke_live.outcome }}: ${{ steps.traffic.outputs.url }} |"
               echo "| Rollback | ${{ steps.rollback.outcome == 'skipped' && 'not needed' || format('{0} in {1} s: {2}; /health {3}', steps.rollback.outcome, steps.rollback.outputs.rollback_s, steps.rollback.outputs.serving, steps.rollback.outputs.health) }} |"
+              echo "| Slack | ${{ steps.slack.outputs.slack_sent || steps.slack.outcome }} |"
             fi
             echo "| Outcome | ${{ job.status }} |"
           } >> "$GITHUB_STEP_SUMMARY"
