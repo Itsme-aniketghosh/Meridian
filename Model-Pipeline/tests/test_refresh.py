@@ -90,6 +90,17 @@ class Cycle(unittest.TestCase):
         self.assertEqual(self.config.read_text(encoding="utf-8"), TOML)
         self.assertEqual((self.data / "features.parquet").read_bytes(), b"old table")
 
+    def test_until_stops_the_steps_there(self):   # the refresh job (S4) stops at the gate: nothing registered
+        publish(self.pub, "abcdef0123456789", "2027-10-01T00:00:00Z")
+        seen = []
+
+        def run(plan, until=None):
+            seen.append(until)
+            return 0
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = cycle(self.config, self.pub, run=run, build=lambda args: None, data_dir=self.data, until="gate")
+        self.assertEqual((code, seen), (0, ["gate"]))
+
     def test_dry_run_changes_nothing(self):
         publish(self.pub, "abcdef0123456789", "2027-10-01T00:00:00Z")
         self.assertEqual(self.go(dry_run=True), 0)

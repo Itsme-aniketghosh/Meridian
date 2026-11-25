@@ -511,6 +511,131 @@ class Caches(unittest.TestCase):
         self.assertFalse(job.CACHE_OBJECT.startswith(history.rsplit("/", 1)[0] + "/"))
 
 
+class Retrain(unittest.TestCase):
+    """deploy.toml [retrain]: off by default. On: model.refresh --refit in a writable copy, up to [retrain] until"""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.store = RecordingStore(self.tmp / "store")
+
+    def run_job(self, retrain=None, fail=None, promote=False):
+        j = FakeJob(self.tmp / "root", self.store, fail=fail)
+        j.retrain_cfg = {**job.RETRAIN_OFF, **(retrain or {})}
+        j.github = "owner/repo"
+        orig = j.sh
+
+        def sh(args, cwd, ok=(0,)):
+            if "model.refresh" in map(str, args) and promote and not fail:
+                champ = Path(cwd) / "registry" / "champion.json"
+                record = json.loads(champ.read_text())
+                record.update(version="f" * 40, model_md5="e" * 32)
+                champ.write_text(json.dumps(record))
+            return orig(args, cwd, ok)
+        j.sh = sh
+        with mock.patch.object(job, "alert") as alert, mock.patch.object(job, "notify") as notify, \
+                mock.patch.object(job, "dispatch", return_value="sent (204)") as send:
+            code = j.run()
+        line = next(x for x in j.lines() if x["step"] == "retrain")
+        return j, code, line, alert, notify, send
+
+    def test_the_switch_is_off_in_deploy_toml(self):
+        with open(DEPLOY / "deploy.toml", "rb") as f:
+            cfg = tomllib.load(f)["retrain"]
+        self.assertFalse(cfg["enabled"])
+        self.assertFalse(cfg["dispatch"])
+        self.assertEqual(cfg["until"], "gate")
+
+    def test_off_logs_due_and_runs_nothing(self):
+        j, code, line, alert, notify, send = self.run_job()
+        self.assertEqual(code, 0)
+        self.assertTrue(line["retrain"])
+        self.assertIn("switch off", line["outcome"])
+        self.assertNotIn("model.refresh", j.modules())
+        notify.assert_called_once()                 # S7's "drift found" still goes out
+        send.assert_not_called()
+
+    def test_on_refits_in_a_copy_and_stops_at_the_gate(self):
+        j, code, line, alert, notify, send = self.run_job({"enabled": True})
+        self.assertEqual(code, 0)
+        call = next(c for c in j.calls if "model.refresh" in c)
+        self.assertIn("--refit", call)
+        self.assertEqual(call[call.index("--until") + 1], "gate")
+        ws = j.work / "retrain"
+        self.assertEqual(call[call.index("--config") + 1], str(ws / "Model-Pipeline" / "model.toml"))
+        self.assertTrue((ws / "Model-Pipeline" / "registry" / "champion.json").is_file())
+        self.assertTrue((ws / "Model-Pipeline" / "model" / "refresh.py").is_file())
+        self.assertTrue((ws / "Data-Pipeline").is_symlink())
+        self.assertEqual(line["outcome"], "refit passed gate; stopped there, nothing registered")
+        send.assert_not_called()
+
+    def test_a_refit_that_fails_warns_and_the_run_succeeds(self):
+        j, code, line, alert, notify, send = self.run_job({"enabled": True}, fail="model.refresh")
+        self.assertEqual(code, 0)
+        alert.assert_not_called()
+        self.assertEqual(line["severity"], "WARNING")
+        self.assertIn("champion stays", line["outcome"])
+
+    def test_past_the_registry_a_promotion_dispatches_only_when_on(self):
+        _, _, line, _, _, send = self.run_job({"enabled": True, "until": None}, promote=True)
+        self.assertEqual(line["outcome"], "promoted")
+        send.assert_not_called()                    # dispatch off
+        _, _, line, _, _, send = self.run_job({"enabled": True, "until": None, "dispatch": True}, promote=True)
+        self.assertEqual(line["dispatch"], "sent (204)")
+        repo, champion = send.call_args.args[:2]
+        self.assertEqual((repo, champion["version"]), ("owner/repo", "f" * 40))
+
+    def test_no_promotion_means_kept(self):
+        _, _, line, _, _, send = self.run_job({"enabled": True, "until": None, "dispatch": True})
+        self.assertEqual(line["outcome"], "not better, kept")
+        send.assert_not_called()
+
+    def test_main_reads_retrain_and_the_repository(self):
+        with mock.patch.object(job, "Job") as J:
+            job.main(["--store", f"local:{self.tmp / 's'}", "--dry-run"])
+        cfg = job.deploy_config.load()
+        self.assertEqual(J.call_args.kwargs["retrain"], cfg["retrain"])
+        self.assertEqual(J.call_args.kwargs["github"], cfg["github"]["repository"])
+
+
+class Dispatch(unittest.TestCase):
+    CHAMP = {"version": "a" * 40, "model_md5": "b" * 32}
+
+    def test_without_a_token_it_skips(self):
+        self.assertTrue(job.dispatch("o/r", self.CHAMP, "why", "gs://m/r.json", token="").startswith("skipped"))
+
+    def test_it_sends_d3(self):
+        seen = {}
+
+        class Resp:
+            status = 204
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        def opener(req, timeout):
+            seen["req"] = req
+            return Resp()
+        out = job.dispatch("o/r", self.CHAMP, "PSI 0.37 on la", "gs://m/reports/x.json", token="t0k", opener=opener)
+        self.assertEqual(out, "sent (204)")
+        req = seen["req"]
+        self.assertEqual(req.full_url, "https://api.github.com/repos/o/r/dispatches")
+        self.assertEqual(req.get_header("Authorization"), "Bearer t0k")
+        body = json.loads(req.data)
+        self.assertEqual(body["event_type"], "champion-updated")
+        self.assertEqual(body["client_payload"], {"version": "a" * 40, "md5": "b" * 32, "reason": "PSI 0.37 on la",
+                                                  "report": "gs://m/reports/x.json"})
+
+    def test_a_failure_is_reported_never_raised(self):
+        def opener(req, timeout):
+            raise OSError("HTTP 401 for Bearer ghp_" + "x" * 36)
+        out = job.dispatch("o/r", self.CHAMP, "why", "r", token="t", opener=opener)
+        self.assertTrue(out.startswith("failed"))
+        self.assertNotIn("ghp_xxxx", out)
+
+
 class RecordingStore(job.LocalStore):
     def __init__(self, root):
         super().__init__(root)

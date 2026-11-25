@@ -347,3 +347,17 @@ Execution `meridian-refresh-rrt4w`, 18 min after run 9. **Succeeded in 45 s** (2
 Proven in the cloud: run 9's cache comes back on Cloud Run's empty disk in 17 s, and a day with nothing new ends in under a minute, with nothing pushed. Not yet proven in the cloud: a warm run with new commits (Spark had none in the 18 minutes). Locally that took 269 s (run 7); the next run after Spark's next commits measures it.
 
 **End to end:** Chaitali's live deploy runs (no-traffic 03:34 UTC, normal 03:38 UTC) copied `history/latest.pkl` 3 minutes after run 9 wrote it, so live `/score` (`meridian-risk-00003-biw`) serves run 9's history (block `952ff020`, md5 `e02c1aa7…`): refresh job → `latest.pkl` → deploy → `/score`.
+
+## 14. The retrain step, switch off (Nov 25)
+
+- **deploy.toml [retrain]:** `enabled = false`, `until = "gate"`, `dispatch = false`. Off: when D2 says retrain the job logs "due, switch off ([retrain] enabled = false)" and calls `notify("drift", …)`, the hook for S7's Slack messages (Chaitali); nothing else runs.
+- **On:** `model.refresh --refit --until gate` on the new block, in a writable copy of Model-Pipeline under `/work/refresh/retrain` (`/app` is read-only for uid 10001); Data-Pipeline is linked. A refit that fails or loses warns; the run still exits 0. Past the registry, a promotion sends D3 (`repository_dispatch` "champion-updated", `{version, md5, reason, report}`) when `dispatch` is on, with `MERIDIAN_GITHUB_DISPATCH`.
+- `model.refresh` gets `--until` (passed to `run_all.run`; absent, nothing changes). The image adds the champion's `model.joblib` (the gate re-scores it) and `reports/tuning_*.json` (the refit's best params).
+
+**Checked, inside the image** (`meridian-refresh:retrain`, arm64, block `5a67be59246fb0e6`), with the switch on: data → train (refit 3 kinds) → seed noise → evaluate → bias → gate, **stopped after gate in 80 s**. Gate passed: candidate forest, PR-AUC **0.40667** against the champion's 0.40667 re-scored on this table (floor 0.4001), lines × files 0.3191, bias 0 open flags of 5. On the laptop the refit can't load LightGBM (macOS has no `libomp`); the image has `libgomp1`.
+
+**Two findings for the team:**
+1. The registry can't promote from the image: `--push` refuses there (dirty = unknown), and a retrain's version (the git sha) is the champion's. So `until = "gate"` until the team picks a fix.
+2. The refit scores the same as the champion. New commits only add rows to `none` (their labels aren't mature), and train 2015–2022 / val 2023 don't move until the snapshot crosses into a new year, so a refit on today's block can't beat the champion by 2 SDs. Drift fires every day, but a retrain has nothing new to learn from yet.
+
+Tests: Model-Deployment 146 OK (10 new: the switch, the copy, a failed refit, promotion and dispatch, D3's body); Model-Pipeline `test_refresh` + `test_run_all` OK (1 new). flake8 clean.
