@@ -264,3 +264,29 @@ docker run --rm -v "$HOME/Desktop/Meridian-refresh-data:/work" meridian-refresh:
 **Memory, sampled every 5 s (73 samples): peak 5.151 GiB**, over the job's 4 GiB ([jobs.refresh] memory). `szz_workers = 4` ran 4 SZZ processes on a 2-CPU job. Fixed: the job's settings set `szz_workers` to its CPUs (2), tested against `deploy.toml`. Expected about 2.5–3 GiB; **not yet measured**: the first cloud run (native disk, 2 CPUs) measures it.
 
 Tests: 115, OK. flake8 clean. Nothing published by run 6 (stopped before publish): `latest.json` is still `a0274ceee5c11a53`.
+
+## 10. S10: the caches kept in GCS between runs (Nov 24)
+
+Cloud Run starts every run on an empty disk, so without this each run re-clones Spark, re-pulls Jira and re-blames every fix commit (SZZ). Now:
+- **restore_cache**, after pull and before the status check: `buckets.cache/job-cache/snapshots-cache.tar.gz` into `snapshots/_cache`. Unpacked beside the folder and swapped in, with tarfile's `data` filter (no path escapes). None or broken: a cold run, logged, never a failure.
+- **save_cache**, after the push: `snapshots/_cache` as one gzip'd tar (level 1, git packs don't shrink), streamed up. A failed save is a WARNING, and the run still exits 0.
+- Not saved when there's nothing new. The object sits outside `history/`, so the deploy account can't read it.
+
+**Run 7**, the job on an **empty** data root, the store holding the laptop's cache (`local:` store, same code as GCS):
+
+| Step | ms |
+|---|---:|
+| pull · restore_cache | 264 · **8,526** (860.5 MB) |
+| anything_new | 674 (new) |
+| history (SZZ: **9,967 of 9,968 fix commits reused from the cache**) | 110,671 |
+| scan → validate | 36,298 |
+| history_pkl · table | 7,232 · 6,624 |
+| drift | 636 new commits, retrain = true (PSI 0.3714 on `la`) |
+| push · **save_cache** | 110 · **25,413** (860.9 MB) |
+| **done** | **268,949**, exit 0. Block `5a67be59246fb0e6` |
+
+**269 s on an empty disk**, against PLAN §15's 10-minute target. The cache step pair adds 34 s. A cloud cache holds Spark only (~720 MB); this one carries the laptop's Django caches too.
+
+**Memory finding:** Cloud Run's disk is memory. A run's files: snapshots 1.1 GB (mirror and checkout), `out/` 0.65 GB, two blocks 0.69 GB, the archive 0.86 GB at save, ~3.3 GB in all, plus SZZ's processes (5.15 GiB peak with 4, run 6). `deploy.toml [jobs.refresh] memory` goes 4Gi → **8Gi**, the most 2 CPUs allow (about 1 cent a run). Terraform applies it.
+
+Tests: 123, OK (8 new for the caches). flake8 clean. Not checked: the GCS round trip itself (no access yet), and memory on Cloud Run.
