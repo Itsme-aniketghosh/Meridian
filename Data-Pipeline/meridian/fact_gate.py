@@ -8,7 +8,9 @@ The gate is plain code, no LLM: same text and facts, same answer. It pulls every
 SHA, ticket key and team name out of the text and looks each one up in the facts. One miss and the whole text is
 replaced by the template. The bad part is never stripped out, which leaves broken sentences (docs/06-dead-ideas.md).
 
-Emails, @handles and known person names always fail: no person is ever a fact (Contract 5).
+Emails, @handles and known person names always fail: no person is ever a fact (Contract 5). So does anything a text
+for a team never needs and an off-script model might write (_UNSAFE): a link, a code block or shell command, or talk
+about its own instructions ("ignore", "prompt", "as an AI").
 
 `facts` is Contract 5's object, {"facts": {...}, "source": {...}}, or just the inner {name: value}. Values can be
 numbers, strings, or lists and dicts of them (block rows). A dict that has both `path` and `line` also makes the fact
@@ -62,11 +64,22 @@ _NUMBER = re.compile(r"(?<![\w.])(-?(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)
 _WORDS = ("zero", "", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
           "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty")
 _WORD_NUMBER = re.compile(r"\b(" + "|".join(w for w in _WORDS if w) + r")\b", re.IGNORECASE)
+# Never in a text for a team, whatever the facts hold: a link, markup or a code block, a shell command, or the model
+# talking about its instructions instead of the code. None of the 1,366 cached replies has one (test_fact_gate's
+# Unsafe). Backticks alone and the word "system" are left out: good replies use both. A word inside a path
+# (commands/prompt.py) isn't read: _W keeps each word off path characters.
+_W = r"(?<![\w/.\-]){}(?![\w/.\-])"
+_UNSAFE = re.compile("|".join([
+    r"\b(?:https?|ftp|file)://\S*", r"\bwww\.\S+", r"\bjavascript:", r"\]\(", r"<\s*/?\s*(?:script|a|img|iframe)\b",
+    r"```", r"\$\(", r"&&", r"\|\s*(?:sh|bash)\b", r"\brm\s+-rf?\b",
+    *(_W.format(w) for w in ("sudo", "curl", "wget", "chmod", "ignore", "disregard", "instructions?", "prompts?",
+                             "jailbreak", "as an ai", "language model", "you are now", "developer mode")),
+]), re.IGNORECASE)
 
 
 @dataclass(frozen=True)
 class Miss:
-    kind: str     # number, date, path, sha, ticket, team, person
+    kind: str     # number, date, path, sha, ticket, team, person, unsafe
     token: str    # as written in the text
     at: int       # offset in the text
 
@@ -237,6 +250,10 @@ def check(text, facts, *, teams, people, kinds=DEFAULT_KINDS, numbers=DEFAULT_NU
             if take(m):
                 checked += 1
                 miss("person", m.group(0), m.start())
+    for m in _UNSAFE.finditer(text):  # always on, like people: no fact makes these fine
+        if take(m):
+            checked += 1
+            miss("unsafe", m.group(0), m.start())
 
     known_paths = sorted({p for p, _ in known.path_lines} | known.paths, key=len, reverse=True)
     path_re = _PATH
