@@ -6,7 +6,10 @@
 
 One run, daily (Cloud Scheduler, deploy.toml [schedule]):
 
-1. pull     The last block from the store into <data-root>/published: latest.json, then the file it names.
+1. pull     The last block from the store into <data-root>/published: latest.json, then the file it names. Then
+            the caches (S10): snapshots/_cache from the cache bucket (job-cache/snapshots-cache.tar.gz), so a run on
+            Cloud Run's empty disk fetches only new commits and tickets and blames only new fixes. None yet: a
+            cold run, logged.
 2. new?     meridian.status on the Spark-only config. Exit 99 = nothing new: the run ends there, exit 0.
 3. update   The data pipeline for Spark only, following master: collect, then history, scan, resolve, owners, join,
             graph, validate, publish. The same parts and commands as the meridian_update DAG, so a cloud block is
@@ -23,6 +26,8 @@ One run, daily (Cloud Scheduler, deploy.toml [schedule]):
 7. push     The block file, then history.pkl (as history/<run_id>.pkl and deploy.toml [serve_history]'s object, in
             its bucket), then latest.json, so a reader never sees a pointer to a missing file; then the D2 report.
             GCS buckets.block, the [serve_history] bucket and buckets.monitor.
+   cache    After the push, snapshots/_cache back to the cache bucket for the next run (S10). A failed save warns
+            and the run still succeeds: the block is already up, and the next run is only slower.
 8. retrain  D2's retrain flag is logged and read. Acting on it (model.refresh, the registry, the D3 dispatch) is the
             next step (packet, Tue Nov 24) and isn't wired yet.
 
@@ -35,8 +40,10 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tarfile
 import time
 import tomllib
 import urllib.error
@@ -60,6 +67,7 @@ import deploy_config  # noqa: E402
 
 DATASET = "spark"         # model.toml [data] repo = "apache/spark"
 BRANCH = "master"         # apache/spark's default branch: collect follows a ref that names a branch
+CACHE_OBJECT = "job-cache/snapshots-cache.tar.gz"   # buckets.cache, beside history/ (deploy reads only history/)
 PARTS = ("history", "scan", "resolve", "owners", "join", "graph", "validate")   # the DAG's CORE, in its order
 NOTHING_NEW = 99          # meridian.status and model.refresh: nothing new since the last block
 FMT = "%Y-%m-%dT%H:%M:%SZ"
@@ -300,6 +308,51 @@ class Job:
             raise StepFailed(f"latest.json names {latest['file']}, which the store doesn't have", "")
         return {"last_run": latest["run_id"]}
 
+    def restore_cache(self):
+        """snapshots/_cache from the cache bucket. Unpacked beside the folder, then swapped in, so a broken archive
+        leaves the disk as it was. Only plain files and folders under _cache are taken (tarfile's "data" filter)."""
+        cache = self.root / "snapshots" / "_cache"
+        if self.dry_run:
+            return {"cache": "dry run"}
+        archive = self.root / "snapshots" / "_cache.tar.gz"
+        archive.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            if not self.store.get("cache", CACHE_OBJECT, archive):
+                return {"cache": "cold: none in the store yet"}
+            mb = round(archive.stat().st_size / 1e6, 1)
+            tmp = self.root / "snapshots" / "_cache.restoring"
+            shutil.rmtree(tmp, ignore_errors=True)
+            tmp.mkdir()
+            with tarfile.open(archive, "r:gz") as t:
+                t.extractall(tmp, filter="data")
+            if not (tmp / "_cache").is_dir():
+                raise tarfile.TarError("the archive holds no _cache folder")
+            shutil.rmtree(cache, ignore_errors=True)
+            (tmp / "_cache").rename(cache)
+            shutil.rmtree(tmp, ignore_errors=True)
+            return {"cache": "restored", "cache_mb": mb}
+        except (OSError, tarfile.TarError, urllib.error.URLError) as e:   # never fatal: a cold run instead
+            return {"cache": f"cold: restore failed ({scrub(str(e))[:200]})"}
+        finally:
+            archive.unlink(missing_ok=True)
+
+    def save_cache(self):
+        """snapshots/_cache to the cache bucket, as one gzip'd tar written to disk, then streamed up."""
+        cache = self.root / "snapshots" / "_cache"
+        if self.dry_run or not cache.is_dir():
+            return {"cache": "dry run" if self.dry_run else "nothing to save"}
+        archive = self.root / "snapshots" / "_cache.tar.gz"
+        try:
+            with tarfile.open(archive, "w:gz", compresslevel=1) as t:   # git packs don't shrink: level 1 is enough
+                t.add(cache, arcname="_cache")
+            mb = round(archive.stat().st_size / 1e6, 1)
+            self.store.put(archive, "cache", CACHE_OBJECT)
+            return {"cache": "saved", "cache_mb": mb, "where": self.store.where("cache", CACHE_OBJECT)}
+        except (OSError, tarfile.TarError, urllib.error.URLError) as e:
+            return {"cache": f"not saved ({scrub(str(e))[:200]})", "severity": "WARNING"}
+        finally:
+            archive.unlink(missing_ok=True)
+
     def config(self):
         self.work.mkdir(parents=True, exist_ok=True)
         path = self.work / "meridian.spark.toml"
@@ -381,6 +434,8 @@ class Job:
         step = "pull"
         try:
             self.timed("pull", self.pull)
+            step = "restore_cache"
+            self.timed("restore_cache", self.restore_cache)
             step = "config"
             config = self.config()
             step = "anything_new"
@@ -400,6 +455,8 @@ class Job:
                        n_new=report["n_new"], why=report["drift"]["why"])
             step = "push"
             self.timed("push", lambda: self.push(run_id, path), run_id=run_id)
+            step = "save_cache"
+            self.timed("save_cache", self.save_cache, run_id=run_id)
             step = "retrain"
             # Tue Nov 24: on retrain, model.refresh --refit, the registry, and D3 on a promotion
             self.event("retrain", 0, run_id=run_id, retrain=report["retrain"],

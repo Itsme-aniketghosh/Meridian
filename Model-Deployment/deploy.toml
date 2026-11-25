@@ -58,7 +58,9 @@ name = "meridian-views"
 [jobs.refresh]   # S4
 name = "meridian-refresh"
 cpu = "2"
-memory = "4Gi"
+memory = "8Gi"      # Cloud Run's disk is memory: ~3.2 GB of files (mirror, checkout, out/, two blocks, the cache
+                    # archive) plus SZZ's 2 processes (~2.5-3 GB). 4Gi can't hold both (RUN-LOG §9-10). 8Gi is
+                    # the most 2 CPUs allow; about 1 cent a run
 timeout_s = 3600
 max_retries = 1
 

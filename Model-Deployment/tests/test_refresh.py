@@ -414,6 +414,103 @@ class ImagePackages(unittest.TestCase):
             self.assertNotIn(name, mine)
 
 
+class Caches(unittest.TestCase):
+    """S10: snapshots/_cache goes to the cache bucket after a run and comes back before the next."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.store = RecordingStore(self.tmp / "store")
+
+    def job_at(self, name):
+        return job.Job(self.tmp / name, self.store, out=io.StringIO())
+
+    def fill(self, root):
+        cache = root / "snapshots" / "_cache"
+        (cache / "szz").mkdir(parents=True)
+        (cache / "szz" / "apache__spark.json").write_text('{"fix": "blamed"}')
+        (cache / "repos" / "apache__spark.git" / "objects").mkdir(parents=True)
+        (cache / "repos" / "apache__spark.git" / "objects" / "pack").write_bytes(b"\x00pack" * 100)
+        return cache
+
+    def test_no_cache_yet_is_a_cold_run(self):
+        self.assertEqual(self.job_at("a").restore_cache(), {"cache": "cold: none in the store yet"})
+
+    def test_a_saved_cache_comes_back_on_an_empty_disk(self):
+        self.fill(self.tmp / "a")
+        saved = self.job_at("a").save_cache()
+        self.assertEqual(saved["cache"], "saved")
+        self.assertIn(("cache", job.CACHE_OBJECT), self.store.puts)
+        got = self.job_at("b").restore_cache()
+        self.assertEqual(got["cache"], "restored")
+        cache = self.tmp / "b" / "snapshots" / "_cache"
+        self.assertEqual((cache / "szz" / "apache__spark.json").read_text(), '{"fix": "blamed"}')
+        self.assertEqual((cache / "repos" / "apache__spark.git" / "objects" / "pack").read_bytes(), b"\x00pack" * 100)
+        self.assertFalse((self.tmp / "b" / "snapshots" / "_cache.tar.gz").exists())   # the archive is removed
+        self.assertFalse((self.tmp / "a" / "snapshots" / "_cache.tar.gz").exists())
+
+    def test_a_broken_archive_leaves_the_disk_as_it_was(self):
+        cache = self.fill(self.tmp / "b")
+        bad = self.tmp / "bad.tar.gz"
+        bad.write_bytes(b"not a tar")
+        self.store.put(bad, "cache", job.CACHE_OBJECT)
+        got = self.job_at("b").restore_cache()
+        self.assertTrue(got["cache"].startswith("cold: restore failed"), got)
+        self.assertEqual((cache / "szz" / "apache__spark.json").read_text(), '{"fix": "blamed"}')
+
+    def test_an_archive_escaping_the_folder_is_refused(self):
+        import tarfile
+        evil = self.tmp / "evil.tar.gz"
+        payload = self.tmp / "payload"
+        payload.write_text("x")
+        with tarfile.open(evil, "w:gz") as t:
+            t.add(payload, arcname="../../escaped")
+        self.store.put(evil, "cache", job.CACHE_OBJECT)
+        got = self.job_at("c").restore_cache()
+        self.assertTrue(got["cache"].startswith("cold"), got)
+        self.assertFalse((self.tmp / "escaped").exists())
+
+    def test_a_failed_save_warns_and_the_run_succeeds(self):
+        root = self.tmp / "d"
+        self.fill(root)
+        j = FakeJob(root, self.store)
+        with mock.patch.object(self.store, "put", side_effect=self.store.put) as put:
+            def fail_cache(src, bucket, name):
+                if name == job.CACHE_OBJECT:
+                    raise OSError("bucket unreachable")
+                return job.LocalStore.put(self.store, src, bucket, name)
+            put.side_effect = fail_cache
+            with mock.patch.object(job, "alert") as alert:
+                self.assertEqual(j.run(), 0)
+        alert.assert_not_called()
+        line = next(x for x in j.lines() if x["step"] == "save_cache")
+        self.assertEqual(line["severity"], "WARNING")
+        self.assertTrue(line["cache"].startswith("not saved"))
+
+    def test_restore_before_the_status_check_and_save_after_the_push(self):
+        root = self.tmp / "e"
+        self.fill(root)
+        j = FakeJob(root, self.store)
+        with mock.patch.object(job, "alert"):
+            self.assertEqual(j.run(), 0)
+        steps = [x["step"] for x in j.lines()]
+        self.assertLess(steps.index("restore_cache"), steps.index("anything_new"))
+        self.assertLess(steps.index("push"), steps.index("save_cache"))
+        self.assertEqual(self.store.puts[-1], ("cache", job.CACHE_OBJECT))   # after the block, history and report
+
+    def test_nothing_new_saves_nothing(self):
+        root = self.tmp / "f"
+        self.fill(root)
+        j = FakeJob(root, self.store, status=job.NOTHING_NEW)
+        with mock.patch.object(job, "alert"):
+            self.assertEqual(j.run(), 0)
+        self.assertNotIn(("cache", job.CACHE_OBJECT), self.store.puts)
+
+    def test_the_cache_is_never_where_the_deploy_account_reads(self):
+        with open(DEPLOY / "deploy.toml", "rb") as f:
+            history = tomllib.load(f)["serve_history"]["object"]
+        self.assertFalse(job.CACHE_OBJECT.startswith(history.rsplit("/", 1)[0] + "/"))
+
+
 class RecordingStore(job.LocalStore):
     def __init__(self, root):
         super().__init__(root)
