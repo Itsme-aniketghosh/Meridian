@@ -74,5 +74,13 @@ resource "terraform_data" "team_guard" {
     google_storage_bucket_iam_member.refresh_developers,
     google_project_iam_member.refresh_developers,
     google_secret_manager_secret_iam_member.refresh_developers,
+    google_logging_metric.scores,
+    google_logging_metric.score_latency,
+    google_logging_metric.refresh_runs,
+    google_logging_metric.drift_checks,
+    google_monitoring_custom_service.risk,
+    google_monitoring_slo.availability,
+    google_monitoring_slo.latency,
+    google_monitoring_dashboard.meridian,
   ]
 }

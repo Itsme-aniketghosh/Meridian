@@ -110,6 +110,19 @@ max_drop = 0.05
 error_rate = 0.01
 error_window_min = 10   # the 5xx and p95 alerts look at the last 10 minutes
 p95_latency_s = 2
-cold_start_s = 15       # PLAN §6's bar: a chart on S6's dashboard (Wed), not an alert
+cold_start_s = 15       # PLAN §6's bar: a line on the dashboard's cold-start chart, not an alert
 uptime_period_s = 300   # /health from each region every 5 min: about 26,000 checks a month, of 1 million free
 uptime_regions = ["USA_OREGON", "USA_IOWA", "USA_VIRGINIA"]   # Google's minimum is 3 locations
+
+[slo]   # S6's SLO and cost panel (infra/terraform/dashboard.tf): the plan's bars as budgets over a rolling window. The
+# error budget is the 1% of requests that may fail ([service_alerts] error_rate), the latency budget the 5% that may
+# take longer than p95_latency_s
+window_days = 7            # rolling, so the panel always shows the last week (Google allows 1 to 30)
+availability_goal = 0.99   # 1 - [service_alerts] error_rate: a test keeps the two together
+latency_goal = 0.95        # the 95 in p95_latency_s
+
+[cost]   # Cloud Run's list prices in us-east1 with request-based billing (cpu_idle), cloud.google.com/run/pricing on
+# Nov 24. The panel's cost per 1,000 scores uses them before the free tier, which covers all of our traffic today
+vcpu_second_usd = 0.000024
+gib_second_usd = 0.0000025
+million_requests_usd = 0.40

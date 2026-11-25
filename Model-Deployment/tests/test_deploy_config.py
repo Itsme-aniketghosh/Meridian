@@ -285,6 +285,63 @@ class ServiceAlerts(unittest.TestCase):
         self.assertIn("jsonPayload.retrain = true", self.tf)
 
 
+class SloAndCostPanel(unittest.TestCase):
+    """S6, part 2 (dashboard.tf): the SLOs are the plan's bars, the cost panel reads deploy.toml's list prices, and the
+    log-based metrics match the D5 lines the service and the job write."""
+
+    def setUp(self):
+        self.cfg = deploy_config.load(use_env=False)
+        self.tf = (TERRAFORM / "dashboard.tf").read_text()
+
+    def test_the_slos_are_the_plans_bars(self):
+        slo, alerts = self.cfg["slo"], self.cfg["service_alerts"]
+        self.assertAlmostEqual(slo["availability_goal"], 1 - alerts["error_rate"])   # the 5xx alert's 1% as a budget
+        self.assertEqual(slo["latency_goal"], 0.95)                                    # the 95 in p95_latency_s
+        self.assertTrue(1 <= slo["window_days"] <= 30, "Google's rolling windows are 1 to 30 days")
+        for pattern in (r"goal\s*=\s*local\.slo\.availability_goal\n", r"goal\s*=\s*local\.slo\.latency_goal\n",
+                        r"max = local\.alerts\.p95_latency_s \* 1000\s"):
+            self.assertRegex(self.tf, pattern)
+        self.assertEqual(len(re.findall(r"rolling_period_days\s*=\s*local\.slo\.window_days\n", self.tf)), 2)
+
+    def test_the_cost_panel_and_the_lines_read_deploy_toml(self):
+        cost = self.cfg["cost"]
+        self.assertEqual(set(cost), {"vcpu_second_usd", "gib_second_usd", "million_requests_usd"})
+        self.assertTrue(all(0 < v < 1 for v in cost.values()))
+        for key in cost:
+            self.assertIn(f"local.cost.{key}", self.tf)
+        # the service's size comes from [services.risk], and each chart's line from [service_alerts]
+        self.assertIn("tonumber(local.risk.cpu) * local.cost.vcpu_second_usd", self.tf)
+        for line in ("local.alerts.error_rate, targetAxis", "local.alerts.p95_latency_s * 1000, targetAxis",
+                     "local.alerts.cold_start_s * 1000, targetAxis", "local.risk.max_instances, targetAxis"):
+            self.assertIn(f"value = {line}", self.tf)
+
+    def test_the_log_metrics_match_the_d5_lines(self):
+        app = (DEPLOY / "serve" / "app.py").read_text()
+        job = (DEPLOY / "refresh" / "job.py").read_text()
+        # the service: a "score" line with its status and model version, the job: "refresh" lines with a step and an
+        # outcome, a failed step with outcome "failed", and S5's "drift" line with its retrain verdict
+        self.assertRegex(app, r'log\(event="score", status=status, model_version=scorer\.version')
+        self.assertRegex(job, r'def event\(self, step, ms, event="refresh"')
+        self.assertRegex(job, r'self\.event\("done", [^\n]*outcome=')
+        self.assertRegex(job, r'severity="ERROR", outcome="failed"')
+        self.assertRegex(job, r'self\.event\(\s*"drift"[^)]*event="drift"[^)]*retrain=')
+        for match in ('jsonPayload.event = \\"score\\" AND jsonPayload.status = 200',
+                      'jsonPayload.step = \\"done\\" OR jsonPayload.outcome = \\"failed\\"',
+                      'jsonPayload.event = \\"drift\\"', "EXTRACT(jsonPayload.model_version)",
+                      "EXTRACT(jsonPayload.outcome)", "EXTRACT(jsonPayload.retrain)",
+                      "EXTRACT(jsonPayload.latency_ms)"):
+            self.assertIn(match, self.tf)
+
+    def test_tiles_leave_out_zero_positions(self):
+        # Google drops zero values, so a tile with xPos = 0 in the JSON would show as a change on every plan
+        self.assertIn("{ for k, v in { xPos = t.x, yPos = t.y } : k => v if v > 0 }", self.tf)
+
+    def test_the_incident_list_names_policies_the_way_google_wants(self):
+        # Google refused the full name (projects/<p>/alertPolicies/<id>) on Nov 24: the widget takes alertPolicies/<id>
+        self.assertIn('regex("alertPolicies/[^/]+$", p.name)', self.tf)
+        self.assertNotRegex(self.tf, r"\] : p\.name\]")
+
+
 class TeamGuard(unittest.TestCase):
     """guard.tf: on the team's project, a destroy, a run pointed at another project, or a replacement of CI's sign-in
     stops at the guard before anything goes."""
