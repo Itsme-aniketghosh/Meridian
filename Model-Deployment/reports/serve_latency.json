@@ -1,0 +1,46 @@
+{
+ "bars": {
+  "cold_start_s": 15.0,
+  "p95_warm_s": 2.0
+ },
+ "runs": [
+  {
+   "url": "https://meridian-risk-zyydw4crua-ue.a.run.app",
+   "at": "2026-11-25T14:21:38Z",
+   "model": {
+    "version": "85b4684ae33697e771ba4defa5cc4cb5618bcd6a",
+    "md5": "2a0c9cc656b43fc4e471c70223c4b4ca"
+   },
+   "first_call_s": 0.185,
+   "cold_bar_s": 15.0,
+   "warm_calls": 200,
+   "errors": 0,
+   "p50_s": 0.22,
+   "p95_s": 0.333,
+   "max_s": 0.841,
+   "p95_bar_s": 2.0,
+   "by_kind": {
+    "sha": {
+     "p50_s": 0.209,
+     "p95_s": 0.324
+    },
+    "push": {
+     "p50_s": 0.292,
+     "p95_s": 0.335
+    }
+   },
+   "passed": true
+  },
+  {
+   "url": "https://meridian-risk-zyydw4crua-ue.a.run.app",
+   "at": "2026-11-25T14:23:04Z",
+   "model": {
+    "version": "85b4684ae33697e771ba4defa5cc4cb5618bcd6a",
+    "md5": "2a0c9cc656b43fc4e471c70223c4b4ca"
+   },
+   "first_call_s": 0.21,
+   "cold_bar_s": 15.0,
+   "passed": true
+  }
+ ]
+}
