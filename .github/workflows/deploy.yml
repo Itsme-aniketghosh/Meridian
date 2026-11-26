@@ -3,8 +3,12 @@
 # pushes the image, deploys it as a revision with no traffic, and smoke-tests that revision through its tag URL. Only
 # when that passes, and the image holds history.pkl, does 100% of traffic move to it; then the service's own URL is
 # smoke-tested. Until then the old revision keeps serving. If the move or that test fails, traffic goes straight back
-# to the revision that served before (rollback) and the run is red. Next: Slack (Nov 24), and the triggers:
-# model.yml on main and D3's repository_dispatch (Nov 25).
+# to the revision that served before (rollback) and the run is red. Slack hears the outcome on main (S7, notify.py).
+#
+# Triggers (Nov 25): a PR (dry run), by hand, model.yml finishing green on main, and D3's repository_dispatch
+# "champion-updated" from the refresh job. The two automatic ones deploy only a champion that doesn't serve yet: if
+# the service's /health already names its version and md5, the run ends green after the champion check, with nothing
+# built, pushed or sent. A dispatch must name the registry pointer's champion, or the run stops red before the build.
 #
 # The champion: on main, the registry pointer on Artifact Registry, read as the deploy account through Workload
 # Identity (main only, as in phase 2). Anywhere else, the committed Model-Pipeline/registry/. Either way its model
@@ -36,6 +40,12 @@ on:
         description: "Move traffic to the new revision after its smoke test (off: stop at the no-traffic revision)"
         type: boolean
         default: true
+  workflow_run:   # model.yml on main: a promotion moves the registry pointer, then this deploys it
+    workflows: [model]
+    types: [completed]
+    branches: [main]
+  repository_dispatch:   # D3 from the refresh job: {version, md5, reason, report}
+    types: [champion-updated]
 
 permissions:
   contents: read
@@ -47,12 +57,18 @@ concurrency:   # one deploy at a time; a PR's newer push replaces its older dry 
 
 jobs:
   deploy:
+    # model.yml must have passed, on a push or by hand on main (never a PR's run)
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.event != 'pull_request')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       ON_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
       MOVE_TRAFFIC: ${{ github.event.inputs.move_traffic != 'false' }}   # a trigger without inputs moves traffic
       DRY_RUN: ${{ !(github.ref == 'refs/heads/main' && github.event_name != 'pull_request') }}   # PRs: build, never push
+      AUTO: ${{ github.event_name == 'workflow_run' || github.event_name == 'repository_dispatch' }}   # not by hand
     steps:
       - uses: actions/checkout@v4
 
@@ -110,11 +126,51 @@ jobs:
           python Model-Deployment/champion.py --source "${{ env.ON_MAIN == 'true' && 'pointer' || 'committed' }}" \
             --dest "$RUNNER_TEMP/champion" --stage "$RUNNER_TEMP/stage" --github-output "$GITHUB_OUTPUT"
 
+      # D3: the dispatch names the champion it promoted; the pointer must agree, or nothing is deployed
+      - name: The dispatch's champion (D3)
+        id: dispatch
+        if: github.event_name == 'repository_dispatch'
+        env:
+          SENT_VERSION: ${{ github.event.client_payload.version }}
+          SENT_MD5: ${{ github.event.client_payload.md5 }}
+          VERSION: ${{ steps.champion.outputs.version }}
+          MD5: ${{ steps.champion.outputs.md5 }}
+        run: |
+          if [ "$SENT_VERSION" != "$VERSION" ] || [ "$SENT_MD5" != "$MD5" ]; then
+            echo "::error::the dispatch names ${SENT_VERSION:0:12} md5 ${SENT_MD5}, the registry pointer holds ${VERSION:0:12} md5 ${MD5}: nothing deployed"
+            exit 1
+          fi
+          echo "the dispatch's champion is the pointer's: ${VERSION:0:12} md5 ${MD5}"
+
+      # An automatic run with a champion that already serves stops here, green: model.yml runs on every push to main,
+      # and a new revision of the same model would cost a build and a deploy for nothing. A run by hand always deploys
+      - name: Already serving? (automatic triggers, main)
+        id: current
+        if: env.ON_MAIN == 'true' && env.AUTO == 'true'
+        env:
+          SERVICE: ${{ steps.cfg.outputs.service }}
+          WHERE: --region=${{ steps.cfg.outputs.region }} --project=${{ steps.cfg.outputs.project }}
+          VERSION: ${{ steps.champion.outputs.version }}
+          MD5: ${{ steps.champion.outputs.md5 }}
+        run: |
+          # shellcheck disable=SC2086
+          url=$(gcloud run services describe "$SERVICE" $WHERE --format='value(status.url)' 2>/dev/null || true)
+          now=$( [ -n "$url" ] && curl -s --max-time 60 "$url/health" | jq -r '"\(.model.version) \(.model.md5)"' 2>/dev/null || true)
+          echo "serving now: ${now:-nothing} at ${url:-no URL}"
+          if [ "$now" = "$VERSION $MD5" ]; then
+            echo "ALREADY_SERVING=true" >> "$GITHUB_ENV"
+            echo "serving=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${VERSION:0:12} md5 ${MD5} already serves at $url: nothing to deploy"
+          else
+            echo "serving=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # S2's handoff: pushes are scored from the block's precomputed history, baked into the image. It holds no email
       # (serve.precompute) and is never committed, and it's read from deploy.toml [serve_history], never from anywhere
       # the deploy account could see real names. Without it the image scores known SHAs only
       - name: history.pkl, for pushes
         id: history
+        if: env.ALREADY_SERVING != 'true'
         env:
           SRC: ${{ steps.cfg.outputs.history }}
         run: |
@@ -133,6 +189,7 @@ jobs:
       # Model-Pipeline/registry/, which is the committed champion off main and the pointer's on main
       - name: Build the serving image
         id: build
+        if: env.ALREADY_SERVING != 'true'
         env:
           IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
         run: |
@@ -148,6 +205,7 @@ jobs:
       # The image itself, before anything leaves the runner: a failure here stops the run before the push
       - name: Smoke test, the image on the runner
         id: smoke_local
+        if: env.ALREADY_SERVING != 'true'
         env:
           IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
         run: |
@@ -159,7 +217,7 @@ jobs:
 
       - name: Push the image (main)
         id: push
-        if: env.ON_MAIN == 'true'
+        if: env.ON_MAIN == 'true' && env.ALREADY_SERVING != 'true'
         env:
           IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
         run: |
@@ -172,7 +230,7 @@ jobs:
       # A new revision with 0% of traffic, reachable only at its tag's URL: the old revision keeps serving
       - name: Deploy a revision with no traffic (main)
         id: revision
-        if: env.ON_MAIN == 'true'
+        if: env.ON_MAIN == 'true' && env.ALREADY_SERVING != 'true'
         env:
           SERVICE: ${{ steps.cfg.outputs.service }}
           WHERE: --region=${{ steps.cfg.outputs.region }} --project=${{ steps.cfg.outputs.project }}
@@ -194,7 +252,7 @@ jobs:
 
       - name: Smoke test, the revision (main)
         id: smoke
-        if: env.ON_MAIN == 'true'
+        if: env.ON_MAIN == 'true' && env.ALREADY_SERVING != 'true'
         run: |
           python Model-Deployment/smoke.py --url "${{ steps.revision.outputs.url }}" \
             --version "${{ steps.champion.outputs.version }}" --md5 "${{ steps.champion.outputs.md5 }}" \
@@ -204,7 +262,7 @@ jobs:
       # every push, so it never gets traffic
       - name: Move traffic to the new revision (main)
         id: traffic
-        if: env.ON_MAIN == 'true' && env.MOVE_TRAFFIC == 'true'
+        if: env.ON_MAIN == 'true' && env.MOVE_TRAFFIC == 'true' && env.ALREADY_SERVING != 'true'
         env:
           SERVICE: ${{ steps.cfg.outputs.service }}
           WHERE: --region=${{ steps.cfg.outputs.region }} --project=${{ steps.cfg.outputs.project }}
@@ -287,7 +345,7 @@ jobs:
             python Model-Deployment/notify.py deployed "$@" --md5 "${{ steps.champion.outputs.md5 }}" \
               --pr-auc "${{ steps.champion.outputs.pr_auc }}" --url "${{ steps.traffic.outputs.url }}"
           elif [ "${{ job.status }}" != success ]; then
-            step="${{ (steps.champion.outcome == 'failure' && 'The champion, checked') || (steps.build.outcome == 'failure' && 'Build the serving image') || (steps.smoke_local.outcome == 'failure' && 'Smoke test, the image on the runner') || (steps.push.outcome == 'failure' && 'Push the image') || (steps.revision.outcome == 'failure' && 'Deploy a revision with no traffic') || (steps.smoke.outcome == 'failure' && 'Smoke test, the revision') || (steps.traffic.outcome == 'failure' && 'Move traffic (before the move)') || 'an earlier step' }}"
+            step="${{ (steps.champion.outcome == 'failure' && 'The champion, checked') || (steps.dispatch.outcome == 'failure' && 'The dispatch names another champion') || (steps.build.outcome == 'failure' && 'Build the serving image') || (steps.smoke_local.outcome == 'failure' && 'Smoke test, the image on the runner') || (steps.push.outcome == 'failure' && 'Push the image') || (steps.revision.outcome == 'failure' && 'Deploy a revision with no traffic') || (steps.smoke.outcome == 'failure' && 'Smoke test, the revision') || (steps.traffic.outcome == 'failure' && 'Move traffic (before the move)') || 'an earlier step' }}"
             python Model-Deployment/notify.py stopped "$@" --step "$step"
           else
             echo "no message: a run that stops at the no-traffic revision and passes"
@@ -303,7 +361,9 @@ jobs:
             if [ "$DRY_RUN" = true ]; then
               echo "### deploy (dry run: built and smoke-tested on the runner; nothing pushed, no revision)"
             else
-              if [ "${{ steps.rollback.outcome }}" = success ]; then
+              if [ "$ALREADY_SERVING" = true ]; then
+                echo "### deploy: nothing to do, the champion already serves"
+              elif [ "${{ steps.rollback.outcome }}" = success ]; then
                 echo "### deploy: rolled back, the revision that served before serves 100% again"
               elif [ "${{ steps.rollback.outcome }}" = failure ]; then
                 echo "### deploy: ROLLBACK FAILED, check the service's traffic by hand"
@@ -315,6 +375,7 @@ jobs:
             fi
             echo "| | |"
             echo "|---|---|"
+            echo "| Trigger | ${{ github.event_name == 'workflow_run' && 'model.yml finished green on main' || (github.event_name == 'repository_dispatch' && 'D3 champion-updated from the refresh job' || (github.event_name == 'workflow_dispatch' && 'by hand' || 'a pull request (dry run)')) }} |"
             echo "| Service | \`${{ steps.cfg.outputs.service }}\` in \`${{ steps.cfg.outputs.region }}\`, project \`${{ steps.cfg.outputs.project }}\` |"
             echo "| Champion | \`${VERSION:0:12}\`, md5 \`${{ steps.champion.outputs.md5 }}\`, val PR-AUC ${{ steps.champion.outputs.pr_auc }}, from the ${{ steps.champion.outputs.source }} registry |"
             echo "| Image | \`${{ steps.cfg.outputs.image }}:${VERSION:0:12}…\`: built in ${{ steps.build.outputs.build_s }} s, ${{ steps.build.outputs.size_mb }} MB uncompressed; history.pkl ${{ steps.history.outputs.present == 'true' && 'in (pushes scored)' || 'not in (known SHAs only)' }} |"
