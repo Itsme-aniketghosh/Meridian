@@ -27,6 +27,8 @@ RUN pip install --no-cache-dir -r Model-Deployment/refresh/requirements.txt
 # The data pipeline: its parts and the files they read next to them (common.HERE)
 COPY Data-Pipeline/meridian Data-Pipeline/meridian
 COPY Data-Pipeline/meridian.toml Data-Pipeline/settings.toml Data-Pipeline/schema.sql Data-Pipeline/KNOWLEDGE-BASE.md Data-Pipeline/
+# The writer's committed LLM cache: S10's fallback report writes the block's texts from it, with no LLM (no key)
+COPY Data-Pipeline/llm_cache Data-Pipeline/llm_cache
 # The model's feature table code and config, and the champion's pointer (its version goes on every D5 line)
 COPY Model-Pipeline/model.toml Model-Pipeline/model.toml
 COPY Model-Pipeline/model Model-Pipeline/model

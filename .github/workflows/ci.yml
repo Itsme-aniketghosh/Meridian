@@ -87,6 +87,8 @@ jobs:
         working-directory: Model-Deployment
       - run: python -m unittest discover -s tests -t . -p "test_report.py"
         working-directory: Model-Deployment
+      - run: python -m unittest discover -s tests -t . -p "test_fallback.py"
+        working-directory: Model-Deployment
       - run: python -m unittest discover -s tests -t . -p "test_refresh.py"
         working-directory: Model-Deployment
       - run: python -m unittest discover -s serve/tests -t .

@@ -1,0 +1,842 @@
+{
+ "accepted": [],
+ "by": {
+  "repo": {
+   "carltongibson/django-filter": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "cookiecutter/cookiecutter-django": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django-cms/django-cms": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "django-extensions/django-extensions": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django-guardian/django-guardian": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "django-haystack/django-haystack": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django-import-export/django-import-export": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "django-oscar/django-oscar": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django-tastypie/django-tastypie": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django-tenants/django-tenants": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django/channels": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django/django": {
+    "ci": [
+     0.01833606720540129,
+     0.08397153788529008
+    ],
+    "flagged": false,
+    "judged": true,
+    "k": 6,
+    "n": 151,
+    "power": 0.3422980736160972,
+    "value": 0.039735099337748346
+   },
+   "encode/django-rest-framework": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "graphql-python/graphene-django": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "iMerica/dj-rest-auth": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "jazzband/django-debug-toolbar": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "jazzband/django-silk": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "jazzband/django-two-factor-auth": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "pennersr/django-allauth": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "wagtail/wagtail": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "yourlabs/django-autocomplete-light": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   }
+  },
+  "task": {
+   "consumer": {
+    "ci": [
+     3.469446951953614e-18,
+     0.053471336520070537
+    ],
+    "flagged": false,
+    "judged": true,
+    "k": 0,
+    "n": 68,
+    "power": 0.23076877629431525,
+    "value": 0.0
+   },
+   "stall_reason": {
+    "ci": [
+     3.469446951953614e-18,
+     0.053471336520070537
+    ],
+    "flagged": false,
+    "judged": true,
+    "k": 0,
+    "n": 68,
+    "power": 0.23076877629431525,
+    "value": 0.0
+   },
+   "ticket_draft": {
+    "ci": [
+     3.469446951953614e-18,
+     0.053471336520070537
+    ],
+    "flagged": false,
+    "judged": true,
+    "k": 0,
+    "n": 68,
+    "power": 0.23076877629431525,
+    "value": 0.0
+   },
+   "walk": {
+    "ci": [
+     0.763868806553258,
+     0.9911185511992047
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 19,
+    "n": 20,
+    "power": null,
+    "value": 0.95
+   }
+  },
+  "team": {
+   "carltongibson/django-filter": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "contrib.admin": {
+    "ci": [
+     2.7755575615628914e-17,
+     0.29914504841954404
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 9,
+    "power": null,
+    "value": 0.0
+   },
+   "contrib.admindocs": {
+    "ci": [
+     0.025679624344743524,
+     0.5131278292743189
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 7,
+    "power": null,
+    "value": 0.14285714285714285
+   },
+   "contrib.auth": {
+    "ci": [
+     1.3877787807814457e-17,
+     0.24249400665524085
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 12,
+    "power": null,
+    "value": 0.0
+   },
+   "contrib.contenttypes": {
+    "ci": [
+     0.0,
+     0.39033428790216534
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 6,
+    "power": null,
+    "value": 0.0
+   },
+   "contrib.flatpages": {
+    "ci": [
+     0.0,
+     0.39033428790216534
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 6,
+    "power": null,
+    "value": 0.0
+   },
+   "contrib.gis": {
+    "ci": [
+     0.0,
+     0.35433043506668743
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 7,
+    "power": null,
+    "value": 0.0
+   },
+   "contrib.humanize": {
+    "ci": [
+     0.017876213095072896,
+     0.4041500267952385
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 10,
+    "power": null,
+    "value": 0.1
+   },
+   "contrib.messages": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "contrib.postgres": {
+    "ci": [
+     0.0,
+     0.39033428790216534
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 6,
+    "power": null,
+    "value": 0.0
+   },
+   "contrib.redirects": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "contrib.sessions": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "contrib.sitemaps": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "contrib.sites": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "contrib.staticfiles": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "contrib.syndication": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "cookiecutter/cookiecutter-django": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "core": {
+    "ci": [
+     0.0,
+     0.39033428790216534
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 6,
+    "power": null,
+    "value": 0.0
+   },
+   "db": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "django-cms/django-cms": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "django-extensions/django-extensions": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django-guardian/django-guardian": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "django-haystack/django-haystack": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django-import-export/django-import-export": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "django-oscar/django-oscar": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django-tastypie/django-tastypie": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django-tenants/django-tenants": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "django/channels": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "encode/django-rest-framework": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "forms": {
+    "ci": [
+     1.3877787807814457e-17,
+     0.24249400665524085
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 12,
+    "power": null,
+    "value": 0.0
+   },
+   "graphql-python/graphene-django": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "iMerica/dj-rest-auth": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "jazzband/django-debug-toolbar": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "jazzband/django-silk": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "jazzband/django-two-factor-auth": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   },
+   "pennersr/django-allauth": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "template": {
+    "ci": [
+     2.7755575615628914e-17,
+     0.29914504841954404
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 9,
+    "power": null,
+    "value": 0.0
+   },
+   "templatetags": {
+    "ci": [
+     0.0,
+     0.39033428790216534
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 6,
+    "power": null,
+    "value": 0.0
+   },
+   "tests": {
+    "ci": [
+     1.3877787807814457e-17,
+     0.24249400665524085
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 12,
+    "power": null,
+    "value": 0.0
+   },
+   "utils": {
+    "ci": [
+     2.7755575615628914e-17,
+     0.29914504841954404
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 9,
+    "power": null,
+    "value": 0.0
+   },
+   "views": {
+    "ci": [
+     0.0,
+     0.39033428790216534
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 6,
+    "power": null,
+    "value": 0.0
+   },
+   "wagtail/wagtail": {
+    "ci": [
+     0.0,
+     0.5614970317550455
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 0,
+    "n": 3,
+    "power": null,
+    "value": 0.0
+   },
+   "yourlabs/django-autocomplete-light": {
+    "ci": [
+     0.04558726080970055,
+     0.6993581574175981
+    ],
+    "flagged": false,
+    "judged": false,
+    "k": 1,
+    "n": 4,
+    "power": null,
+    "value": 0.25
+   }
+  }
+ },
+ "flags": [],
+ "note": "4 slices judged (N >= 30)",
+ "open_flags": [],
+ "overall": {
+  "k": 19,
+  "n": 224,
+  "value": 0.08482142857142858
+ },
+ "posted": [],
+ "rule": {
+  "max_gap": 0.1,
+  "min_n": 30
+ },
+ "run_id": null,
+ "texts": 224
+}

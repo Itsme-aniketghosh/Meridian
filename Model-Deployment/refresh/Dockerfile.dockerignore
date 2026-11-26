@@ -7,6 +7,7 @@
 !Data-Pipeline/settings.toml
 !Data-Pipeline/schema.sql
 !Data-Pipeline/KNOWLEDGE-BASE.md
+!Data-Pipeline/llm_cache/*.json
 !Model-Pipeline/model.toml
 !Model-Pipeline/model/*.py
 !Model-Pipeline/registry/champion.json
