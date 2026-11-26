@@ -3,6 +3,7 @@ Expected: Gate fails.
 Why: Bias is part of the pick."""
 import unittest
 
+from model.gate import REFUSED
 from tests.faults._gate import GateFault
 
 
@@ -11,7 +12,7 @@ class BiasFails(GateFault):
         self.set_pr_auc(0.50, 0.30, champion=0.40)  # beats the bar and the champion by far
         self.docs["bias_report.json"]["pass"] = False
         code, result, slack, _, _ = self.gate()
-        self.assertEqual((code, self.failed(result), len(slack)), (1, ["bias"], 1))
+        self.assertEqual((code, self.failed(result), len(slack)), (REFUSED, ["bias"], 1))
 
 
 if __name__ == "__main__":

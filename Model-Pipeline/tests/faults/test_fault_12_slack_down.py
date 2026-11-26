@@ -27,7 +27,7 @@ class SlackDown(GateFault):
         self.docs["bias_report.json"]["pass"] = False
         live = self.gate()[0]                 # Slack up
         code, result, logs = self.decide()    # Slack down
-        self.assertEqual((live, code), (1, 1))
+        self.assertEqual((live, code), (gate.REFUSED, gate.REFUSED))
         self.assertEqual(result["alerted"], [])
         self.assertTrue(any("Slack failed" in line for line in logs))
 

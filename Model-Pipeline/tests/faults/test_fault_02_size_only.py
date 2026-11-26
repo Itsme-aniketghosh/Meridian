@@ -3,6 +3,7 @@ Expected: Gate fails, or passes only if it really beats lines x files.
 Why: The bar can't be beaten by a renamed baseline."""
 import unittest
 
+from model.gate import REFUSED
 from tests.faults._gate import GateFault, planted
 
 
@@ -11,7 +12,7 @@ class SizeOnly(GateFault):
         _, reference, _, _ = planted("size only")
         self.set_pr_auc(reference, reference)  # the baseline's own scores under a model's name: lift 0
         code, result, slack, _, _ = self.gate(skip=("champion.json",))
-        self.assertEqual((code, self.failed(result), len(slack)), (1, ["bar"], 1))
+        self.assertEqual((code, self.failed(result), len(slack)), (REFUSED, ["bar"], 1))
 
     def test_a_size_only_forest_passes_only_above_lines_x_files(self):
         value, reference, _, _ = planted("size only")
