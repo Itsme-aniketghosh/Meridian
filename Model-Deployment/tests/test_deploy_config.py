@@ -85,10 +85,12 @@ class Names(unittest.TestCase):
         self.assertEqual((risk["risk"]["min_instances"], risk["risk"]["max_instances"], risk["risk"]["public"]),
                          (0, 2, True))
         self.assertGreater(risk["risk"]["max_request_kb"], 0)
-        self.assertEqual((drift["psi"], drift["dataset_share"], drift["window_days"]), (0.2, 0.5, 30))
+        self.assertEqual((drift["psi"], drift["dataset_share"], drift["window_days"]), (0.25, 0.5, 30))
+        self.assertEqual((drift["reference"], drift["share_retrains"]), ("latest_year", False))
         self.assertEqual(drift["top_features"], ["la", "nf", "prior_bug_fixes", "nd", "ld"])
-        self.assertEqual((decay["min_positives"], decay["min_paired_lower"], decay["max_drop"],
-                          decay["label_window_days"]), (30, 0.0, 0.05, 365))
+        self.assertEqual((decay["window"], decay["min_positives"], decay["min_paired_lower"],
+                          decay["label_window_days"]), ("half", 100, 0.0, 365))
+        self.assertNotIn("max_drop", decay)
         self.assertEqual((alerts["error_rate"], alerts["error_window_min"], alerts["p95_latency_s"],
                           alerts["cold_start_s"]), (0.01, 10, 2, 15))
         self.assertEqual((budget["amount_usd"], budget["alert_at"], budget["phase_target_usd"]),

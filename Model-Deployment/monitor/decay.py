@@ -8,12 +8,13 @@ Labels arrive late: a commit is bug-inducing once a fix authored up to label_win
 measured only on a window whose last commit is label_window_days or more before the block's snapshot, and that has
 at least min_positives positives. All the numbers are deploy.toml's [decay] (contract D4):
 
-1. The window: the newest calendar quarter that has closed and has min_positives positives. [decay] window, when
-   set, can make it "half" (half-years); it isn't set, so quarters, as PLAN §5 is written.
+1. The window: the newest calendar half-year ([decay] window "half", as signed off; "quarter" without it) that has
+   closed and has min_positives positives.
 2. On its rows: the champion's PR-AUC, lines x files' PR-AUC, and their paired bootstrap difference (model.evaluate's
    paired_bootstrap, model.toml's [eval] reps and interval, [seed]).
-3. Flag when the interval's lower bound is below min_paired_lower (the model no longer clearly beats the rule), or
-   when PR-AUC is more than max_drop under the previous qualifying window's.
+3. Flag when the interval's lower bound is below min_paired_lower (the model no longer clearly beats the rule). The
+   previous qualifying window's PR-AUC is reported; with [decay] max_drop set (it isn't, as signed off), a fall of
+   more than that flags too.
 
 No window qualifies: no flag, and "why" says so. The champion is Model-Pipeline/registry/model.joblib unless --model.
 """
@@ -89,7 +90,7 @@ def decay_report(df, score, snapshot_at, cfg, reps=2000, seed=1, level=0.95):
     if prev is not None:
         p = {"window": prev[0], **measure(prev[1], score(prev[1]), reps, seed, level)}
         r["previous"] = {k: p[k] for k in ("window", "n", "positives", "pr_auc")}
-        if p["pr_auc"] - r["pr_auc"] > cfg["max_drop"]:
+        if cfg.get("max_drop") is not None and p["pr_auc"] - r["pr_auc"] > cfg["max_drop"]:
             reasons.append(f"PR-AUC {r['pr_auc']:.3f} on {key} is {p['pr_auc'] - r['pr_auc']:.3f} under "
                            f"{p['window']}'s {p['pr_auc']:.3f} (> {cfg['max_drop']})")
     r["flag"] = bool(reasons)
@@ -98,12 +99,7 @@ def decay_report(df, score, snapshot_at, cfg, reps=2000, seed=1, level=0.95):
     return r
 
 
-def snapshot_of(table, df):
-    """The block's snapshot from the table's schema next to it, else the newest commit."""
-    schema = Path(table).with_name("features.schema.json")
-    if schema.exists():
-        return json.loads(schema.read_text(encoding="utf-8"))["snapshot_at"]
-    return df["authored_at"].max()
+snapshot_of = drift.snapshot_of
 
 
 def run(table=drift.TABLE, model_path=MODEL, config=drift.DEPLOY_TOML, model_toml=MODEL_TOML):

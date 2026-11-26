@@ -127,3 +127,18 @@ Run **Sat Nov 21, 2026**: `python -m monitor.decay`, with the champion `registry
 | 2025Q2 (previous) | 654 | 47 | 0.217 | | | no drop |
 
 Under the rule as written, decay flags today. Under the proposal (§7: half-years, ≥ 100 positives) it would judge 2025H1 and flag too. The proposal is `[decay] window = "half"` in `deploy.toml`; `decay.py` already reads it.
+
+# The signed thresholds, in deploy.toml
+
+Applied **Wed Nov 25, 2026**: §7's proposal, as signed off, is now `deploy.toml` [drift] and [decay] (D4), PLAN §5, and `tests/test_deploy_config.py`.
+- [drift]: `psi = 0.25`, `reference = "latest_year"`, `share_retrains = false`.
+- [decay]: `window = "half"`, `min_positives = 100`, and `max_drop` removed.
+
+`python -m monitor.report --out reports/d2_c5118_signed.json` on block `c5118`:
+
+| Signal | Window | Result | Retrain |
+|---|---|---|---|
+| Drift | 454 commits, Sep 1 – Oct 1 2026, against 2024's 3,762 | PSI on `la` 0.347 ≥ 0.25 (62% drifted: reported only) | yes |
+| Decay | 2025H1, 103 positives | model − lines × files [−0.010, +0.079], lower bound < 0 | yes |
+
+`--simulate` still retrains (PSI ≥ 3 on `la`, `nf`, `nd`, `ld`). The decay interval is a little narrower than §6's [−0.016, +0.083] because this run uses model.toml's 2,000 reps at seed 1, against §6's 1,000.
