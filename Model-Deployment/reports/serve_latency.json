@@ -42,5 +42,27 @@
    "cold_bar_s": 15.0,
    "passed": true
   }
- ]
+ ],
+ "cold_starts_from_cloud_run_logs": {
+  "source": "Cloud Run's own startup events (Container startup latency), read by Rochan, Nov 25: uptime checks every 5 min keep the service warm, so an idle wait never gives a cold start",
+  "bar_s": 15.0,
+  "revisions": [
+   {
+    "revision": "meridian-risk-00002-jow",
+    "to_ready_s": 9.8,
+    "app_load_s": 8.7,
+    "first_score_s": 0.2,
+    "total_s": 10.0
+   },
+   {
+    "revision": "meridian-risk-00003-biw",
+    "to_ready_s": 14.1,
+    "app_load_s": 13.0,
+    "first_score_s": 0.21,
+    "total_s": 14.4
+   }
+  ],
+  "passed": true,
+  "note": "Under the bar, but 00003 has 0.6 s of margin; the app's load is ~10x slower than the 1.3 s locally (1 vCPU, image layers fetched on first read). Next if needed: time each load step in the start line to see which dominates"
+ }
 }
