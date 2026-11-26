@@ -7,6 +7,7 @@ locals {
     risk      = "Meridian risk service"
     refresh   = "Meridian refresh job"
     scheduler = "Meridian scheduler: starts the refresh job"
+    airflow   = "Meridian Airflow VM"
   }
   sa = { for k, v in google_service_account.sa : k => "serviceAccount:${v.email}" }
 }

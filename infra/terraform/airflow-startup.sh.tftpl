@@ -1,0 +1,72 @@
+#!/bin/bash
+# The Airflow VM's startup script (airflow.tf), run as root at every start of the daily window. Idempotent:
+# 1. mounts the data disk at /data (formats it only the first time)
+# 2. installs Docker with the compose plugin, once
+# 3. clones the repo onto the data disk, or moves it to deploy.toml [airflow] ref
+# 4. writes Data-Pipeline/.env from Secret Manager (never git, never Terraform's state)
+# 5. docker compose up, then unpauses the two DAGs (settings.toml [dags.*] schedules)
+set -euo pipefail
+exec > >(logger -t meridian-airflow) 2>&1
+
+DISK=/dev/disk/by-id/google-data
+DATA=/data
+REPO=$DATA/meridian
+
+# 1. the data disk
+if ! blkid "$DISK" >/dev/null 2>&1; then
+  mkfs.ext4 -m 0 -F "$DISK"
+fi
+mkdir -p "$DATA"
+mountpoint -q "$DATA" || mount -o discard,defaults "$DISK" "$DATA"
+grep -q " $DATA " /etc/fstab || echo "$DISK $DATA ext4 discard,defaults,nofail 0 2" >> /etc/fstab
+
+# 2. Docker and compose, once
+if ! command -v docker >/dev/null 2>&1; then
+  apt-get update
+  apt-get install -y ca-certificates curl gnupg git
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+    > /etc/apt/sources.list.d/docker.list
+  apt-get update
+  apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+fi
+
+# 3. the repo, at [airflow] ref
+if [ ! -d "$REPO/.git" ]; then
+  git clone "https://github.com/${repository}.git" "$REPO"
+fi
+git -C "$REPO" fetch --quiet origin
+git -C "$REPO" checkout --quiet --force "origin/${ref}"
+
+# 4. Data-Pipeline/.env from Secret Manager. AIRFLOW_UID 50000 owns what the DAGs write into the repo
+secret() { gcloud secrets versions access latest --secret="$1" --project="${project}" 2>/dev/null || true; }
+ADMIN=$(secret "${admin_secret}")
+DB=$(secret "${db_secret}")
+if [ -z "$ADMIN" ] || [ -z "$DB" ]; then
+  echo "meridian-airflow: ${admin_secret} or ${db_secret} has no value yet; add both (README.md, Airflow). Not starting Airflow"
+  exit 0
+fi
+umask 077
+cat > "$REPO/Data-Pipeline/.env" <<ENV
+AIRFLOW_UID=50000
+AIRFLOW_PORT=8080
+AIRFLOW_ADMIN_USER=admin
+AIRFLOW_ADMIN_PASSWORD=$ADMIN
+POSTGRES_PASSWORD=$DB
+MERIDIAN_SLACK_WEBHOOK=$(secret "${slack_secret}")
+MERIDIAN_GCP_PROJECT=${project}
+ENV
+chown -R 50000:0 "$REPO"
+
+# 5. Airflow, and the DAGs unpaused (they start paused: AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION)
+cd "$REPO/Data-Pipeline"
+docker compose up -d --build
+for i in $(seq 1 60); do
+  docker compose exec -T airflow-scheduler airflow dags list >/dev/null 2>&1 && break
+  sleep 10
+done
+for dag in meridian_update meridian_rebuild; do
+  docker compose exec -T airflow-scheduler airflow dags unpause "$dag" || true
+done
+echo "meridian-airflow: up at $(git -C "$REPO" rev-parse --short HEAD)"

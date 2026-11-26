@@ -445,5 +445,58 @@ class People(unittest.TestCase):
                 self.assertTrue(email.endswith("@example.com"), f"{f.name} has an email in it: {email}")
 
 
+class AirflowVm(unittest.TestCase):
+    """airflow.tf and deploy.toml [airflow]: a private VM, on in a window around the DAGs, writing only its folder."""
+
+    def setUp(self):
+        self.cfg = deploy_config.load(use_env=False)
+        self.a = self.cfg["airflow"]
+        self.tf = (TERRAFORM / "airflow.tf").read_text()
+        self.code = "\n".join(line.split("#", 1)[0] for line in self.tf.splitlines())
+
+    @staticmethod
+    def minutes(cron):   # "M H * * *" -> minutes after midnight
+        m, h = cron.split()[:2]
+        return int(h) * 60 + int(m)
+
+    def dag_schedules(self):
+        import tomllib
+        with open(REPO / "Data-Pipeline" / "settings.toml", "rb") as f:
+            dags = tomllib.load(f)["dags"]
+        return {name: d["schedule"] for name, d in dags.items() if d.get("schedule")}
+
+    def test_the_window_holds_every_dag_start(self):
+        start, stop = self.minutes(self.a["window_start"]), self.minutes(self.a["window_stop"])
+        self.assertEqual(self.a["time_zone"], "Etc/UTC")   # settings.toml's schedules are UTC
+        for name, cron in self.dag_schedules().items():
+            self.assertTrue(start < self.minutes(cron) < stop, f"[dags.{name}] {cron} is outside the window")
+
+    def test_it_writes_only_its_folder_never_the_jobs_pointer(self):
+        prefix = self.a["publish_prefix"]
+        self.assertTrue(prefix.endswith("/") and prefix not in ("/", ""))
+        self.assertFalse("latest.json".startswith(prefix))
+        self.assertIn("publish_prefix", self.code)
+        self.assertIn("objects/${local.airflow.publish_prefix}", self.code)
+
+    def test_no_public_ip_and_ssh_from_iap_only(self):
+        self.assertNotIn("access_config", self.code)
+        self.assertIn('"35.235.240.0/20"', self.code)
+        self.assertNotIn("0.0.0.0/0", self.code)
+        self.assertIn('ports    = ["22"]', self.code)
+        self.assertIn('enable-oslogin = "TRUE"', self.code)
+
+    def test_its_secrets_are_its_own(self):
+        own = {self.a["admin_password_secret"], self.a["db_password_secret"]}
+        self.assertFalse(own & set(self.cfg["secrets"].values()), "the refresh job would read the Airflow logins")
+        for name in own:
+            self.assertNotIn(f'"{name}"', self.code)   # read from deploy.toml, never typed
+
+    def test_enough_memory_for_szz(self):
+        self.assertIn(self.a["machine_type"], {"e2-standard-2", "e2-standard-4", "e2-highmem-2"})
+
+    def test_people_get_the_vm_not_the_project(self):
+        self.assertNotRegex(self.tf, r'resource "google_project_iam_member"')
+
+
 if __name__ == "__main__":
     unittest.main()

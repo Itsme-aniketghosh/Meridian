@@ -13,6 +13,9 @@ alert_emails = ["teammate@example.com"]
 # People who deploy and run the refresh job by hand (S4): plain emails. They get that job, not the project (iam.tf)
 # refresh_developers = ["teammate@example.com"]
 
+# People who open the Airflow VM's UI (IAP tunnel) and manage it over SSH: plain emails. They get that VM (airflow.tf)
+# airflow_users = ["teammate@example.com"]
+
 # A fresh project: bootstrap.sh passes its id. Empty means deploy.toml's [gcp] project, where phase 2's registry,
 # CI account and Workload Identity are taken over (imports.tf).
 # project_id = ""
