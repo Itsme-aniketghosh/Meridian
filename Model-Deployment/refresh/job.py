@@ -32,8 +32,8 @@ One run, daily (Cloud Scheduler, deploy.toml [schedule]):
             nothing else happens. On: model.refresh --refit on the new block, in a writable copy of Model-Pipeline
             under /work, stopped after [retrain] until ("gate": nothing is registered). A refit that doesn't pass
             warns; the run still succeeds, the block is already up. Past the registry, a promotion sends D3
-            (repository_dispatch "champion-updated") when [retrain] dispatch is on. notify() is where S7's Slack
-            messages (Chaitali) go.
+            (repository_dispatch "champion-updated") when [retrain] dispatch is on. notify() sends S7's Slack
+            messages: drift found (unless [retrain] slack_drift is off) and retrain triggered, with D2's why.
 
 Every step writes one D5 log line (event "refresh", or "drift"), JSON on stdout, which Cloud Logging parses. The
 parts' own logs go to stderr. No line carries an email, a name or a person id: only counts, ids and timings.
@@ -71,7 +71,7 @@ import deploy_config  # noqa: E402
 
 DATASET = "spark"         # model.toml [data] repo = "apache/spark"
 BRANCH = "master"         # apache/spark's default branch: collect follows a ref that names a branch
-RETRAIN_OFF = {"enabled": False, "until": "gate", "dispatch": False}
+RETRAIN_OFF = {"enabled": False, "until": "gate", "dispatch": False, "slack_drift": True}
 D3_EVENT = "champion-updated"   # packets/README.md D3, received by deploy.yml
 CACHE_OBJECT = "job-cache/snapshots-cache.tar.gz"   # buckets.cache, beside history/ (deploy reads only history/)
 PARTS = ("history", "scan", "resolve", "owners", "join", "graph", "validate")   # the DAG's CORE, in its order
@@ -443,8 +443,9 @@ class Job:
         """D2's retrain flag, acted on as deploy.toml [retrain] says."""
         if not report.get("retrain"):
             return {"retrain": False, "outcome": "not needed"}
-        notify("drift", report, run_id)
         cfg = self.retrain_cfg
+        if cfg.get("slack_drift", True):   # off when S6's log-based alert is the team's one drift message
+            notify("drift", report, run_id)
         if not cfg["enabled"]:
             return {"retrain": True, "outcome": "due, switch off ([retrain] enabled = false)"}
         if self.dry_run:
@@ -557,9 +558,21 @@ def d2(run_id, at, drift):
 
 
 def notify(kind, report, run_id, outcome=None):
-    """S7's Slack messages for "drift found" and "retrain triggered" (Chaitali writes them, with D2's why). Until
-    they're in, nothing is sent: the D5 lines already carry the same facts."""
-    return None
+    """S7's Slack messages, with D2's why: "drift" (found, retrain due) and "retrain" (triggered, and what came of
+    it: outcome). Through meridian.alert as a warning; scrubbed like every alert; never raises, so Slack can't change
+    the run. Returns the channels that took it."""
+    why = (report.get("drift") or {}).get("why") or "no reason in the report"
+    if kind == "drift":
+        subject = "Meridian: drift found, retrain due"
+        lines = [f"block {run_id}: {why}"]
+        if report.get("n_new") is not None:
+            lines.append(f"{report['n_new']} new commits measured")
+    elif kind == "retrain":
+        subject = f"Meridian: retrain triggered: {outcome or 'see the job log'}"
+        lines = [f"why (D2): {why}", f"block {run_id}"]
+    else:
+        return []
+    return send(scrub(subject)[:200], [scrub(x)[:300] for x in lines], event="warn")
 
 
 def dispatch(repository, champion, reason, report_where, token=None, opener=None):
@@ -607,12 +620,18 @@ def scrub(text):
 
 
 def alert(subject, lines):
+    send(subject, lines, event="failure")
+
+
+def send(subject, lines, event):
+    """meridian.alert.send: the channels that took it. Never raises: an alert must never hide what it reports."""
     sys.path.insert(0, str(DATA_PIPELINE))
     try:
         from meridian import alert as meridian_alert
-        meridian_alert.send(subject, lines, event="failure")
-    except Exception as e:   # an alert must never hide the failure it reports
+        return meridian_alert.send(subject, lines, event=event)
+    except Exception as e:   # noqa: BLE001
         print(f"alert failed: {e}", file=sys.stderr)
+        return []
 
 
 def now():

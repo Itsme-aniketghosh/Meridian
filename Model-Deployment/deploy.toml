@@ -70,6 +70,8 @@ enabled = false     # off: the job logs "retrain due, switch off" and does nothi
 until = "gate"      # on: model.refresh --refit on the new block, stopped after this step. "gate" registers nothing:
                     # the registry versions a model by its git sha and won't push from an image (team decision, Nov 25)
 dispatch = false    # D3: repository_dispatch "champion-updated" after a promotion (needs MERIDIAN_GITHUB_DISPATCH)
+slack_drift = true  # S7: the job's own "drift found" Slack message. S6's log-based drift alert says the same; turn
+                    # this off if the team keeps that one only
 
 [airflow]   # The hosted Airflow (infra/terraform/airflow.tf; Aniket signed off Nov 25): Data-Pipeline's docker compose on
 # one VM, for the full product pipeline (every dataset) and the weekly rebuild. Spark's daily update stays with the

@@ -636,6 +636,68 @@ class Dispatch(unittest.TestCase):
         self.assertNotIn("ghp_xxxx", out)
 
 
+class Notify(unittest.TestCase):
+    """S7: the job's drift and retrain messages, sent for real to Data-Pipeline's local Slack stand-in."""
+    REPORT = {"drift": {"why": "PSI 0.3679 >= 0.2 on la; 75% of features drifted >= 50%"}, "n_new": 42,
+              "retrain": True}
+
+    def setUp(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "alert_sinks", job.DATA_PIPELINE / "tests" / "alert_sinks.py")
+        self.sinks = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.sinks)
+
+    def sent(self, *args, **kw):
+        """(the channels notify() reported, the Slack bodies that arrived)."""
+        with self.sinks.sinks() as s, mock.patch.dict("os.environ", {"MERIDIAN_SLACK_WEBHOOK": s.webhook}), \
+                mock.patch("sys.stderr", io.StringIO()):
+            return job.notify(*args, **kw), [b["text"] for b in s.slack]
+
+    def test_drift_found_with_d2s_why(self):
+        channels, [text] = self.sent("drift", self.REPORT, RUN)
+        self.assertEqual(channels, ["slack"])
+        self.assertTrue(text.startswith("Meridian: drift found, retrain due"), text)
+        self.assertIn(f"block {RUN}: PSI 0.3679 >= 0.2 on la", text)
+        self.assertIn("42 new commits", text)
+
+    def test_retrain_triggered_with_its_outcome_and_why(self):
+        _, [text] = self.sent("retrain", self.REPORT, RUN, outcome="not better, kept")
+        self.assertTrue(text.startswith("Meridian: retrain triggered: not better, kept"), text)
+        self.assertIn("why (D2): PSI 0.3679", text)
+        self.assertIn(f"block {RUN}", text)
+
+    def test_no_people_and_no_tokens_out(self):
+        report = {"drift": {"why": "seen by someone@example.com, token=abc123"}}
+        _, [text] = self.sent("retrain", report, RUN, outcome="failed for dev@example.org")
+        self.assertNotIn("@example", text)
+        self.assertNotIn("abc123", text)
+
+    def test_a_report_without_a_why_and_an_unknown_kind(self):
+        _, [text] = self.sent("drift", {}, RUN)
+        self.assertIn("no reason in the report", text)
+        self.assertEqual(self.sent("something else", self.REPORT, RUN), ([], []))
+
+    def test_slack_down_never_raises(self):
+        with mock.patch.dict("os.environ", {"MERIDIAN_SLACK_WEBHOOK": "http://127.0.0.1:9/x"}), \
+                mock.patch("sys.stderr", io.StringIO()):
+            self.assertEqual(job.notify("drift", self.REPORT, RUN), [])
+        with mock.patch("meridian.alert.send", side_effect=RuntimeError("boom")), \
+                mock.patch("sys.stderr", io.StringIO()):
+            self.assertEqual(job.notify("drift", self.REPORT, RUN), [])
+
+    def test_the_drift_message_has_a_switch(self):
+        with open(DEPLOY / "deploy.toml", "rb") as f:
+            self.assertIn("slack_drift", tomllib.load(f)["retrain"])
+        with tempfile.TemporaryDirectory() as d:
+            j = FakeJob(Path(d) / "root", RecordingStore(Path(d) / "store"))
+            for slack_drift, calls in ((False, 0), (True, 1)):
+                j.retrain_cfg = {**job.RETRAIN_OFF, "slack_drift": slack_drift}
+                with mock.patch.object(job, "notify") as notify:
+                    j.retrain(self.REPORT, RUN)   # the switch is off: "due, switch off", no refit
+                self.assertEqual(notify.call_count, calls, slack_drift)
+
+
 class RecordingStore(job.LocalStore):
     def __init__(self, root):
         super().__init__(root)
