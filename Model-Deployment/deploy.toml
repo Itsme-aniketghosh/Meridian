@@ -71,6 +71,25 @@ until = "gate"      # on: model.refresh --refit on the new block, stopped after 
                     # the registry versions a model by its git sha and won't push from an image (team decision, Nov 25)
 dispatch = false    # D3: repository_dispatch "champion-updated" after a promotion (needs MERIDIAN_GITHUB_DISPATCH)
 
+[airflow]   # The hosted Airflow (infra/terraform/airflow.tf; Aniket signed off Nov 25): Data-Pipeline's docker compose on
+# one VM, for the full product pipeline (every dataset) and the weekly rebuild. Spark's daily update stays with the
+# refresh job; the full block goes to the block bucket under publish_prefix, never latest.json (the job's pointer).
+# No public IP: the UI is reached through an IAP tunnel to the VM's localhost:8080 (README.md, "Airflow")
+name = "meridian-airflow"          # the VM; its data disk, network and policies are named after it
+zone = "us-east1-b"
+machine_type = "e2-standard-2"     # 2 vCPU, 8 GB: SZZ peaked at 5.15 GiB with 4 processes (RUN-LOG §9)
+image = "debian-cloud/debian-12"
+boot_disk_gb = 20
+data_disk_gb = 50                  # the clone, snapshots/, out/, published/ and the caches; kept across restarts
+ref = "main"                       # the git ref the VM checks out at each start
+window_start = "45 1 * * *"        # UTC: 15 min before the update DAG (Data-Pipeline/settings.toml [dags.update])
+window_stop = "0 6 * * *"          # after Sunday's rebuild (04:00 UTC). About 4 h a day: ~$9/month running
+time_zone = "Etc/UTC"
+snapshot_days = 7                  # a daily snapshot of the data disk, kept a week
+publish_prefix = "product/"        # the only folder of the block bucket the VM can write
+admin_password_secret = "MERIDIAN_AIRFLOW_ADMIN_PASSWORD"   # Secret Manager; a person adds the values
+db_password_secret = "MERIDIAN_AIRFLOW_DB_PASSWORD"
+
 [schedule]   # Cloud Scheduler starts jobs.refresh
 cron = "0 3 * * *"   # daily, 03:00
 time_zone = "Etc/UTC"
@@ -82,6 +101,7 @@ deploy = "meridian-deploy"         # deploy.yml: push images, deploy revisions, 
 risk = "meridian-risk"             # the service runs as this
 refresh = "meridian-refresh"       # the job runs as this
 scheduler = "meridian-scheduler"   # Cloud Scheduler starts the job as this
+airflow = "meridian-airflow"       # the Airflow VM runs as this ([airflow])
 
 [workload_identity]   # from phase 2: GitHub Actions on main, no keys
 pool = "github"

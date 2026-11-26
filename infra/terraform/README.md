@@ -253,6 +253,31 @@ A fresh project tears down with no extra step. Its run (S8's `bootstrap.sh`, sti
 - **Both SLOs count every request,** the uptime check's `/health` included, as the alerts do.
 - **Cost: $0.** Google doesn't bill dashboards or SLOs. The log-based metrics are custom metrics of a few MiB a month, within the 150 MiB each billing account gets free.
 
+## Airflow (the hosted pipeline)
+
+`airflow.tf`, from `deploy.toml [airflow]`: Data-Pipeline's docker compose on one VM (`e2-standard-2`, a 50 GB data disk), for the full product pipeline (every dataset) and the weekly rebuild. Spark's daily update stays with the refresh job. The full block goes under `[airflow] publish_prefix` in the block bucket, the only place the VM can write, so it never moves the job's `latest.json`.
+
+- **When it runs:** an instance schedule starts it at `window_start` and stops it at `window_stop` (UTC), around the DAGs' schedules in `Data-Pipeline/settings.toml` (a test keeps them inside). The data disk keeps the clone, the caches and `published/` between windows, with a daily snapshot kept `snapshot_days`.
+- **No public IP:** outbound goes through Cloud NAT; inbound is SSH from Google's IAP range only. The UI and the API listen on the VM's localhost.
+- **At each start** (`airflow-startup.sh.tftpl`): mount the data disk, install Docker once, check out `[airflow] ref`, write `Data-Pipeline/.env` from Secret Manager, `docker compose up`, unpause the DAGs.
+
+Before the first start, a person adds the two passwords (the VM won't start Airflow without them):
+
+```bash
+printf %s "$ADMIN_PASSWORD" | gcloud secrets versions add MERIDIAN_AIRFLOW_ADMIN_PASSWORD --data-file=-
+printf %s "$DB_PASSWORD" | gcloud secrets versions add MERIDIAN_AIRFLOW_DB_PASSWORD --data-file=-
+```
+
+Open the UI (people on `airflow_users` in `terraform.tfvars`), while the VM is on, then browse http://localhost:8080:
+
+```bash
+gcloud compute ssh meridian-airflow --zone us-east1-b --tunnel-through-iap -- -L 8080:localhost:8080
+```
+
+Start it outside the window: `gcloud compute instances start meridian-airflow --zone us-east1-b` (the schedule still stops it at `window_stop`).
+
+Not yet: pushes don't trigger it (`trigger-update.yml` would need Airflow's API on a public address), and the DAG's publish writes `published/` on the VM; copying the full block to `publish_prefix` is the next step.
+
 ## Cost
 
 - **Idle costs $0:**
@@ -261,6 +286,7 @@ A fresh project tears down with no extra step. Its run (S8's `bootstrap.sh`, sti
   - the buckets and the image repo start empty, and keep no soft-deleted copies;
   - a secret with no value isn't billed.
 - **The bar** is under $5 for the phase (PLAN §6).
+- **The Airflow VM is the one thing billed while idle.** Running ~4.25 h a day: compute ~$8.50 a month (e2-standard-2 at ~$0.067/h), plus its disks ~$3 (20 + 50 GB standard), snapshots ~$1 and NAT under $1: **about $12 a month, ~$5 for the rest of the phase**. Stopped, only the disks and snapshots bill. It was added after the $5 bar was set (Aniket signed off Nov 25).
 - **The alerts and the uptime check** cost nothing ([Alerts](#alerts-s6)), and neither do the dashboard, the SLOs and the log-based metrics ([Dashboard](#dashboard-slos-and-cost-s6)).
 - **The budget** covers Nov 17 – Dec 7, not a calendar month.
   - **When:** at $12.50, $22.50 and $25 of use.

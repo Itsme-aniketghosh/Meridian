@@ -42,6 +42,16 @@ variable "refresh_developers" {
   }
 }
 
+variable "airflow_users" {
+  description = "Emails of the people who open the Airflow VM's UI through IAP and manage it over SSH (airflow.tf). They get that VM, not the project. Empty on a fresh project."
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = alltrue([for e in var.airflow_users : can(regex("^[^@:\\s]+@[^@:\\s]+\\.[^@:\\s]+$", e))])
+    error_message = "Plain emails, as in alert_emails: airflow.tf adds the user: prefix."
+  }
+}
+
 variable "placeholder_service_image" {
   description = "The service's first image, until deploy.yml ships the real one. Terraform leaves the image alone after."
   type        = string
