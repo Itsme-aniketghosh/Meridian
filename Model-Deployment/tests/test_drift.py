@@ -62,6 +62,36 @@ class Drift(unittest.TestCase):
         self.assertGreaterEqual(r["features"]["exp"]["psi"], 0.2)
         self.assertFalse(r["retrain"])
 
+    def test_dataset_drift_is_reported_not_a_retrain(self):
+        """As signed off, Evidently's share rule is report-only: every column drifts, no top feature's PSI does."""
+        ref, cur = table(5000, 1), table(500, 2)
+        for c in drift.FEATURES:
+            if c not in CFG["drift"]["top_features"] and c != "ticket_type":
+                cur[c] = cur[c] * 10 + 5
+        r = drift.drift_report(ref, cur, CFG["drift"])
+        self.assertTrue(r["dataset_drift"])
+        self.assertEqual(r["psi_flags"], [])
+        self.assertFalse(r["retrain"], r["reasons"])
+        self.assertTrue(drift.drift_report(ref, cur, {**CFG["drift"], "share_retrains": True})["retrain"])
+
+    def test_the_reference_is_the_latest_settled_year(self):
+        self.assertEqual(drift.latest_settled_year("2026-10-01T00:00:00Z", 365), 2024)
+        self.assertEqual(drift.latest_settled_year("2027-01-01T00:00:00Z", 365), 2025)
+        self.assertEqual(drift.latest_settled_year("2026-12-31T00:00:00Z", 365), 2024)
+        df = pd.DataFrame({"split": ["train", "test", "test", "none"],
+                           "authored_at": ["2022-05-01T00:00:00Z", "2024-02-01T00:00:00Z", "2024-11-01T00:00:00Z",
+                                           "2026-09-01T00:00:00Z"]})
+        rows, name = drift.reference_rows(df, CFG["drift"], "2026-10-01T00:00:00Z")
+        self.assertEqual((name, len(rows)), ("2024", 2))
+        rows, name = drift.reference_rows(df, {**CFG["drift"], "reference": "train"}, "2026-10-01T00:00:00Z")
+        self.assertEqual((name, len(rows)), ("train", 1))
+        rows, name = drift.reference_rows(df, CFG["drift"], "2020-06-01T00:00:00Z")   # no settled year's rows
+        self.assertEqual(name, "train")
+
+    def test_the_signed_rule(self):
+        d = CFG["drift"]
+        self.assertEqual((d["psi_threshold"], d["reference"], d["share_retrains"]), (0.25, "latest_year", False))
+
     def test_current_rows_window(self):
         df = pd.DataFrame({"split": ["train", "none", "none", "none"],
                            "authored_at": ["2020-01-01T00:00:00Z", "2026-01-01T00:00:00Z",

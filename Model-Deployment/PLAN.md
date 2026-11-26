@@ -95,9 +95,11 @@ Labels arrive late: a commit counts as bug-inducing only once a fix blames it, u
 
 | Signal | How | Threshold to retrain | Where it's from |
 |---|---|---|---|
-| **Data drift** | Each new block: the last 30 days' commits against train, per feature. Evidently's drift test and PSI | PSI ≥ 0.2 on any of the top-5 SHAP features (`la`, `nf`, `prior_bug_fixes`, `nd`, `ld`), or Evidently's dataset drift (≥ 50% of features drifted) | The features S2 serves and the block's new commits |
-| **Decay** | The newest calendar quarter whose 365-day window has closed and has ≥ 30 positives: model PR-AUC against lines × files, paired bootstrap | The paired interval's lower bound drops below 0 (the model no longer beats the rule), or PR-AUC falls more than 0.05 under the last measured window | The block's labels |
+| **Data drift** | Each new block: the last 30 days' commits against the latest labelled year (the newest calendar year whose 365-day labels have settled at the snapshot: 2024 for the 2026 block), per feature. Evidently's drift test and PSI | PSI ≥ 0.25 on any of the top-5 SHAP features (`la`, `nf`, `prior_bug_fixes`, `nd`, `ld`). Evidently's dataset drift (≥ 50% of features drifted) is reported, never a retrain by itself | The features S2 serves and the block's new commits |
+| **Decay** | The newest calendar half-year whose 365-day window has closed and has ≥ 100 positives: model PR-AUC against lines × files, paired bootstrap | The paired interval's lower bound drops below 0 (the model no longer beats the rule) | The block's labels |
 | **Service** | Cloud Monitoring | 5xx > 1% over 10 min, p95 > 2 s, uptime check failing | S2's logs |
+
+**Thresholds, as signed off** (`monitor/RESULTS.md` §4–7, judged on val 2023 only). The rules first written here (PSI ≥ 0.2 against train, the 50% share rule, quarters with ≥ 30 positives, a 0.05 PR-AUC drop) false-alarmed on val: 7, 11 and 2 of 4 windows. The signed rules fire on 0 val months and 0 val half-years, and still retrain today: PSI on `la` 0.347 over the last 30 days, and decay on 2025H1. `deploy.toml` [drift] and [decay] hold them (D4).
 
 When drift or decay crosses its threshold, the job runs `model.refresh`: roll the split forward, rebuild the features, retrain all three models, gate, bias, and the registry. **The registry replaces the champion only on a gain above 2 seed-noise SDs on the same fresh val rows.** If it does, the job sends `repository_dispatch` and S3 deploys it. If not, production keeps the old model and Slack says why. Service alerts page Slack and never retrain.
 

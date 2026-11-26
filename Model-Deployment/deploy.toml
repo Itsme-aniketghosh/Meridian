@@ -118,19 +118,24 @@ phase_target_usd = 5
 start = "2026-11-17"   # the phase, not the calendar month (a monthly budget would reset on Dec 1)
 end = "2026-12-07"
 
-[drift]   # PLAN §5: retrain on PSI ≥ psi for any top feature, or Evidently's dataset drift share ≥ dataset_share
+[drift]   # PLAN §5, as signed off (monitor/RESULTS.md §7): retrain on PSI ≥ psi for any top feature, the last
+# window_days days against the reference. Checked on val 2023 only: 0 of 12 months fire (the rules first written
+# fired on 7 and 11 of 12)
 window_days = 30
-psi = 0.2
+psi = 0.25
 top_features = ["la", "nf", "prior_bug_fixes", "nd", "ld"]
-dataset_share = 0.5
+reference = "latest_year"   # the newest calendar year whose labels have settled ([decay] label_window_days) at the
+                            # snapshot, so it rolls forward with each refresh; "train" was 7 of 12 false alarms
+dataset_share = 0.5         # Evidently's dataset drift, at this share of features drifted ...
+share_retrains = false      # ... is reported, never a retrain by itself (it fired on 11 of 12 val months)
 
-[decay]   # PLAN §5: the newest quarter whose label window has closed, with at least min_positives positives.
-# Retrain when the paired interval's lower bound against lines × files drops below 0, or PR-AUC falls more than
-# max_drop under the last measured window
+[decay]   # PLAN §5, as signed off: the newest half-year whose label window has closed, with at least min_positives
+# positives. Retrain when the paired interval's lower bound against lines × files drops below min_paired_lower.
+# No PR-AUC drop rule: PR-AUC falls with the positive rate, and the paired comparison already carries it
+window = "half"          # quarters were 2 of 4 false alarms on val, half-years 0 of 2
 label_window_days = 365
-min_positives = 30
+min_positives = 100
 min_paired_lower = 0.0   # the paired interval's lower bound must stay above this
-max_drop = 0.05
 
 [service_alerts]   # PLAN §5 and §6, for S6 (infra/terraform/monitoring.tf): they page Slack and never retrain
 error_rate = 0.01

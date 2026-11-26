@@ -1,0 +1,81 @@
+{
+ "at": "2026-11-26T02:38:44Z",
+ "decay": {
+  "difference": 0.0319,
+  "flag": true,
+  "kind": "half",
+  "lines_x_files": 0.1809,
+  "n": 1576,
+  "paired": [
+   -0.0101,
+   0.0787
+  ],
+  "positives": 103,
+  "pr_auc": 0.2129,
+  "previous": {
+   "n": 1687,
+   "positives": 124,
+   "pr_auc": 0.2324,
+   "window": "2024H2"
+  },
+  "why": "model - lines x files lower bound -0.010 < 0.0 on 2025H1",
+  "window": "2025H1"
+ },
+ "drift": {
+  "evidently_share": 0.625,
+  "flag": true,
+  "psi": {
+   "age": 0.0346,
+   "entropy": 0.1087,
+   "exp": 0.7629,
+   "fix": 0.0136,
+   "has_ticket": 0.0019,
+   "is_minor": 0.0061,
+   "la": 0.3472,
+   "ld": 0.0477,
+   "nd": 0.0896,
+   "ndev": 0.1322,
+   "nf": 0.0861,
+   "ns": 0.0213,
+   "nuc": 0.0363,
+   "prior_bug_fixes": 0.0876,
+   "sexp": 0.3496,
+   "ticket_type": 0.4315
+  },
+  "why": "PSI 0.3472 >= 0.25 on la",
+  "window": {
+   "current_from": "2026-09-01T02:04:03Z",
+   "current_to": "2026-10-01T01:23:03Z",
+   "days": 30,
+   "reference": "2024",
+   "simulated": false
+  }
+ },
+ "n_new": 454,
+ "retrain": true,
+ "run_id": "c5118b019d642a9b",
+ "simulated": false,
+ "thresholds": {
+  "decay": {
+   "label_window_days": 365,
+   "min_paired_lower": 0.0,
+   "min_positives": 100,
+   "window": "half"
+  },
+  "drift": {
+   "dataset_share": 0.5,
+   "psi": 0.25,
+   "reference": "latest_year",
+   "share_retrains": false,
+   "top_features": [
+    "la",
+    "nf",
+    "prior_bug_fixes",
+    "nd",
+    "ld"
+   ],
+   "window_days": 30
+  }
+ },
+ "why": "drift: PSI 0.3472 >= 0.25 on la; decay: model - lines x files lower bound -0.010 < 0.0 on 2025H1"
+}

@@ -6,14 +6,16 @@ Run from Model-Deployment/.
     python -m monitor.drift --simulate            # the same, with every commit 10x larger: must flag
     python -m monitor.drift --out report.json     # also write the report
 
-Two signals, their thresholds from deploy.toml's [drift] (contract D4: PLAN §5's numbers live there and nowhere else),
-and either one sets retrain:
+Two signals, their thresholds from deploy.toml's [drift] (contract D4: PLAN §5's numbers live there and nowhere else).
+The reference is [drift] reference: "latest_year", the newest calendar year whose labels have settled at the
+snapshot (2024 for the 2026 block), or "train".
 - PSI per feature, binned on the reference's deciles. Retrain when PSI >= psi on any top-5 SHAP feature.
 - Evidently's dataset drift. Evidently 0.7 doesn't import under our pinned pandas 3.1, so its default stattests are
   reimplemented here with scipy, the same choice per column: for a reference over 1,000 rows, numeric columns with
   more than 5 distinct values use the Wasserstein distance divided by the reference's std, the rest the
   Jensen-Shannon distance of the value frequencies, each drifted at >= 0.1. For a smaller reference, KS or
-  chi-squared at p < 0.05. Retrain when the share of drifted columns is >= dataset_share.
+  chi-squared at p < 0.05. Dataset drift when the share of drifted columns is >= dataset_share; it retrains only when
+  [drift] share_retrains is true (as signed off, it's false: reported, never a retrain by itself).
 
 The method's own settings (the bins, Evidently's per-column cut-offs, --simulate's shift) are constants below: they
 are how the test works, not the retrain rule.
@@ -47,8 +49,7 @@ FMT = "%Y-%m-%dT%H:%M:%SZ"
 EPS = 1e-4  # an empty bin's share, so PSI stays finite
 
 
-METHOD = {"reference": "train",            # the split new commits are compared against
-          "psi_bins": 10,                  # reference deciles
+METHOD = {"psi_bins": 10,                  # reference deciles
           "wasserstein_threshold": 0.1,    # Evidently's defaults, per column (see the docstring)
           "jensenshannon_threshold": 0.1,
           "p_value": 0.05}
@@ -61,7 +62,9 @@ def load_config(path=DEPLOY_TOML):
     cfg = load(path, use_env=False)
     d = cfg["drift"]
     return {"drift": {**METHOD, "days": d["window_days"], "top_features": d["top_features"],
-                      "psi_threshold": d["psi"], "share_threshold": d["dataset_share"]},
+                      "psi_threshold": d["psi"], "share_threshold": d["dataset_share"],
+                      "share_retrains": d.get("share_retrains", True), "reference": d.get("reference", "train"),
+                      "label_window_days": cfg["decay"]["label_window_days"]},
             "decay": dict(cfg["decay"]), "simulate": dict(SIMULATE)}
 
 
@@ -123,12 +126,13 @@ def drift_report(ref, cur, cfg, features=FEATURES):
     psi_flags = [c for c in cfg["top_features"] if rows[c]["psi"] >= cfg["psi_threshold"]]
     share = sum(r["drifted"] for r in rows.values()) / len(rows)
     dataset_drift = share >= cfg["share_threshold"]
+    share_retrains = cfg.get("share_retrains", True)
     reasons = [f"PSI {rows[c]['psi']} >= {cfg['psi_threshold']} on {c}" for c in psi_flags]
-    if dataset_drift:
+    if dataset_drift and share_retrains:
         reasons.append(f"{share:.0%} of features drifted >= {cfg['share_threshold']:.0%}")
     return {"n_reference": len(ref), "n_current": len(cur), "features": rows,
             "psi_flags": psi_flags, "drifted_share": round(share, 4), "dataset_drift": bool(dataset_drift),
-            "retrain": bool(psi_flags or dataset_drift), "reasons": reasons}
+            "retrain": bool(psi_flags or (dataset_drift and share_retrains)), "reasons": reasons}
 
 
 def _median(s):
@@ -145,6 +149,37 @@ def current_rows(df, days):
     return cur
 
 
+def snapshot_of(table, df):
+    """The block's snapshot from the table's schema next to it, else the newest commit."""
+    schema = Path(table).with_name("features.schema.json")
+    if schema.exists():
+        return json.loads(schema.read_text(encoding="utf-8"))["snapshot_at"]
+    return df["authored_at"].max()
+
+
+def latest_settled_year(snapshot_at, label_window_days):
+    """The newest calendar year whose labels have settled at the snapshot: its last commit is label_window_days or
+    more before it. At an Oct 2026 snapshot with 365 days, 2024."""
+    snap = pd.Timestamp(snapshot_at).tz_localize(None)
+    year = snap.year
+    while pd.Timestamp(year + 1, 1, 1) + timedelta(days=label_window_days) > snap:
+        year -= 1
+    return year
+
+
+def reference_rows(df, cfg, snapshot_at):
+    """(rows, name): [drift] reference's rows. "latest_year": the newest settled year's commits (features only; its
+    labels are never read), "train": the train split. A latest year with no rows falls back to train."""
+    if cfg["reference"] == "latest_year":
+        year = latest_settled_year(snapshot_at, cfg["label_window_days"])
+        rows = df[df["authored_at"].str[:4] == str(year)]
+        if len(rows):
+            return rows, str(year)
+    elif cfg["reference"] != "train":
+        raise ValueError(f"[drift] reference {cfg['reference']!r}: latest_year or train")
+    return df[df["split"] == "train"], "train"
+
+
 def simulate(cur, sim):
     """A planted shift: every commit [simulate] scale times larger on [simulate] columns."""
     cur = cur.copy()
@@ -157,12 +192,12 @@ def run(table=TABLE, days=None, simulated=False, config=DEPLOY_TOML):
     cfg = load_config(config)
     days = cfg["drift"]["days"] if days is None else days
     df = pd.read_parquet(table)
-    ref = df[df["split"] == cfg["drift"]["reference"]]
+    ref, ref_name = reference_rows(df, cfg["drift"], snapshot_of(table, df))
     cur = current_rows(df, days)
     if simulated:
         cur = simulate(cur, cfg["simulate"])
     report = drift_report(ref, cur, cfg["drift"])
-    report["window"] = {"reference": cfg["drift"]["reference"], "days": days, "simulated": simulated,
+    report["window"] = {"reference": ref_name, "days": days, "simulated": simulated,
                         "current_from": cur["authored_at"].min(), "current_to": cur["authored_at"].max()}
     return report
 
