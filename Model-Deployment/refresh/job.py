@@ -74,11 +74,12 @@ import deploy_config  # noqa: E402
 
 DATASET = "spark"         # model.toml [data] repo = "apache/spark"
 BRANCH = "master"         # apache/spark's default branch: collect follows a ref that names a branch
-RETRAIN_OFF = {"enabled": False, "until": "gate", "dispatch": False, "slack_drift": True}
+RETRAIN_OFF = {"enabled": False, "until": "gate", "dispatch": False, "slack_drift": False}
 D3_EVENT = "champion-updated"   # packets/README.md D3, received by deploy.yml
 CACHE_OBJECT = "job-cache/snapshots-cache.tar.gz"   # buckets.cache, beside history/ (deploy reads only history/)
 PARTS = ("history", "scan", "resolve", "owners", "join", "graph", "validate")   # the DAG's CORE, in its order
 NOTHING_NEW = 99          # meridian.status and model.refresh: nothing new since the last block
+GATE_REFUSED = 3          # model.gate.REFUSED, passed on by model.refresh: a worse model, not an error
 FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
@@ -447,7 +448,7 @@ class Job:
         if not report.get("retrain"):
             return {"retrain": False, "outcome": "not needed"}
         cfg = self.retrain_cfg
-        if cfg.get("slack_drift", True):   # off when S6's log-based alert is the team's one drift message
+        if cfg.get("slack_drift", False):   # off: S6's log-based alert is the team's one drift message
             notify("drift", report, run_id)
         if not cfg["enabled"]:
             return {"retrain": True, "outcome": "due, switch off ([retrain] enabled = false)"}
@@ -459,12 +460,15 @@ class Job:
                 "--published", self.root / "published"]
         if cfg.get("until"):
             args += ["--until", cfg["until"]]
-        try:
-            self.sh(args, mp)
-        except StepFailed as e:   # a worse model fails the gate: a warning, never a failed run
+        # Only the gate's refusal is "not better" (a warning) and 99 "nothing new". Any other exit (a crash, an
+        # out-of-memory kill, a data check, a missing file) raises StepFailed: the run fails and alerts
+        code, _ = self.sh(args, mp, ok=(0, GATE_REFUSED, NOTHING_NEW))
+        if code == GATE_REFUSED:
             notify("retrain", report, run_id, outcome="not better, kept")
-            return {"retrain": True, "outcome": "refit didn't pass: the champion stays", "severity": "WARNING",
-                    "error": scrub(str(e))[:300]}
+            return {"retrain": True, "outcome": "not better, kept: the gate refused the refit, the champion stays",
+                    "severity": "WARNING"}
+        if code == NOTHING_NEW:
+            return {"retrain": True, "outcome": "nothing new: model.refresh saw no newer block than model.toml's"}
         out = {"retrain": True}
         if cfg.get("until") and cfg["until"] != "registry":
             out["outcome"] = f"refit passed {cfg['until']}; stopped there, nothing registered"

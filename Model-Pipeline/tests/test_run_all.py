@@ -43,9 +43,16 @@ class Run(unittest.TestCase):
     def test_stops_at_the_first_failure_and_says_which(self):
         r = Runner(fail={"mod2"})
         code, out = quiet(run, fake_plan(), runner=r, find=lambda m: True)
-        self.assertEqual(code, 3)
+        self.assertEqual(code, 1)   # a 3 from any step but the gate is an error: 3 means only "the gate refused"
         self.assertEqual(r.ran, ["mod1", "mod2"])
         self.assertIn("FAILED at step2", out)
+
+    def test_the_gates_refusal_keeps_its_own_exit_code(self):
+        plan = [("train", "o", "mod1", []), ("gate", "o", "model.gate", []), ("registry", "o", "mod3", [])]
+        r = Runner(fail={"model.gate"})
+        code, _ = quiet(run, plan, runner=r, find=lambda m: True)
+        self.assertEqual(code, 3)   # model.refresh passes it on; the refresh job reads it as "not better, kept"
+        self.assertEqual(r.ran, ["mod1", "model.gate"])
 
     def test_a_missing_module_fails_instead_of_skipping(self):
         r = Runner()

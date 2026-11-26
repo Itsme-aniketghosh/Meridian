@@ -14,7 +14,8 @@ One cycle:
    year that ends by follow_up_end, val the year before it, and train runs from start_year to the year before val.
    On today's block (snapshot 2026-10-01) that gives exactly the split we use: train 2015-2022, val 2023, test 2024.
 3. Rebuild the feature table (model.data), then run every step of model.run_all on it: train all three model kinds,
-   seed noise, evaluate, bias, gate, registry.
+   seed noise, evaluate, bias, gate, registry. The exit code is the failing step's: 3 when the gate refuses the
+   candidate (model.gate.REFUSED, "not better"), anything else non-zero an error.
 
 Nothing new is decided here. Whether the new model replaces production is the gate's and the registry's call, as on
 CI. The gate fails a model that's worse than the champion beyond seed noise. The registry promotes only on a gain

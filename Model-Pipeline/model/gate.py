@@ -12,7 +12,9 @@ Reads the four Contract 4 files (packets/README.md) and checks them against mode
                 re-scored on this one first, with its own model next to champion.json (Rochan's decision 7, as
                 the registry does); when it can't be, the check fails and says why
 
-Writes reports/gate.json with every check, its numbers and why. A pass exits 0. A fail exits 1 and sends one alert
+Writes reports/gate.json with every check, its numbers and why. A pass exits 0. A candidate the checks refuse (worse,
+biased, under the bar) exits REFUSED, 3; inputs or a model.toml it can't read exit 1, an error. The refresh job tells
+them apart: 3 is "not better, the champion stays", 1 is a failed run. Either fail sends one alert
 with every failed check, through Data-Pipeline's meridian.alert (Slack and email as settings.toml [alerts] says).
 An alert that can't be sent is logged and never changes the exit code. Every number the gate uses is in [gate].
 
@@ -40,6 +42,7 @@ FEATURES = HERE / "data" / "features.parquet"
 GATE_KEYS = ("split", "reference", "min_lift", "noise_sds")
 FILES = {"metrics": "metrics.json", "bias_report": "bias_report.json", "seed_noise": "seed_noise.json"}
 LOG = logging.getLogger("meridian.gate")
+REFUSED = 3   # the checks read the candidate and said no: not an error (model.refresh and the refresh job pass it on)
 
 
 def gate_settings(cfg):
@@ -204,7 +207,7 @@ def run(reports=REPORTS, champion=registry.CHAMPION, config=MODEL_TOML, out=None
         result["alerted"] = send(f"model gate failed: {cand} not registered",
                                  [f"{c['check']}: {c['why']}" for c in failed])
         print(f"gate: FAIL ({len(failed)} of {len(checks)} checks); alert sent to {result['alerted'] or 'no channel'}")
-        return 1, result
+        return (1 if problems else REFUSED), result
     print(f"gate: pass ({len(checks)} checks); {path}")
     return 0, result
 
