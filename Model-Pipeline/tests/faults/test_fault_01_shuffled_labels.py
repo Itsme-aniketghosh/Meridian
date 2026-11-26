@@ -3,6 +3,7 @@ Expected: PR-AUC near the positive rate; gate fails; Slack alert.
 Why: Proves the gate catches a model that learned nothing."""
 import unittest
 
+from model.gate import REFUSED
 from tests.faults._gate import GateFault, planted
 
 
@@ -13,7 +14,7 @@ class ShuffledLabels(GateFault):
                                              f"{ceiling:.4f}")
         self.set_pr_auc(value, reference)
         code, result, slack, mail, _ = self.gate(skip=("champion.json",))  # a first model: only the bar can stop it
-        self.assertEqual(code, 1)
+        self.assertEqual(code, REFUSED)   # the gate read the model and said no: 3, not an error
         self.assertEqual(self.failed(result), ["bar"])
         self.assertEqual((len(slack), len(mail)), (1, 1))
         self.assertIn("bar:", slack[0]["text"])

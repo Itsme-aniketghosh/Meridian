@@ -88,7 +88,7 @@ class Case(unittest.TestCase):
 
     def assert_fails_once(self, check, **kw):
         code, result, slack, mail, _ = self.gate(**kw)
-        self.assertEqual(code, 1)
+        self.assertEqual(code, 1 if check == "inputs" else gate.REFUSED)   # unreadable is an error; a no is 3
         self.assertEqual(self.failed(result), [check])
         self.assertEqual(len(slack), 1, "exactly one Slack message")
         self.assertEqual(len(mail), 1, "exactly one email")
@@ -186,7 +186,7 @@ class EveryFailureExits1AndAlertsOnce(Case):
         self.docs["metrics.json"]["models"]["lines_x_files"]["pr_auc"]["value"] = 0.5
         self.docs["bias_report.json"]["pass"] = False
         code, result, slack, mail, _ = self.gate()
-        self.assertEqual((code, self.failed(result)), (1, ["bar", "bias"]))
+        self.assertEqual((code, self.failed(result)), (gate.REFUSED, ["bar", "bias"]))
         self.assertEqual((len(slack), len(mail)), (1, 1))
         self.assertIn("bar:", slack[0]["text"])
         self.assertIn("bias:", slack[0]["text"])
@@ -283,7 +283,7 @@ class ABrokenChannelNeverDecides(Case):
         with mock.patch.dict(os.environ, env), contextlib.redirect_stdout(io.StringIO()), \
                 self.assertLogs("meridian", level="ERROR") as logs:
             code, result = gate.run(self.tmp, self.tmp / "champion.json", self.tmp / "model.toml")
-        self.assertEqual(code, 1)
+        self.assertEqual(code, gate.REFUSED)
         self.assertEqual(result["alerted"], [])
         self.assertTrue(any("Slack failed" in line for line in logs.output))
 
@@ -293,7 +293,7 @@ class ABrokenChannelNeverDecides(Case):
         with mock.patch.dict("sys.modules", {"meridian.alert": None}), \
                 contextlib.redirect_stdout(io.StringIO()), self.assertLogs("meridian.gate", level="ERROR") as logs:
             code, _ = gate.run(self.tmp, self.tmp / "champion.json", self.tmp / "model.toml")
-        self.assertEqual(code, 1)
+        self.assertEqual(code, gate.REFUSED)
         self.assertIn("alert not sent", logs.output[0])
 
     def test_a_pass_with_the_webhook_down_still_passes(self):

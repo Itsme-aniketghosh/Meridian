@@ -545,7 +545,8 @@ class Retrain(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.store = RecordingStore(self.tmp / "store")
 
-    def run_job(self, retrain=None, fail=None, promote=False):
+    def run_job(self, retrain=None, fail=None, promote=False, refresh_exit=None):
+        """refresh_exit: model.refresh's exit code, read against the codes the job accepts (as sh does)."""
         j = FakeJob(self.tmp / "root", self.store, fail=fail)
         j.retrain_cfg = {**job.RETRAIN_OFF, **(retrain or {})}
         j.github = "owner/repo"
@@ -557,12 +558,17 @@ class Retrain(unittest.TestCase):
                 record = json.loads(champ.read_text())
                 record.update(version="f" * 40, model_md5="e" * 32)
                 champ.write_text(json.dumps(record))
+            if "model.refresh" in map(str, args) and refresh_exit is not None:
+                orig(args, cwd, ok)   # recorded
+                if refresh_exit not in ok:
+                    raise job.StepFailed(f"exit {refresh_exit}: model.refresh", "Killed\n")
+                return refresh_exit, ""
             return orig(args, cwd, ok)
         j.sh = sh
         with mock.patch.object(job, "alert") as alert, mock.patch.object(job, "notify") as notify, \
                 mock.patch.object(job, "dispatch", return_value="sent (204)") as send:
             code = j.run()
-        line = next(x for x in j.lines() if x["step"] == "retrain")
+        line = next((x for x in j.lines() if x["step"] == "retrain"), None)
         return j, code, line, alert, notify, send
 
     def test_the_switch_is_off_in_deploy_toml(self):
@@ -578,7 +584,7 @@ class Retrain(unittest.TestCase):
         self.assertTrue(line["retrain"])
         self.assertIn("switch off", line["outcome"])
         self.assertNotIn("model.refresh", j.modules())
-        notify.assert_called_once()                 # S7's "drift found" still goes out
+        notify.assert_not_called()                  # slack_drift is off: S6's alert is the one drift message
         send.assert_not_called()
 
     def test_on_refits_in_a_copy_and_stops_at_the_gate(self):
@@ -595,12 +601,36 @@ class Retrain(unittest.TestCase):
         self.assertEqual(line["outcome"], "refit passed gate; stopped there, nothing registered")
         send.assert_not_called()
 
-    def test_a_refit_that_fails_warns_and_the_run_succeeds(self):
-        j, code, line, alert, notify, send = self.run_job({"enabled": True}, fail="model.refresh")
+    def test_the_gates_refusal_warns_and_the_run_succeeds(self):
+        j, code, line, alert, notify, send = self.run_job({"enabled": True}, refresh_exit=job.GATE_REFUSED)
         self.assertEqual(code, 0)
         alert.assert_not_called()
         self.assertEqual(line["severity"], "WARNING")
-        self.assertIn("champion stays", line["outcome"])
+        self.assertTrue(line["outcome"].startswith("not better, kept"), line["outcome"])
+        notify.assert_called_once_with("retrain", mock.ANY, RUN, outcome="not better, kept")
+
+    def test_any_other_refit_failure_fails_the_run_and_alerts(self):
+        """Rachna's catch: a crash, an out-of-memory kill (-9) or a data check used to read as "not better, kept"."""
+        for exit_code in (1, 2, -9, 137):
+            with self.subTest(exit=exit_code):
+                j, code, line, alert, notify, send = self.run_job({"enabled": True}, refresh_exit=exit_code)
+                self.assertEqual(code, 1)
+                alert.assert_called_once()
+                self.assertIn("retrain", alert.call_args.args[0])
+                self.assertNotIn(mock.call("retrain", mock.ANY, RUN, outcome="not better, kept"),
+                                 notify.call_args_list)
+
+    def test_nothing_new_is_said_and_not_a_failure(self):
+        j, code, line, alert, notify, send = self.run_job({"enabled": True}, refresh_exit=job.NOTHING_NEW)
+        self.assertEqual(code, 0)
+        alert.assert_not_called()
+        self.assertTrue(line["outcome"].startswith("nothing new"), line["outcome"])
+
+    def test_the_exit_codes_are_the_models(self):
+        """job.py doesn't import the model's package, so its copies are checked here."""
+        sys.path.insert(0, str(job.MODEL_PIPELINE))
+        from model import gate, refresh
+        self.assertEqual((job.GATE_REFUSED, job.NOTHING_NEW), (gate.REFUSED, refresh.NOTHING_NEW))
 
     def test_past_the_registry_a_promotion_dispatches_only_when_on(self):
         _, _, line, _, _, send = self.run_job({"enabled": True, "until": None}, promote=True)

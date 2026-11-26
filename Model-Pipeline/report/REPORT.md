@@ -231,7 +231,7 @@ build image → data check → train → seed noise → evaluate → bias → ga
 ```
 
 - **§7.1 Trigger:** PRs plus main, at most about 40 runs a day, on free public-repo runners.
-- **§7.2 Validation:** `gate.py` runs five checks and exits 1 on any fail. Its tolerance is 2√2 seed SDs: 20 of 20 same-config seed pairs pass, 3 of 3 planted bad models fail. Two of those bad models beat lines × files, so the bar alone wouldn't stop them; the champion check does.
+- **§7.2 Validation:** `gate.py` runs five checks. A model they refuse exits 3, inputs it can't read exit 1 (since Nov 26, so the refresh job tells "not better" from a crash). Its tolerance is 2√2 seed SDs: 20 of 20 same-config seed pairs pass, 3 of 3 planted bad models fail. Two of those bad models beat lines × files, so the bar alone wouldn't stop them; the champion check does.
 - **§7.3 Bias:** a failed bias report blocks the push.
 - **§7.4 Push:** main only, after the gate. CI signs in through Workload Identity, trusted for this repo's main branch; the university blocks service-account keys.
 - **§7.5 Notifications:** one alert per failed run, a done message on every green run (training complete, gate passed), and a push message on main, through `meridian/alert.py`. Live in the team's Slack since Nov 15: run [43780539225](https://github.com/Itsme-aniketghosh/Meridian/actions/runs/43780539225) on main posted the done message (forest 0.4067 vs lines × files 0.3191, bias and gate pass) and the registry message (champion `85b4684…` already there, nothing new to send). A broken channel is logged and never changes the verdict.

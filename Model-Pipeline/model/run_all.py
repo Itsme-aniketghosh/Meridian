@@ -91,7 +91,7 @@ def run(plan, until=None, runner=subprocess.run, find=importlib.util.find_spec, 
         code = runner([sys.executable, "-m", module, *args], cwd=cwd, env=env).returncode
         if code != 0:
             print(f"FAILED at {name} ({owner}): exit {code}. Steps after it didn't run.", flush=True)
-            return code
+            return 1 if code == 3 and module != "model.gate" else code   # 3 is only ever the gate's refusal
         if name == until:
             print(f"stopped after {name}, as asked", flush=True)
             return 0
