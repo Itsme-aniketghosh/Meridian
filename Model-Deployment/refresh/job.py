@@ -74,6 +74,9 @@ import deploy_config  # noqa: E402
 
 DATASET = "spark"         # model.toml [data] repo = "apache/spark"
 BRANCH = "master"         # apache/spark's default branch: collect follows a ref that names a branch
+# The alert channels' secrets (Data-Pipeline/settings.toml [alerts] *_env). The retrain subprocess runs without them,
+# so model.gate's own "gate failed" alert (right on CI) stays silent in the job: the job is the one Slack voice
+ALERT_SECRETS = ("MERIDIAN_SLACK_WEBHOOK", "MERIDIAN_SMTP_USER", "MERIDIAN_SMTP_PASSWORD")
 RETRAIN_OFF = {"enabled": False, "until": "gate", "dispatch": False, "slack_drift": False}
 D3_EVENT = "champion-updated"   # packets/README.md D3, received by deploy.yml
 CACHE_OBJECT = "job-cache/snapshots-cache.tar.gz"   # buckets.cache, beside history/ (deploy reads only history/)
@@ -262,13 +265,14 @@ def model_version(path=CHAMPION):
 
 class Job:
     def __init__(self, data_root, store, python=sys.executable, dry_run=False, out=sys.stdout, serve_history=None,
-                 retrain=None, github=None):
+                 retrain=None, github=None, max_retries=0):
         self.root, self.store, self.python, self.dry_run, self.out = Path(data_root), store, python, dry_run, out
         # where deploy.yml reads history.pkl: deploy.toml [serve_history], a [buckets] key and an object under history/
         h = serve_history or {"bucket": "cache", "object": "history/latest.pkl"}
         self.history_bucket, self.history_object = h["bucket"], h["object"]
         self.retrain_cfg = {**RETRAIN_OFF, **(retrain or {})}   # deploy.toml [retrain]; missing: off
         self.github = github                                     # deploy.toml [github] repository, for D3
+        self.max_retries = max_retries                           # deploy.toml [jobs.refresh]: alert on the last only
         self.work = self.root / "refresh"
         self.env = {**os.environ, "MERIDIAN_DATA": str(self.root), "PYTHONUNBUFFERED": "1"}
         self.timings = {}
@@ -281,12 +285,13 @@ class Job:
                 "latency_ms": ms, **fields}
         print(json.dumps(line, sort_keys=True), file=self.out, flush=True)
 
-    def sh(self, args, cwd, ok=(0,)):
-        """Run one command, its output streamed to stderr. Returns (exit code, its output)."""
+    def sh(self, args, cwd, ok=(0,), env=None):
+        """Run one command, its output streamed to stderr. Returns (exit code, its output). env: in place of the
+        job's own."""
         print("+ " + " ".join(map(str, args)), file=sys.stderr, flush=True)
         if self.dry_run:
             return ok[0], ""
-        p = subprocess.Popen(list(map(str, args)), cwd=cwd, env=self.env, stdout=subprocess.PIPE,
+        p = subprocess.Popen(list(map(str, args)), cwd=cwd, env=env or self.env, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, text=True, bufsize=1)
         lines = []
         for line in p.stdout:
@@ -462,7 +467,8 @@ class Job:
             args += ["--until", cfg["until"]]
         # Only the gate's refusal is "not better" (a warning) and 99 "nothing new". Any other exit (a crash, an
         # out-of-memory kill, a data check, a missing file) raises StepFailed: the run fails and alerts
-        code, _ = self.sh(args, mp, ok=(0, GATE_REFUSED, NOTHING_NEW))
+        quiet = {k: v for k, v in self.env.items() if k not in ALERT_SECRETS}   # the gate's own alert stays silent
+        code, _ = self.sh(args, mp, ok=(0, GATE_REFUSED, NOTHING_NEW), env=quiet)
         if code == GATE_REFUSED:
             notify("retrain", report, run_id, outcome="not better, kept")
             return {"retrain": True, "outcome": "not better, kept: the gate refused the refit, the champion stays",
@@ -559,8 +565,13 @@ class Job:
             return 0
         except (StepFailed, subprocess.CalledProcessError, OSError, SystemExit) as e:
             error = scrub(str(e))
-            self.event(step, int((time.monotonic() - started) * 1000), severity="ERROR", outcome="failed",
-                       error=error[:500])
+            ms = int((time.monotonic() - started) * 1000)
+            attempt = task_attempt()
+            if attempt is not None and attempt < self.max_retries:   # Cloud Run retries it: alert on the last try
+                self.event(step, ms, severity="WARNING", outcome="failed, will retry", error=error[:500],
+                           attempt=attempt)
+                return 1
+            self.event(step, ms, severity="ERROR", outcome="failed", error=error[:500], attempt=attempt)
             tail = getattr(e, "tail", "") or ""
             alert(f"refresh job failed at {step}: {error[:300]}", [scrub(x)[:300] for x in tail.splitlines()[-10:]])
             return 1
@@ -583,6 +594,15 @@ def d2(run_id, at, drift):
                       "evidently_share": drift["drifted_share"], "flag": drift["retrain"],
                       "why": "; ".join(drift["reasons"]) or "no threshold crossed", "window": drift.get("window")},
             "decay": None, "retrain": bool(drift["retrain"])}
+
+
+def task_attempt():
+    """Cloud Run's attempt number for this task, 0 first ($CLOUD_RUN_TASK_ATTEMPT). None outside Cloud Run, where
+    nothing retries the run: every failure is the last and alerts."""
+    try:
+        return int(os.environ["CLOUD_RUN_TASK_ATTEMPT"])
+    except (KeyError, ValueError):
+        return None
 
 
 def notify(kind, report, run_id, outcome=None):
@@ -676,7 +696,8 @@ def main(argv=None):
     cfg = deploy_config.load()
     return Job(Path(a.data_root).expanduser(), make_store(a.store, cfg), dry_run=a.dry_run,
                serve_history=cfg["serve_history"], retrain=cfg.get("retrain"),
-               github=cfg.get("github", {}).get("repository")).run()
+               github=cfg.get("github", {}).get("repository"),
+               max_retries=int(cfg.get("jobs", {}).get("refresh", {}).get("max_retries", 0))).run()
 
 
 if __name__ == "__main__":

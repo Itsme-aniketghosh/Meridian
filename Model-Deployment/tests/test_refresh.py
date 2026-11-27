@@ -116,11 +116,12 @@ class FakeJob(job.Job):
 
     def __init__(self, root, store, status=0, fail=None, serve_history=None):
         super().__init__(root, store, out=io.StringIO(), serve_history=serve_history)
-        self.calls, self.status, self.fail = [], status, fail
+        self.calls, self.status, self.fail, self.envs = [], status, fail, []
 
-    def sh(self, args, cwd, ok=(0,)):
+    def sh(self, args, cwd, ok=(0,), env=None):
         args = list(map(str, args))
         self.calls.append(args)
+        self.envs.append(env)
         mod = args[2] if args[1] == "-m" else args[1]
         if self.fail and self.fail in mod:
             raise job.StepFailed(f"exit 1: {mod}", "boom\n")
@@ -366,11 +367,11 @@ class ReviewFixes(unittest.TestCase):
         j = FakeJob(root, RecordingStore(root / "store"), fail="meridian.scan")
         orig = j.sh
 
-        def sh(args, cwd, ok=(0,)):
+        def sh(args, cwd, ok=(0,), env=None):
             if "meridian.scan" in map(str, args):
                 raise job.StepFailed("exit 1: meridian.scan for dev@corp.io",
                                      "x\n" * 12 + "commit by dev@corp.io\nBearer ya29.secret\n")
-            return orig(args, cwd, ok)
+            return orig(args, cwd, ok, env)
         j.sh = sh
         with mock.patch.object(job, "alert") as alert:
             self.assertEqual(j.run(), 1)
@@ -552,7 +553,7 @@ class Retrain(unittest.TestCase):
         j.github = "owner/repo"
         orig = j.sh
 
-        def sh(args, cwd, ok=(0,)):
+        def sh(args, cwd, ok=(0,), env=None):
             if "model.refresh" in map(str, args) and promote and not fail:
                 champ = Path(cwd) / "registry" / "champion.json"
                 record = json.loads(champ.read_text())
@@ -563,7 +564,7 @@ class Retrain(unittest.TestCase):
                 if refresh_exit not in ok:
                     raise job.StepFailed(f"exit {refresh_exit}: model.refresh", "Killed\n")
                 return refresh_exit, ""
-            return orig(args, cwd, ok)
+            return orig(args, cwd, ok, env)
         j.sh = sh
         with mock.patch.object(job, "alert") as alert, mock.patch.object(job, "notify") as notify, \
                 mock.patch.object(job, "dispatch", return_value="sent (204)") as send:
@@ -652,6 +653,71 @@ class Retrain(unittest.TestCase):
         cfg = job.deploy_config.load()
         self.assertEqual(J.call_args.kwargs["retrain"], cfg["retrain"])
         self.assertEqual(J.call_args.kwargs["github"], cfg["github"]["repository"])
+
+
+class OneSlackVoice(unittest.TestCase):
+    """Integration findings 1 and 2 (Nov 27): the gate's own alert stays silent in the job, and a failure that Cloud
+    Run retries alerts once, on the last attempt."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.store = RecordingStore(self.tmp / "store")
+
+    def test_the_alert_secrets_are_settings_toml_s(self):
+        with open(DEPLOY.parent / "Data-Pipeline" / "settings.toml", "rb") as f:
+            alerts = tomllib.load(f)["alerts"]
+        named = {v for k, v in alerts.items() if k.endswith("_env")}
+        self.assertEqual(set(job.ALERT_SECRETS), named)
+
+    def test_the_refit_runs_without_the_webhook(self):
+        secrets = {k: "secret-value" for k in job.ALERT_SECRETS}
+        with mock.patch.dict(job.os.environ, secrets):
+            j = FakeJob(self.tmp / "root", self.store)
+        j.retrain_cfg = {**job.RETRAIN_OFF, "enabled": True}
+        with mock.patch.object(job, "alert"), mock.patch.object(job, "notify"):
+            self.assertEqual(j.run(), 0)
+        refit = j.envs[next(i for i, c in enumerate(j.calls) if "model.refresh" in c)]
+        self.assertIsNotNone(refit)
+        for k in job.ALERT_SECRETS:
+            self.assertNotIn(k, refit)
+            self.assertEqual(j.env[k], "secret-value")   # the job itself still alerts
+        others = [e for c, e in zip(j.calls, j.envs) if "model.refresh" not in c]
+        self.assertTrue(all(e is None for e in others))   # every other step keeps the job's env
+
+    def run_failing(self, attempt, max_retries):
+        j = FakeJob(self.tmp / f"r{attempt}{max_retries}", self.store, fail="meridian.scan")
+        j.max_retries = max_retries
+        env = {} if attempt is None else {"CLOUD_RUN_TASK_ATTEMPT": str(attempt)}
+        with mock.patch.dict(job.os.environ, env), mock.patch.object(job, "alert") as alert:
+            if attempt is None:
+                job.os.environ.pop("CLOUD_RUN_TASK_ATTEMPT", None)
+            code = j.run()
+        line = next(x for x in j.lines() if x.get("outcome", "").startswith("failed"))
+        return code, line, alert
+
+    def test_a_first_attempt_that_will_be_retried_only_logs(self):
+        code, line, alert = self.run_failing(0, 1)
+        self.assertEqual(code, 1)                     # Cloud Run still sees a failure, so it retries
+        alert.assert_not_called()
+        self.assertEqual((line["outcome"], line["severity"], line["attempt"]), ("failed, will retry", "WARNING", 0))
+
+    def test_the_last_attempt_alerts(self):
+        code, line, alert = self.run_failing(1, 1)
+        self.assertEqual(code, 1)
+        alert.assert_called_once()
+        self.assertIn("refresh job failed at update", alert.call_args[0][0])
+        self.assertEqual((line["outcome"], line["severity"], line["attempt"]), ("failed", "ERROR", 1))
+
+    def test_outside_cloud_run_every_failure_alerts(self):
+        code, line, alert = self.run_failing(None, 1)   # no CLOUD_RUN_TASK_ATTEMPT: a laptop run, nothing retries it
+        alert.assert_called_once()
+        self.assertEqual(line["outcome"], "failed")
+
+    def test_main_reads_max_retries(self):
+        with mock.patch.object(job, "Job") as J:
+            job.main(["--store", f"local:{self.tmp / 's'}", "--dry-run"])
+        cfg = job.deploy_config.load()
+        self.assertEqual(J.call_args.kwargs["max_retries"], cfg["jobs"]["refresh"]["max_retries"])
 
 
 class Dispatch(unittest.TestCase):
