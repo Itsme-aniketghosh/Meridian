@@ -361,3 +361,23 @@ Proven in the cloud: run 9's cache comes back on Cloud Run's empty disk in 17 s,
 2. The refit scores the same as the champion. New commits only add rows to `none` (their labels aren't mature), and train 2015–2022 / val 2023 don't move until the snapshot crosses into a new year, so a refit on today's block can't beat the champion by 2 SDs. Drift fires every day, but a retrain has nothing new to learn from yet.
 
 Tests: Model-Deployment 146 OK (10 new: the switch, the copy, a failed refit, promotion and dispatch, D3's body); Model-Pipeline `test_refresh` + `test_run_all` OK (1 new). flake8 clean.
+
+## 15. Integration tests, Nov 26–27 (runbook: Aniket)
+
+Main untouched: the switch stayed off in git. Branch `integration-nov26` (never merged) built three one-off images from main `b24a698` (#178 in), pushed as `refresh:integration-t1/t2/t3`, and `meridian-refresh` pointed at each in turn (2 CPUs, 8Gi, 2 h). No Slack webhook is attached to the job yet, so every message below was **logged, not posted** (the user's call: run now, verify from the log).
+
+| Test | Image (branch commit) | Execution | Time (UTC) | Result |
+|---|---|---|---|---|
+| **T1** drift → refit → gate | t1: `[retrain] enabled = true` (`28b8b76`) | `meridian-refresh-pqhss` | 01:46–01:54, **7 m 57 s** | **PASS.** Block `f7e29d294a25d27f`; drift `retrain = true` ("PSI 0.4401 ≥ 0.25 on la", 649 new commits); retrain "refit passed gate; stopped there, nothing registered" (101 s); one "retrain triggered" message; no drift message from the job (`slack_drift = false`, S6's alert is the one). Green |
+| **T4** nothing new | t1 again | `meridian-refresh-qx7g8` | 01:56, **47 s** | **PASS.** "nothing new", exit 0, no alert |
+| **T2** not better, kept | t2: + `model.toml [gate] min_lift = 0.5`, `stale_after_hours = 0` (`38d8c82`) | `meridian-refresh-jnj8t` | 01:57–02:06, **8 m 39 s** | **PASS.** Block `32c12880a83af45b`; gate "FAIL (1 of 5 checks)", `model.refresh` exit **3**; retrain WARNING "not better, kept: the gate refused the refit, the champion stays"; one "retrain triggered: not better, kept". Green. **Finding:** `model.gate` also raises its own `ERROR: ALERT model gate failed: forest not registered` ("sent to no channel" today). With Slack connected, a refused refit would post an ERROR next to the warning |
+| **T3** a real failure | t3: `[retrain] until = "nope"`, `stale_after_hours = 0` (`9023b3e`) | `meridian-refresh-np82w` | 02:07–02:22, 2 attempts | **PASS.** `--until 'nope': not a step`, exit 1; D5 `ERROR retrain failed`; alert "refresh job failed at retrain: exit 1: …", never "not better". Red. **Note:** `max_retries = 1` reran the whole job (attempt 1), so a deterministic failure alerts twice and costs ~7 min more; each attempt had already published its block (`2cb1af90…`, `fe8ab09a…`) before retrain |
+| **T5** model.yml → deploy.yml | main | — | — | **Not run here:** needs `model.yml` started by hand on GitHub (no GitHub CLI or sign-in on this machine) while `deploy.yml` is on |
+
+**After:** `meridian-refresh` back on main's image `refresh:b24a69839863` (switch off, `until = "gate"`, `stale_after_hours = 20`, `min_lift = 0.0`, all checked inside the image). Confirmation run `meridian-refresh-xfgs2`: 50 s, cache restored, "nothing new", champion `85b4684a`. Green.
+
+**S10, measured in the cloud at last:** T1 is the first warm run with new commits on Cloud Run: **7 m 57 s** end to end (cache restore 17 s, update 178 s, refit 101 s, cache save 44 s), against PLAN §15's 10-minute target. T2: 8 m 39 s.
+
+**Cost:** ~1,960 s of job time at 2 vCPU and 8 GiB, at `deploy.toml [cost]` list prices: about **$0.13** for all runs, before the free tier. **Memory:** not measured (my account reads logs, not Cloud Monitoring); no out-of-memory error in any run.
+
+**Open question (Aniket's):** how a refit reaches the registry. Answer: (c) for the expo (show T1/T2 and T5 as the two halves). (b) would put the new block's feature table, real names, in a public repo. (a) is the join after the expo, once the registry versions retrains as `<sha>-<block run_id>`.
