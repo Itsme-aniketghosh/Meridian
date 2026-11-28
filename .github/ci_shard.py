@@ -64,6 +64,7 @@ def main(start, k, n):
     print(f"{where} shard {k}/{n}: {len(mine)} of {len(mods)} modules: {' '.join(mine)}", flush=True)
     if not mine:
         return 0
+    sys.path.insert(0, os.getcwd())  # as python -m unittest does; sys.path[0] is .github here
     runner = unittest.TextTestRunner(resultclass=Timed)
     result = unittest.main(module=None, argv=[sys.argv[0], *mine], testRunner=runner, exit=False).result
     for m, s in sorted(Timed.took.items(), key=lambda kv: -kv[1]):
