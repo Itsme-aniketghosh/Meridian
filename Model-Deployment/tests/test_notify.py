@@ -72,6 +72,13 @@ class Notify(unittest.TestCase):
         self.assertIn("meridian-risk-00004-new took 10% of traffic and failed: error rate 4/198", text)
         self.assertIn("meridian-risk-00003-biw serves 100% again (/health 200)", text)
 
+    def test_a_planted_test_says_so_in_the_subject(self):
+        with sinks() as s:
+            self.run_main(["stopped", "--version", V, "--step", "Smoke test, the revision", "--planted", "wrong-risk"],
+                          s.webhook)
+            text = s.slack[0]["text"]
+        self.assertTrue(text.startswith("[planted test: wrong-risk] Meridian: deploy stopped, no traffic moved"), text)
+
     def test_stopped_and_rollback_failed(self):
         with sinks() as s:
             self.run_main(["stopped", "--version", V, "--step", "Smoke test, the revision (main)",

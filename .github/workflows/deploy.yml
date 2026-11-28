@@ -7,6 +7,11 @@
 # straight back to the revision that served before (rollback) and the run is red. Slack hears the outcome on main
 # (S7, notify.py).
 #
+# The planted broken image (Nov 28): by hand on main with `plant`, plant.py breaks serve/scorer.py in this run's
+# checkout before the build (never committed), and the image is pushed as <version>-planted-<kind>, with a "p-" tag on
+# its revision. wrong-risk must stop at the revision's smoke test with no traffic; slow must fail the canary and roll
+# back. Slack's message says it's a planted test.
+#
 # Triggers (Nov 25): a PR (dry run), by hand, model.yml finishing green on main, and D3's repository_dispatch
 # "champion-updated" from the refresh job. The two automatic ones deploy only a champion that doesn't serve yet: if
 # the service's /health already names its version and md5, the run ends green after the champion check, with nothing
@@ -26,6 +31,7 @@ on:
       - "Model-Deployment/traffic.py"
       - "Model-Deployment/notify.py"
       - "Model-Deployment/canary.py"
+      - "Model-Deployment/plant.py"
       - "Model-Deployment/deploy.toml"
       - "Model-Deployment/deploy_config.py"
       - "Model-Deployment/serve/**"
@@ -34,6 +40,7 @@ on:
       - "Model-Deployment/tests/test_traffic.py"
       - "Model-Deployment/tests/test_notify.py"
       - "Model-Deployment/tests/test_canary.py"
+      - "Model-Deployment/tests/test_plant.py"
       - "Data-Pipeline/meridian/alert.py"
       - "Data-Pipeline/settings.toml"
       - "Model-Deployment/tests/test_serve_history.py"
@@ -44,6 +51,11 @@ on:
         description: "Move traffic to the new revision after its smoke test (off: stop at the no-traffic revision)"
         type: boolean
         default: true
+      plant:
+        description: "A TEST: deploy a deliberately broken image (plant.py) that main's checks must stop"
+        type: choice
+        options: [none, wrong-risk, slow]
+        default: none
   workflow_run:   # model.yml on main: a promotion moves the registry pointer, then this deploys it
     workflows: [model]
     types: [completed]
@@ -72,6 +84,7 @@ jobs:
       ON_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
       MOVE_TRAFFIC: ${{ github.event.inputs.move_traffic != 'false' }}   # a trigger without inputs moves traffic
       DRY_RUN: ${{ !(github.ref == 'refs/heads/main' && github.event_name != 'pull_request') }}   # PRs: build, never push
+      PLANT: ${{ github.event.inputs.plant || 'none' }}   # only a run by hand has inputs: automatic runs never plant
       AUTO: ${{ github.event_name == 'workflow_run' || github.event_name == 'repository_dispatch' }}   # not by hand
     steps:
       - uses: actions/checkout@v4
@@ -96,11 +109,11 @@ jobs:
       - name: Tests (champion.py, smoke.py, deploy.toml)
         run: python -m unittest discover -s Model-Deployment/tests
 
-      - name: flake8 (champion.py, smoke.py, traffic.py, notify.py, canary.py)
+      - name: flake8 (champion.py, smoke.py, traffic.py, notify.py, canary.py, plant.py)
         run: |
           python -m pip install --quiet flake8==7.4.1
           python -m flake8 --max-line-length 120 Model-Deployment/champion.py Model-Deployment/smoke.py Model-Deployment/traffic.py \
-            Model-Deployment/notify.py Model-Deployment/canary.py
+            Model-Deployment/notify.py Model-Deployment/canary.py Model-Deployment/plant.py
 
       - name: Names from deploy.toml (D4)
         id: cfg
@@ -170,6 +183,15 @@ jobs:
             echo "serving=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Nov 28: the planted broken image, by hand only. The edit is in this checkout; nothing is committed
+      - name: Plant a broken scorer (a test, by hand)
+        id: plant
+        if: env.PLANT != 'none'
+        run: |
+          python Model-Deployment/plant.py "$PLANT"
+          echo "::warning::PLANTED TEST ($PLANT): this run deploys a deliberately broken image that must never serve"
+          echo "TAG_PREFIX=p" >> "$GITHUB_ENV"
+
       # S2's handoff: pushes are scored from the block's precomputed history, baked into the image. It holds no email
       # (serve.precompute) and is never committed, and it's read from deploy.toml [serve_history], never from anywhere
       # the deploy account could see real names. Without it the image scores known SHAs only
@@ -208,9 +230,10 @@ jobs:
             echo "size_mb=$(( $(docker image inspect --format '{{.Size}}' "$IMAGE") / 1000000 ))"; } >> "$GITHUB_OUTPUT"
 
       # The image itself, before anything leaves the runner: a failure here stops the run before the push
+      # (wrong-risk skips it, so the broken image reaches Cloud Run and main's revision smoke test has to stop it)
       - name: Smoke test, the image on the runner
         id: smoke_local
-        if: env.ALREADY_SERVING != 'true'
+        if: env.ALREADY_SERVING != 'true' && !(env.PLANT == 'wrong-risk' && env.ON_MAIN == 'true')
         env:
           IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
         run: |
@@ -227,6 +250,10 @@ jobs:
           IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
         run: |
           gcloud auth configure-docker "${IMAGE%%/*}" --quiet
+          if [ "$PLANT" != none ]; then   # never under the champion's own tag
+            docker tag "$IMAGE" "$IMAGE-planted-$PLANT"
+            IMAGE="$IMAGE-planted-$PLANT"
+          fi
           start=$(date +%s)
           docker push --quiet "$IMAGE"
           { echo "digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE")"
@@ -242,7 +269,7 @@ jobs:
           DIGEST: ${{ steps.push.outputs.digest }}
           VERSION: ${{ steps.champion.outputs.version }}
         run: |
-          tag="c-${VERSION:0:12}"
+          tag="${TAG_PREFIX:-c}-${VERSION:0:12}"   # p-: a planted test's revision, so the champion's c- tag stays put
           # what serves now, before the deploy: the revision a failed move goes back to (rollback, Nov 23)
           # shellcheck disable=SC2086
           gcloud run services describe "$SERVICE" $WHERE --format=json > "$RUNNER_TEMP/before.json"
@@ -381,6 +408,7 @@ jobs:
           why="${{ steps.canary.outcome == 'failure' && (steps.canary.outputs.canary_why || 'the traffic split') || (steps.traffic.outcome == 'failure' && 'the traffic check' || 'the live smoke test') }}"
           set -- --version "$VERSION" --revision "$REVISION" --serving "$PREVIOUS" \
             --run-url "$RUN_URL" --github-output "$GITHUB_OUTPUT"
+          [ "$PLANT" = none ] || set -- "$@" --planted "$PLANT"
           if [ "${{ steps.rollback.outcome }}" = success ] && [ "${{ steps.canary.outcome }}" = failure ]; then
             python Model-Deployment/notify.py canary_failed "$@" --why "$why" --percent "${{ steps.cfg.outputs.canary_percent }}" \
               --health "${{ steps.rollback.outputs.health }}"
@@ -427,6 +455,7 @@ jobs:
             fi
             echo "| | |"
             echo "|---|---|"
+            [ "$PLANT" = none ] || echo "| **Planted test** | \`$PLANT\` (plant.py): a deliberately broken image; main's checks must keep it from serving |"
             echo "| Trigger | ${{ github.event_name == 'workflow_run' && 'model.yml finished green on main' || (github.event_name == 'repository_dispatch' && 'D3 champion-updated from the refresh job' || (github.event_name == 'workflow_dispatch' && 'by hand' || 'a pull request (dry run)')) }} |"
             echo "| Service | \`${{ steps.cfg.outputs.service }}\` in \`${{ steps.cfg.outputs.region }}\`, project \`${{ steps.cfg.outputs.project }}\` |"
             echo "| Champion | \`${VERSION:0:12}\`, md5 \`${{ steps.champion.outputs.md5 }}\`, val PR-AUC ${{ steps.champion.outputs.pr_auc }}, from the ${{ steps.champion.outputs.source }} registry |"
@@ -446,8 +475,8 @@ jobs:
             echo "| Outcome | ${{ job.status }} |"
           } >> "$GITHUB_STEP_SUMMARY"
           # D5: one JSON line for Cloud Logging and S6's metrics. Versions only, never a person
-          printf '{"severity": "%s", "event": "deploy", "model_version": "%s", "dry_run": %s, "revision": "%s", "traffic_percent": %s, "canary": "%s", "rolled_back": %s, "smoke": "%s", "outcome": "%s"}\n' \
-            "$([ '${{ job.status }}' = success ] && echo INFO || echo ERROR)" "$VERSION" "$DRY_RUN" \
+          printf '{"severity": "%s", "event": "deploy", "model_version": "%s", "planted": "%s", "dry_run": %s, "revision": "%s", "traffic_percent": %s, "canary": "%s", "rolled_back": %s, "smoke": "%s", "outcome": "%s"}\n' \
+            "$([ '${{ job.status }}' = success ] && echo INFO || echo ERROR)" "$VERSION" "$PLANT" "$DRY_RUN" \
             "${{ steps.revision.outputs.name }}" "${{ steps.traffic.outcome == 'success' && steps.rollback.outcome != 'success' && '100' || '0' }}" \
             "${{ steps.canary.outcome }}" "${{ steps.rollback.outcome == 'success' }}" \
             "${{ steps.smoke_live.outcome == 'success' && steps.smoke_live.outcome || (env.ON_MAIN == 'true' && steps.smoke.outcome || steps.smoke_local.outcome) }}" "${{ job.status }}"
