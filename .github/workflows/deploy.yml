@@ -105,6 +105,8 @@ jobs:
           {
             echo "project=$(get gcp.project)"
             echo "region=$(get gcp.region)"
+            echo "build_bar_s=$(get speed.build_s)"
+            echo "serving_bar_s=$(get speed.serving_s)"
             echo "service=$(get services.risk.name)"
             echo "image=$(get derived.images.risk)"
             echo "provider=$(get derived.workload_identity_provider)"
@@ -185,6 +187,14 @@ jobs:
             fi
           fi
 
+      # S10: the image's layers are cached in GitHub's Actions cache (scope "risk"), so a new champion rebuilds only
+      # the champion and serve/ layers; the OS package and the Python packages come from the cache. Main writes it and
+      # every run reads it, PRs included. No registry tag and no new IAM; a miss is only slower
+      - uses: docker/setup-buildx-action@v3
+        if: env.ALREADY_SERVING != 'true'
+      - uses: crazy-max/ghaction-github-runtime@v3   # gives buildx the Actions cache's URL and token
+        if: env.ALREADY_SERVING != 'true'
+
       # Rachna's image (S2) bakes the champion in at build: it's handed over as the build context's
       # Model-Pipeline/registry/, which is the committed champion off main and the pointer's on main
       - name: Build the serving image
@@ -192,15 +202,27 @@ jobs:
         if: env.ALREADY_SERVING != 'true'
         env:
           IMAGE: ${{ steps.cfg.outputs.image }}:${{ steps.champion.outputs.version }}
+          CACHE_TO: ${{ env.ON_MAIN == 'true' && '--cache-to type=gha,scope=risk,mode=max' || '' }}
+          BUILD_BAR_S: ${{ steps.cfg.outputs.build_bar_s }}
         run: |
+          set -o pipefail
           cp "$RUNNER_TEMP/stage/"* Model-Pipeline/registry/
           start=$(date +%s)
-          docker build -f Model-Deployment/serve/Dockerfile \
+          # shellcheck disable=SC2086
+          docker buildx build -f Model-Deployment/serve/Dockerfile \
             --build-arg MODEL_VERSION="${{ steps.champion.outputs.version }}" \
             --build-arg MODEL_MD5="${{ steps.champion.outputs.md5 }}" \
-            -t "$IMAGE" .
-          { echo "build_s=$(( $(date +%s) - start ))"
+            --cache-from type=gha,scope=risk $CACHE_TO --load --progress=plain \
+            -t "$IMAGE" . 2>&1 | tee "$RUNNER_TEMP/build.log"
+          build_s=$(( $(date +%s) - start ))
+          cached=$(grep -cE '^#[0-9]+ CACHED' "$RUNNER_TEMP/build.log" || true)
+          { echo "build_s=$build_s"
+            echo "cached_layers=$cached"
             echo "size_mb=$(( $(docker image inspect --format '{{.Size}}' "$IMAGE") / 1000000 ))"; } >> "$GITHUB_OUTPUT"
+          echo "build: ${build_s} s, ${cached} steps from the cache (S10 bar: ${BUILD_BAR_S} s)"
+          if [ "$build_s" -gt "$BUILD_BAR_S" ]; then
+            echo "::warning::the build took ${build_s} s, over S10's ${BUILD_BAR_S} s (a cold cache is slower)"
+          fi
 
       # The image itself, before anything leaves the runner: a failure here stops the run before the push
       - name: Smoke test, the image on the runner
@@ -356,7 +378,15 @@ jobs:
         if: always()
         env:
           VERSION: ${{ steps.champion.outputs.version }}
+          MODEL_DONE: ${{ github.event.workflow_run.updated_at }}   # model.yml's finish, on a workflow_run trigger
+          SERVING_BAR_S: ${{ steps.cfg.outputs.serving_bar_s }}
         run: |
+          # S10: model.yml finished -> the new champion serves 100% (and passed the live smoke test)
+          since=""
+          if [ -n "$MODEL_DONE" ] && [ "${{ steps.smoke_live.outcome }}" = success ]; then
+            since=$(( $(date +%s) - $(date -d "$MODEL_DONE" +%s) ))
+            [ "$since" -le "$SERVING_BAR_S" ] || echo "::warning::serving ${since} s after model.yml, over S10's ${SERVING_BAR_S} s"
+          fi
           {
             if [ "$DRY_RUN" = true ]; then
               echo "### deploy (dry run: built and smoke-tested on the runner; nothing pushed, no revision)"
@@ -378,7 +408,7 @@ jobs:
             echo "| Trigger | ${{ github.event_name == 'workflow_run' && 'model.yml finished green on main' || (github.event_name == 'repository_dispatch' && 'D3 champion-updated from the refresh job' || (github.event_name == 'workflow_dispatch' && 'by hand' || 'a pull request (dry run)')) }} |"
             echo "| Service | \`${{ steps.cfg.outputs.service }}\` in \`${{ steps.cfg.outputs.region }}\`, project \`${{ steps.cfg.outputs.project }}\` |"
             echo "| Champion | \`${VERSION:0:12}\`, md5 \`${{ steps.champion.outputs.md5 }}\`, val PR-AUC ${{ steps.champion.outputs.pr_auc }}, from the ${{ steps.champion.outputs.source }} registry |"
-            echo "| Image | \`${{ steps.cfg.outputs.image }}:${VERSION:0:12}…\`: built in ${{ steps.build.outputs.build_s }} s, ${{ steps.build.outputs.size_mb }} MB uncompressed; history.pkl ${{ steps.history.outputs.present == 'true' && 'in (pushes scored)' || 'not in (known SHAs only)' }} |"
+            echo "| Image | \`${{ steps.cfg.outputs.image }}:${VERSION:0:12}…\`: built in ${{ steps.build.outputs.build_s }} s (S10 bar ${{ steps.cfg.outputs.build_bar_s }} s, ${{ steps.build.outputs.cached_layers }} steps cached), ${{ steps.build.outputs.size_mb }} MB uncompressed; history.pkl ${{ steps.history.outputs.present == 'true' && 'in (pushes scored)' || 'not in (known SHAs only)' }} |"
             echo "| Smoke test, on the runner | ${{ steps.smoke_local.outcome }} |"
             if [ "$DRY_RUN" != true ]; then
               echo "| Pushed | \`${{ steps.push.outputs.digest }}\` in ${{ steps.push.outputs.push_s }} s |"
@@ -390,6 +420,7 @@ jobs:
               echo "| Rollback | ${{ steps.rollback.outcome == 'skipped' && 'not needed' || format('{0} in {1} s: {2}; /health {3}', steps.rollback.outcome, steps.rollback.outputs.rollback_s, steps.rollback.outputs.serving, steps.rollback.outputs.health) }} |"
               echo "| Slack | ${{ steps.slack.outputs.slack_sent || steps.slack.outcome }} |"
             fi
+            [ -z "$since" ] || echo "| Serving after model.yml | ${since} s (S10 bar ${SERVING_BAR_S} s) |"
             echo "| Outcome | ${{ job.status }} |"
           } >> "$GITHUB_STEP_SUMMARY"
           # D5: one JSON line for Cloud Logging and S6's metrics. Versions only, never a person

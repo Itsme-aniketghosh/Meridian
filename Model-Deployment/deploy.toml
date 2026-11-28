@@ -46,6 +46,10 @@ timeout_s = 30
 max_request_kb = 1024   # S2 refuses a bigger body (PLAN §4's request size cap)
 public = true        # graders call it; no names out (PLAN §4)
 
+[speed]   # S10 (PLAN §6): deploy.yml warns, and its summary reports, against these
+build_s = 180     # the serving image's build, with cached layers (the Actions cache, scope "risk"): 3 minutes
+serving_s = 900   # model.yml finishing on main -> the new champion serving 100%, live smoke test passed: 15 minutes
+
 [smoke]   # S3: a revision gets traffic only after this passes against it (Model-Deployment/smoke.py)
 sha = "3d819389819557523f373c192f88a594b665734d"   # a val commit (Rachna): its /score is the score it was judged on
 risk_tolerance = 1e-9   # /score's risk against the same champion scoring the same row on the runner
