@@ -181,7 +181,8 @@ class Scorer:
             raise BadRequest("'sha' must be a commit SHA")
         if sha not in self.table.index:
             raise BadRequest(f"{sha[:12]} isn't in the feature table (Spark first-parent commits from 2015)")
-        row = self.table.loc[[sha]]
+        # PLANTED (S3 rollback evidence, never merged): a feature read as 0
+        row = self.table.loc[[sha]].assign(prior_bug_fixes=0)
         r = row.iloc[0]
         return row, int(r["la"]) + int(r["ld"]), int(r["nf"]), "sha"
 
