@@ -7,15 +7,15 @@
 #   registry: main only, after the gate passes, in the checkout, not the image (git has to see the commit): register,
 #             promote, push (Rochan, #58). Google trusts this repo's main branch only (Workload Identity, no key)
 #
-# What CI trains and when it runs: packets/chaitali-bias/decisions.md, decisions 7 and 8.
+# What CI trains and when it runs: docs/model/bias/decisions.md, decisions 7 and 8.
 name: model
 
 on:
   push:
     branches: [main]
-    paths: ["Model-Pipeline/**", ".github/workflows/model.yml"]
+    paths: ["Model-Pipeline/**", "docs/model/bias/diff_match_by_repo.csv", ".github/workflows/model.yml"]
   pull_request:
-    paths: ["Model-Pipeline/**", ".github/workflows/model.yml"]
+    paths: ["Model-Pipeline/**", "docs/model/bias/diff_match_by_repo.csv", ".github/workflows/model.yml"]
   workflow_dispatch:  # from the Actions tab
     inputs:
       train:
@@ -95,7 +95,7 @@ jobs:
         id: llm_bias
         run: |
           docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e MLFLOW_TRACKING_URI=sqlite:////tmp/mlflow.db \
-            -v "$OUT:/app/Model-Pipeline/reports" -v "$PWD/Model-Pipeline/packets:/app/Model-Pipeline/packets:ro" \
+            -v "$OUT:/app/Model-Pipeline/reports" -v "$PWD/docs/model/bias:/app/docs/model/bias:ro" \
             --entrypoint python meridian-model:ci -m model.llm_bias --no-calls --no-charts \
             | tee "$RUNNER_TEMP/llm_bias.log"
           { echo "### LLM bias"; sed 's/^/    /' "$RUNNER_TEMP/llm_bias.log"; } >> "$GITHUB_STEP_SUMMARY"

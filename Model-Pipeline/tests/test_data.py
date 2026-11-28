@@ -1,4 +1,4 @@
-"""model/data.py on a tiny made-up history (packets/utkarsh-data, Tests). Run from Model-Pipeline/:
+"""model/data.py on a tiny made-up history (docs/model/data, Tests). Run from Model-Pipeline/:
 
 python -m unittest tests.test_data
 """

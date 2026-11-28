@@ -22,8 +22,8 @@ The tools are there to cut the noise. The context builder hands the LLM 35% of a
 | Val 2023 | Champion 0.4067 [0.365, 0.451] vs 0.319, paired +0.088 [+0.061, +0.113], N = 4,113 | `registry/champion.json` |
 | Simulated faults | 21 of 21 behave, on frozen main and again on `57adef0` | `python -m tests.faults.table` |
 | Product rerun | 68 stalls planned, 224 LLM texts, 0 templates, **0 LLM calls, $0** (Nov 21, after gap 27's fix; 205 and 19 before) | `reports/final/RUN-LOG.md`, `reports/c1-walkers/RUN-LOG.md` |
-| Fact gate | 200 of 200 planted errors caught; 2,000 of 2,000 over 10 seeds, 0 false rejects | [Fact gate decisions 1, 11](../packets/vishwa-agents/decisions.md) |
-| Live LLM spend, the whole run | 247 calls, $1.10; gap 27's walk rerun (Nov 21) added 20 calls, $0.05 | [Live run notes](../packets/utkarsh-data/gaps.md) |
+| Fact gate | 200 of 200 planted errors caught; 2,000 of 2,000 over 10 seeds, 0 false rejects | [Fact gate decisions 1, 11](../../docs/model/agents/decisions.md) |
+| Live LLM spend, the whole run | 247 calls, $1.10; gap 27's walk rerun (Nov 21) added 20 calls, $0.05 | [Live run notes](../../docs/model/data/gaps.md) |
 
 ### Architecture
 
@@ -414,11 +414,11 @@ Faults 4 and 17 failed the first time; both were fixed before the freeze.
 
 Each part's full section, with every decision table:
 
-- [Data, labels, the diff drafter, the walkers](../packets/utkarsh-data/report-section.md)
-- [The model, tuning, sensitivity, Jev](../packets/rachna-models/report-section.md)
-- [Validation, tracking, the registry, the auditor](../packets/rochan-tracking/REPORT-SECTION.md)
-- [Bias, the final pick, the gate, CI](../packets/chaitali-bias/report-section.md)
-- [The fact gate, the writer, the cache, the views](../packets/vishwa-agents/report-section.md)
-- [Integration, faults, the go, the final runs, the orchestrator](../packets/aniket-lead/report-section.md)
+- [Data, labels, the diff drafter, the walkers](sections/data.md)
+- [The model, tuning, sensitivity, Jev](sections/models.md)
+- [Validation, tracking, the registry, the auditor](sections/tracking.md)
+- [Bias, the final pick, the gate, CI](sections/bias.md)
+- [The fact gate, the writer, the cache, the views](sections/agents.md)
+- [Integration, faults, the go, the final runs, the orchestrator](sections/lead.md)
 
 Run logs and fingerprints: [2024 run](../reports/2024/RUN-LOG.md) · [final runs](../reports/final/RUN-LOG.md) · [golden md5s](../golden/2024.json) · [end-to-end check](../reports/checks/E2E-CHECK-2026-11-14.md) · [open gaps](../GAPS.md) · [pass bars](../PASS-BARS.md)

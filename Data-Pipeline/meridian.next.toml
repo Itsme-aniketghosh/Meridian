@@ -1,5 +1,5 @@
 # Meridian config · step 1 · v1
-# meridian.next.toml: the second real run (step L, Model-Pipeline/packets/utkarsh-data). meridian.toml with each repo
+# meridian.next.toml: the second real run (step L, docs/model/data). meridian.toml with each repo
 # moved to the commit that removes its sites: Django at conversion commit c651331b34, each package at its url()
 # migration commit (week1/pair3), Spark unchanged. snapshot_at moves past run 1's so the removals are new.
 #   python -m meridian.collect --run-id new --config meridian.next.toml, then each part with

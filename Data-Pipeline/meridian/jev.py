@@ -45,7 +45,7 @@ TOP_BUDGET = 10                # picks of an agent's largest model, per run, by 
 def _coding_ladder():
     """The diff drafter's ladder (coding small -> mid -> large), from its module once Utkarsh's drafter is in."""
     try:
-        from meridian import diffs as diff_drafter   # the drafter is meridian/diffs.py (packets/README.md)
+        from meridian import diffs as diff_drafter   # the drafter is meridian/diffs.py (docs/model/README.md)
         return tuple(diff_drafter.LADDER)
     except (ImportError, AttributeError):
         return ()

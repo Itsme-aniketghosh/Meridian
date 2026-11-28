@@ -1,4 +1,4 @@
-"""Registry (step G, Rochan): where models live (packets/rochan-tracking, section G).
+"""Registry (step G, Rochan): where models live (docs/model/tracking, section G).
 
     python -m model.registry                       # register reports/'s candidate; promote it if it wins
     python -m model.registry --push                # and, on promotion, upload it to Artifact Registry
@@ -47,7 +47,7 @@ registry/champion.json (Contract 4) is written only by registry.py. Each key, an
     version     the Artifact Registry version: the git sha of the commit that made the model (section G)
     run_id      the champion's MLflow run. Its Contract 3 tags say which code, config and table made the model
     model_file  the model's file name, next to champion.json here and in the Artifact Registry version: what P9 loads
-    model_md5   P9 scores with the champion only when the file's md5 matches. Otherwise lines x files (rachna-models)
+    model_md5   P9 scores with the champion only when the file's md5 matches. Else lines x files (docs/model/models)
     metrics     the champion's block from its metrics.json, as is, plus `split` and `features_md5`. The gate compares
                 a new candidate with these numbers, and decision 7 needs to know which table they're on. P9's alert
                 threshold is `metrics.at_threshold.threshold`, chosen on val (decision 3)
@@ -637,7 +637,7 @@ def pushed(record, s, runner, say, model=None, dirty="false"):
     return True
 
 
-# Decisions 6 and 7 (Model-Pipeline/packets/rochan-tracking/decisions.md)
+# Decisions 6 and 7 (docs/model/tracking/decisions.md)
 
 
 def moves(values, need):

@@ -1,6 +1,6 @@
 # Bias, the final pick, the gate and CI
 
-This section asks whether the model and the agents serve some modules, components, newcomers or commit sizes worse than others, what fixing that would cost, and how CI checks every model change before it reaches the registry. Every choice below, with its test and the rule that picks it, was written down before its run ([decisions.md](decisions.md)). Everything is on `val` (2023). 2024 was never read.
+This section asks whether the model and the agents serve some modules, components, newcomers or commit sizes worse than others, what fixing that would cost, and how CI checks every model change before it reaches the registry. Every choice below, with its test and the rule that picks it, was written down before its run ([decisions.md](../../../docs/model/bias/decisions.md)). Everything is on `val` (2023). 2024 was never read.
 
 ## How bias is judged
 
@@ -132,7 +132,7 @@ GAPS gap 16 asked for each stalled team's files ranked by risk, cut where 90% of
 
 **The ranking keeps 96.4% of the bug fixes with a third of the files. A random order with the same files keeps 73.3%.** That meets the bar written before the run (at least 90%, and at least 10 points over random), so the preview recommended switching it on. It would cut the consumer facts by 46%. Switching it on was the writer owner's call, since it changes every consumer cache key. The plan was to rerun the numbers on the first block built with gap 24's code.
 
-- **Switched on since:** PR #111 switched it on. On the real block bb6b5f4e it keeps 96.4% of bug fixes with 127 of 367 files, against 72.7% for random ([the agents section](../vishwa-agents/report-section.md), "The context builder, switched on").
+- **Switched on since:** PR #111 switched it on. On the real block bb6b5f4e it keeps 96.4% of bug fixes with 127 of 367 files, against 72.7% for random ([the agents section](agents.md), "The context builder, switched on").
 
 ## Not done, and limits
 

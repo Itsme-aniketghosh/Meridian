@@ -32,15 +32,15 @@ flowchart LR
 
 ## Read first
 
-- [PLAN.md §4](../../PLAN.md#4-what-we-build): pass bars
-- [04-architecture §9](../../../docs/04-architecture.md): auditor learning, the whole design
-- [05-test](../../../docs/05-test.md): bars fixed before the run, every metric with its N; the Auditor row
-- [packets/README.md](../README.md): Contracts 2–4
+- [PLAN.md §4](../../../Model-Pipeline/PLAN.md#4-what-we-build): pass bars
+- [04-architecture §9](../../04-architecture.md): auditor learning, the whole design
+- [05-test](../../05-test.md): bars fixed before the run, every metric with its N; the Auditor row
+- [docs/model/README.md](../README.md): Contracts 2–4
 
 ## Tracking
 
 - [x] `tracking.py`: `start_run(name, owner)` sets the Contract 3 tags and experiment, on the local store `sqlite:///mlflow.db`
-- [x] A short how-to in [packets/README.md](../README.md)
+- [x] A short how-to in [docs/model/README.md](../README.md)
 - [x] `log_llm_call(...)` for Vishwa: agent, model, prompt version, tokens, cost, cache hit, gate pass, into `meridian-agents`
 
 ## D. Evaluation
@@ -64,7 +64,7 @@ The GCP repo, once, on the trial project (no Terraform until phase 3):
 
 ## P. Auditor learning
 
-`python -m meridian.auditor --run-id <id> --config meridian.toml`, settings in `meridian.toml [auditor]`. From [04-architecture §9](../../../docs/04-architecture.md):
+`python -m meridian.auditor --run-id <id> --config meridian.toml`, settings in `meridian.toml [auditor]`. From [04-architecture §9](../../04-architecture.md):
 
 - [x] Policy v0 as code: the stall-reason table (#1–8), ranked by number, then evidence. No probabilities
 - [x] Explore job v0: nominate deprecation-marked symbols with callers (`radar_deprecated_with_callers`). The fan-in and twin signals wait for gaps G3 and G4

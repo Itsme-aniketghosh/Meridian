@@ -1,4 +1,4 @@
-"""S5's monitoring report, contract D2 (Model-Deployment/packets/README.md): drift + decay -> retrain. Owner: Vishwa.
+"""S5's monitoring report, contract D2 (docs/deployment/README.md): drift + decay -> retrain. Owner: Vishwa.
 Run from Model-Deployment/.
 
     python -m monitor.report --out report.json                 # the block the table was built from

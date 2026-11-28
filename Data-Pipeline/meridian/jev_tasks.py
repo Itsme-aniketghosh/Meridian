@@ -1,6 +1,6 @@
 """Jev's task set (decision 19, GAPS.md gap 2, Rachna): 60 real writer tasks from a block, for a person to label.
 
-    python -m meridian.jev_tasks --run-id <run_id>       # -> Model-Pipeline/packets/rachna-models/labels/
+    python -m meridian.jev_tasks --run-id <run_id>       # -> docs/model/models/labels/
 
 Writes two files:
 - jev_tasks.csv: one row per task, with a short summary and an empty `label` column. A person fills in the model
@@ -26,7 +26,7 @@ from meridian import agents as G
 from meridian.common import CONFIG, HERE, load_config
 
 ROOT = HERE.parent
-LABELS = ROOT / "Model-Pipeline" / "packets" / "rachna-models" / "labels"
+LABELS = ROOT / "docs" / "model" / "models" / "labels"
 COLUMNS = ("task_id", "split", "kind", "repo", "owner_team", "target", "n_facts", "summary", "label", "labelled_by")
 LABEL_CHOICES = ("small", "mid", "large")
 

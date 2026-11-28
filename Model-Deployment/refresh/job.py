@@ -1,4 +1,4 @@
-"""S4, the refresh job (Model-Deployment/PLAN.md §3, packets/utkarsh-refresh). Cloud Run job `meridian-refresh`.
+"""S4, the refresh job (Model-Deployment/PLAN.md §3, docs/deployment/refresh). Cloud Run job `meridian-refresh`.
 
     python Model-Deployment/refresh/job.py --data-root ~/refresh-data --store local:~/refresh-store   # a laptop
     python Model-Deployment/refresh/job.py                    # in the image: data root /work, GCS from deploy.toml
@@ -78,7 +78,7 @@ BRANCH = "master"         # apache/spark's default branch: collect follows a ref
 # so model.gate's own "gate failed" alert (right on CI) stays silent in the job: the job is the one Slack voice
 ALERT_SECRETS = ("MERIDIAN_SLACK_WEBHOOK", "MERIDIAN_SMTP_USER", "MERIDIAN_SMTP_PASSWORD")
 RETRAIN_OFF = {"enabled": False, "until": "gate", "dispatch": False, "slack_drift": False}
-D3_EVENT = "champion-updated"   # packets/README.md D3, received by deploy.yml
+D3_EVENT = "champion-updated"   # docs/deployment/README.md D3, received by deploy.yml
 CACHE_OBJECT = "job-cache/snapshots-cache.tar.gz"   # buckets.cache, beside history/ (deploy reads only history/)
 PARTS = ("history", "scan", "resolve", "owners", "join", "graph", "validate")   # the DAG's CORE, in its order
 NOTHING_NEW = 99          # meridian.status and model.refresh: nothing new since the last block
@@ -584,7 +584,7 @@ class StepFailed(Exception):
 
 
 def d2(run_id, at, drift):
-    """S5's drift report as contract D2 (packets/README.md). Decay (S5's matured-window check) isn't in it yet,
+    """S5's drift report as contract D2 (docs/deployment/README.md). Decay (S5's matured-window check) isn't in it yet,
     so retrain is the drift flag alone. When S5 writes D2 itself, this goes."""
     if drift is None:   # dry run
         return {"run_id": run_id, "at": at, "n_new": 0, "drift": {"psi": {}, "evidently_share": 0.0, "flag": False,

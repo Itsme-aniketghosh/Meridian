@@ -38,19 +38,19 @@ flowchart LR
 ## 2. Until freeze (Nov 5–10)
 
 - [ ] Review the pass bars. Chaitali merges them by Nov 6, before anyone trains
-- [ ] Review PRs for the contracts in [packets/README.md](../README.md): tags on runs, no names in the table or the facts, nothing hard-coded outside the two config files
-- [ ] On Nov 9, at Chaitali's check-in, agree the cut order in [§9](../../PLAN.md#9-open-risks) if anything on the critical paths in [§6](../../PLAN.md#6-dependency-graph) has slipped. Cut from the end, don't move the freeze
+- [ ] Review PRs for the contracts in [docs/model/README.md](../README.md): tags on runs, no names in the table or the facts, nothing hard-coded outside the two config files
+- [ ] On Nov 9, at Chaitali's check-in, agree the cut order in [§9](../../../Model-Pipeline/PLAN.md#9-open-risks) if anything on the critical paths in [§6](../../../Model-Pipeline/PLAN.md#6-dependency-graph) has slipped. Cut from the end, don't move the freeze
 
 ## 3. Integration (Nov 10–11)
 
 From a clean clone, nothing cached except the committed LLM cache:
 
-- [ ] Before integration: the contract examples and consumer tests in [packets/README.md](../README.md#integration-tests-before-nov-11) are all in and green, and `run_all --fake` runs in CI
+- [ ] Before integration: the contract examples and consumer tests in [docs/model/README.md](../README.md#integration-tests-before-nov-11) are all in and green, and `run_all --fake` runs in CI
 - [ ] `python -m model.run_all` on your machine, then in Rachna's Docker image
 - [ ] The same through `model.yml` on a branch, then on main, ending in a real push
 - [ ] All three give the same `metrics.json` (the same numbers to 4 decimals). If not, it's a reproducibility bug and goes back to its owner the same day
 - [ ] The product on the fixture, the real block and run 2: views, agents, gate, auditor, P9. Every page loads, 0 LLM calls with the warm cache
-- [ ] Walk [PLAN.md §12](../../PLAN.md#12-guideline-coverage) row by row: each item has its evidence file
+- [ ] Walk [PLAN.md §12](../../../Model-Pipeline/PLAN.md#12-guideline-coverage) row by row: each item has its evidence file
 
 ## 4. Simulated faults (Nov 11)
 
@@ -100,7 +100,7 @@ Phase 1 broke things on purpose (27 faults, 42 scenarios), and the report was st
 
 ## 7. The report (Nov 13–15, with Utkarsh)
 
-- [ ] `Model-Pipeline/report/REPORT.md`, in the order of [PLAN.md §12](../../PLAN.md#12-guideline-coverage), in the style of the phase 1 report
+- [ ] `Model-Pipeline/report/REPORT.md`, in the order of [PLAN.md §12](../../../Model-Pipeline/PLAN.md#12-guideline-coverage), in the style of the phase 1 report
 - [ ] Each owner's section edited for one voice. Every number has its N and a source (a run, a decision tag, a file)
 - [ ] The decision tables from each `decisions.md`: what was tested, what was picked, why
 - [ ] The fault table from section 4

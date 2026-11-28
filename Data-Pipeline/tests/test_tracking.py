@@ -1,5 +1,5 @@
 """The stage-6 tracking tables (suggestion, outcome, push_alert, policy, match) in schema.sql, through the writer and
-validate. Step K of Model-Pipeline/packets/utkarsh-data.
+validate. Step K of docs/model/data.
 
     python -m unittest tests.test_tracking -v                 # from Data-Pipeline/
 """

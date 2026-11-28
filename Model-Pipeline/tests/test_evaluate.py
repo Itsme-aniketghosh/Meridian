@@ -160,7 +160,7 @@ class FastMetrics(unittest.TestCase):
 
 
 def stand_in(y, a, b, reps=1000, seed=0):
-    """train.py's stand-in paired bootstrap (rachna-models, Nov 6), copied as the reference."""
+    """train.py's stand-in paired bootstrap (docs/model/models, Nov 6), copied as the reference."""
     rng = np.random.default_rng(seed)
     diffs = []
     while len(diffs) < reps:
@@ -364,7 +364,7 @@ class Command(unittest.TestCase):
 
 
 class ScoreChampion(unittest.TestCase):
-    """--score-champion, the one 2024 run's first step (packets/rochan-tracking/RUN-2024.md): the frozen champion's
+    """--score-champion, the one 2024 run's first step (docs/model/tracking/RUN-2024.md): the frozen champion's
     model, md5-checked against champion.json and its recorded val PR-AUC, scored with the baselines on val, and on test
     only after the test run's own refusals. A made-up table and a small model fitted on it, as in Command."""
 
@@ -504,7 +504,7 @@ class ScoreChampion(unittest.TestCase):
 
 
 class MetricsExample(unittest.TestCase):
-    """tests/contracts/metrics.json, the example gate.py and registry.py test against (packets/README.md, Integration
+    """tests/contracts/metrics.json, the example gate.py and registry.py test against (docs/model/README.md, Integration
     tests). Written by main() from a run on the fake table: python -m tests.contracts.make_rochan."""
 
     @classmethod
@@ -528,7 +528,7 @@ class MetricsExample(unittest.TestCase):
 
 @unittest.skipUnless((CONTRACTS / "candidate.json").exists() and (CONTRACTS / "val_scores.csv").exists(),
                      "waiting for Rachna's tests/contracts/candidate.json and val_scores.csv "
-                     "(packets/README.md, Nov 8)")
+                     "(docs/model/README.md, Nov 8)")
 class RachnaExamples(unittest.TestCase):
     """evaluate.py reads Rachna's candidate.json and val scores (Contract 4), and fails on a missing key or column.
     load_scores checks the scores against the feature table's val rows; here those rows are the example's own."""

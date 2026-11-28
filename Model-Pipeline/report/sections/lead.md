@@ -91,7 +91,7 @@ The first final runs were on Nov 14, 03:19–03:37 UTC, on main `844a721` with n
 
 On the fixture, with the context builder made to fail, they go from fulfillment to platform and find platform's test gap.
 
-**The live run** (Nov 13, block bb6b5f4e, `packets/utkarsh-data/gaps.md`). Gemini 3.1 Pro planned and Gemini 3.8 Flash wrote, the writer comparison's pick (Claude can't be bought on credit-only billing). In all, 247 calls cost $1.10 ($0.66 of it the orchestrator) and took 4.7 minutes:
+**The live run** (Nov 13, block bb6b5f4e, `docs/model/data/gaps.md`). Gemini 3.1 Pro planned and Gemini 3.8 Flash wrote, the writer comparison's pick (Claude can't be bought on credit-only billing). In all, 247 calls cost $1.10 ($0.66 of it the orchestrator) and took 4.7 minutes:
 - **Plans:** 68 stalled teams, 49 planned by the model and 19 by the rules. Of those 19, 6 answers weren't the JSON asked for, and 13 gave a reason not in the facts.
 - **Walkers:** they ran for 20 stalls.
 - **Texts:** 164 LLM texts and 60 templates.

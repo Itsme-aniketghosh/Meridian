@@ -2,10 +2,10 @@
 
     python -m unittest tests.test_jev -v      # from Data-Pipeline/
 
-No test calls a real LLM: `Fake` plays Jev. The packet's list (rachna-models): same problem twice, same pick; Jev down,
-rules pick; a pick outside the table is refused; over the spend cap, rules pick; a warm cache makes 0 calls. Plus the
-climb, the top-model budget, the gate on Jev's reason, and the hand-off (packets/README.md, Nov 9): Jev's answers go
-through fact_gate.check and model.tracking.log_llm_call(..., facts_hash=) with the LLM off.
+No test calls a real LLM: `Fake` plays Jev. The packet's list (docs/model/models): same problem twice, same pick;
+Jev down, rules pick; a pick outside the table is refused; over the spend cap, rules pick; a warm cache makes 0 calls.
+Plus the climb, the top-model budget, the gate on Jev's reason, and the hand-off (docs/model/README.md, Nov 9): Jev's
+answers go through fact_gate.check and model.tracking.log_llm_call(..., facts_hash=) with the LLM off.
 """
 import importlib.util
 import json
@@ -213,7 +213,7 @@ if importlib.util.find_spec("mlflow"):
 
 @unittest.skipIf(tracking is None, "needs mlflow (Model-Pipeline/requirements.txt); CI's model job runs it")
 class HandOff(unittest.TestCase):
-    """packets/README.md, Nov 9: Jev's answers go through fact_gate.check and tracking.log_llm_call(..., facts_hash=)
+    """docs/model/README.md, Nov 9: Jev's answers go through fact_gate.check and tracking.log_llm_call(..., facts_hash=)
     on the fixture, with the LLM off: they come from a warm cache, so they're calls with 0 cost."""
 
     def test_jev_logs_to_meridian_agents_with_the_llm_off(self):

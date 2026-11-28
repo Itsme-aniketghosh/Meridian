@@ -1,4 +1,4 @@
-# Phase 3's names and settings: contract D4 (packets/README.md). Terraform, the workflows and every script read
+# Phase 3's names and settings: contract D4 (docs/deployment/README.md). Terraform, the workflows and every script read
 # this file through deploy_config.py, and no name or threshold below is written anywhere else. "{project}" stands
 # for the project id, so a fresh project (bootstrap.sh <project-id>) gets its own bucket names.
 

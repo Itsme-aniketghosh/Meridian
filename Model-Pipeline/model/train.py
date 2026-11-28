@@ -1,6 +1,6 @@
 """Baselines, models and tuning for the defect-risk model (Rachna, step C).
 
-Reads the feature table of Contract 1 (Model-Pipeline/packets/README.md). Every fit goes through `fit_rows`,
+Reads the feature table of Contract 1 (docs/model/README.md). Every fit goes through `fit_rows`,
 which only ever returns `train` rows, and `rows` refuses `test` outright: nobody looks at 2024 until Nov 12.
 """
 import argparse

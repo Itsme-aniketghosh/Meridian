@@ -17,7 +17,7 @@ numbers, strings, or lists and dicts of them (block rows). A dict that has both 
 "path:line". Strings inside the facts are read with the same extractors as the text, so "billing/invoice.py:12, ..."
 from a group_concat gives its paths and lines.
 
-Settings (decisions 1, 2 and 11 in Model-Pipeline/packets/vishwa-agents/decisions.md):
+Settings (decisions 1, 2 and 11 in docs/model/agents/decisions.md):
 - kinds: which token kinds are checked. "numbers" < "ids" < "teams" (each adds to the one before).
 - numbers: "exact", "format" or "round".
 - team_rule: "strict", "article" or "ownership" (decision 11): when a team name is read as an ordinary word.

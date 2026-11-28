@@ -1,4 +1,4 @@
-"""S5 drift: a planted shift flags, a clean sample doesn't (Model-Deployment/packets/vishwa-monitor).
+"""S5 drift: a planted shift flags, a clean sample doesn't (docs/deployment/monitor).
 
     python -m unittest discover -s tests -t .        # from Model-Deployment/
 """

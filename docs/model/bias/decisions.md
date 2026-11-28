@@ -263,7 +263,7 @@ Rule: main must run, because it registers and pushes, and only main can sign in 
 
 Options: repo, owner team, task kind.
 
-What exists, looked at before writing this (Nov 10). Gate fallback: the committed LLM cache is empty and no run has had an LLM, so every writer text so far is its template, with no LLM attempt behind it. That's not a fallback. Fallbacks are counted from `log_llm_call` rows (agent, repo, team, task, `gate_pass`, `source`), one text per `facts_hash`, so "template because the LLM is off" is never counted as "template because the gate failed". Diff match: Utkarsh's results (`packets/utkarsh-data/diffs.md`) are counts per repo, at each repo's drafting style: Django's ugettext 254 of 267, and the packages' `url()` 612 of 1,236. Five packages have their own counts, and the other 15 only a total.
+What exists, looked at before writing this (Nov 10). Gate fallback: the committed LLM cache is empty and no run has had an LLM, so every writer text so far is its template, with no LLM attempt behind it. That's not a fallback. Fallbacks are counted from `log_llm_call` rows (agent, repo, team, task, `gate_pass`, `source`), one text per `facts_hash`, so "template because the LLM is off" is never counted as "template because the gate failed". Diff match: Utkarsh's results (`docs/model/data/diffs.md`) are counts per repo, at each repo's drafting style: Django's ugettext 254 of 267, and the packages' `url()` 612 of 1,236. Five packages have their own counts, and the other 15 only a total.
 
 Test: texts (fallback) and drafted lines (match) per slice, under each option, on the fixture and on the real block.
 
@@ -499,7 +499,7 @@ Rule:
 
 # Nov 13: GAPS.md gap 16 again, with gap 24's history: the rule, before computing
 
-Gap 24 (Utkarsh, PR #92) gives the package repos bug-fix history, read from commit subjects (`[szz] fix_message`, `file_bug_fixes` only). Its rows land "in the next block built", and none has been built yet. So this is a **preview**, made the way Utkarsh measured gap 24: `szz.file_bug_fixes` with today's `[szz]`, over the real block's own `out/70dd1dabfed544b8/` files (`git_commit`, `commit_file`, `commit_ticket`, `ticket`) and its manifest. Its rows replace `file_bug_fixes` in a scratch copy of `published/70dd1dabfed544b8.sqlite`, and `meridian.context` runs on that copy. Nothing else in the block changes, and the published block isn't touched. The script is `packets/chaitali-bias/context_preview.py`.
+Gap 24 (Utkarsh, PR #92) gives the package repos bug-fix history, read from commit subjects (`[szz] fix_message`, `file_bug_fixes` only). Its rows land "in the next block built", and none has been built yet. So this is a **preview**, made the way Utkarsh measured gap 24: `szz.file_bug_fixes` with today's `[szz]`, over the real block's own `out/70dd1dabfed544b8/` files (`git_commit`, `commit_file`, `commit_ticket`, `ticket`) and its manifest. Its rows replace `file_bug_fixes` in a scratch copy of `published/70dd1dabfed544b8.sqlite`, and `meridian.context` runs on that copy. Nothing else in the block changes, and the published block isn't touched. The script is `docs/model/bias/context_preview.py`.
 
 Rule: decision 12, unchanged (cover 90%, at least 1 file, the same measures and the same random-order comparison, seed 1, 100 orders). Added for the switch-on question, which decision 12 left for after gap 2:
 - It's **recommended for switching on** if, over the teams with any bug fix, the ranking keeps at least 90% of their bug fixes, and beats the random order with the same number of files by at least 10 points. Otherwise it isn't, and the report says why.
@@ -508,7 +508,7 @@ Rule: decision 12, unchanged (cover 90%, at least 1 file, the same measures and 
 
 ## Gap 16 with gap 24's history: results (preview): 96.4% of bug fixes kept, 23 points over random
 
-`cd Data-Pipeline && python ../Model-Pipeline/packets/chaitali-bias/context_preview.py --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite --scratch <a scratch file>` → `reports/context_cut_preview.json` (15 s).
+`cd Data-Pipeline && python ../docs/model/bias/context_preview.py --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite --scratch <a scratch file>` → `reports/context_cut_preview.json` (15 s).
 
 `file_bug_fixes`: 1,492 rows (Spark only) → 3,248, in 19 repos. The packages match Utkarsh's preview on c5118: Django 1,326 files, wagtail 138, allauth 78, cookiecutter 45, DRF 44. Spark keeps its 1,492 files and their fix keys, but 26 of them count fewer fix commits than the published block does (same keys: 8 → 7, 4 → 2, …). No call site is in Spark, so the cut doesn't change. Utkarsh is told, since the code changed after the block was built.
 
@@ -527,7 +527,7 @@ Rule: decision 12, unchanged (cover 90%, at least 1 file, the same measures and 
 
 # Nov 13: LLM bias on the texts the live run shipped: the rule, before computing
 
-Utkarsh's live run (gap 15, PR #113): `meridian.orchestrator --run-id bb6b5f4e32a4bee7 --llm --models gemini-flash`, writing on Gemini 3.8 Flash, with 164 LLM texts and 60 templates. Its cache is committed, but the orchestrator has no `--calls`, and the code is frozen (tag `freeze-nov13`). So the run is **replayed** from the cache by `packets/chaitali-bias/llm_bias_live.py`. It makes the same calls `orchestrator.main` makes, with `strict_cache` on, the LLM off and `agents.run`'s `log` writing each answer's row to a jsonl, as `agents --calls` does. That's 0 paid calls, and a miss stops it. The block is rebuilt from Utkarsh's steps (`packets/utkarsh-data/gaps.md`), and its run_id and his three md5s are checked first.
+Utkarsh's live run (gap 15, PR #113): `meridian.orchestrator --run-id bb6b5f4e32a4bee7 --llm --models gemini-flash`, writing on Gemini 3.8 Flash, with 164 LLM texts and 60 templates. Its cache is committed, but the orchestrator has no `--calls`, and the code is frozen (tag `freeze-nov13`). So the run is **replayed** from the cache by `docs/model/bias/llm_bias_live.py`. It makes the same calls `orchestrator.main` makes, with `strict_cache` on, the LLM off and `agents.run`'s `log` writing each answer's row to a jsonl, as `agents --calls` does. That's 0 paid calls, and a miss stops it. The block is rebuilt from Utkarsh's steps (`docs/model/data/gaps.md`), and its run_id and his three md5s are checked first.
 
 Rule (decision 9 and gap 7's addition, unchanged):
 - **The replay must reproduce the live run: 164 LLM texts and 60 templates.** If it doesn't, nothing is judged and the difference is reported.
@@ -540,7 +540,7 @@ Rule (decision 9 and gap 7's addition, unchanged):
 
 Block rebuilt from Utkarsh's steps under `~/meridian-block3` (10 minutes): collect printed `bb6b5f4e32a4bee7`, validate 0 errors and 2 warnings (his two), and his three md5s match (`file_bug_fixes` `a98e5d40…`, `call_site` `bf428a2f…`, `bug_inducing` `682abebd…`).
 
-`cd Data-Pipeline && MERIDIAN_DATA=~/meridian-block3 python ../Model-Pipeline/packets/chaitali-bias/llm_bias_live.py --run-id bb6b5f4e32a4bee7 --calls <file>` (11 s, 0 calls, no GCP project set), then `python -m model.llm_bias --calls reports/llm_bias_live/live_calls.jsonl --ship gemini-flash --out reports/llm_bias_live`.
+`cd Data-Pipeline && MERIDIAN_DATA=~/meridian-block3 python ../docs/model/bias/llm_bias_live.py --run-id bb6b5f4e32a4bee7 --calls <file>` (11 s, 0 calls, no GCP project set), then `python -m model.llm_bias --calls reports/llm_bias_live/live_calls.jsonl --ship gemini-flash --out reports/llm_bias_live`.
 
 **The replay reproduces the live run**: 68 stalls, 49 planned by the orchestrator and 19 by the rules, walkers for 20, **164 LLM texts and 60 templates**. All 224 texts are the writer's on `gemini-flash`, and each has a logged attempt, so every template is a fallback.
 

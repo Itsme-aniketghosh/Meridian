@@ -1,4 +1,4 @@
-"""The product hand-off test (packets/README.md, Integration tests, Nov 9), the writer's part: on the fixture with
+"""The product hand-off test (docs/model/README.md, Integration tests, Nov 9), the writer's part: on the fixture with
 the LLM off, the writer gates every text with fact_gate.check and logs each answer with
 tracking.log_llm_call(..., facts_hash=). With the LLM off the answers come from a warm cache (calls with 0 cost);
 a template that ships with no LLM attempt isn't a call, so it isn't logged.

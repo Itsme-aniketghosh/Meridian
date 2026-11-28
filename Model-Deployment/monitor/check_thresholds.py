@@ -3,7 +3,7 @@
     python -m monitor.check_thresholds              # prints the tables
     python -m monitor.check_thresholds --out f.json
 
-Judged on val 2023 only (the vishwa-monitor packet): a rule that fires on a val month or quarter, where the model is
+Judged on val 2023 only (docs/deployment/monitor): a rule that fires on a val month or quarter, where the model is
 known to work, is a false alarm. 2025-26 shows what the rule says today. 2024 (test) judges nothing: its rows are
 used only as the reference that production would hold for 2025-26 (features, never labels), and its quarters are
 skipped. Nothing here changes deploy.toml.

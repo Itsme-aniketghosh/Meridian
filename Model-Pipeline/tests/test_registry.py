@@ -146,7 +146,7 @@ class Readers(unittest.TestCase):
 
 
 class ChampionExample(unittest.TestCase):
-    """tests/contracts/champion.json, the example the gate and P9 test against (packets/README.md, Integration
+    """tests/contracts/champion.json, the example the gate and P9 test against (docs/model/README.md, Integration
     tests). Built by champion_record from a run on the fake table: python -m tests.contracts.make_rochan."""
 
     def test_the_example_reads(self):
@@ -167,7 +167,7 @@ class ChampionExample(unittest.TestCase):
 
 
 class ExampleConsumer:
-    """registry.py as a consumer of one example in tests/contracts/ (packets/README.md, Integration tests): the
+    """registry.py as a consumer of one example in tests/contracts/ (docs/model/README.md, Integration tests): the
     example reads, and a copy without any key registry.py reads fails. One class per example below."""
 
     def test_the_example_reads(self):
@@ -186,13 +186,13 @@ class MetricsExampleConsumer(ExampleConsumer, unittest.TestCase):
 
 
 @unittest.skipUnless((CONTRACTS / "bias_report.json").exists(),
-                     "waiting for Chaitali's tests/contracts/bias_report.json (packets/README.md, Nov 8)")
+                     "waiting for Chaitali's tests/contracts/bias_report.json (docs/model/README.md, Nov 8)")
 class BiasExampleConsumer(ExampleConsumer, unittest.TestCase):
     READ, NAME, KEYS = staticmethod(reg.read_bias), "bias_report.json", reg.BIAS_KEYS
 
 
 @unittest.skipUnless((CONTRACTS / "seed_noise.json").exists(),
-                     "waiting for Rachna's tests/contracts/seed_noise.json (packets/README.md, Nov 8)")
+                     "waiting for Rachna's tests/contracts/seed_noise.json (docs/model/README.md, Nov 8)")
 class SeedNoiseExampleConsumer(ExampleConsumer, unittest.TestCase):
     READ, NAME, KEYS = staticmethod(reg.read_seed_noise), "seed_noise.json", reg.SEED_NOISE_KEYS
 

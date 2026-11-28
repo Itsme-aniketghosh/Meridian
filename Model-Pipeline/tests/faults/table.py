@@ -1,4 +1,4 @@
-"""The fault table for the report (packets/aniket-lead section 4): every fault script run, one row each.
+"""The fault table for the report (docs/model/lead section 4): every fault script run, one row each.
 
     python -m tests.faults.table        # from Model-Pipeline/, on frozen main
 

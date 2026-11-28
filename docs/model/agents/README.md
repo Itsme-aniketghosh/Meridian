@@ -28,12 +28,12 @@ flowchart LR
 
 ## Read first
 
-- [04-architecture §6–8](../../../docs/04-architecture.md): the LLM stage, the gate, the views
-- [02-product](../../../docs/02-product.md): what each view and text looks like ("Before / After" for CHK-311, the four screens)
-- [06-dead-ideas](../../../docs/06-dead-ideas.md): no LLM deciding facts, no stripping bad numbers, no rewrites adding intent or priority, no LLM on every push
+- [04-architecture §6–8](../../04-architecture.md): the LLM stage, the gate, the views
+- [02-product](../../02-product.md): what each view and text looks like ("Before / After" for CHK-311, the four screens)
+- [06-dead-ideas](../../06-dead-ideas.md): no LLM deciding facts, no stripping bad numbers, no rewrites adding intent or priority, no LLM on every push
 - [KNOWLEDGE-BASE.md](../../../Data-Pipeline/KNOWLEDGE-BASE.md): every named query the views run, and the fixture
 - [tests/dashboard.py](../../../Data-Pipeline/tests/dashboard.py): the pattern the views build on
-- [packets/README.md](../README.md): Contracts 5 and 6 are yours
+- [docs/model/README.md](../README.md): Contracts 5 and 6 are yours
 
 ## N. The fact gate (first)
 
@@ -58,7 +58,7 @@ flowchart LR
 
 `python -m meridian.views` (Contract 6), read-only, built on `tests/dashboard.py`.
 
-- [ ] The four views and the ticket tools, from KNOWLEDGE-BASE.md's named queries, laid out as in [02-product](../../../docs/02-product.md)
+- [ ] The four views and the ticket tools, from KNOWLEDGE-BASE.md's named queries, laid out as in [02-product](../../02-product.md)
 - [ ] LLM text and diffs from `suggestion` rows where they exist, the template where they don't
 - [ ] `run_id`, `snapshot_at` and coverage on every page. A banner when the numbers come from the fixture
 - [ ] Runs on the real block, run 2 and the fixture `acme/shop`

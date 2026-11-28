@@ -42,7 +42,7 @@ The same rule, run on labelled years against train:
 
 Run **Sat Nov 21, 2026**, same block. `python -m monitor.check_thresholds --out reports/threshold_check.json` reproduces it in about 10 s.
 
-**How a rule is judged, fixed before looking:** it must stay quiet on **val 2023** (the year the model was picked on, where it beats lines × files by +0.088 PR-AUC) and fire on 2025–26, which drifted in §1. As the vishwa-monitor packet says, nothing is judged on test 2024. Its commits appear only as the reference production would hold for 2025–26 (features, never labels), and its quarters are skipped.
+**How a rule is judged, fixed before looking:** it must stay quiet on **val 2023** (the year the model was picked on, where it beats lines × files by +0.088 PR-AUC) and fire on 2025–26, which drifted in §1. As the docs/deployment/monitor packet says, nothing is judged on test 2024. Its commits appear only as the reference production would hold for 2025–26 (features, never labels), and its quarters are skipped.
 
 The alternatives in §7 were chosen after seeing this data. They are a proposal for the team, not a change: `deploy.toml` [drift] and [decay] still hold the rules as written.
 

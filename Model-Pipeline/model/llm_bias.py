@@ -1,6 +1,6 @@
 """LLM bias (step M, Chaitali): do the agents serve some repos, teams or task kinds worse? Run from Model-Pipeline/.
 
-Two rates, sliced by decision 9 (packets/chaitali-bias/decisions.md) and judged by bias.py's rule (phase 1's: N at
+Two rates, sliced by decision 9 (docs/model/bias/decisions.md) and judged by bias.py's rule (phase 1's: N at
 least [bias] min_n, the whole Wilson interval more than [bias] max_gap worse than overall):
 
     fallback  the share of LLM texts the fact gate sent back to the template (harm: higher), per repo, owner team and
@@ -8,7 +8,7 @@ least [bias] min_n, the whole Wilson interval more than [bias] max_gap worse tha
               fell back when none of its attempts shipped (source "llm"). A template with no LLM attempt behind it
               (the LLM off) is no text, so it's never counted as a fallback
     match     the share of drafted diff lines equal to the real after-line (harm: lower), per repo and task, from
-              Utkarsh's published counts (packets/chaitali-bias/diff_match_by_repo.csv, each row with its source)
+              Utkarsh's published counts (docs/model/bias/diff_match_by_repo.csv, each row with its source)
 
 Writes reports/llm_bias.json and reports/llm_bias_match.png. `pass` is false while a flagged slice isn't in
 [llm_bias] accepted (a fix tried and written down by its owner).
@@ -30,7 +30,7 @@ from model.bias import bias_settings, flagged, power, wilson
 HERE = Path(__file__).resolve().parents[1]  # Model-Pipeline/
 MODEL_TOML = HERE / "model.toml"
 REPORTS = HERE / "reports"
-DIFFS = HERE / "packets" / "chaitali-bias" / "diff_match_by_repo.csv"
+DIFFS = HERE.parent / "docs" / "model" / "bias" / "diff_match_by_repo.csv"
 TEXT_AGENTS = ("writer", "diff_drafter")  # Jev's own reasons pick a route; they never ship as a text
 HARM = {"fallback": "fpr", "match": "recall"}  # bias.py's direction: fallback is worse higher, match lower
 CALL_KEYS = ("agent", "facts_hash", "repo", "team", "task", "source")

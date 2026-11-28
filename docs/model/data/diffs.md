@@ -27,7 +27,7 @@ Everything below comes from the team run `c5118b019d642a9b`. Each repo is drafte
 | New name that doesn't resolve refused | ✅ test (no `gettext` in the module: all 4 drafts refused) |
 | No LLM diff inside `except` | ✅ tests: `llm_allowed`, and a fixture run where the LLM is never called for an `except` site. The codemod may draft there; only the LLM may not |
 | LLM off: codemod drafts, run completes | ✅ test. Rows load into the `suggestion` table (#30) |
-| Hand-off (packets/README, Nov 9): `fact_gate.check` and `log_llm_call(..., facts_hash=)` on the fixture, LLM off | ✅ `Model-Pipeline/tests/test_handoff_diffs.py`: warm cache, 0 API calls, every LLM row's `facts_hash` in the `llm_calls` table |
+| Hand-off (docs/model/README, Nov 9): `fact_gate.check` and `log_llm_call(..., facts_hash=)` on the fixture, LLM off | ✅ `Model-Pipeline/tests/test_handoff_diffs.py`: warm cache, 0 API calls, every LLM row's `facts_hash` in the `llm_calls` table |
 
 ## Decision 10: codemod or LLM
 
@@ -164,5 +164,5 @@ Built on Vishwa's cache and fact gate (#28, #48) and Rochan's `log_llm_call` (#3
 ## What's left
 
 - ~~Writing to the real block~~ Done: the final product runs drafted on bb6b5f4e (538 rows, 0 by the LLM; `Model-Pipeline/reports/final/RUN-LOG.md`).
-- ~~Diff match rate per repo and per team, for Chaitali's LLM bias row~~ Done: Chaitali's `model/llm_bias.py` reads these per-repo counts from `packets/chaitali-bias/diff_match_by_repo.csv`.
+- ~~Diff match rate per repo and per team, for Chaitali's LLM bias row~~ Done: Chaitali's `model/llm_bias.py` reads these per-repo counts from `docs/model/bias/diff_match_by_repo.csv`.
 - Open after the freeze: real `outcome` rows, to measure learning from edits (decision 15). Decision 14's statement rule: Aniket's OK, Nov 15.

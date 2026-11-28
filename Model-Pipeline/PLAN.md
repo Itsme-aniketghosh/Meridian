@@ -231,7 +231,7 @@ Two things keep people from waiting on Utkarsh. On day 1 Utkarsh ships a first f
 
 ## 7. Roles
 
-Six people. The work is split evenly across Utkarsh and the four AI engineers, about 5 person-days each. Aniket sits at the end of the graph: until code freeze he only reviews and merges, then does integration, the simulated-fault tests, the final runs and the report. Each person's packet is in [packets/](packets/README.md).
+Six people. The work is split evenly across Utkarsh and the four AI engineers, about 5 person-days each. Aniket sits at the end of the graph: until code freeze he only reviews and merges, then does integration, the simulated-fault tests, the final runs and the report. Each person's packet is in [docs/model/](../docs/model/README.md).
 
 The split, in person-days (estimates, for balance, not commitments):
 
