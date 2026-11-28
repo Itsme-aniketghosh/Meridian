@@ -1,6 +1,8 @@
 """deploy.yml's Slack messages (S7), sent through Data-Pipeline's meridian.alert, on main only.
 
     deployed       a new model serves 100%: version, md5, revision, the service's URL
+    canary_failed  the canary (a share of traffic, watched on errors and latency) failed; the revision that served
+                   before serves 100% again
     rolled_back    the move or the live smoke test failed; the revision that served before serves 100% again
     rollback_failed  the same, and the rollback failed too: someone moves the traffic by hand
     stopped        a check failed before any traffic moved; the revision that served before keeps serving
@@ -10,6 +12,8 @@ Slack's webhook is MERIDIAN_SLACK_WEBHOOK (deploy.toml [secrets], GitHub's secre
 logged. A channel that fails never changes the deploy's outcome: this always exits 0.
 
     python Model-Deployment/notify.py deployed --version <sha> --md5 <md5> --revision R --url URL --run-url RUN
+    python Model-Deployment/notify.py canary_failed --version <sha> --revision R --serving R0 --percent 10 \
+        --why "error rate 3/40" --run-url RUN
     python Model-Deployment/notify.py stopped --version <sha> --step "Smoke test, the revision" --serving R \
         --run-url RUN
 """
@@ -21,7 +25,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 DATA_PIPELINE = REPO / "Data-Pipeline"
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-KINDS = ("deployed", "rolled_back", "rollback_failed", "stopped")
+KINDS = ("deployed", "canary_failed", "rolled_back", "rollback_failed", "stopped")
 EVENT = {"deployed": "deployed"}   # meridian.alert's event; settings.toml [alerts] on lists "deployed"
 
 
@@ -32,6 +36,11 @@ def message(kind, a):
         subject = "Meridian: new model deployed"
         lines = [f"{model}{f', val PR-AUC {a.pr_auc}' if a.pr_auc else ''}",
                  f"revision {a.revision} serves 100% at {a.url}"]
+    elif kind == "canary_failed":
+        subject = "Meridian: canary failed, rolled back"
+        lines = [f"{model} on revision {a.revision} took {a.percent or 'a share'}% of traffic and failed: "
+                 f"{a.why or 'see the run'}",
+                 f"{a.serving} serves 100% again" + (f" (/health {a.health})" if a.health else "")]
     elif kind == "rolled_back":
         subject = "Meridian: deploy rolled back"
         lines = [f"{model} on revision {a.revision} failed after the traffic move: {a.why or 'see the run'}",
@@ -74,6 +83,7 @@ def main(argv=None, sender=send):
     ap.add_argument("--url", default="", help="the service's URL")
     ap.add_argument("--serving", default="", help="the revision that serves after the run")
     ap.add_argument("--why", default="", help="what failed after the move")
+    ap.add_argument("--percent", default="", help="the canary's share of traffic")
     ap.add_argument("--health", default="", help="/health's status after a rollback")
     ap.add_argument("--step", default="", help="the step that failed before any traffic moved")
     ap.add_argument("--run-url", required=True, help="the workflow run")

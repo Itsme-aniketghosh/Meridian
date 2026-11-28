@@ -64,7 +64,7 @@ class Triggers(unittest.TestCase):
         self.assertIn("workflow_run", self.job["env"]["AUTO"])
         self.assertIn("repository_dispatch", self.job["env"]["AUTO"])
         self.assertNotIn("workflow_dispatch", self.job["env"]["AUTO"])   # by hand always deploys
-        for sid in ("history", "build", "smoke_local", "push", "revision", "smoke", "traffic"):
+        for sid in ("history", "build", "smoke_local", "push", "revision", "smoke", "canary", "traffic"):
             self.assertIn("env.ALREADY_SERVING != 'true'", self.steps[sid]["if"], sid)
 
     def test_new_events_run_on_main_so_workload_identity_still_signs_in(self):

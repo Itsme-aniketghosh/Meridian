@@ -62,6 +62,16 @@ class Notify(unittest.TestCase):
         self.assertIn("meridian-risk-00004-bad failed after the traffic move: the live smoke test", text)
         self.assertIn("meridian-risk-00003-biw serves 100% again (/health 200)", text)
 
+    def test_canary_failed_says_its_share_why_and_what_serves(self):
+        with sinks() as s:
+            self.run_main(["canary_failed", "--version", V, "--revision", "meridian-risk-00004-new", "--percent", "10",
+                           "--serving", "meridian-risk-00003-biw", "--why", "error rate 4/198 = 2.02%, over 1.00%",
+                           "--health", "200"], s.webhook)
+            text = s.slack[0]["text"]
+        self.assertTrue(text.startswith("Meridian: canary failed, rolled back"), text)
+        self.assertIn("meridian-risk-00004-new took 10% of traffic and failed: error rate 4/198", text)
+        self.assertIn("meridian-risk-00003-biw serves 100% again (/health 200)", text)
+
     def test_stopped_and_rollback_failed(self):
         with sinks() as s:
             self.run_main(["stopped", "--version", V, "--step", "Smoke test, the revision (main)",

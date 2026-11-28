@@ -64,6 +64,16 @@ class Traffic(unittest.TestCase):
             self.run_main(NO_TRAFFIC, "serving", "--expect", "meridian-risk-00002-new")
         self.assertIn("should carry 100%", str(e.exception))
 
+    def test_the_canary_split_is_checked_by_its_percent(self):
+        canary = service([{"revisionName": "meridian-risk-00001-old", "percent": 90},
+                          {"revisionName": "meridian-risk-00002-new", "percent": 10}])
+        lines = self.run_main(canary, "serving", "--key", "split", "--expect", "meridian-risk-00002-new",
+                              "--percent", "10")
+        self.assertIn("split=meridian-risk-00001-old 90%, meridian-risk-00002-new 10%", lines)
+        with self.assertRaises(SystemExit) as e:
+            self.run_main(NO_TRAFFIC, "serving", "--expect", "meridian-risk-00002-new", "--percent", "10")
+        self.assertIn("should carry 10%", str(e.exception))
+
     def test_a_split_is_described_largest_first(self):
         st = service([{"revisionName": "a", "percent": 10}, {"revisionName": "b", "percent": 90}])["status"]
         self.assertEqual(T.describe(T.serving(st)), "b 90%, a 10%")

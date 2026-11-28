@@ -52,6 +52,15 @@ risk_tolerance = 1e-9   # /score's risk against the same champion scoring the sa
 timeout_s = 60          # per call: the first one may wait on a cold start
 tries = 5               # /health is retried while the revision starts, 5 s apart
 
+[canary]   # S3 (Nov 27): after the smoke test, the new revision takes `percent` of traffic for `watch_s` before 100%
+# (Model-Deployment/canary.py). It is judged on PLAN §4's service bars; a failure rolls back to the revision before
+percent = 10            # the new revision's share while it's watched; 0 skips the canary and moves straight to 100%
+watch_s = 180           # 3 minutes: about 360 /score calls at rps = 1, half through the service, half to its tag URL
+rps = 1                 # ticks a second; each tick calls the service's URL and the new revision's tag URL once
+timeout_s = 30          # per call: Cloud Run's request timeout ([services.risk] timeout_s)
+max_error_rate = 0.01   # the canary's non-200s and unanswered calls: PLAN §4 alerts on 5xx over 1%
+max_p95_ms = 2000       # the canary's p95 latency: PLAN §4's bar, p95 under 2 s warm (Nov 24: 333 ms)
+
 [services.views]   # S9, stretch
 name = "meridian-views"
 
