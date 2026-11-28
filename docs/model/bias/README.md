@@ -35,7 +35,7 @@ flowchart LR
 - [REPORT §3](../../../Data-Pipeline/report/REPORT.md#3-data-bias-detection-using-data-slicing): how phase 1 wrote up detection, mitigation and trade-offs
 - [meridian/alert.py](../../../Data-Pipeline/meridian/alert.py) and [tests/alert_sinks.py](../../../Data-Pipeline/tests/alert_sinks.py): alerts, and local Slack and SMTP servers for tests
 - [.github/workflows/ci.yml](../../../.github/workflows/ci.yml): the existing CI, to extend
-- [packets/README.md](../README.md): Contract 4
+- [docs/model/README.md](../README.md): Contract 4
 
 ## The pass bars
 

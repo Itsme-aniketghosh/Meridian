@@ -1,4 +1,4 @@
-"""Rochan's contract examples: tests/contracts/metrics.json and champion.json (packets/README.md, Integration tests).
+"""Rochan's contract examples: tests/contracts/metrics.json and champion.json (docs/model/README.md, Integration tests).
 
     python -m tests.contracts.make_rochan        # from Model-Pipeline/: rewrites both files
 

@@ -1,4 +1,4 @@
-$ packets/utkarsh-data/gaps.md's rebuild, code main 33ed598, MERIDIAN_DATA=~/meridian-block3, caches copied from the team data root (repos, jira, gitlab)
+$ docs/model/data/gaps.md's rebuild, code main 33ed598, MERIDIAN_DATA=~/meridian-block3, caches copied from the team data root (repos, jira, gitlab)
 $ python -m meridian.collect --run-id new --config meridian.toml
 $ for p in history scan resolve owners join graph validate; do python -m meridian.$p --run-id bb6b5f4e32a4bee7 --config meridian.toml; done
 $ python -m meridian.context --run-id bb6b5f4e32a4bee7 --db ~/meridian-block3/out/bb6b5f4e32a4bee7/meridian.sqlite
@@ -370,7 +370,7 @@ exit=0 (38s)
 === context  1198s  2026-11-14T06:30:33Z
 68 consumer tasks, 36 cut: files 127/367, sites 495/1526, facts characters 22,745/41,821; bug fixes covered 0.964 (a random order with the same files: 0.727); wrote <repo>/Model-Pipeline/reports/context_cut.json
 exit=0 (5s)
-=== byte check (md5 of ~/meridian-block3/out/bb6b5f4e32a4bee7/...; expected: packets/utkarsh-data/gaps.md)
+=== byte check (md5 of ~/meridian-block3/out/bb6b5f4e32a4bee7/...; expected: docs/model/data/gaps.md)
 MATCH    file_bug_fixes.jsonl a98e5d40d71d09d6642a211e606c91da
 MATCH    call_site.jsonl bf428a2fa11a19c9f0ad453574d17f27
 MATCH    bug_inducing.jsonl 682abebd1cea5ef95b74009d82c91b9d

@@ -1,4 +1,4 @@
-"""Integration (packets/README.md): Chaitali's example output, and the others' examples that gate.py reads.
+"""Integration (docs/model/README.md): Chaitali's example output, and the others' examples that gate.py reads.
 
 Each producer commits an example of its file in tests/contracts/. This checks mine is current and complete, and
 that every other example gate.py reads has the keys model/contracts.py lists. An example not committed yet is

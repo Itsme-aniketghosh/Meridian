@@ -1,4 +1,4 @@
-"""Simulations behind the auditor's decisions 9–12 and its "Ranks right" bar (Model-Pipeline/packets/rochan-tracking:
+"""Simulations behind the auditor's decisions 9–12 and its "Ranks right" bar (docs/model/tracking:
 decisions.md, pass-bars.md §4). They run the auditor's own code: serve, epsilon, League and its promotion guard.
 
     python -m meridian.auditor_sim --decide 9 10 11 12           # from Data-Pipeline/: 20 seeds, then 2,000

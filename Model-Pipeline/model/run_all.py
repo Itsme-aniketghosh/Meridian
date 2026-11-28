@@ -2,7 +2,7 @@
 
     python -m model.run_all            # the real table: data check, train, seed noise, evaluate, bias, gate, registry
     python -m model.run_all --fake     # the same steps on tests/fake_table.py in a temp folder, in under 2 minutes:
-                                       # CI's model job runs it on every PR (packets/README.md, Integration tests)
+                                       # CI's model job runs it on every PR (docs/model/README.md, Integration tests)
     python -m model.run_all --refit    # train refits each kind with its committed tuning_<kind>.json's best params
                                        # instead of searching (CI, decision chaitali-7)
     python -m model.run_all --dry-run  # print the commands, run nothing

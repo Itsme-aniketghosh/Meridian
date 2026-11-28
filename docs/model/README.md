@@ -2,18 +2,18 @@
 
 One folder per person. Your folder holds your packet (`README.md`) and is yours for `decisions.md` and notes. Code goes in `Model-Pipeline/model/` (the model) or `Data-Pipeline/meridian/` (the product), not here.
 
-Read [PLAN.md](../PLAN.md) first, then your packet, then the contracts below. Who hands what to whom is in [PLAN.md §7](../PLAN.md#7-roles), the dates in [§10](../PLAN.md#10-schedule), and which guideline item each step covers in [§12](../PLAN.md#12-guideline-coverage).
+Read [PLAN.md](../../Model-Pipeline/PLAN.md) first, then your packet, then the contracts below. Who hands what to whom is in [PLAN.md §7](../../Model-Pipeline/PLAN.md#7-roles), the dates in [§10](../../Model-Pipeline/PLAN.md#10-schedule), and which guideline item each step covers in [§12](../../Model-Pipeline/PLAN.md#12-guideline-coverage).
 
 | Folder | Who | Steps | Due |
 |---|---|---|---|
-| [utkarsh-data/](utkarsh-data/README.md) | Utkarsh, data engineer | A, B, K, L, diff drafter | v1 table Nov 5, c5118 Nov 7, run 2 Nov 8, diffs Nov 10 |
-| [rachna-models/](rachna-models/README.md) | Rachna, AI engineer | C, E, Docker, Jev, Q | C Nov 8, E Nov 9, Jev and Q Nov 10 |
-| [rochan-tracking/](rochan-tracking/README.md) | Rochan, AI engineer | tracking, D, G and the registry repo, P, the 2024 run | tracking Nov 5, D Nov 6, G Nov 9, P Nov 10 |
-| [chaitali-bias/](chaitali-bias/README.md) | Chaitali, AI engineer | the pass bars, F, gates, alerts, all CI | bars Nov 6, pick Nov 9, CI Nov 10 |
-| [vishwa-agents/](vishwa-agents/README.md) | Vishwa, AI engineer | N, writer and cache, O | N Nov 7, writer Nov 8, views Nov 10 |
-| [aniket-lead/](aniket-lead/README.md) | Aniket, lead | the end of the graph: integration, faults, final runs, report | Nov 11–15 |
+| [data/](data/README.md) | Utkarsh, data engineer | A, B, K, L, diff drafter | v1 table Nov 5, c5118 Nov 7, run 2 Nov 8, diffs Nov 10 |
+| [models/](models/README.md) | Rachna, AI engineer | C, E, Docker, Jev, Q | C Nov 8, E Nov 9, Jev and Q Nov 10 |
+| [tracking/](tracking/README.md) | Rochan, AI engineer | tracking, D, G and the registry repo, P, the 2024 run | tracking Nov 5, D Nov 6, G Nov 9, P Nov 10 |
+| [bias/](bias/README.md) | Chaitali, AI engineer | the pass bars, F, gates, alerts, all CI | bars Nov 6, pick Nov 9, CI Nov 10 |
+| [agents/](agents/README.md) | Vishwa, AI engineer | N, writer and cache, O | N Nov 7, writer Nov 8, views Nov 10 |
+| [lead/](lead/README.md) | Aniket, lead | the end of the graph: integration, faults, final runs, report | Nov 11–15 |
 
-The work is split evenly, about 5 person-days each for Utkarsh, Rachna, Rochan, Chaitali and Vishwa ([PLAN.md §7](../PLAN.md#7-roles)). Aniket reviews until code freeze, then integrates. Day 1 is Thu Nov 5. Code freeze is Tue Nov 10 at the end of the day. Every report section is in by Thu Nov 12. Aniket and Utkarsh write the report Nov 13–15.
+The work is split evenly, about 5 person-days each for Utkarsh, Rachna, Rochan, Chaitali and Vishwa ([PLAN.md §7](../../Model-Pipeline/PLAN.md#7-roles)). Aniket reviews until code freeze, then integrates. Day 1 is Thu Nov 5. Code freeze is Tue Nov 10 at the end of the day. Every report section is in by Thu Nov 12. Aniket and Utkarsh write the report Nov 13–15.
 
 Phase 2 runs locally and on GitHub Actions. The only cloud piece is the GCP Artifact Registry repo the model is pushed to. Terraform and everything else on GCP is phase 3.
 
@@ -31,7 +31,7 @@ A decision with no test behind it doesn't go in the report. If the test can't se
 
 From the phase 1 docs:
 
-- Pass bars are written and committed before the run they judge. Changing one needs a commit that says why ([05-test](../../docs/05-test.md)).
+- Pass bars are written and committed before the run they judge. Changing one needs a commit that says why ([05-test](../05-test.md)).
 - Split by time, never at random. Nobody looks at 2024 until the final run on Nov 12.
 - Every metric carries its N.
 - A model ships only if it beats its baseline. Not beating it is a result, and we report it.
@@ -76,7 +76,7 @@ Integration day only works if every hand-off was tested before it. Each producer
 Model-Pipeline/
 ├── PLAN.md
 ├── PASS-BARS.md                 Chaitali; everyone writes their own rows
-├── packets/<you>/               your packet, decisions.md, notes
+├── report/sections/<topic>.md   your report section (your packet, decisions.md and notes: docs/model/<topic>/)
 ├── model.toml                   everyone adds their own section
 ├── model/
 │   ├── data.py                  Utkarsh

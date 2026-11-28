@@ -1,4 +1,4 @@
-"""One way to log every run to MLflow (Contract 3 in Model-Pipeline/packets/README.md).
+"""One way to log every run to MLflow (Contract 3 in docs/model/README.md).
 
     import mlflow
     from model import tracking
@@ -357,7 +357,7 @@ def log_llm_call(*, agent, model, prompt_version, tokens_in, tokens_out, cost_us
 
     Rows stay in memory and are written to the run's llm_calls.json table when the run ends (or every
     FLUSH_EVERY calls), with the totals as metrics. A call costs about 0.06 ms; one MLflow run per call
-    cost 7.4 ms (packets/rochan-tracking/decisions.md). No prompt or response text is logged, by design:
+    cost 7.4 ms (docs/model/tracking/decisions.md). No prompt or response text is logged, by design:
     only counts and labels, so nothing a person wrote can leave the block through MLflow.
     """
     row = {"agent": agent, "model": model, "prompt_version": prompt_version, "tokens_in": tokens_in,

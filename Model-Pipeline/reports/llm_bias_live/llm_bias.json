@@ -987,8 +987,8 @@
     "team": "not judged: the published counts are per repo, not per owner team (decision 9)",
     "sources": [
       "diffs.md decision 11: the other 15 packages, 612 of 1,236 less the five above; no per-repo counts published",
-      "packets/utkarsh-data/diffs.md Results: Django",
-      "packets/utkarsh-data/diffs.md decision 11"
+      "docs/model/data/diffs.md Results: Django",
+      "docs/model/data/diffs.md decision 11"
     ]
   },
   "flags": [

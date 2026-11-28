@@ -3,7 +3,7 @@
     python -m unittest tests.test_diffs -v                                           # from Data-Pipeline/
     MERIDIAN_RUN_ID=c5118b019d642a9b python -m unittest tests.test_diffs -v           # + the bars, on team data
 
-Bars (Model-Pipeline/packets/utkarsh-data/pass-bars.md §5, written before the drafter existed):
+Bars (docs/model/data/pass-bars.md §5, written before the drafter existed):
 - Django, drafted from the parent of c651331b34: >= 90% of its 267 site lines match the real after-line.
 - Packages: >= 90% on the 12 repos whose migration finished. Not met (see test_packages_bar).
 """

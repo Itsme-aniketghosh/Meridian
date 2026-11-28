@@ -1,5 +1,5 @@
 """The auditor (04 §9): policy v0, ε-greedy, the verdict rules, live matches, Elo and the promotion guard, against
-hand calculations and Model-Pipeline/packets/rochan-tracking/pass-bars.md, section 4.
+hand calculations and docs/model/tracking/pass-bars.md, section 4.
 
     python -m unittest tests.test_auditor -v      # from Data-Pipeline/
 

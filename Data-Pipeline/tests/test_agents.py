@@ -5,7 +5,7 @@
 No test calls a real LLM: `Fake` plays one, so bad JSON, gate misses, retries and the cache are all checked offline.
 `Ugly` puts the real block's awkward names into the fixture (review of PR #48): a placeholder person named test, teams
 named test, tests and Bug, a symbol named url, a non-.py file, a ticket across two symbols and two owners.
-The hand-off test (packets/README.md, Nov 9) runs the writer with the LLM off through model.tracking.log_llm_call.
+The hand-off test (docs/model/README.md, Nov 9) runs the writer with the LLM off through model.tracking.log_llm_call.
 """
 import contextlib
 import importlib.util
@@ -522,7 +522,7 @@ if importlib.util.find_spec("mlflow"):
 
 @unittest.skipIf(tracking is None, "needs mlflow (Model-Pipeline/requirements.txt); CI's model job runs it")
 class HandOff(unittest.TestCase):
-    """packets/README.md, Nov 9: the writer calls fact_gate.check and tracking.log_llm_call(..., facts_hash=) on the
+    """docs/model/README.md, Nov 9: the writer calls fact_gate.check and tracking.log_llm_call(..., facts_hash=) on the
     fixture, with the LLM off: the answers come from a warm cache, so they're calls with 0 cost."""
 
     def test_the_writer_logs_to_meridian_agents_with_the_llm_off(self):

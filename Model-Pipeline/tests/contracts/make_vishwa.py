@@ -1,4 +1,5 @@
-"""Vishwa's contract examples: tests/contracts/facts.json and suggestions.json (packets/README.md, Integration tests).
+"""Vishwa's contract examples: tests/contracts/facts.json and suggestions.json (docs/model/README.md, Integration
+tests).
 
     python -m tests.contracts.make_vishwa        # from Model-Pipeline/: rewrites both files
 

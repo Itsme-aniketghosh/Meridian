@@ -1,7 +1,7 @@
 """Evaluation (step D, Rochan): the numbers the pass bars, the gate and the registry read.
 
 The scores come from the file train.py wrote: one row per row of the split, in the feature table's order, one column
-per model and baseline (packets/README.md, Contract 4). Nothing here refits a model (S6). For the candidate and every
+per model and baseline (docs/model/README.md, Contract 4). Nothing here refits a model (S6). For the candidate and every
 baseline, `reports/metrics.json` holds, each with N and the positive rate next to it:
 
 - PR-AUC (average precision, as in train.py) with its bootstrap interval, and ROC-AUC
@@ -17,7 +17,7 @@ baseline, `reports/metrics.json` holds, each with N and the positive rate next t
     python -m model.evaluate --decide 1 2 3 4 5 --scores <val scores> --column lgbm    # the decision tests
 
 The one 2024 run scores the frozen champion (registry/champion.json and the model next to it), in two steps,
-both refused unless [split] test_allowed and the code is committed (packets/rochan-tracking/RUN-2024.md):
+both refused unless [split] test_allowed and the code is committed (docs/model/tracking/RUN-2024.md):
 
     python -m model.evaluate --score-champion --column forest --split test --out reports/2024
     python -m model.evaluate --split test --candidate reports/2024/champion_candidate.json \\
@@ -144,7 +144,7 @@ def interval(values, level=0.95):
 
 def paired_bootstrap(y, a, b, reps=1000, seed=0, level=0.95):
     """PR-AUC of score a minus PR-AUC of score b on the same rows, with its `level` interval from resampling the rows
-    (both scores on each resample). Returns (difference, low, high). The team's one copy (packets/README.md S3)."""
+    (both scores on each resample). Returns (difference, low, high). The team's one copy (docs/model/README.md S3)."""
     d = bootstrap(y, {"a": a, "b": b}, reps, seed)
     lo, hi = interval(d["a"] - d["b"], level)
     return pr_auc(y, a) - pr_auc(y, b), lo, hi
@@ -687,7 +687,7 @@ def main(argv=None):
     p.add_argument("--no-mlflow", action="store_true", help="don't log a run (a quick look)")
     p.add_argument("--no-charts", action="store_true")
     p.add_argument("--decide", type=int, nargs="+", choices=(1, 2, 3, 4, 5),
-                   help="run these decision tests on val (packets/rochan-tracking/decisions.md) instead")
+                   help="run these decision tests on val (docs/model/tracking/decisions.md) instead")
     p.add_argument("--score-champion", action="store_true",
                    help="write the frozen champion's val scores (and with --split test, its test scores) and "
                         "champion_candidate.json into --out, then stop: the 2024 run's first step")

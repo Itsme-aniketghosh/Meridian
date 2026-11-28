@@ -1,6 +1,6 @@
 # Rachna decisions
 
-Each rule below was written before its run, as [packets/README.md](../README.md) requires. Each run is tagged
+Each rule below was written before its run, as [docs/model/README.md](../README.md) requires. Each run is tagged
 `decision=rachna-<n>` in MLflow. The Result and Picked columns are filled in after the run, with N.
 
 Common terms:

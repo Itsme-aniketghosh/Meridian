@@ -2,7 +2,7 @@
 
 docs/05-test.md: "Pass bars fixed before the run. Changing one needs a commit saying why." This file holds every bar for phase 2: the team's (PLAN §4) and each owner's. Chaitali owns the file; each owner wrote their own rows, everyone signs off at the end, Aniket reviews.
 
-Some steps ran before the bars were due (Utkarsh's B, K, L; Rochan's tracking). Their rows say **recorded after the run**: they record the checks the work was held to, with results. Every other row was written before its run. Results go under **Results** in each owner's packet (`packets/<you>/pass-bars.md` or `decisions.md`); the bars here stay as written.
+Some steps ran before the bars were due (Utkarsh's B, K, L; Rochan's tracking). Their rows say **recorded after the run**: they record the checks the work was held to, with results. Every other row was written before its run. Results go under **Results** in each owner's packet (`docs/model/<topic>/pass-bars.md` or `decisions.md`); the bars here stay as written.
 
 ## 1. Team bars (PLAN §4)
 
@@ -24,7 +24,7 @@ Some steps ran before the bars were due (Utkarsh's B, K, L; Rochan's tracking). 
 
 ## 2. Utkarsh: data, tracking tables, second run, diffs
 
-From [packets/utkarsh-data/pass-bars.md](packets/utkarsh-data/pass-bars.md), where the results are.
+From [docs/model/data/pass-bars.md](../docs/model/data/pass-bars.md), where the results are.
 
 ### 2.1 Feature table (step B), recorded after the run
 
@@ -81,7 +81,7 @@ From [packets/utkarsh-data/pass-bars.md](packets/utkarsh-data/pass-bars.md), whe
 
 ## 3. Rochan: tracking, evaluation, registry, auditor
 
-From [packets/rochan-tracking/pass-bars.md](packets/rochan-tracking/pass-bars.md), where the results and the reasons two bars changed before any run are.
+From [docs/model/tracking/pass-bars.md](../docs/model/tracking/pass-bars.md), where the results and the reasons two bars changed before any run are.
 
 ### 3.1 Tracking (`tracking.py`), recorded after the run
 
@@ -130,7 +130,7 @@ From [packets/rochan-tracking/pass-bars.md](packets/rochan-tracking/pass-bars.md
 
 ## 4. Rachna: models, Jev, push check
 
-From [packets/rachna-models/pass-bars.md](packets/rachna-models/pass-bars.md), which says why one bar changed before any run.
+From [docs/model/models/pass-bars.md](../docs/model/models/pass-bars.md), which says why one bar changed before any run.
 
 | What | Bar | Measured by |
 |---|---|---|
@@ -145,7 +145,7 @@ From [packets/rachna-models/pass-bars.md](packets/rachna-models/pass-bars.md), w
 
 ## 5. Vishwa: fact gate, writer, cache, views
 
-Confirmed by Vishwa, Nov 7. Taken from the tests in [packets/vishwa-agents/README.md](packets/vishwa-agents/README.md) and the team bars.
+Confirmed by Vishwa, Nov 7. Taken from the tests in [docs/model/agents/README.md](../docs/model/agents/README.md) and the team bars.
 
 | What | Bar | Measured by |
 |---|---|---|

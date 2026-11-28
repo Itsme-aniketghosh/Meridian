@@ -30,11 +30,11 @@ flowchart LR
 
 ## Read first
 
-- [PLAN.md §4.1](../../PLAN.md#41-the-model-the-course-guideline): the label problem and the split
-- [04-architecture §6 and §10](../../../docs/04-architecture.md): Jev, and P9
+- [PLAN.md §4.1](../../../Model-Pipeline/PLAN.md#41-the-model-the-course-guideline): the label problem and the split
+- [04-architecture §6 and §10](../../04-architecture.md): Jev, and P9
 - [appendix C §7](../../../Data-Pipeline/report/appendix-real-data.md): today's P9 rule flags lines × files above 2,000, catching 32% of bug-inducing Spark commits and 9% of the rest
 - [meridian/pushcheck.py](../../../Data-Pipeline/meridian/pushcheck.py): where `p9_defect_risk` fires
-- [packets/README.md](../README.md): Contracts 1–5
+- [docs/model/README.md](../README.md): Contracts 1–5
 
 ## C. Models and tuning
 
@@ -58,7 +58,7 @@ The candidate is logged with `mlflow.<flavor>.log_model`, with its scores on eve
 
 ## Jev
 
-`meridian/jev.py`. From [04-architecture §6](../../../docs/04-architecture.md):
+`meridian/jev.py`. From [04-architecture §6](../../04-architecture.md):
 
 | Agent | Models (small → mid → large) | Retry on |
 |---|---|---|

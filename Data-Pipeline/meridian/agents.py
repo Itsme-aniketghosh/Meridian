@@ -24,7 +24,7 @@ word in a template can also be a team's name (teams named Bug or Tests), so a te
 (it can only say facts), and its misses are counted in the run's report: they're what an LLM text would also be
 rejected for. A task whose facts name a person is never written at all, and is counted too.
 
-Settings (vishwa-agents decisions, the writer, Nov 9):
+Settings (docs/model/agents decisions, the writer, Nov 9):
 - The ladder is LADDER, constants here, not meridian.toml [llm]: a new section there would change every block's
   config hash and run_id. Without a router the fixed rules pick (route 'rules'). With Jev (run(router=...), Rachna's
   meridian.jev.Router), each task starts where Jev picks: write(ladder=, route=) from Router.ladder(task), and the
@@ -61,7 +61,7 @@ from meridian.pushcheck import kb_queries
 
 AGENT = "writer"
 SMALL, MID, LARGE = "claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"
-LADDER = (SMALL, MID, LARGE)  # 04 §6 and rachna-models README: the writer is general small -> mid -> large
+LADDER = (SMALL, MID, LARGE)  # 04 §6 and docs/model/models README: the writer is general small -> mid -> large
 ROUTE = "rules"               # who picked the model: the fixed ladder, until Jev
 # Gap 16 (vishwa decision 6, Nov 13): a consumer task keeps its riskiest files, to 90% of the team's bug fixes
 # (meridian.context.cut, Chaitali's decision 12), and the rest go in as counts (files_cut, sites_cut). Off only for

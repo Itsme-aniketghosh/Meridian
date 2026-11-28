@@ -1,5 +1,5 @@
 """Diff drafter · stage 6: a swap of each present call site's statement, as `suggestion` rows of kind 'diff'.
-Step "diff drafter" of Model-Pipeline/packets/utkarsh-data. See docs/04-architecture.md §6 and Contract 5.
+Step "diff drafter" of docs/model/data. See docs/04-architecture.md §6 and Contract 5.
 
     python -m meridian.diffs --run-id <run_id> --config meridian.toml           # -> out/<run_id>/suggestion.jsonl
     python -m meridian.diffs --run-id <run_id> --out /tmp/d --url-style re_path        # elsewhere, one url() style

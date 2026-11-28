@@ -1,6 +1,6 @@
 """The gate (step H, Chaitali): may this candidate be registered? Run from Model-Pipeline/, after evaluate and bias.
 
-Reads the four Contract 4 files (packets/README.md) and checks them against model.toml [gate]:
+Reads the four Contract 4 files (docs/model/README.md) and checks them against model.toml [gate]:
 
     inputs      metrics.json, bias_report.json and seed_noise.json are there with every key the gate reads
                 (model/contracts.py). registry/champion.json may be missing: then this is the first model

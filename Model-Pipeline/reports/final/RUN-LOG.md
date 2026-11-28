@@ -1,6 +1,6 @@
 # Final product runs: full log (Nov 14, 03:19–03:37 UTC)
 
-Phase 5 of `packets/aniket-lead/README.md` §6: the champion push, the product on the real block, run 2, the fixture, the charts and the billing check. Each step has its command, what it printed and a PASS / FAIL / WARN / BLOCKED / SKIPPED verdict. The raw output of every command is in `logs/`, with local paths shortened to `<repo>`, `<scratch>` and `~`.
+Phase 5 of `docs/model/lead/README.md` §6: the champion push, the product on the real block, run 2, the fixture, the charts and the billing check. Each step has its command, what it printed and a PASS / FAIL / WARN / BLOCKED / SKIPPED verdict. The raw output of every command is in `logs/`, with local paths shortened to `<repo>`, `<scratch>` and `~`.
 
 **Who, what and where:**
 - **Run by:** Utkarsh, on his Mac (macOS, Apple silicon), with the repo's `.venv` (Python 3.11). Aniket asked him to take these runs (Nov 13).
@@ -113,7 +113,7 @@ Aniket's go-ahead once #122 merged: rebuild `bb6b5f4e` and check its run_id and 
 **Who, what and where:**
 - **Run by:** Rochan, on a Mac (macOS, Apple silicon), with `Data-Pipeline/.venv` and `Model-Pipeline/.venv` (Python 3.11).
 - **Code:** `main` at `33ed598` (Merge #122), a clean checkout, with Chaitali's `llm_bias_live.py` from #121's head (`ab96b22`). #121 merged during the rebuild (`6b466cd`). It added that same script and changed no other code, so these runs hold for main at `6b466cd` too.
-- **Block:** `bb6b5f4e32a4bee7`, rebuilt under `MERIDIAN_DATA=~/meridian-block3` with the steps in `packets/utkarsh-data/gaps.md`. It holds real names, so it isn't in git, and it isn't published.
+- **Block:** `bb6b5f4e32a4bee7`, rebuilt under `MERIDIAN_DATA=~/meridian-block3` with the steps in `docs/model/data/gaps.md`. It holds real names, so it isn't in git, and it isn't published.
 - **LLM guard:** as in step 2. No GCP project and no Slack or SMTP settings in the environment, and `--strict-cache` on.
 
 | # | Step | Verdict |
@@ -146,7 +146,7 @@ LLM cache: 1,353 entries before and after. `git status` afterwards showed no tra
 ### Step 9: LLM bias on the live run — PASS
 
 ```
-cd Data-Pipeline && MERIDIAN_DATA=~/meridian-block3 python ../Model-Pipeline/packets/chaitali-bias/llm_bias_live.py --run-id bb6b5f4e32a4bee7 --calls ../Model-Pipeline/reports/llm_bias_live/live_calls.jsonl
+cd Data-Pipeline && MERIDIAN_DATA=~/meridian-block3 python ../docs/model/bias/llm_bias_live.py --run-id bb6b5f4e32a4bee7 --calls ../Model-Pipeline/reports/llm_bias_live/live_calls.jsonl
 cd Model-Pipeline && python -m model.llm_bias --calls reports/llm_bias_live/live_calls.jsonl --ship gemini-flash --out reports/llm_bias_live
 ```
 - **The replay** (18 s, 0 calls):

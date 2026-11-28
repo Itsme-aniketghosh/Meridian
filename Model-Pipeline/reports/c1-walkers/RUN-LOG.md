@@ -109,7 +109,7 @@ python -m meridian.orchestrator --run-id bb6b5f4e32a4bee7 --config meridian.toml
 | `docs/02-product.md` known issues | open | fixed |
 | `Model-Deployment/PLAN.md` C1 | open | ✓ |
 
-Left as written: the dated logs in `Model-Pipeline/packets/` and `reports/final/RUN-LOG.md`, which record what was true on their dates. Chaitali's LLM bias check (`reports/llm_bias_live/`) still counts the walks as 1 LLM text and 19 templates. Rerunning it from the cache is $0, and it's hers to rerun.
+Left as written: the dated logs in `docs/model/` and `reports/final/RUN-LOG.md`, which record what was true on their dates. Chaitali's LLM bias check (`reports/llm_bias_live/`) still counts the walks as 1 LLM text and 19 templates. Rerunning it from the cache is $0, and it's hers to rerun.
 
 ## 7. Tests
 

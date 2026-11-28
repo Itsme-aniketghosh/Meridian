@@ -1,4 +1,4 @@
-"""Step B: the feature table (packets/README.md, Contract 1). Owner: Utkarsh.
+"""Step B: the feature table (docs/model/README.md, Contract 1). Owner: Utkarsh.
 
 python -m model.data --config model.toml
 
@@ -372,7 +372,7 @@ def schema(df, md5, edges, cfg, latest, block):
         "size_bucket_edges": {"Q1": f"<= {edges[0]:g}", "Q2": f"<= {edges[1]:g}", "Q3": f"<= {edges[2]:g}",
                               "Q4": f"> {edges[2]:g}"},
         "labels": label_counts(df),
-        "notes": "Decisions and label checks: Model-Pipeline/packets/utkarsh-data/decisions.md",
+        "notes": "Decisions and label checks: docs/model/data/decisions.md",
     }
 
 

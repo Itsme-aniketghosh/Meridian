@@ -1,4 +1,4 @@
-"""The product hand-off test (packets/README.md, Integration tests, Nov 9), the diff drafter's part: on the fixture
+"""The product hand-off test (docs/model/README.md, Integration tests, Nov 9), the diff drafter's part: on the fixture
 with the LLM off, the diff drafter gates every LLM line with fact_gate.check and logs each answer with
 tracking.log_llm_call(..., facts_hash=). With the LLM off the answers come from a warm cache (calls with 0 cost). A
 codemod draft isn't an LLM call, so it isn't logged.

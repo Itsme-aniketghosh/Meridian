@@ -4,7 +4,7 @@ Gap 24's rows land in the next block built. Until then, this recomputes file_bug
 own steps) over the block's out/<run_id>/ files, writes them into a scratch copy of the published block, and runs
 meridian.context on the copy. The published block is never written.
 
-    cd Data-Pipeline && python ../Model-Pipeline/packets/chaitali-bias/context_preview.py \
+    cd Data-Pipeline && python ../docs/model/bias/context_preview.py \
         --run-id 70dd1dabfed544b8 --db ../published/70dd1dabfed544b8.sqlite --scratch /tmp/preview.sqlite
 """
 import argparse
@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "Data-Pipeline"))
 from meridian import context, szz  # noqa: E402
 from meridian.common import CONFIG, data_root, handoff, load_config  # noqa: E402
 
-OUT = Path(__file__).resolve().parents[2] / "reports" / "context_cut_preview.json"
+OUT = Path(__file__).resolve().parents[3] / "Model-Pipeline" / "reports" / "context_cut_preview.json"
 
 
 def jsonl(path):

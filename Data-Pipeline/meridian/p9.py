@@ -5,7 +5,7 @@ alone. It uses the model only through decision 15b's rule (Model-Pipeline/model/
 alert when the model's risk AND lines × files are both over their cutoffs, the cutoffs picked on val. When that rule
 was adopted (reports/p9_rule.json "adopted": its val precision reached 0.80), the champion named by
 Model-Pipeline/registry/champion.json is the model the rule was measured on (same md5), its model file is next to it
-with that md5, and it loads, P9 scores the push with it: the push's Contract 1 features (Model-Pipeline packets/
+with that md5, and it loads, P9 scores the push with it: the push's Contract 1 features (docs/model/
 README.md) computed from the base block the way model/data.py computes them. Otherwise P9 is lines × files above
 [push_check] defect_risk_threshold, as before. When a champion and an adopted rule were named but couldn't be used, the
 finding says why; a rule that wasn't adopted is today's rule by design, with nothing to explain.

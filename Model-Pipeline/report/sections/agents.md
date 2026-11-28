@@ -5,7 +5,7 @@ Everything a person reads in Meridian comes from the block's facts. The rules de
 - The committed cache makes every rerun free and identical.
 - The views show the result.
 
-Every decision below had its test and its rule written before its run ([decisions.md](decisions.md)), with one exception, noted under Limits.
+Every decision below had its test and its rule written before its run ([decisions.md](../../../docs/model/agents/decisions.md)), with one exception, noted under Limits.
 
 This section covers the guideline row shared here (PLAN §12): the note on pretrained models, which asks for validation, bias detection and tracking for the LLMs. The writer's part of it is below. The gate is the validation, the LLM bias check slices its fallback rate, and every call is tracked in MLflow. The diff drafter's part is in the data section, Jev's in the model section, and the LLM bias results in the bias section.
 

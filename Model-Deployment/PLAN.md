@@ -151,7 +151,7 @@ Critical path: S1 → S2 deployed → S3 → S8. S2 and S5 start on day 1 with n
 
 ## 8. Roles
 
-Each person's steps, dates, checklist and "done when" are in [packets/](packets/README.md), with the contracts between the pieces (D1–D5).
+Each person's steps, dates, checklist and "done when" are in [docs/deployment/](../docs/deployment/README.md), with the contracts between the pieces (D1–D5).
 
 | Who | Work | Days |
 |---|---|---:|

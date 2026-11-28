@@ -1,6 +1,6 @@
 # Validation, tracking, the registry and the auditor
 
-This section covers the guideline rows owned here (PLAN §12): validation on held-out data (§2.3, §8.4), experiment tracking (§4, with the training owner), the charts that compare the models (§4), the registry push to GCP (§2.6, §8.7), the automatic push after the gate (§7.4, with the CI owner), and rollback (§7.6). It ends with the auditor, the part of the product that learns which stall reasons to show first. Every number carries its N and its source. The choices behind them, each with the rule that picked it, are in `packets/rochan-tracking/decisions.md`; the bars they're held to are in `pass-bars.md`.
+This section covers the guideline rows owned here (PLAN §12): validation on held-out data (§2.3, §8.4), experiment tracking (§4, with the training owner), the charts that compare the models (§4), the registry push to GCP (§2.6, §8.7), the automatic push after the gate (§7.4, with the CI owner), and rollback (§7.6). It ends with the auditor, the part of the product that learns which stall reasons to show first. Every number carries its N and its source. The choices behind them, each with the rule that picked it, are in `docs/model/tracking/decisions.md`; the bars they're held to are in `pass-bars.md`.
 
 ## 1. Validation on held-out data (§2.3, §8.4)
 

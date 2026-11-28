@@ -1,6 +1,6 @@
 # The defect-risk model
 
-The push check's P9 asks one question of every push: is this commit likely to introduce a bug? Today's rule is lines × files (lines changed times files changed). The model pipeline asked whether a trained model answers it better. Every choice below was written down, with the rule that picks it, before its run ([decisions.md](decisions.md)). The 2024 test year was never read by any of it.
+The push check's P9 asks one question of every push: is this commit likely to introduce a bug? Today's rule is lines × files (lines changed times files changed). The model pipeline asked whether a trained model answers it better. Every choice below was written down, with the rule that picks it, before its run ([decisions.md](../../../docs/model/models/decisions.md)). The 2024 test year was never read by any of it.
 
 ## Data and split
 

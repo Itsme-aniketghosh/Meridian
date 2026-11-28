@@ -185,7 +185,7 @@ Left: 25 texts the gate rejects. 14 are right, all line lists written without th
 
 ### Decision 6 (Nov 13): switch on the context builder (GAPS.md gap 16)
 
-Chaitali's decision 12 (`packets/chaitali-bias/decisions.md`, Nov 13) set the rule before it was computed, and left switching on to the writer's owner because it changes every consumer cache key: recommend switching on if, over the teams with any bug fix, the ranking keeps at least 90% of their bug fixes and beats a random order with the same number of files by at least 10 points.
+Chaitali's decision 12 (`docs/model/bias/decisions.md`, Nov 13) set the rule before it was computed, and left switching on to the writer's owner because it changes every consumer cache key: recommend switching on if, over the teams with any bug fix, the ranking keeps at least 90% of their bug fixes and beats a random order with the same number of files by at least 10 points.
 
 **Result it rests on.** Utkarsh's rerun of `meridian.context` on `bb6b5f4e32a4bee7`, the first block built with gap 24's history: **96.4%** of bug fixes kept with 35% of the files, against **72.7%** for the random order. That's +23.7 points, so it passes both parts. `bb6b5f4e` holds real names and isn't in git, so I checked it on the same snapshot's other build instead. Chaitali's `context_preview.py` on `70dd1dab`, with gap 24's history added to a scratch copy, gives exactly Utkarsh's numbers with today's code: 68 consumer tasks, 36 cut, 127 of 367 files, 495 of 1,526 sites, **96.4%** of bug fixes kept, random 72.7%. Her Nov 13 preview said random 73.3%, before `files_n` joined the facts.
 

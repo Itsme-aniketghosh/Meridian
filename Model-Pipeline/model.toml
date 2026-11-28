@@ -1,11 +1,11 @@
-# Model pipeline config (packets/README.md, Contract 2). [data], [split] and [seed] are fixed keys.
+# Model pipeline config (docs/model/README.md, Contract 2). [data], [split] and [seed] are fixed keys.
 # Each owner adds their own section below: [search.*] (Rachna), [eval] and [registry] (Rochan), [bias] and [gate] (Chaitali).
 
 [data]
 run_id = "c5118b019d642a9b"        # the block the table was built from
 window_days = 365                  # Utkarsh's decision 1 can change this, by Nov 6
 follow_up_end = "2025-10-01T00:00:00Z"
-# Utkarsh's keys (packets/utkarsh-data/decisions.md)
+# Utkarsh's keys (docs/model/data/decisions.md)
 start_year = 2015                  # decision 2: the first year with rows
 repo = "apache/spark"
 prior_fix_days = 365               # prior_bug_fixes looks back this far
@@ -19,7 +19,7 @@ test_allowed = false               # Aniket flips it on Nov 12, once
 [seed]
 value = 1
 
-# Rochan's keys: evaluate.py (packets/rochan-tracking/decisions.md, decisions 2-4)
+# Rochan's keys: evaluate.py (docs/model/tracking/decisions.md, decisions 2-4)
 [eval]
 bootstrap_reps = 2000              # decision 4: the smallest stable size of 500, 1,000 and 2,000
 interval = 0.95                    # bootstrap intervals from 2.5% to 97.5%
@@ -30,7 +30,7 @@ threshold_precision = 0.8          # PLAN §4's push-check bar
 threshold_min_alerts = 30          # 05-test: no claim below N = 30
 threshold_alert_rate = 0.154       # the share of val commits today's P9 rule flags (decision 3)
 
-# Chaitali's keys: bias.py (packets/chaitali-bias/decisions.md)
+# Chaitali's keys: bias.py (docs/model/bias/decisions.md)
 [bias]
 slices = ["module", "component", "exp_bucket", "size_bucket"]   # decision 1
 min_n = 30                         # judged when the count a metric is a share of reaches this (phase 1, 05-test)
@@ -39,18 +39,18 @@ power_gap = 0.15                   # each slice reports its chance of flagging a
 pool_below = 30                    # decision 1: groups under this many rows merge into "(other)" (0: never)
 baseline = "lines_x_files"         # decision 4: compared with the candidate at the same alert rate
 # Flagged slices with a mitigation tried and written down ("<slice>:<metric>"). These five: the forest, the final pick,
-# decision 5 on Nov 9 (packets/chaitali-bias/decisions.md): no option closes half the gap within the rule's costs
+# decision 5 on Nov 9 (docs/model/bias/decisions.md): no option closes half the gap within the rule's costs
 accepted = ["size_bucket=Q2:recall", "size_bucket=Q2:pr_auc", "size_bucket=Q3:recall", "size_bucket=Q3:pr_auc",
             "size_bucket=Q4:fpr"]
 
-# Chaitali's keys: gate.py (packets/chaitali-bias/decisions.md, decision 6). Every number the gate uses
+# Chaitali's keys: gate.py (docs/model/bias/decisions.md, decision 6). Every number the gate uses
 [gate]
 split = "val"                      # CI never reads 2024
 reference = "lines_x_files"        # the bar: the candidate's PR-AUC beats this baseline's ...
 min_lift = 0.0                     # ... by more than this
 noise_sds = 2.83                   # decision 6: below the champion by more than 2√2 seed-noise sd fails (2 sd of a difference)
 
-# Rochan's keys: registry.py (packets/rochan-tracking, section G)
+# Rochan's keys: registry.py (docs/model/tracking, section G)
 [registry]
 name = "defect-risk"               # the MLflow registered model
 rule = "noise"                     # decision 6: promote on a gain above noise_sds sds of seed noise ("any": any gain)
@@ -66,5 +66,5 @@ pointer = "champion"               # its newest version holds the champion.json 
 [llm_bias]
 # Flagged slices with a fix tried and written down ("<rate>:<slice>"). Both: Utkarsh's decision 11 scored every url()
 # style on all 20 packages (best single style 49.5%, each repo's own best about 68%), and the LLM path can add at most
-# 20 lines (packets/utkarsh-data/diffs.md)
+# 20 lines (docs/model/data/diffs.md)
 accepted = ["match:repo=oscar", "match:repo=(other)"]

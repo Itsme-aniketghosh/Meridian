@@ -5,7 +5,7 @@ calls) and agents.run's log appending each answer's row to --calls, as agents --
 has no --calls, and the code is frozen, so this lives here. Then: python -m model.llm_bias --calls <that file>.
 
     cd Data-Pipeline && MERIDIAN_DATA=~/meridian-block3 \
-        python ../Model-Pipeline/packets/chaitali-bias/llm_bias_live.py --run-id bb6b5f4e32a4bee7 --calls /tmp/live_calls.jsonl
+        python ../docs/model/bias/llm_bias_live.py --run-id bb6b5f4e32a4bee7 --calls /tmp/live_calls.jsonl
 """
 import argparse
 import sqlite3

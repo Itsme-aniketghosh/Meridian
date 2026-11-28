@@ -4,7 +4,7 @@
     python -m meridian.auditor --run-id R2 --db /tmp/fixture.sqlite --at 2026-10-01T00:00:00Z
     python -m meridian.auditor --run-id <run_id> --write     # also out/<run_id>/policy.jsonl and match.jsonl
 
-Two jobs (packets/rochan-tracking, step P). The stall job ranks why each stalled team stalled: policy v0 and a first
+Two jobs (docs/model/tracking, step P). The stall job ranks why each stalled team stalled: policy v0 and a first
 challenger, ε-greedy, the verdict rules, live and replay matches, Elo and the promotion guard. The explore job
 nominates unfiled legacy code: policy v0. It reads a block. With --write it also writes the policy and match rows the
 next writer run loads.

@@ -7,7 +7,7 @@
 
 The key covers everything the answer depends on, so the cache can never serve text written for other facts, another
 prompt or another model. An entry keeps the model's raw reply, not the text that shipped: the writer gates it again
-on every run, so a stricter gate also re-checks every cached answer (vishwa-agents decisions, the writer).
+on every run, so a stricter gate also re-checks every cached answer (docs/model/agents decisions, the writer).
 
 Entries are written sorted, with '\\n' endings, so the same answer is the same bytes on every OS.
 """

@@ -1,6 +1,6 @@
 # The 2024 run: full log (Nov 14, 01:57 UTC)
 
-Every step of `packets/rochan-tracking/RUN-2024.md`, in order: the command, what it printed, and PASS / FAIL / WARN. Nothing is left out.
+Every step of `docs/model/tracking/RUN-2024.md`, in order: the command, what it printed, and PASS / FAIL / WARN. Nothing is left out.
 
 **Who and why:**
 - **Run by:** Utkarsh, on his Mac (macOS, Apple silicon), from `Model-Pipeline/` with the repo's `.venv` (Python 3.11).
@@ -75,7 +75,7 @@ MLflow run 4d107a397eab41528e9396ab2480648b in meridian-defect-risk
 | reports/llm_bias.json | 420af9371f3ab28f9bf71c29eb348803 |
 
 ## Step 7: commit and hand over
-- Committed on `run-2024`: `reports/2024/` (the two scores CSVs with `git add -f`), `golden/2024.json`, the results in `packets/rochan-tracking/pass-bars.md` ("Evaluation, Nov 14 (2024, once)"), and this log.
+- Committed on `run-2024`: `reports/2024/` (the two scores CSVs with `git add -f`), `golden/2024.json`, the results in `docs/model/tracking/pass-bars.md` ("Evaluation, Nov 14 (2024, once)"), and this log.
 - `test_allowed` set back to `false` in the same branch, in its own commit.
 - Pushed. **Aniket opens the PR and merges it** (the checklist's step). After that, Aniket's final product runs.
 

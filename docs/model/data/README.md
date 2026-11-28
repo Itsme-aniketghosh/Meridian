@@ -34,9 +34,9 @@ flowchart LR
 - [Data-Pipeline/README.md](../../../Data-Pipeline/README.md): how to run each part
 - [CONTRACTS.md](../../../Data-Pipeline/CONTRACTS.md), [schema.sql](../../../Data-Pipeline/schema.sql), [JOIN.md](../../../Data-Pipeline/JOIN.md): `--prev-run` and `removed` rows
 - [KNOWLEDGE-BASE.md](../../../Data-Pipeline/KNOWLEDGE-BASE.md): the tracking-table DDL
-- [04-architecture §6](../../../docs/04-architecture.md): the diff rules
+- [04-architecture §6](../../04-architecture.md): the diff rules
 - [week1/pair1](../../../week1/pair1/README.md), [week1/pair2](../../../week1/pair2/README.md), [week1/pair3](../../../week1/pair3/README.md): Django's edit set, Spark's quirks, the package migrations
-- [packets/README.md](../README.md): Contract 1 is yours; Contract 5 for the diff drafter
+- [docs/model/README.md](../README.md): Contract 1 is yours; Contract 5 for the diff drafter
 
 ## A. Rebuild the team run
 
@@ -59,7 +59,7 @@ From `Data-Pipeline/`, in the `meridian` conda env (Python 3.11), about 6 GB of 
 ## K. Tracking tables
 
 - [x] Move `suggestion`, `outcome`, `push_alert` from KNOWLEDGE-BASE.md's tested DDL into `schema.sql`. Add `agent`, `model`, `route` to `suggestion` (03-data names them; Contract 5 needs them)
-- [x] Draft `policy` (policy_id, job, version, author, created_at) and `match` (match_id, task_id, policy_a, policy_b, result, verdict_source, decided_by, decided_at) from [03-data](../../../docs/03-data.md), with Rochan
+- [x] Draft `policy` (policy_id, job, version, author, created_at) and `match` (match_id, task_id, policy_a, policy_b, result, verdict_source, decided_by, decided_at) from [03-data](../../03-data.md), with Rochan
 - [x] `meridian/writer.py` and `validate.py` accept them. Empty tables validate
 - [x] KNOWLEDGE-BASE.md's `outcome_*` queries still pass in `tests/test_kb.py`
 
@@ -75,7 +75,7 @@ From `Data-Pipeline/`, in the `meridian` conda env (Python 3.11), about 6 GB of 
 
 `python -m meridian.diffs --run-id <id> --config meridian.toml` drafts a one-line swap for each present call site, and writes each as a `suggestion` row of kind `diff` (Contract 5).
 
-- [x] The codemod first: a rename rule per symbol from `meridian.toml` (`ugettext` → `gettext`, `url` → `re_path` or `path`), learned from the owner's earlier migrations where there are any ([04-architecture §6](../../../docs/04-architecture.md))
+- [x] The codemod first: a rename rule per symbol from `meridian.toml` (`ugettext` → `gettext`, `url` → `re_path` or `path`), learned from the owner's earlier migrations where there are any ([04-architecture §6](../../04-architecture.md))
 - [x] The LLM path only when the codemod can't, there are 2 or more same-shape examples, and the site isn't inside `except`. It goes through Vishwa's cache and fact gate, and Rochan's `log_llm_call`
 - [x] Every draft must apply, parse, touch only its own line, and resolve to the new symbol (the resolver from phase 1). Otherwise no diff — "its own statement" since decision 14 (`--one-line` keeps the line rule); needs Aniket's OK on PASS-BARS §2.5
 - [x] Tested against run 2: drafted from c5118's lines, compared with the real after-lines at the migration commits
