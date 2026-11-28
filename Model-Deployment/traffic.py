@@ -3,11 +3,13 @@
 deploy.yml asks two things, each as lines for $GITHUB_OUTPUT:
 - tagged: the revision a tag points at (the new, no-traffic revision), its tag URL and its share of traffic
 - serving: the revisions that carry traffic now, by name (a "latest" entry is resolved to the latest ready
-  revision), and the one with the most; with --expect, it fails unless that revision carries 100%
+  revision), and the one with the most; with --expect, it fails unless that revision carries 100% (or --percent,
+  the canary's share)
 
     python Model-Deployment/traffic.py tagged service.json c-85b4684ae336
     python Model-Deployment/traffic.py serving before.json --key previous
     python Model-Deployment/traffic.py serving after.json --key serving --expect meridian-risk-00002-abc
+    python Model-Deployment/traffic.py serving canary.json --key canary --expect meridian-risk-00002-abc --percent 10
 """
 import argparse
 import json
@@ -60,7 +62,8 @@ def main(argv=None):
     s = sub.add_parser("serving")
     s.add_argument("service_json")
     s.add_argument("--key", default="serving", help="the output's name")
-    s.add_argument("--expect", help="fail unless this revision carries 100%%")
+    s.add_argument("--expect", help="fail unless this revision carries --percent of traffic")
+    s.add_argument("--percent", type=int, default=100, help="the share --expect must carry (default 100)")
     a = ap.parse_args(argv)
     try:
         st = status(a.service_json)
@@ -72,8 +75,9 @@ def main(argv=None):
             top = max(shares, key=shares.get) if shares else ""
             lines = [f"{a.key}={describe(shares)}", f"{a.key}_revision={top}"]
             if a.expect:
-                if shares.get(a.expect) != 100:
-                    raise TrafficError(f"{a.expect} should carry 100% of traffic; the service says {describe(shares)}")
+                if shares.get(a.expect, 0) != a.percent:
+                    raise TrafficError(f"{a.expect} should carry {a.percent}% of traffic; the service says "
+                                       f"{describe(shares)}")
                 lines.append(f"url={st.get('url', '')}")
     except (TrafficError, OSError, ValueError) as e:
         sys.exit(f"traffic: {e}")
