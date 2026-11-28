@@ -87,10 +87,14 @@ def main(argv=None, sender=send):
     ap.add_argument("--health", default="", help="/health's status after a rollback")
     ap.add_argument("--step", default="", help="the step that failed before any traffic moved")
     ap.add_argument("--run-url", required=True, help="the workflow run")
+    ap.add_argument("--planted", default="", help="a planted test's kind (plant.py): said in the subject")
     ap.add_argument("--github-output", type=Path, help="append slack_sent=<channels>")
     a = ap.parse_args(argv)
 
-    subject, lines = no_people(*message(a.kind, a))
+    subject, lines = message(a.kind, a)
+    if a.planted:
+        subject = f"[planted test: {a.planted}] {subject}"
+    subject, lines = no_people(subject, lines)
     sent = sender(subject, lines, EVENT.get(a.kind, "failure"))
     print("\n".join([subject, *lines]))
     print(f"notify: {a.kind} sent to {', '.join(sent) or 'no channel (logged only)'}")
