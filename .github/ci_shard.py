@@ -16,7 +16,41 @@ from fnmatch import fnmatch
 from pathlib import Path
 
 DEFAULT = 2
-WEIGHTS = {  # seconds on windows-latest
+WEIGHTS = {  # seconds on windows-latest (PR #185, Nov 28), the modules of 3 s or more
+    "Data-Pipeline:tests.test_cache": 7,
+    "Data-Pipeline:tests.test_collect": 20,
+    "Data-Pipeline:tests.test_history": 12,
+    "Data-Pipeline:tests.test_join": 3,
+    "Data-Pipeline:tests.test_owners": 4,
+    "Data-Pipeline:tests.test_p9": 4,
+    "Data-Pipeline:tests.test_publish": 5,
+    "Data-Pipeline:tests.test_resolve": 10,
+    "Data-Pipeline:tests.test_szz": 5,
+    "Data-Pipeline:tests.test_tracking": 5,
+    "Data-Pipeline:tests.test_validate": 16,
+    "Data-Pipeline:tests.test_views": 3,
+    "Model-Pipeline:tests.faults.test_fault_01_shuffled_labels": 3,
+    "Model-Pipeline:tests.faults.test_fault_02_size_only": 3,
+    "Model-Pipeline:tests.faults.test_fault_05_wrong_block": 11,
+    "Model-Pipeline:tests.faults.test_fault_06_same_config_twice": 17,
+    "Model-Pipeline:tests.faults.test_fault_07_worse_model": 8,
+    "Model-Pipeline:tests.faults.test_fault_08_within_noise": 9,
+    "Model-Pipeline:tests.faults.test_fault_12_slack_down": 3,
+    "Model-Pipeline:tests.test_bias": 15,
+    "Model-Pipeline:tests.test_cli": 8,
+    "Model-Pipeline:tests.test_contracts_rachna": 4,
+    "Model-Pipeline:tests.test_evaluate": 13,
+    "Model-Pipeline:tests.test_gate": 37,
+    "Model-Pipeline:tests.test_models": 11,
+    "Model-Pipeline:tests.test_parallel": 33,
+    "Model-Pipeline:tests.test_pick": 3,
+    "Model-Pipeline:tests.test_registry": 21,
+    "Model-Pipeline:tests.test_retrain": 45,
+    "Model-Pipeline:tests.test_save_model": 4,
+    "Model-Pipeline:tests.test_seed_noise": 15,
+    "Model-Pipeline:tests.test_sensitivity": 11,
+    "Model-Pipeline:tests.test_tracking": 3,
+    "Model-Pipeline:tests.test_tune": 3,
 }
 
 
